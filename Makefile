@@ -15,8 +15,9 @@ ingest:
 	@test -n "$(CORPUS)" || { echo "usage: make ingest CORPUS=jaffle_shop"; exit 1; }
 	uv run dlens ingest corpora/$(CORPUS)
 
+# Dev-set report on local Ollama; the LLM cache in eval/cache makes re-runs free (no quota).
 eval-smoke:
-	@echo "eval-smoke: not implemented yet"
+	DLENS_PROVIDER=ollama DLENS_CACHE_DIR=eval/cache uv run python scripts/dev_report.py
 
 eval-full:
 	@echo "eval-full spends free cloud quota. Check the quota counter first."
