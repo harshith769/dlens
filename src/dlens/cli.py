@@ -1,11 +1,18 @@
 """DLens command-line entry point."""
 
+import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from dlens import __version__
+from dlens.agent.answer import render as render_answer
+from dlens.agent.llm import make_client
+from dlens.agent.loop import AgentRun
+from dlens.agent.loop import ask as run_agent
+from dlens.agent.runlog import RunLogger, runs_dir
+from dlens.agent.tools import Toolbox
 from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, load_or_build
 from dlens.graph.render import render_impact, render_report, render_trace
 from dlens.graph.report import build_report
@@ -105,3 +112,75 @@ def report(
         raise typer.Exit(1) from e
     r = build_report(graph)
     typer.echo(r.model_dump_json(indent=2) if as_json else render_report(r))
+
+
+def trace_summary(run: AgentRun) -> dict[str, object]:
+    rec = run.record
+    results = [r for s in rec.steps for r in s.results]
+    return {
+        "llm_calls": rec.llm_calls,
+        "tool_calls": sum(not r.deduped for r in results),
+        "deduped": sum(r.deduped for r in results),
+        "code_calls": sum(s.phase == "code" for s in rec.steps),
+        "max_input_tokens_est": rec.tokens.get("max_est_input", 0),
+        "cached_calls": rec.tokens.get("cached_calls", 0),
+        "compactions": len(rec.compactions),
+        "partial_evidence": run.answer.partial_evidence,
+        "ambiguity": (rec.ambiguity or {}).get("mode"),
+        "stop_reason": rec.stop_reason,
+        "validator": "stub" if (rec.validation or {}).get("stub") else "on",
+        "log": str(run.log_path) if run.log_path else None,
+    }
+
+
+def render_trace_line(t: dict[str, object]) -> str:
+    tools = f"{t['tool_calls']} tools, {t['deduped']} deduped"
+    if t["code_calls"]:
+        tools += f", {t['code_calls']} by code"
+    parts = [
+        f"steps {t['llm_calls']} ({tools})",
+        f"max input ~{t['max_input_tokens_est']:,} tok",
+        f"cached {t['cached_calls']}/{t['llm_calls']}",
+        f"compactions {t['compactions']}",
+        f"partial {'yes' if t['partial_evidence'] else 'no'}",
+    ]
+    if t["ambiguity"]:
+        parts.append(f"ambiguity {t['ambiguity']}")
+    parts += [f"validator: {t['validator']}", f"log: {t['log']}"]
+    return " · ".join(parts)
+
+
+@app.command("ask")
+def ask_cmd(
+    question: Annotated[str, typer.Argument(help="A lineage question in plain English.")],
+    project: ProjectOpt = Path("."),
+    provider: Annotated[
+        str | None,
+        typer.Option("--provider", help="LLM provider (default: $DLENS_PROVIDER or ollama)."),
+    ] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="Machine-readable output.")] = False,
+    rebuild: RebuildOpt = False,
+) -> None:
+    """Answer QUESTION with cited lineage evidence (agent loop; logs one JSONL draft record)."""
+    try:
+        graph = load_or_build(project, rebuild=rebuild)
+    except DbtError as e:
+        typer.echo(f"graph build failed: {e}", err=True)
+        raise typer.Exit(1) from e
+    try:
+        client = make_client(provider)
+    except ValueError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from e
+    run = run_agent(
+        question, client, Toolbox(graph, project), RunLogger(runs_dir()), project=str(project)
+    )
+    trace = trace_summary(run)
+    if as_json:
+        typer.echo(
+            json.dumps({"answer": run.answer.model_dump(mode="json"), "trace": trace}, indent=2)
+        )
+        return
+    typer.echo(render_answer(run.answer))
+    typer.echo("")
+    typer.echo(render_trace_line(trace))
