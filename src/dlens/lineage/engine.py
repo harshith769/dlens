@@ -49,6 +49,7 @@ class _ModelLineage:
     )  # (upstream column id, output column, steps, confidence, branch)
     gaps: list[str] = field(default_factory=list)
     deferred: list[tuple[str, str]] = field(default_factory=list)  # (upstream id, output col)
+    constants: list[str] = field(default_factory=list)  # outputs with no input column at all
 
 
 def topological_models(ingest: IngestResult) -> list[DbtNode]:
@@ -113,11 +114,19 @@ def _has_column(schema: SqlglotSchema, relation: str, column: str) -> bool | Non
     return None if table is None else column.lower() in table
 
 
+def _is_constant(leaf: Node) -> bool:
+    """A leaf projection that reads no column (``'usd' AS currency``, ``current_timestamp``)."""
+    expr = leaf.expression
+    return not isinstance(expr, exp.Table | exp.Placeholder) and expr.find(exp.Column) is None
+
+
 def _resolve_leaf(
     path: _Path, ingest: IngestResult
 ) -> tuple[list[tuple[str, Confidence]], str | None]:
-    """Upstream column ids for a leaf, or a gap description."""
+    """Upstream column ids for a leaf, or a gap description. Constants give neither."""
     leaf = path.leaf
+    if _is_constant(leaf):
+        return [], None
     col = leaf.name.split(".")[-1].replace('"', "").lower()
     if isinstance(leaf.expression, exp.Table):
         rel = _table_name(leaf.expression)
@@ -164,7 +173,8 @@ def lineage_for_sql(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> 
                     if uid:
                         out.deferred.append((column_id(uid, leaf.name.split(".")[-1]), output))
         if not found and not any(g.startswith(f"{output} <-") for g in out.gaps):
-            out.gaps.append(f"{output}: no upstream column (literal?)")
+            # Every path ended in a constant: recorded, not a gap (the column is fully parsed).
+            out.constants.append(output)
     return out
 
 
@@ -241,6 +251,7 @@ def extract_lineage(
             quality=ParseQuality.TABLE_ONLY if raw.gaps else ParseQuality.FULL,
             reason="; ".join(raw.gaps) if raw.gaps else None,
             gaps=raw.gaps,
+            constants=sorted({c.lower() for c in raw.constants}),
             deferred_indirect=deferred,
         )
     return LineageResult(edges=edges, depends_on=depends_on, parse_report=report)

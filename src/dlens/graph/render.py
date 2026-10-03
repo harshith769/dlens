@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from dlens.graph.graph import LineageGraph
 from dlens.graph.models import ImpactResult, PathList
+from dlens.graph.report import Report
 from dlens.lineage import Confidence, Edge
 
 EXPR_WIDTH = 60
@@ -88,3 +89,33 @@ def render_impact(g: LineageGraph, r: ImpactResult, max_depth: int) -> str:
     if r.truncated:
         lines.append(f"warning: stopped at --depth {max_depth}; more columns lie downstream")
     return "\n".join(lines)
+
+
+def render_report(report: Report) -> str:
+    """Per-model quality (problems first, with reasons and gaps), then totals."""
+    t = report.totals
+    order = {"FAILED": 0, "TABLE_ONLY": 1, "FULL": 2}
+    models = sorted(report.models, key=lambda m: (order[m.quality], m.model))
+    width = max((len(_short_model(m.model)) for m in models), default=0)
+    lines = ["Parse quality per model:"]
+    for m in models:
+        extra = f"  ({len(m.constants)} constant column(s))" if m.constants else ""
+        lines.append(f"  {_short_model(m.model):<{width}}  {m.quality}{extra}")
+        if m.quality == "FAILED" and m.reason:
+            lines.append(f"      reason: {_expr(m.reason)}")
+        lines += [f"      gap: {g}" for g in m.gaps]
+    q = t.models_by_quality
+    lines += [
+        "",
+        f"Models: {q['FULL']} FULL, {q['TABLE_ONLY']} TABLE_ONLY, {q['FAILED']} FAILED",
+        f"Edges: {t.edges}  (" + ", ".join(f"{k} {n}" for k, n in t.edges_by_kind.items()) + ")",
+        f"Model-level citations: {t.model_level_citations}",
+        f"Low-confidence edges: {t.low_confidence_edges}",
+        f"Deferred indirect (window keys, v0.3): {t.deferred_indirect}",
+        f"Constant columns (no edges): {t.constants}",
+    ]
+    return "\n".join(lines)
+
+
+def _short_model(unique_id: str) -> str:
+    return unique_id.split(".")[-1]

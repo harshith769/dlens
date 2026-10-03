@@ -7,7 +7,8 @@ import typer
 
 from dlens import __version__
 from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, load_or_build
-from dlens.graph.render import render_impact, render_trace
+from dlens.graph.render import render_impact, render_report, render_trace
+from dlens.graph.report import build_report
 from dlens.ingest import DbtError
 from dlens.ingest import ingest as run_ingest
 
@@ -88,3 +89,19 @@ def impact(
     """Show what COLUMN feeds: downstream columns, models and exposures."""
     graph, col = _open_graph(project, column, rebuild)
     typer.echo(render_impact(graph, graph.downstream(col, max_depth=depth), depth))
+
+
+@app.command()
+def report(
+    project: ProjectOpt = Path("."),
+    as_json: Annotated[bool, typer.Option("--json", help="Machine-readable output.")] = False,
+    rebuild: RebuildOpt = False,
+) -> None:
+    """Parse quality per model (FULL / TABLE_ONLY / FAILED) with gaps, and edge totals."""
+    try:
+        graph = load_or_build(project, rebuild=rebuild)
+    except DbtError as e:
+        typer.echo(f"graph build failed: {e}", err=True)
+        raise typer.Exit(1) from e
+    r = build_report(graph)
+    typer.echo(r.model_dump_json(indent=2) if as_json else render_report(r))

@@ -119,6 +119,10 @@ class LineageGraph:
         e: Edge = self._g.edges[from_column, to_column]["edge"]
         return e
 
+    def edges(self) -> list[Edge]:
+        """Every DERIVES edge, sorted by (from, to)."""
+        return [self.edge(u, v) for u, v in sorted(self._g.edges)]
+
     def depends_on(self) -> list[tuple[str, str]]:
         return list(self._depends_on)
 

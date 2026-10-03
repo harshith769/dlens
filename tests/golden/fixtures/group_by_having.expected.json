@@ -1,0 +1,21 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.total",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [
+    "n"
+  ],
+  "deferred": [],
+  "notes": "HAVING tax is no edge; count(*) reads no column, so it is recorded like a constant",
+  "partial": "GROUP BY and HAVING keys are not captured (GROUP_BY/FILTER edges are v0.3)"
+}

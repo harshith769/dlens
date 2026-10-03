@@ -1,0 +1,23 @@
+{
+  "edges": [
+    {
+      "from": "employees.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "employees.name",
+      "to": "m.employee",
+      "kind": "RENAME"
+    },
+    {
+      "from": "employees.name",
+      "to": "m.manager",
+      "kind": "RENAME"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": ""
+}

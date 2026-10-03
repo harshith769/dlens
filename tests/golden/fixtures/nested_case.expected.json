@@ -1,0 +1,28 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.bucket",
+      "kind": "TRANSFORMATION"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.bucket",
+      "kind": "TRANSFORMATION"
+    },
+    {
+      "from": "orders.tax",
+      "to": "m.bucket",
+      "kind": "TRANSFORMATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "CASE conditions are direct (they decide the value)"
+}

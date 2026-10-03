@@ -1,0 +1,18 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.total_plus",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": ""
+}

@@ -1,0 +1,17 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [
+    "currency",
+    "loaded_at",
+    "two"
+  ],
+  "deferred": [],
+  "notes": "constants have no edges and are recorded in ModelParse.constants, not gaps"
+}

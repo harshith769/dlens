@@ -1,0 +1,27 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.running_amt",
+      "kind": "TRANSFORMATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [
+    [
+      "orders.order_date",
+      "m.running_amt"
+    ],
+    [
+      "orders.user_id",
+      "m.running_amt"
+    ]
+  ],
+  "notes": "windowed aggregate keeps the row grain; keys are deferred WINDOW"
+}

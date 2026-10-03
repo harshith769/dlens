@@ -1,0 +1,23 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.order_id",
+      "kind": "RENAME"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.total",
+      "kind": "TRANSFORMATION"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": ""
+}

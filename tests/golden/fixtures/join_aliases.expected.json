@@ -1,0 +1,29 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.order_id",
+      "kind": "RENAME"
+    },
+    {
+      "from": "customers.name",
+      "to": "m.customer_name",
+      "kind": "RENAME"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amt",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "customers.region",
+      "to": "m.region",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "join keys o.user_id / c.id are not direct edges (JOIN is v0.3)",
+  "partial": "join keys are not captured (JOIN edges are v0.3)"
+}

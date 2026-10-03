@@ -1,0 +1,43 @@
+{
+  "edges": [
+    {
+      "from": "order_items.order_id",
+      "to": "m.order_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.product_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "order_items.qty",
+      "to": "m.qty",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "order_items.price",
+      "to": "m.price",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "products.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "products.title",
+      "to": "m.title",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "products.list_price",
+      "to": "m.list_price",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "tables share no column names; duplicate names across a star join are out of scope"
+}

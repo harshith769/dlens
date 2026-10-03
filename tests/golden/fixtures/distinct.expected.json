@@ -1,0 +1,18 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.order_status",
+      "kind": "RENAME"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": ""
+}

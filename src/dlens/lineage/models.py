@@ -61,6 +61,8 @@ class ModelParse(BaseModel):
     quality: ParseQuality
     reason: str | None = None
     gaps: list[str] = Field(default_factory=list)
+    constants: list[str] = Field(default_factory=list)
+    """Output columns that read no input column (literals, ``current_timestamp``). Not gaps."""
     deferred_indirect: list[DeferredIndirect] = Field(default_factory=list)
 
 

@@ -1,0 +1,38 @@
+{
+  "edges": [
+    {
+      "from": "payments.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "refunds.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "payments.pay_amt",
+      "to": "m.amount",
+      "kind": "RENAME"
+    },
+    {
+      "from": "refunds.refund_amt",
+      "to": "m.amount",
+      "kind": "TRANSFORMATION"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amount",
+      "kind": "RENAME"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "each branch has its own kind: the UNION node is not a step"
+}

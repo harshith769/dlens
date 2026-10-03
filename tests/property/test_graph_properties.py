@@ -88,12 +88,19 @@ def test_every_edge_endpoint_is_a_catalog_column(synthetic_graph: LineageGraph) 
 
 
 @pytest.mark.integration
-def test_every_model_column_has_an_upstream(synthetic_graph: LineageGraph) -> None:
+def test_every_model_column_has_an_upstream_or_is_a_recorded_constant(
+    synthetic_graph: LineageGraph,
+) -> None:
     g = synthetic_graph.nx_graph
+    constants = {
+        (uid, name) for uid, p in synthetic_graph.parse_details().items() for name in p.constants
+    }  # recorded constants ('usd' AS currency) legitimately read no column
     orphans = [
         c
         for c in g.nodes
-        if synthetic_graph.model_of(c).startswith("model.") and g.in_degree(c) == 0
+        if synthetic_graph.model_of(c).startswith("model.")
+        and g.in_degree(c) == 0
+        and (synthetic_graph.model_of(c), g.nodes[c]["name"].lower()) not in constants
     ]
     assert orphans == []
 

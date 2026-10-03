@@ -1,0 +1,24 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amt",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "QUALIFY keys are filter dependencies (v0.3): not edges and not deferred in v0.1",
+  "partial": "QUALIFY partition/order keys are not captured (FILTER edges are v0.3)"
+}

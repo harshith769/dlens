@@ -1,0 +1,1 @@
+select id, user_id as customer_id, amt as amount from db.main.orders

@@ -1,0 +1,18 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "customers.name",
+      "to": "m.cust_name",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "correlation key o.user_id only filters the subquery: no direct edge"
+}

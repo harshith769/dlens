@@ -1,0 +1,23 @@
+{
+  "edges": [
+    {
+      "from": "orders.amt",
+      "to": "m.amt_d",
+      "kind": "TRANSFORMATION"
+    },
+    {
+      "from": "orders.id",
+      "to": "m.id_s",
+      "kind": "TRANSFORMATION"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.d",
+      "kind": "TRANSFORMATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged"
+}

@@ -1,0 +1,28 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.party",
+      "kind": "RENAME"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.party",
+      "kind": "RENAME"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "UNION vs UNION ALL changes no edge"
+}

@@ -1,0 +1,23 @@
+{
+  "edges": [
+    {
+      "from": "order_items.order_id",
+      "to": "m.order_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.product_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "order_items.qty",
+      "to": "m.qty",
+      "kind": "TRANSFORMATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "price is excluded: no output column, no edge"
+}

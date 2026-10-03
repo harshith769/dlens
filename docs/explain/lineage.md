@@ -52,7 +52,7 @@ relation map) into:
    edge to every table in that SELECT's FROM/JOINs whose schema has the column, or that the schema
    doesn't know.
 9. **Parse quality**: an exception from sqlglot → FAILED, with no column edges but DEPENDS_ON kept.
-   Any gap (unmapped table, unexpanded `*`, a column with no upstream) → TABLE_ONLY, and the edges
+   Any gap (unmapped table, unexpanded `*`, an unresolvable column) → TABLE_ONLY, and the edges
    that did resolve are still emitted. Otherwise FULL.
 
 ## Why this design
@@ -85,6 +85,42 @@ relation map) into:
 - **Unwrapping the `--empty` subqueries in the AST**: works, but keeps a dbt quirk inside the
   engine. Recompiling removes it at the source.
 - **Dropping ambiguous columns**: silent recall loss. LOW-confidence edges keep them visible.
+
+## Construct support
+Generated from `tests/golden/fixtures/` by `scripts/gen_support_matrix.py` (a test fails if it is
+stale). Every row is a golden fixture whose expected edges were written by reasoning from the SQL
+and the strongest-kind rule before the engine ran. `partial` means the direct edges are right but
+a non-value dependency (join / group / filter / window key) is not an edge yet.
+
+<!-- support-matrix:start -->
+| Construct | Supported | Note |
+|---|---|---|
+| `alias_rename` | yes |  |
+| `cast_and_coloncolon` | yes | a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged |
+| `cte_chain_3` | yes |  |
+| `distinct` | yes |  |
+| `group_by_having` | partial | GROUP BY and HAVING keys are not captured (GROUP_BY/FILTER edges are v0.3) |
+| `join_aliases` | partial | join keys are not captured (JOIN edges are v0.3) |
+| `literal_column` | yes | constants have no edges and are recorded in ModelParse.constants, not gaps |
+| `nested_case` | yes | CASE conditions are direct (they decide the value) |
+| `qualify_row_number` | partial | QUALIFY partition/order keys are not captured (FILTER edges are v0.3) |
+| `scalar_subquery_select` | yes | correlation key o.user_id only filters the subquery: no direct edge |
+| `self_join` | yes |  |
+| `star_exclude_replace` | yes | price is excluded: no output column, no edge |
+| `star_join` | yes | tables share no column names; duplicate names across a star join are out of scope |
+| `subquery_from` | yes |  |
+| `union_all_3` | yes | each branch has its own kind: the UNION node is not a step |
+| `union_distinct` | yes | UNION vs UNION ALL changes no edge |
+| `window_sum_partition` | partial | window PARTITION BY / ORDER BY keys are deferred |
+<!-- support-matrix:end -->
+
+**Constants are not gaps.** An output column that reads no input column (`'usd' AS currency`,
+`current_timestamp`, `1 + 1`, `count(*)`) gets no edges and is recorded in `ModelParse.constants`
+(lowercased output names). The model stays FULL when that is its only oddity: real projects have
+many such columns and they are fully understood, not unresolved. Gaps (TABLE_ONLY) are reserved for
+things the engine could not resolve. Consequently "every non-seed model column has an upstream" holds
+only for non-constant columns; the property test excludes recorded constants. A column that is a
+constant in only some UNION branches still has edges and is not recorded.
 
 ## Explain-back questions
 1. In `int_payment_events`, why would the refund branch's `event_amount_usd` edge be RENAME
