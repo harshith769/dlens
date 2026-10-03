@@ -1,11 +1,13 @@
 """Run dbt on a project directory and locate the artifacts DLens needs.
 
 Command choice (tested on jaffle_shop, 3 Oct 2026): ``dbt build --empty`` followed by
-``dbt docs generate --no-compile`` gives a catalog identical to a full ``dbt build``
+``dbt docs generate`` gives a catalog identical to a full ``dbt build``
 (all 5 models + 3 seeds, same column names, types and order). ``--empty`` makes models
 build with zero rows, so ingest is fast and never depends on data volume. Tests are
 excluded because they only assert on data and add nothing to lineage. ``docs generate``
-is still needed because ``build`` does not write ``catalog.json``.
+is still needed because ``build`` does not write ``catalog.json``. It must recompile (no
+``--no-compile``): under ``--empty`` dbt compiles every ``ref`` as
+``(select * from x where false limit 0)``, and the lineage engine needs the plain SQL.
 """
 
 import shutil
@@ -62,7 +64,7 @@ def run_dbt(project_dir: Path) -> DbtArtifacts:
         raise DbtError(f"{project_dir} is not a dbt project (no dbt_project.yml).")
     dbt = find_dbt()
     _run(dbt, ["build", "--empty", "--exclude", "resource_type:test"], project_dir)
-    _run(dbt, ["docs", "generate", "--no-compile"], project_dir)
+    _run(dbt, ["docs", "generate"], project_dir)
     artifacts = DbtArtifacts(project_dir / "target")
     for path in (artifacts.manifest, artifacts.catalog, artifacts.compiled_dir):
         if not path.exists():

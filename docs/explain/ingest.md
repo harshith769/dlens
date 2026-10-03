@@ -7,7 +7,7 @@ relation names to dbt `unique_id`s. `dlens ingest PROJECT_DIR` prints a summary.
 
 ## How it works
 1. `runner.py` finds `dbt` next to the running interpreter (else on PATH), then runs
-   `dbt build --empty --exclude resource_type:test` and `dbt docs generate --no-compile`.
+   `dbt build --empty --exclude resource_type:test` and `dbt docs generate`.
    Failures raise `DbtError` with the command and the last 20 output lines.
 2. `artifacts.py` loads `manifest.json` / `catalog.json` into Pydantic models that keep
    only the needed fields (unknown fields ignored; tests and other node types dropped;
@@ -22,8 +22,11 @@ relation names to dbt `unique_id`s. `dlens ingest PROJECT_DIR` prints a summary.
 - **`build --empty`.** Tested on jaffle_shop: catalog identical to a full `dbt build`
   (8 tables, same names, types, order). Tables must exist for `docs generate` to report
   column types; `--empty` builds them with zero rows, so ingest is fast and data-independent.
-  Tests are excluded (they check data, not lineage). `docs generate --no-compile` adds the
-  catalog without recompiling. Spec §7 step 1 was updated to match.
+  Tests are excluded (they check data, not lineage). `docs generate` adds the
+  catalog and recompiles. The recompile matters: under `--empty`, dbt compiles every `ref` as
+  `(select * from x where false limit 0)`, which adds a fake `SELECT *` hop to every lineage
+  path. An earlier version passed `--no-compile` and kept those wrappers in `target/compiled`.
+  Spec §7 step 1 was updated to match.
 - **Catalog schema.** sqlglot needs column lists to expand `SELECT *` and resolve unqualified
   columns; the warehouse is the ground truth for those, not inference from SQL.
 - **Relation map.** Compiled SQL refers to tables by name (`"db"."main"."orders"`), the graph

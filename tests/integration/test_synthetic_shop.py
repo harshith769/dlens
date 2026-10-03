@@ -6,8 +6,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from dlens.ingest import ingest
+from dlens.ingest import IngestResult, ingest
 from dlens.ingest.runner import find_dbt
+from dlens.lineage import ParseQuality, compare, extract_lineage
 
 pytestmark = pytest.mark.integration
 
@@ -27,13 +28,18 @@ def _spec_columns() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     return dict(models), dict(seeds)
 
 
-def test_catalog_matches_gold_spec(tmp_path: Path) -> None:
-    project = tmp_path / "synthetic_shop"  # copy so the repo stays free of target/ and *.duckdb
-    shutil.copytree(CORPUS, project)
+@pytest.fixture(scope="module")
+def ingested(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, IngestResult]:
+    project = tmp_path_factory.mktemp("ss") / "synthetic_shop"  # keep the repo free of target/
+    shutil.copytree(CORPUS, project, ignore=shutil.ignore_patterns("target", "*.duckdb", "logs"))
+    return project, ingest(project)
+
+
+def test_catalog_matches_gold_spec(ingested: tuple[Path, IngestResult]) -> None:
     spec_models, spec_seeds = _spec_columns()
     assert len(spec_models) == 15
 
-    r = ingest(project)
+    _, r = ingested
     assert r.unmapped == []
     assert {m.name for m in r.manifest.models} == set(spec_models)
     assert {s.name for s in r.manifest.seeds} == set(spec_seeds)
@@ -52,3 +58,16 @@ def test_dbt_tests_pass(tmp_path: Path) -> None:
     cmd = [str(find_dbt()), "build", "--project-dir", str(project), "--profiles-dir", str(project)]
     result = subprocess.run(cmd, cwd=project, capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-1000:]
+
+
+def test_lineage_matches_gold_spec(ingested: tuple[Path, IngestResult]) -> None:
+    """Gate (spec §14, v0.1): direct-edge F1 >= 0.95 against the hand-written gold spec."""
+    project, r = ingested
+    result = extract_lineage(r, project)
+    assert all(p.quality == ParseQuality.FULL for p in result.parse_report.values())
+    assert not any(e.model_level_citation for e in result.edges)
+    gold = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())["edges"]
+    report = compare(result.edges, [g for g in gold if g["phase"] == "v0.1"])
+    detail = f"missing={report.missing} extra={report.extra} kinds={report.kind_mismatches}"
+    assert report.f1 >= 0.95, detail
+    assert report.kind_accuracy >= 0.95, detail

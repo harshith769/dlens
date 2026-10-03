@@ -223,7 +223,7 @@ flowchart LR
 **Parse compiled SQL only, and always pass a schema. This module is hand-written by you (Section 17).**
 
 **Per model, in topological order:**
-1. Run `dbt build --empty --exclude resource_type:test` then `dbt docs generate --no-compile` with dbt-duckdb (catalog identical to a full build; tested on jaffle_shop). This produces `manifest.json`, `catalog.json` and `target/compiled/**.sql`.
+1. Run `dbt build --empty --exclude resource_type:test` then `dbt docs generate` with dbt-duckdb (catalog identical to a full build; tested on jaffle_shop). `docs generate` must recompile: under `--empty`, every `ref` compiles to `(select * from x where false limit 0)`. This produces `manifest.json`, `catalog.json` and `target/compiled/**.sql`.
 2. Build a sqlglot schema `{db: {schema: {table: {column: type}}}}` from `catalog.json`. Add each processed model's output columns so later models can see them.
 3. Call `sqlglot.lineage.lineage(None, compiled_sql, schema=schema, dialect="duckdb")`. This returns `dict[output_column, Node]` with a shared cache. Use the `on_node` hook to collect expressions as the tree is built.
 4. Walk each tree to its leaves, and map table leaves to dbt models or sources via manifest relation names. Leaves with `exp.Placeholder` are unknown and get logged as extraction gaps.
