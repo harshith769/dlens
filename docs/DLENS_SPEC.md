@@ -1,6 +1,6 @@
-# DLens — Final Spec and Build Plan (v1.4)
+# DLens — Final Spec and Build Plan (v1.5)
 
-**Version:** 1.3, 3 Oct 2026 (v1.1 plus Week-0 results, Section 15.1; Week 0 closed). Supersedes the 30 Sep 2026 handoff report (v1.0).
+**Version:** 1.5, 3 Oct 2026 (v1.3 plus timeline pulled forward after v0.1 shipped; change-log row 18). Supersedes the 30 Sep 2026 handoff report (v1.0).
 **Owner:** Harshith. **Builder tools:** Claude Code (code), Claude app (mentor, review, docs).
 **Save as:** `docs/DLENS_SPEC.md` in the repo. This file is the single source of truth. Where any older draft (including the MetricTrace drafts) disagrees, this file wins.
 
@@ -29,6 +29,7 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 | 15 | **Diagrams are now Mermaid**, and "tab" wording is removed | The diagrams were lost when the doc was exported to Markdown |
 | 16 | **The "Cowork" role is now "Claude app"** | Those capabilities are now part of the regular Claude app |
 | 17 | **AI writes all code; the owner reviews, approves and explains** (3 Oct 2026). Core modules ship with `docs/explain/<module>.md` + explain-back questions. The owner still approves the gold spec and every test question | Owner decision: speed over hand-writing. Gold-spec independence and question review stay human to keep the benchmark valid |
+| 18 | **Timeline pulled forward after v0.1 shipped 3 Oct** (v0.2 by 8 Nov, v0.3 by 29 Nov, test-set freeze 7 Dec, v1.0 by 3 Jan 2027; buffer to 7 Feb 2027 kept) | v0.1 finished 15 days before its 18 Oct target, so later milestones move up and the end buffer grows |
 
 ---
 
@@ -36,9 +37,9 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 
 **DLens (D for Data) is an open-source Python tool for dbt projects.** It answers "where does this number come from, and what breaks if I change it?" It builds a column-level lineage graph from compiled SQL. An LLM agent then answers plain-English questions by calling deterministic graph tools, and cites a file and line for every step. The headline deliverable is a reproducible benchmark showing how much graph grounding beats vector-only RAG, broken down by hop depth.
 
-**Status on 3 Oct 2026:** the plan is final and no code exists yet. Next action is Week 0 (Section 15).
+**Status on 3 Oct 2026:** v0.1 shipped 3 Oct 2026; current phase is v0.2 Cited Q&A agent (due 8 Nov 2026).
 
-**Constraints:** ₹0 spend on the project itself. One developer at 12–15 h/week. Python. Resume-ready releases at about weeks 4, 7, 11 and 15.
+**Constraints:** ₹0 spend on the project itself. One developer at 12–15 h/week. Python. Resume-ready releases at about weeks 0, 4, 7 and 12.
 
 **Hardware (known):** Windows laptop, WSL2 Ubuntu, RTX 4050 Laptop GPU with 6 GB VRAM. **To confirm in week 0:** RAM visible to WSL (`free -h`).
 
@@ -71,7 +72,7 @@ Changing any line below needs an ADR, because several of them invalidate benchma
 | UI and hosting | Streamlit on Community Cloud (separate AI Studio project, cached answers by default) plus a static results page on GitHub Pages |
 | Budget | ₹0; the response cache, quota counter and token cap are mandatory |
 | Licence | Apache-2.0 |
-| Timeline | 18 weeks, 5 Oct 2026 – 7 Feb 2027; target v1.0 on 24 Jan 2027 |
+| Timeline | 18 weeks, 5 Oct 2026 – 7 Feb 2027; target v1.0 on 3 Jan 2027 |
 
 ---
 
@@ -362,7 +363,7 @@ edges:
 
 ## 11. Evaluation protocol
 
-**Design the benchmark before the agent. Freeze the test split at the start of v1.0 (week 12) and never tune on it.**
+**Design the benchmark before the agent. Freeze the test split at the start of v1.0 (7 Dec 2026, week 9) and never tune on it.**
 
 ### 11.1 Two sources of truth
 - **Synthetic corpus:** scored against the design-authored gold spec.
@@ -519,24 +520,23 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 
 | Week(s) | Dates | Phase | Hours | Done when |
 |---|---|---|---|---|
-| 0–1 | 5 Oct – 18 Oct | Pre-work + accounts + checks | 27 | All 6 practice tasks pass; week-0 checks recorded |
-| 2–4 | 19 Oct – 8 Nov | **v0.1 Lineage CLI** | 35 | Direct-edge F1 ≥ 0.95 on the mini spec; `pip install dlens-lineage` works |
-| 5–7 | 9 Nov – 29 Nov | **v0.2 Cited Q&A agent** | 40 | Live demo answers 20 dev questions with valid citations |
-| 8 | 30 Nov – 6 Dec | Buffer A | — | For SIH, exams or slips; otherwise pull v0.3 forward |
-| 9–11 | 7 Dec – 27 Dec | **v0.3 Hybrid RAG + pilot** | 40 | S1 vs S4 pilot table on 96 dev questions committed; indirect-edge F1 ≥ 0.90 |
-| 12–15 | 28 Dec – 24 Jan | **v1.0 Benchmarked release** | 55 | `make eval` reproduces every number from a clean clone |
-| 16–17 | 25 Jan – 7 Feb | Buffer B | — | Spill-over quota runs, polish; hard deadline 7 Feb 2027 |
+| pre | → 3 Oct | Pre-work + accounts + checks + **v0.1 Lineage CLI (shipped 3 Oct; target was 18 Oct)** | 62 | Direct-edge F1 ≥ 0.95 on the mini spec; `pip install dlens-lineage` works |
+| 0–4 | 5 Oct – 8 Nov | **v0.2 Cited Q&A agent** | 40 | Live demo answers 20 dev questions with valid citations |
+| 5–7 | 9 Nov – 29 Nov | **v0.3 Hybrid RAG + pilot** | 40 | S1 vs S4 pilot table on 96 dev questions committed; indirect-edge F1 ≥ 0.90 |
+| 8 | 30 Nov – 6 Dec | Buffer A | — | For SIH, exams or slips; otherwise pull v1.0 work forward |
+| 9–12 | 7 Dec – 3 Jan | **v1.0 Benchmarked release** (test-set freeze 7 Dec) | 55 | `make eval` reproduces every number from a clean clone |
+| 13–17 | 4 Jan – 7 Feb | Buffer B | — | Spill-over quota runs, polish; hard deadline 7 Feb 2027 |
 
 **v0.1 Lineage CLI**
-- [ ] Repo bootstrap (Prompt B, Section 21)
-- [ ] ADRs 0001–0008 from Section 0
-- [ ] [H] 15-model mini spec (`lineage_spec.yml`, phase v0.1 edges only); SQL generated from it, reviewed by you
-- [ ] Ingest: manifest, catalog, sqlglot schema
-- [ ] [H] Lineage engine core: `lineage(None)` calls, leaf mapping, classifier, provenance
-- [ ] `LineageGraph` + `dlens ingest | trace | impact`
-- [ ] Golden tests (≥10 constructs, including #0); parse-quality report
-- [ ] README quickstart on jaffle_shop; CONTRIBUTING; CHANGELOG
-- [ ] TestPyPI → PyPI `dlens-lineage` 0.1.0 via Trusted Publishing; tag v0.1.0
+- [x] Repo bootstrap (Prompt B, Section 21)
+- [x] ADRs 0001–0008 from Section 0
+- [x] [H] 15-model mini spec (`lineage_spec.yml`, phase v0.1 edges only); SQL generated from it, reviewed by you
+- [x] Ingest: manifest, catalog, sqlglot schema
+- [x] [H] Lineage engine core: `lineage(None)` calls, leaf mapping, classifier, provenance
+- [x] `LineageGraph` + `dlens ingest | trace | impact`
+- [x] Golden tests (≥10 constructs, including #0); parse-quality report
+- [x] README quickstart on jaffle_shop; CONTRIBUTING; CHANGELOG
+- [x] TestPyPI → PyPI `dlens-lineage` 0.1.0 via Trusted Publishing; tag v0.1.0
 
 **v0.2 Cited Q&A agent**
 - [ ] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
@@ -556,10 +556,10 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 - [ ] [H] Pilot metrics (dev only); tag v0.3.0
 
 **v1.0 Benchmarked release**
-- [ ] [H] Review and freeze test (224) and set E (60); commit hashes (week 12, first day)
+- [ ] [H] Review and freeze test (224) and set E (60); commit hashes (week 9, first day, 7 Dec)
 - [ ] S0, S2, S3 runners; C1 vs dbt-colibri
 - [ ] Public corpus ingest; [H] parser audit of 100–150 edges
-- [ ] Full runs per Section 11.6, spread across weeks 12–15; local Qwen3 runs overnight
+- [ ] Full runs per Section 11.6, spread across weeks 9–12; local Qwen3 runs overnight
 - [ ] [H] Statistics, ablations, judge calibration
 - [ ] FastAPI, Docker Compose, CI smoke gate, GitHub Pages results page
 - [ ] [H] Write-up, README results, 2-minute demo video; tag v1.0.0
@@ -716,10 +716,10 @@ See the [Claude Code docs](https://code.claude.com/docs/en/features-overview.md)
 | When | Do | Resume line |
 |---|---|---|
 | Week 0 | Public repo, licence, README stub | — |
-| v0.1 (8 Nov) | Quickstart in under 5 minutes; CONTRIBUTING; templates; CHANGELOG; **PyPI 0.1.0** | Built DLens, an open-source column-level lineage extractor for dbt in Python (sqlglot AST analysis, schema-aware `SELECT *` expansion, golden-file tests); published on PyPI as `dlens-lineage` |
-| v0.2 (29 Nov) | Live demo link; 3–5 `good first issue` items; CoC; SECURITY | Built an LLM agent that answers data-lineage questions by calling deterministic graph tools, with every claim cited to file and line and checked by a code validator; deployed live |
-| v0.3 (27 Dec) | Publish pilot results, including losses | Hybrid graph + retrieval reached [X] node-set F1 vs [Y] for vector-only RAG on a 96-question pilot |
-| v1.0 (24 Jan) | Docs site, write-up, one post in the dbt community | Designed a 320-question benchmark with design-authored gold labels. DLens reached [X] F1 vs [Y] for vector RAG across two LLMs, cut hallucinated nodes from [A]% to [B]%, and the gap widened from [p] to [q] points between 1-hop and 6+-hop questions |
+| v0.1 (3 Oct) | Quickstart in under 5 minutes; CONTRIBUTING; templates; CHANGELOG; **PyPI 0.1.0** | Built DLens, an open-source column-level lineage extractor for dbt in Python (sqlglot AST analysis, schema-aware `SELECT *` expansion, golden-file tests); published on PyPI as `dlens-lineage` |
+| v0.2 (8 Nov) | Live demo link; 3–5 `good first issue` items; CoC; SECURITY | Built an LLM agent that answers data-lineage questions by calling deterministic graph tools, with every claim cited to file and line and checked by a code validator; deployed live |
+| v0.3 (29 Nov) | Publish pilot results, including losses | Hybrid graph + retrieval reached [X] node-set F1 vs [Y] for vector-only RAG on a 96-question pilot |
+| v1.0 (3 Jan) | Docs site, write-up, one post in the dbt community | Designed a 320-question benchmark with design-authored gold labels. DLens reached [X] F1 vs [Y] for vector RAG across two LLMs, cut hallucinated nodes from [A]% to [B]%, and the gap widened from [p] to [q] points between 1-hop and 6+-hop questions |
 
 **Numbers come only from committed eval output.**
 

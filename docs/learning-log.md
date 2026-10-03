@@ -31,3 +31,11 @@
 - Task 6: tool loop works on qwen3:4b and gemini-3.5-flash-lite. Qwen duplicated a tool call and leaked <think>, so DLens needs dedupe, a step cap, think-stripping and a structured answer schema. Use a manual loop (not SDK auto) to fit cache/quota/validator.
 - Decision 17: AI writes code; I review/approve; core modules get docs/explain/.
 - Pre-work done in one afternoon; v0.1 pulled forward to 18 Oct.
+
+## 2026-10-03 — v0.1.0 released
+- Shipped dlens-lineage 0.1.0 to PyPI, 15 days ahead of plan.
+- Trusted Publishing: GitHub Actions gets a short-lived OIDC token that PyPI trusts for this repo + workflow + environment, so no API token is stored anywhere.
+- Release order: build once → TestPyPI → install in a fresh venv and run `dlens --version` → human approval → PyPI. The same artifact goes to both indexes, so what was tested is what ships.
+- A PyPI version number can never be re-uploaded, which is why the TestPyPI rehearsal and the tag == pyproject version check exist.
+- Attestations: PyPI stores signed provenance linking the file to the workflow run that built it.
+- Caveat I must state in interviews: F1 1.000 is on our own synthetic corpus; real validation is v0.3 (bigger corpus) and v1.0 (public project + colibri).
