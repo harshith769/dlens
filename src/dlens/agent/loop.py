@@ -13,6 +13,7 @@ is trimmed (``partial_evidence``) if it does not fit.
 
 from __future__ import annotations
 
+import difflib
 import re
 import time
 import uuid
@@ -48,7 +49,7 @@ from dlens.agent.runlog import RunLogger, RunRecord, Step, StepResult, now_iso
 from dlens.agent.tools import Toolbox, ToolResult
 from dlens.agent.tools.entity import AMBIGUOUS_GAP
 from dlens.agent.validator import ValidationResult, salvage, validate
-from dlens.lineage import short_id
+from dlens.lineage import column_id, short_id
 
 MAX_LLM_CALLS = 8
 MAX_TOOL_PHASE_CALLS = 5
@@ -60,6 +61,10 @@ REGENERATE_LIST_TOKENS = 300
 _TOOL_NAMES = "resolve_entity|trace_upstream|impact_downstream|get_model_sql"
 _TEXT_TOOL_CALL = re.compile(rf'<tool_call>|\{{\s*"name"\s*:\s*"({_TOOL_NAMES})"')
 _QUESTION_COLUMN = re.compile(r"(?<![\w.])[A-Za-z_]\w*\.[A-Za-z_]\w*(?![\w.])")
+_IMPACT_WORDING = re.compile(r"\b(affect|impact|chang|break|downstream)\w*", re.IGNORECASE)
+_FILE_SUFFIXES = {"sql", "csv", "yml", "yaml", "md", "py", "json", "txt"}
+MAX_CODE_EVIDENCE_COLUMNS = 2
+UNKNOWN_COLUMN_SUGGESTIONS = 3
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 
 
@@ -140,9 +145,13 @@ class Agent:
     # -- phases ----------------------------------------------------------------------------
 
     def _run(self, question: str, t0: float) -> Answer:
+        unknown = self._unknown_column(question)
+        if unknown is not None:
+            self.record.stop_reason = "unknown_column"
+            raise _Refuse(unknown)
         self._tool_phase(question)
-        if not self.toolbox.log:
-            self._fallback_trace(question)
+        if not any(i.startswith(("e_", "s_")) for i in self.toolbox.emitted_ids):
+            self._code_evidence(question)
         self.record.timings["tool_ms"] = _ms(t0)
 
         directives: list[str] = []
@@ -434,11 +443,37 @@ class Agent:
         ends = [c for c in cols if all(o in ups[c] for o in cols if o != c)]
         return ends[0] if ends else None
 
-    def _fallback_trace(self, question: str) -> None:
-        """The model made no tool call (seen on false-premise questions). If the question names
-        an exact column id that exists, code traces the first one: a "code" step, not an LLM
-        call, like chain mode."""
+    def _unknown_column(self, question: str) -> str | None:
+        """A dotted ``model.column`` in the question whose model (or seed, or source) exists but
+        whose column does not: the refusal reason, with up to 3 of that model's closest columns.
+        CTE aliases are never refused, because they are not node names in the graph."""
         g = self.toolbox.graph
+        by_name: dict[str, list[str]] = {}
+        for uid in g.model_ids():
+            by_name.setdefault((g.model_info(uid) or {}).get("name", "").lower(), []).append(uid)
+        for m in _QUESTION_COLUMN.finditer(question):
+            model, col = m.group(0).lower().split(".")
+            uids = by_name.get(model)
+            if not uids or col in _FILE_SUFFIXES:
+                continue
+            if any(g.has_column(column_id(u, col)) for u in uids):
+                continue
+            real = sorted(
+                {g.nx_graph.nodes[c]["name"] for c in g.columns() if g.model_of(c) in uids}
+            )
+            close = difflib.get_close_matches(col, real, n=UNKNOWN_COLUMN_SUGGESTIONS, cutoff=0.0)
+            reason = f"{model} has no column {col}"
+            return reason + (f" (closest: {', '.join(close)})" if close else "")
+        return None
+
+    def _code_evidence(self, question: str) -> None:
+        """Nothing citable was emitted. If the question names exact, existing ``model.column``
+        ids, code runs the fitting tool on each (at most 2): ``impact_downstream`` when the
+        wording is about effects (affect / impact / change / break / downstream), else
+        ``trace_upstream``. "code" steps, not LLM calls. Calls the log already has are skipped."""
+        g = self.toolbox.graph
+        tool = "impact_downstream" if _IMPACT_WORDING.search(question) else "trace_upstream"
+        names: list[str] = []
         for m in _QUESTION_COLUMN.finditer(question):
             text = m.group(0).lower()
             try:
@@ -447,17 +482,28 @@ class Agent:
                 continue
             if g.display_name(column).lower() != text and short_id(column) != text:
                 continue
-            self.record.stop_reason += "+fallback_trace"
-            self._code_trace(g.display_name(column))
-            return
+            name = g.display_name(column)
+            if name not in names:
+                names.append(name)
+        for name in names[:MAX_CODE_EVIDENCE_COLUMNS]:
+            if not self._already_called(tool, g.resolve(name)):
+                self._code_call(tool, name)
+        if names:
+            self.record.stop_reason += "+code_evidence"
 
-    def _code_trace(self, name: str) -> None:
-        result = self.toolbox.call("trace_upstream", {"column_id": name})
+    def _already_called(self, tool: str, column: str) -> bool:
+        return any(
+            r.tool == tool and not r.is_error and r.side_records.get("column") == column
+            for r in self.toolbox.log
+        )
+
+    def _code_call(self, tool: str, name: str) -> None:
+        result = self.toolbox.call(tool, {"column_id": name})
         self.record.steps.append(
             Step(
                 index=len(self.record.steps),
                 phase="code",
-                tool_calls=[{"name": "trace_upstream", "arguments": {"column_id": name}}],
+                tool_calls=[{"name": tool, "arguments": {"column_id": name}}],
                 results=[_step_result(result)],
             )
         )
@@ -466,7 +512,7 @@ class Agent:
         for r in self.toolbox.log:
             if r.tool == "trace_upstream" and r.side_records.get("column") == column:
                 return
-        self._code_trace(self.toolbox.graph.display_name(column))
+        self._code_call("trace_upstream", self.toolbox.graph.display_name(column))
 
     # -- helpers -----------------------------------------------------------------------------
 

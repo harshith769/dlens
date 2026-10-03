@@ -202,8 +202,9 @@ def test_ollama_tool_parse_error_gets_one_repair(box, make_client):
 
 
 def test_tool_errors_go_back_to_the_model_and_no_evidence_refuses(box, make_client):
+    # "discount_pct" is in the tool call only: the question names no unknown model.column
     client, prov = make_client([call("trace_upstream", column_id="fct.discount_pct"), done()])
-    run = ask("where does fct.discount_pct come from?", client, box)
+    run = ask("where does the discount percentage come from?", client, box)
     tool_msg = prov.requests[1]["messages"][-1]
     assert tool_msg.role == "tool" and "unknown_column" in tool_msg.content
     assert run.answer.refused and "unknown_column" in (run.answer.refusal_reason or "")
@@ -351,3 +352,77 @@ def test_jsonl_record_shape(box, make_client, tmp_path: Path):
     Agent(client, box, logger).ask("q")
     lines = run.log_path.read_text().splitlines()
     assert len(lines) == 2 and json.loads(lines[1])["final_answer"]["refused"]
+
+
+# -- code safeguards: unknown column, evidence guarantee ---------------------------------------
+
+
+def test_unknown_column_of_a_real_model_is_refused_before_the_tool_phase(box, make_client):
+    client, prov = make_client([])
+    run = ask("What is affected if fct.totl changes?", client, box)
+    assert run.answer.refused and run.record.llm_calls == 0 and not prov.requests
+    reason = run.answer.refusal_reason or ""
+    assert reason.startswith("fct has no column totl") and "closest: total" in reason
+    assert run.record.stop_reason == "unknown_column"
+
+
+def test_unknown_column_of_a_seed_is_refused(box, make_client):
+    client, _ = make_client([])
+    run = ask("Where does raw.amount come from?", client, box)  # raw is a seed: id, amt
+    assert run.answer.refused and (run.answer.refusal_reason or "").startswith(
+        "raw has no column amount"
+    )
+
+
+def test_real_columns_model_names_ctes_and_files_are_not_refused(box, make_client):
+    for q in (
+        "Where does fct.total come from?",  # real column
+        "Where does model.p.fct come from?",  # full model unique_id
+        "What does order_agg.lifetime_value mean?",  # CTE alias: not a node name
+        "Is models/fct.sql readable?",  # a file name
+        "What feeds the fct model?",
+    ):
+        box.reset()
+        client, _ = make_client([done("no tools"), draft("x")])
+        run = ask(q, client, box)
+        assert run.record.stop_reason != "unknown_column", q
+        assert run.record.llm_calls >= 1, q
+
+
+def test_no_evidence_runs_impact_in_code_for_effect_wording(box, make_client):
+    # The model traces in the wrong direction (no citable edge), then stops.
+    script = [call("trace_upstream", column_id="raw.amt"), done(), draft("x")]
+    client, prov = make_client(script)
+    run = ask("If raw.amt changes, does it affect fct_star.total?", client, box)
+    code = [s for s in run.record.steps if s.phase == "code"]
+    assert [(s.tool_calls[0]["name"], s.tool_calls[0]["arguments"]) for s in code] == [
+        ("impact_downstream", {"column_id": "raw.amt"}),
+        ("impact_downstream", {"column_id": "fct_star.total"}),
+    ]
+    assert run.record.llm_calls == 3  # code calls are not LLM calls
+    assert "+code_evidence" in run.record.stop_reason
+    assert prov.requests[-1]["schema"] is not None  # the answer phase ran
+
+
+def test_no_evidence_runs_trace_in_code_otherwise_at_most_two_columns(box, make_client):
+    client, _ = make_client([done("I need ids."), draft("x")])
+    run = ask("Is fct_star.total related to stg.amount and fct.x_id?", client, box)
+    code = [s.tool_calls[0] for s in run.record.steps if s.phase == "code"]
+    assert [c["name"] for c in code] == ["trace_upstream", "trace_upstream"]
+    assert [c["arguments"]["column_id"] for c in code] == ["fct_star.total", "stg.amount"]
+
+
+def test_code_evidence_skips_calls_already_in_the_log(box, make_client):
+    # impact of fct_star.total was already called by the model (and is empty): not re-run.
+    script = [call("impact_downstream", column_id="fct_star.total"), done(), draft("x")]
+    client, _ = make_client(script)
+    run = ask("What is affected if fct_star.total changes?", client, box)
+    assert not [s for s in run.record.steps if s.phase == "code"]
+    assert run.answer.refused and "no lineage evidence" in (run.answer.refusal_reason or "")
+
+
+def test_code_evidence_does_not_run_when_evidence_exists(box, make_client):
+    script = [call("trace_upstream", column_id="fct.total"), done(), draft("x")]
+    client, _ = make_client(script)
+    run = ask("What is affected if raw.amt changes?", client, box)
+    assert not [s for s in run.record.steps if s.phase == "code"]

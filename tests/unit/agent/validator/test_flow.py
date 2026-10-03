@@ -122,14 +122,19 @@ def test_no_tool_calls_falls_back_to_a_code_trace_of_the_named_column(box, make_
     client, prov = make_client([done("I need a column id."), scripted(box, GOOD)])
     run = ask("Why is fct.total aggregated directly from raw.amt?", client, box)
     code = [s for s in run.record.steps if s.phase == "code"]
-    assert len(code) == 1 and code[0].results[0].args == {"column_id": "fct.total"}
-    assert run.record.llm_calls == 2  # the code trace is not an LLM call
-    assert "fallback_trace" in run.record.stop_reason
+    # every named exact column (max 2) is traced: "change"-free wording -> trace_upstream
+    assert [s.results[0].args for s in code] == [
+        {"column_id": "fct.total"},
+        {"column_id": "raw.amt"},
+    ]
+    assert {s.results[0].tool for s in code} == {"trace_upstream"}
+    assert run.record.llm_calls == 2  # the code traces are not LLM calls
+    assert "code_evidence" in run.record.stop_reason
     assert not run.answer.refused and run.record.validation["passed"]
 
 
 def test_fallback_needs_an_exact_existing_column(box, make_client):
-    for q in ("Why is fct.discount_pct so high?", "Where does revenue come from?"):
+    for q in ("Why is nope.discount_pct so high?", "Where does revenue come from?"):
         box.reset()
         client, prov = make_client([done("no idea")])
         run = ask(q, client, box)

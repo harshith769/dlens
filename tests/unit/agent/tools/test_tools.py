@@ -397,3 +397,22 @@ def test_edge_string_matches_the_tool_payload(toolbox: Toolbox) -> None:
     eid = line.split(":", 1)[0]
     assert toolbox.edge_string(eid) == line
     assert toolbox.edge_string("e_00000000") is None
+
+
+def test_sql_accepts_a_model_column_as_model_id(toolbox: Toolbox) -> None:
+    # The model passed a column id as model_id (seen live): split into model + around_column.
+    r = toolbox.call("get_model_sql", {"model_id": "fct.total"})
+    assert not r.is_error and r.llm_payload["model"] == "fct"
+    assert r.side_records["column_citation"]["line_start"] == 3  # around_column = total
+    # an explicit around_column wins over the split part
+    r = toolbox.call("get_model_sql", {"model_id": "fct.total", "around_column": "x_id"})
+    assert r.side_records["column_citation"]["line_start"] == 4
+    # the split column must exist: the usual structured unknown_column error
+    r = toolbox.call("get_model_sql", {"model_id": "fct.nope"})
+    assert r.llm_payload["error"]["code"] == "unknown_column"
+
+
+def test_sql_unknown_model_with_a_dot_keeps_the_original_error(toolbox: Toolbox) -> None:
+    r = toolbox.call("get_model_sql", {"model_id": "nope.total"})
+    err = r.llm_payload["error"]
+    assert err["code"] == "unknown_model" and "'nope.total'" in err["message"]

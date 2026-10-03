@@ -60,7 +60,18 @@ def get_model_sql(prov: Provenance, args: dict[str, Any]) -> ToolOutput:
     assert text is not None
     around = as_str(args, "around_column", required=False)
     g = prov.graph
-    uid = _resolve_model(prov, text)
+    try:
+        uid = _resolve_model(prov, text)
+    except ToolError as e:
+        # Leniency: a model.column passed as model_id is split into model + around_column.
+        if e.code != "unknown_model" or "." not in text:
+            raise
+        model, column = text.rsplit(".", 1)
+        try:
+            uid = _resolve_model(prov, model)
+        except ToolError:
+            raise e from None  # the original structured error, for the original text
+        around = around or column
     info = g.model_info(uid) or {}
     file = info.get("file", "")
     source = prov.source(file)
