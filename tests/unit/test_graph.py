@@ -244,3 +244,22 @@ def test_impact_render_summary(tiny_graph: LineageGraph) -> None:
     assert "exposures: exposure.p.dash" in out
     assert "warning" not in out
     assert "warning" in render_impact(tiny_graph, tiny_graph.downstream(RAW_X, max_depth=1), 1)
+
+
+def test_model_and_exposure_info_are_copies(tiny_graph: LineageGraph) -> None:
+    info = tiny_graph.model_info("model.p.fct")
+    assert info == {"resource_type": "model", "name": "fct", "file": ""}
+    assert info is not None
+    info["name"] = "changed"
+    assert tiny_graph.model_info("model.p.fct") == {
+        "resource_type": "model",
+        "name": "fct",
+        "file": "",
+    }
+    assert tiny_graph.model_info("model.p.nope") is None
+    assert "model.p.fct" in tiny_graph.model_ids()
+    assert tiny_graph.exposure_info("exposure.p.dash") == {
+        "name": "exposure.p.dash",
+        "type": "dashboard",
+    }
+    assert tiny_graph.exposure_info("exposure.p.nope") is None

@@ -96,3 +96,6 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
 4. You upgrade dlens from 0.1.0 to 0.1.1 and the cache file is newer than every source file. Which
    check rebuilds it, and why isn't the mtime rule enough here? When would you bump
    `FORMAT_VERSION` rather than rely on the package version?
+
+## Accessors added in v0.2
+`model_info(uid)`, `model_ids()` and `exposure_info(uid)` expose the manifest facts the graph already stored (a node's `file`, `name`, `resource_type`; an exposure's `name`, `type`) so the agent tools never read private attributes. They return copies, or None for an unknown id.

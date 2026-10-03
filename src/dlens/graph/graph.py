@@ -135,6 +135,21 @@ class LineageGraph:
         model: str = self._g.nodes[column]["model"]
         return model
 
+    def model_info(self, unique_id: str) -> dict[str, str] | None:
+        """``{resource_type, name, file}`` of a manifest node (file is relative to the project
+        root), or None if unknown. Returns a copy."""
+        info = self._models.get(unique_id)
+        return dict(info) if info is not None else None
+
+    def model_ids(self) -> list[str]:
+        """unique_ids of every manifest node (models, seeds, ...), sorted."""
+        return list(self._models)
+
+    def exposure_info(self, unique_id: str) -> dict[str, str] | None:
+        """``{name, type}`` of an exposure, or None if unknown. Returns a copy."""
+        info = self._exposures.get(unique_id)
+        return dict(info) if info is not None else None
+
     def parse_report(self) -> dict[str, ParseQuality]:
         return {uid: p.quality for uid, p in sorted(self._parse.items())}
 
