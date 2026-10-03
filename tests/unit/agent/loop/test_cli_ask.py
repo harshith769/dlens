@@ -63,3 +63,13 @@ def test_ask_unknown_provider_exits_2(monkeypatch, shop_root: Path):
     monkeypatch.setattr(cli, "load_or_build", lambda project, rebuild=False: make_shop())
     r = runner.invoke(cli.app, ["ask", "q", "-p", str(shop_root), "--provider", "nope"])
     assert r.exit_code == 2 and "Unknown" in r.output
+
+
+def test_validator_label():
+    label = cli._validator_label
+    assert label(None) == "skipped"
+    assert label({"passed": True, "repairs": [], "regenerated": False}) == "pass"
+    assert label({"passed": True, "repairs": [{}], "regenerated": True}) == (
+        "pass, repaired 1, regenerated"
+    )
+    assert label({"passed": False, "warning": True, "repairs": []}) == "warning"

@@ -15,13 +15,13 @@ question ─► TOOL PHASE  (≤5 LLM calls, tools on, history compacted to fit)
             ANSWER PHASE (1 call + ≤1 repair, no tools, JSON schema)
               prompt = question + evidence rebuilt from the ledger
               ▼
-            attach citations (code) ─► validate (stub) ─► [regenerate once: session 4]
+            attach citations (code) ─► validate R1–R7 ─► regenerate once ─► salvage / refuse
 ```
 
 ## Budgets
 - **Calls.** At most 8 LLM calls per question, counting every call: ≤5 in the tool phase
   (repairs and retries included), then the answer call, one answer repair and the validator's
-  "regenerate once" (session 4). Tool calls that code makes itself (chain mode) are not LLM calls.
+  "regenerate once" (see validator.md). Tool calls that code makes itself (chain mode) are not LLM calls.
 - **Tokens.** Every call is measured with `estimate_tokens` (the same function `LLMClient` uses
   for the 3,000 cap) before it is sent. The fixed costs are small on purpose:
 

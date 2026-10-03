@@ -38,7 +38,7 @@ class StepResult(BaseModel):
 
 class Step(BaseModel):
     index: int
-    phase: Literal["tool", "answer", "repair", "code"]
+    phase: Literal["tool", "answer", "repair", "regenerate", "code"]
     est_input_tokens: int = 0
     input_tokens: int = 0  # provider-reported usage
     output_tokens: int = 0
@@ -69,6 +69,7 @@ class RunRecord(BaseModel):
     evidence: dict[str, Any] = Field(default_factory=dict)  # {ids, dropped_ids, partial_evidence}
     draft_raw: str | None = None  # the answer-phase text exactly as the model returned it
     draft: dict[str, Any] | None = None  # parsed AnswerDraft, pre-validation
+    regenerate_draft_raw: str | None = None  # the regenerated draft, if validation failed once
     clarification: dict[str, Any] | None = None
     validation: dict[str, Any] | None = None
     final_answer: dict[str, Any] | None = None

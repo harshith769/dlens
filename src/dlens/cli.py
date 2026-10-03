@@ -128,9 +128,21 @@ def trace_summary(run: AgentRun) -> dict[str, object]:
         "partial_evidence": run.answer.partial_evidence,
         "ambiguity": (rec.ambiguity or {}).get("mode"),
         "stop_reason": rec.stop_reason,
-        "validator": "pass" if (rec.validation or {}).get("passed") else "fail",
+        "validator": _validator_label(rec.validation),
         "log": str(run.log_path) if run.log_path else None,
     }
+
+
+def _validator_label(v: dict[str, object] | None) -> str:
+    if not v:
+        return "skipped"
+    parts = ["pass" if v.get("passed") else ("warning" if v.get("warning") else "fail")]
+    repairs = v.get("repairs") or []
+    if isinstance(repairs, list) and repairs:
+        parts.append(f"repaired {len(repairs)}")
+    if v.get("regenerated"):
+        parts.append("regenerated")
+    return ", ".join(parts)
 
 
 def render_trace_line(t: dict[str, object]) -> str:

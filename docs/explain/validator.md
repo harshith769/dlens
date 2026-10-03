@@ -148,6 +148,23 @@ It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N
 - **False-positive risk:** "lines 3-4" spanning two separate one-line citations fails, and a
   line number about something other than a file (rare in lineage answers) is checked anyway.
 
+## The flow in the loop (`loop.py: Agent._validate`)
+1. Validate the first draft. If it passes (possibly with repairs), it is the answer.
+2. Otherwise, if a call is left (`llm_calls < 8`, which the budget reserves), **regenerate once**:
+   the same answer-phase prompt plus a short list of what failed (rule and failing id or
+   identifier per line, at most ~300 tokens). The new draft is validated.
+3. If the regenerated draft passes, it is the answer (`regenerated: true`).
+4. If both drafts fail, or no call is left, **salvage**: take the round with more passing claims
+   (ties go to the regenerated one) and keep only its passing claims. If `answer_text` itself
+   failed (R4/R6), rebuild it from the kept claims' texts. Set `validation_warning`. If no claim
+   passes, refuse ("no verifiable claims").
+5. Invalid JSON on the regenerate counts as a failure, and the first draft is salvaged.
+
+The run record keeps the untouched first draft (`draft_raw`, `draft`), the regenerated draft
+(`regenerate_draft_raw`) and both validation rounds (`validation.first`, `validation.second`)
+with failures, repairs and per-rule counts. That is everything the no-validator ablation and the
+raw-vs-repaired benchmark split need.
+
 ## Never used: `confidence`
 `confidence` is the model's self-report. It is not evidence, it is not calibrated, and a model
 that is confidently wrong is exactly the case the validator exists for. Using it would let the

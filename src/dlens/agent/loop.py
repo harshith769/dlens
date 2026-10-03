@@ -2,7 +2,7 @@
 
 Call budget: at most ``MAX_LLM_CALLS`` (8) LLM calls per question, counting every call. The tool
 phase may use ``MAX_TOOL_PHASE_CALLS`` (5) of them, so the answer call, one answer repair and the
-validator's "regenerate once" (session 4) always fit. Tool calls made by code (chain mode) are not
+validator's "regenerate once" always fit. Tool calls made by code (chain mode) are not
 LLM calls.
 
 Token budget: every call is measured with ``estimate_tokens`` against ``client.max_input_tokens``
@@ -47,13 +47,14 @@ from dlens.agent.llm.types import (
 from dlens.agent.runlog import RunLogger, RunRecord, Step, StepResult, now_iso
 from dlens.agent.tools import Toolbox, ToolResult
 from dlens.agent.tools.entity import AMBIGUOUS_GAP
-from dlens.agent.validator import validate
+from dlens.agent.validator import ValidationResult, salvage, validate
 
 MAX_LLM_CALLS = 8
 MAX_TOOL_PHASE_CALLS = 5
 MAX_DUPLICATE_TURNS = 2
 REPAIR_ECHO_CHARS = 600
 REPAIR_ERROR_CHARS = 300
+REGENERATE_LIST_TOKENS = 300
 
 _TOOL_NAMES = "resolve_entity|trace_upstream|impact_downstream|get_model_sql"
 _TEXT_TOOL_CALL = re.compile(rf'<tool_call>|\{{\s*"name"\s*:\s*"({_TOOL_NAMES})"')
@@ -300,20 +301,79 @@ class Agent:
         self.record.draft = draft.model_dump(mode="json")
 
         answer = attach(draft, self.toolbox, partial_evidence=bool(partial))
-        result = validate(answer, self.toolbox, question)
-        self.record.validation = {
-            "passed": result.passed,
-            "failures": [f.model_dump() for f in result.failures],
-            "repairs": result.repairs,
-            "counts": result.counts,
+        return self._validate(question, msgs, answer, bool(partial))
+
+    # -- validation: validate -> regenerate once -> salvage ----------------------------------
+
+    def _validate(
+        self, question: str, msgs: list[Message], answer: Answer, partial: bool
+    ) -> Answer:
+        first = validate(answer, self.toolbox, question)
+        v: dict[str, Any] = {
+            "passed": first.passed,
+            "regenerated": False,
+            "warning": False,
+            "counts": first.counts,  # draft failures by rule
+            "repairs": first.repairs,
+            "dropped_claims": [],
+            "first": _summary(first),
+            "second": None,
         }
-        # -----------------------------------------------------------------------------------
-        # REGENERATE ONCE (session 4, [H] validator rules): if not result.passed, drop the
-        # failing claims, re-run the answer call once with the failures listed (this is the
-        # 8th LLM call the budget reserves); if it fails again, return the cleaned answer with
-        # a warning flag. Until then the stub always passes.
-        # -----------------------------------------------------------------------------------
-        return result.cleaned_answer
+        self.record.validation = v
+        if first.passed:
+            return first.cleaned_answer
+
+        second: ValidationResult | None = None
+        if self.record.llm_calls < MAX_LLM_CALLS:  # the budget reserves this call
+            v["regenerated"] = True
+            second = self._regenerate(question, msgs, first, partial)
+            if second is not None:
+                v["second"] = _summary(second)
+                if second.passed:
+                    v.update(passed=True, repairs=second.repairs)
+                    out = second.cleaned_answer
+                    return out
+
+        # Still failing (or no call left): keep only passing claims, with a warning.
+        rounds = [r for r in (second, first) if r is not None]  # ties go to the second
+        best = max(rounds, key=lambda r: len(r.cleaned_answer.claims) - len(r.dropped_claims))
+        v.update(
+            passed=False, warning=True, repairs=best.repairs, dropped_claims=best.dropped_claims
+        )
+        salvaged = salvage(best, self.toolbox)
+        if salvaged is None:
+            raise _Refuse("no verifiable claims: every claim failed validation")
+        return salvaged
+
+    def _regenerate(
+        self, question: str, msgs: list[Message], failed: ValidationResult, partial: bool
+    ) -> ValidationResult | None:
+        """One more answer call listing what failed. None if the reply is not valid JSON."""
+        lines = [
+            f"- {'answer_text' if f.claim_index is None else f'claim {f.claim_index}'}: "
+            f"{f.rule} {f.item_id or ''}: {_clip(f.message, 100)}"
+            for f in failed.failures
+        ]
+        cap = self.client.max_input_tokens
+
+        def build(n: int) -> list[Message]:
+            text = prompts.REGENERATE.format(failures="\n".join(lines[:n]))
+            return [*msgs, Message(role="user", content=text)]
+
+        n = len(lines)
+        while n > 1 and (
+            estimate_tokens([build(n)[-1]]) > REGENERATE_LIST_TOKENS
+            or estimate_tokens(build(n), None, DRAFT_SCHEMA) > cap
+        ):
+            n -= 1
+        resp, _ = self._llm(build(n), None, DRAFT_SCHEMA, "regenerate")
+        self.record.regenerate_draft_raw = resp.text
+        try:
+            draft = _parse_draft(resp.text)
+        except ValidationError:
+            return None
+        answer = attach(draft, self.toolbox, partial_evidence=partial)
+        return validate(answer, self.toolbox, question)
 
     # -- ambiguity policy --------------------------------------------------------------------
 
@@ -460,6 +520,17 @@ def _named_once(question: str, names: list[str]) -> bool:
         and re.search(rf"(?<![\w.]){re.escape(n.rsplit('.', 1)[0].lower())}(?!\w)", question)
     ]
     return len(by_model) == 1
+
+
+def _summary(r: ValidationResult) -> dict[str, Any]:
+    return {
+        "passed": r.passed,
+        "failures": [f.model_dump() for f in r.failures],
+        "repairs": r.repairs,
+        "dropped_claims": r.dropped_claims,
+        "counts": r.counts,
+        "claims": len(r.cleaned_answer.claims),
+    }
 
 
 def _parse_draft(text: str) -> AnswerDraft:

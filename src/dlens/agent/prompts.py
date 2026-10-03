@@ -56,5 +56,13 @@ ANSWER_REPAIR = (
 )
 
 
+REGENERATE = (
+    "Your previous answer failed these checks:\n{failures}\n"
+    "Answer again with JSON only. Cite only ids that appear in the evidence, copied exactly. "
+    "Do not mention models or columns the evidence does not contain. "
+    "Do not write file names or line numbers."
+)
+
+
 def clarification_question(text: str) -> str:
     return f'"{text}" could mean several different columns. Which one do you mean?'
