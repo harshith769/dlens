@@ -15,3 +15,11 @@
   parse target/compiled, never source or target/run; manifest includes test nodes, so filter them.
 - Lesson: accepted_values would NOT catch NULLs hidden by `else 'loyal'`; tests only catch what they check.
 - Full notes: ~/scratch/prework/task2_dbt/NOTES.md
+
+## Pre-work Task 2: dbt fundamentals, 3 Oct 2026
+- Built customer_segments (table) + 4 tests + an exposure on jaffle_shop; broke a test on purpose.
+- Key facts for DLens: ref() compiles to a 3-part relation name; manifest.json relation_name maps it back
+  to the node id; catalog.json gives column types (needed for sqlglot schema / SELECT * expansion);
+  parse target/compiled, never source or target/run; manifest includes test nodes, so filter them.
+- Lesson: accepted_values would NOT catch NULLs hidden by `else 'loyal'`; tests only catch what they check.
+- Full notes: ~/scratch/prework/task2_dbt/NOTES.md
