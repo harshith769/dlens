@@ -6,6 +6,8 @@ from typing import Annotated
 import typer
 
 from dlens import __version__
+from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, load_or_build
+from dlens.graph.render import render_impact, render_trace
 from dlens.ingest import DbtError
 from dlens.ingest import ingest as run_ingest
 
@@ -43,3 +45,46 @@ def ingest(project_dir: Annotated[Path, typer.Argument(help="Path to a dbt proje
     typer.echo(f"unmapped relations: {len(r.unmapped)}")
     for rel in r.unmapped:
         typer.echo(f"  - {rel}")
+
+
+ProjectOpt = Annotated[Path, typer.Option("--project", "-p", help="dbt project directory.")]
+DepthOpt = Annotated[int, typer.Option("--depth", "-d", min=1, help="Maximum number of hops.")]
+RebuildOpt = Annotated[bool, typer.Option("--rebuild", help="Ignore the cached graph.")]
+
+
+def _open_graph(project: Path, column: str, rebuild: bool) -> tuple[LineageGraph, str]:
+    """Load (or build) the graph and resolve COLUMN; exit 1 on a dbt failure, 2 on a bad column."""
+    try:
+        graph = load_or_build(project, rebuild=rebuild)
+    except DbtError as e:
+        typer.echo(f"graph build failed: {e}", err=True)
+        raise typer.Exit(1) from e
+    try:
+        return graph, graph.resolve(column)
+    except (ColumnNotFound, AmbiguousColumn) as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from e
+
+
+@app.command()
+def trace(
+    column: Annotated[str, typer.Argument(help="Column id, e.g. fct_orders.revenue_finance.")],
+    project: ProjectOpt = Path("."),
+    depth: DepthOpt = 10,
+    rebuild: RebuildOpt = False,
+) -> None:
+    """Show where COLUMN comes from: every upstream path, with expression and file:lines."""
+    graph, col = _open_graph(project, column, rebuild)
+    typer.echo(render_trace(graph, col, graph.upstream(col, max_depth=depth), depth))
+
+
+@app.command()
+def impact(
+    column: Annotated[str, typer.Argument(help="Column id, e.g. raw_orders.tax_usd.")],
+    project: ProjectOpt = Path("."),
+    depth: DepthOpt = 10,
+    rebuild: RebuildOpt = False,
+) -> None:
+    """Show what COLUMN feeds: downstream columns, models and exposures."""
+    graph, col = _open_graph(project, column, rebuild)
+    typer.echo(render_impact(graph, graph.downstream(col, max_depth=depth), depth))

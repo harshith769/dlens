@@ -1,0 +1,207 @@
+import os
+import random
+from pathlib import Path
+
+import pytest
+
+from conftest import edge, make_graph
+from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph
+from dlens.graph.cache import cache_path, is_stale, load_or_build
+from dlens.graph.render import render_impact, render_trace
+from dlens.lineage import EdgeKind
+
+RAW_X = "seed.p.raw.x"
+STG = "model.p.stg.x2"
+TOTAL = "model.p.fct.total"
+
+
+def test_upstream_walks_to_the_seed(tiny_graph: LineageGraph) -> None:
+    paths = tiny_graph.upstream(TOTAL)
+    assert len(paths) == 1
+    p = paths[0]
+    assert (p.start, p.end, p.depth) == (TOTAL, RAW_X, 2)
+    assert [e.kind for e in p.edges] == [EdgeKind.AGGREGATION, EdgeKind.RENAME]
+    assert not paths.truncated and not paths.depth_limited
+
+
+def test_upstream_of_a_source_column_is_empty(tiny_graph: LineageGraph) -> None:
+    assert tiny_graph.upstream(RAW_X) == []
+
+
+def test_upstream_max_depth_cuts_and_flags(tiny_graph: LineageGraph) -> None:
+    paths = tiny_graph.upstream(TOTAL, max_depth=1)
+    assert [p.depth for p in paths] == [1]
+    assert paths.depth_limited and not paths.truncated
+
+
+def test_upstream_max_paths_stops_and_flags() -> None:
+    # fan-in of 3 parents at each of 3 levels: 27 paths
+    edges = []
+    for lvl in range(3):
+        for i in range(3):
+            for j in range(3):
+                edges.append(edge(f"model.p.l{lvl + 1}.c{j}", f"model.p.l{lvl}.c{i}"))
+    g = make_graph(edges)
+    assert len(g.upstream("model.p.l0.c0")) == 27
+    capped = g.upstream("model.p.l0.c0", max_paths=5)
+    assert len(capped) == 5 and capped.truncated
+    exact = g.upstream("model.p.l0.c0", max_paths=27)
+    assert len(exact) == 27 and not exact.truncated
+
+
+def test_downstream_depths_models_and_exposures(tiny_graph: LineageGraph) -> None:
+    r = tiny_graph.downstream(RAW_X)
+    assert r.columns_by_depth == {1: [STG], 2: [TOTAL]}
+    assert r.models == ["model.p.fct", "model.p.stg"]
+    assert r.exposures == ["exposure.p.dash"]
+    assert not r.truncated
+    assert r.via[TOTAL].from_column == STG
+
+
+def test_downstream_max_depth_truncates(tiny_graph: LineageGraph) -> None:
+    r = tiny_graph.downstream(RAW_X, max_depth=1)
+    assert r.columns == [STG] and r.truncated
+    assert r.exposures == []  # fct is not reached within the depth
+
+
+def test_downstream_uses_shortest_depth() -> None:
+    g = make_graph([edge("m.a.x", "m.b.y"), edge("m.b.y", "m.c.z"), edge("m.a.x", "m.c.z")])
+    assert g.downstream("m.a.x").columns_by_depth == {1: ["m.b.y", "m.c.z"]}
+
+
+def test_root_model_exposure_counts() -> None:
+    g = make_graph(
+        [], extra_columns=["model.p.fct.total"], consumes=[("exposure.p.d", "model.p.fct")]
+    )
+    assert g.downstream("model.p.fct.total").exposures == ["exposure.p.d"]
+
+
+def test_resolve_short_full_and_case(tiny_graph: LineageGraph) -> None:
+    assert tiny_graph.resolve("fct.total") == TOTAL
+    assert tiny_graph.resolve(TOTAL) == TOTAL
+    assert tiny_graph.resolve("  FCT.Total ") == TOTAL
+    assert tiny_graph.resolve("p.stg.x2") == STG
+
+
+def test_resolve_ambiguous_lists_candidates(tiny_graph: LineageGraph) -> None:
+    with pytest.raises(AmbiguousColumn) as e:
+        tiny_graph.resolve("stg.x2")
+    assert e.value.candidates == ["model.p.stg.x2", "model.q.stg.x2"]
+    assert "model.q.stg.x2" in str(e.value)
+
+
+def test_resolve_unknown_suggests_three_closest(tiny_graph: LineageGraph) -> None:
+    with pytest.raises(ColumnNotFound) as e:
+        tiny_graph.resolve("fct.totl")
+    assert len(e.value.suggestions) == 3
+    assert e.value.suggestions[0] == "fct.total"
+
+
+def test_bare_column_name_is_not_accepted(tiny_graph: LineageGraph) -> None:
+    with pytest.raises(ColumnNotFound):
+        tiny_graph.resolve("total")
+
+
+def test_display_name_falls_back_to_full_id_when_short_is_ambiguous(
+    tiny_graph: LineageGraph,
+) -> None:
+    assert tiny_graph.display_name(TOTAL) == "fct.total"
+    assert tiny_graph.display_name(STG) == STG
+
+
+def test_save_load_round_trip_and_stable_bytes(tiny_graph: LineageGraph, tmp_path: Path) -> None:
+    a, b = tmp_path / "a.json", tmp_path / "b" / "b.json"
+    tiny_graph.save(a)
+    loaded = LineageGraph.load(a)
+    assert loaded == tiny_graph
+    loaded.save(b)
+    assert a.read_bytes() == b.read_bytes()
+    assert a.read_text().endswith("}\n")
+
+
+def test_save_is_independent_of_input_order(tmp_path: Path) -> None:
+    edges = [edge(f"m.a.c{i}", f"m.b.c{i}") for i in range(6)]
+    shuffled = edges[:]
+    random.Random(1).shuffle(shuffled)
+    make_graph(edges).save(tmp_path / "1.json")
+    make_graph(shuffled).save(tmp_path / "2.json")
+    assert (tmp_path / "1.json").read_bytes() == (tmp_path / "2.json").read_bytes()
+
+
+def test_load_rejects_unknown_version(tmp_path: Path) -> None:
+    p = tmp_path / "g.json"
+    p.write_text('{"version": 99}')
+    with pytest.raises(ValueError, match="version"):
+        LineageGraph.load(p)
+
+
+def _project(tmp_path: Path, graph: LineageGraph) -> Path:
+    (tmp_path / "target").mkdir()
+    (tmp_path / "models").mkdir()
+    (tmp_path / "target" / "manifest.json").write_text("{}")
+    (tmp_path / "models" / "m.sql").write_text("select 1")
+    graph.save(cache_path(tmp_path))
+    now = 2_000_000_000
+    os.utime(tmp_path / "target" / "manifest.json", (now - 20, now - 20))
+    os.utime(tmp_path / "models" / "m.sql", (now - 20, now - 20))
+    os.utime(cache_path(tmp_path), (now, now))
+    return tmp_path
+
+
+def test_cache_is_fresh_then_stale_when_manifest_or_source_is_newer(
+    tmp_path: Path, tiny_graph: LineageGraph
+) -> None:
+    p = _project(tmp_path, tiny_graph)
+    assert not is_stale(p)
+    assert load_or_build(p) == tiny_graph  # served from cache: no dbt in a fake project
+    os.utime(p / "models" / "m.sql", (2_000_000_100, 2_000_000_100))
+    assert is_stale(p)
+    os.utime(p / "models" / "m.sql", (1_999_999_000, 1_999_999_000))
+    os.utime(p / "target" / "manifest.json", (2_000_000_100, 2_000_000_100))
+    assert is_stale(p)
+
+
+def test_cache_missing_is_stale(tmp_path: Path) -> None:
+    assert is_stale(tmp_path)
+
+
+def test_trace_render_shows_hops_with_kind_expression_and_citation(
+    tiny_graph: LineageGraph,
+) -> None:
+    out = render_trace(tiny_graph, TOTAL, tiny_graph.upstream(TOTAL), 10)
+    lines = out.splitlines()
+    assert lines[0] == "fct.total"
+    assert lines[1].startswith("└─ ") and "[AGGREGATION]" in lines[1]
+    assert "f(x2)" in lines[1] and "models/fct.sql:3-3" in lines[1]
+    assert "[RENAME]" in lines[2] and lines[2].startswith("   └─ ")
+    assert "1 path(s), deepest 2 hop(s), 1 origin column(s)" in out
+
+
+def test_trace_render_merges_shared_prefixes() -> None:
+    g = make_graph([edge("m.a.x", "m.b.y"), edge("m.a.z", "m.b.y"), edge("m.b.y", "m.c.out")])
+    out = render_trace(g, "m.c.out", g.upstream("m.c.out"), 10)
+    assert out.count("a.x") == 1 and out.count("b.y") == 1
+    assert "2 path(s)" in out
+
+
+def test_trace_render_notes_for_source_and_limits(tiny_graph: LineageGraph) -> None:
+    assert "is a source" in render_trace(tiny_graph, RAW_X, tiny_graph.upstream(RAW_X), 10)
+    assert "cut at --depth 1" in render_trace(
+        tiny_graph, TOTAL, tiny_graph.upstream(TOTAL, max_depth=1), 1
+    )
+
+
+def test_trace_render_truncates_long_expressions_and_tags_low_confidence() -> None:
+    e = edge("m.a.x", "m.b.y").model_copy(update={"expression": "x" * 200, "confidence": "low"})
+    g = make_graph([e])
+    out = render_trace(g, "m.b.y", g.upstream("m.b.y"), 10)
+    assert "…" in out and "x" * 61 not in out and "(low confidence)" in out
+
+
+def test_impact_render_summary(tiny_graph: LineageGraph) -> None:
+    out = render_impact(tiny_graph, tiny_graph.downstream(RAW_X), 10)
+    assert "2 affected column(s), 2 model(s)" in out
+    assert "depth 1: 1 column(s)" in out
+    assert "exposures: exposure.p.dash" in out
+    assert "warning" not in out
+    assert "warning" in render_impact(tiny_graph, tiny_graph.downstream(RAW_X, max_depth=1), 1)
