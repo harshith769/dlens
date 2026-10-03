@@ -329,7 +329,7 @@ Report top-1 and top-3 accuracy.
 
 **Flow.** Validate. On failure, regenerate once with a ≤300-token failure list (the 8-call
 budget reserves the call). If it still fails, keep only the passing claims with
-`validation_warning` (rebuilding `answer_text` if it failed itself), or refuse with "no
+`validation_warning` (rebuilding `answer_text` from them whenever a claim is dropped), or refuse with "no
 verifiable claims". Refused and clarification answers are not validated.
 
 **Benchmark reporting.** Repairs are reported separately: S4 results are given **raw** (repairs

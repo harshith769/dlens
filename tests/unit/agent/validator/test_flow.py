@@ -61,7 +61,7 @@ def test_both_fail_keeps_passing_claims_with_a_warning(box, make_client):
     assert v["dropped_claims"] == [1]
     a = run.answer
     assert a.validation_warning and [c.text for c in a.claims] == [GOOD[0]]
-    assert a.answer_text == GOOD[0]  # rebuilt: the answer_text itself failed R4
+    assert a.answer_text == GOOD[0] + "."  # rebuilt from the kept claim
     assert "e_deadbeef" not in a.citations
 
 
@@ -140,3 +140,32 @@ def test_model_refusal_is_recorded_as_skipped(box, make_client):
     client, _ = make_client([call("trace_upstream", column_id="fct.total"), done(), refusal])
     run = ask(Q, client, box)
     assert run.answer.refused and run.record.validation["skipped"]
+
+
+def test_salvage_rebuilds_prose_when_a_claim_is_dropped(box, make_client):
+    """g-style: answer_text states a relationship whose claim fails (R8), and the text itself
+    passes every text rule. The salvaged answer_text must not keep that relationship."""
+
+    def make():
+        agg = eid(box, "stg.amount", "fct.total")
+        star = eid(box, "fct.total", "fct_star.total")
+        return draft(
+            "fct.total aggregates stg.amount, and fct_star.total comes from stg.amount.",
+            [
+                ("fct.total aggregates stg.amount", [agg]),
+                ("fct_star.total comes from stg.amount", [star]),  # skips a hop: R8
+            ],
+        )
+
+    script = [call("trace_upstream", column_id="fct_star.total"), done(), make, make]
+    client, _ = make_client(script)
+    run = ask("Where does fct_star.total come from?", client, box)
+    v = run.record.validation
+    assert v["first"]["counts"] == {"R8": 1} and v["second"]["counts"] == {"R8": 1}
+    assert not any(f["claim_index"] is None for f in v["first"]["failures"])  # prose passed
+    a = run.answer
+    assert a.validation_warning and [c.text for c in a.claims] == [
+        "fct.total aggregates stg.amount"
+    ]
+    assert a.answer_text == "fct.total aggregates stg.amount."
+    assert "fct_star.total" not in a.answer_text

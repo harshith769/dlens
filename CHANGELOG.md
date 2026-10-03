@@ -27,6 +27,8 @@ All notable changes to this project are documented here. The format follows
 
 - Validator R8 (connectivity): a claim naming ≥2 columns must connect them through its cited
   edges. R2 now also checks (and safely repairs) ids written in prose.
+- Salvaged answers rebuild `answer_text` from the kept claims whenever a claim is dropped, so
+  a warned answer never states a rejected relationship.
 - False-premise handling: a system-prompt line, and a code fallback that traces the named column
   when the model makes no tool call.
 - Live fault injection for the validator's regenerate path

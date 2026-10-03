@@ -185,9 +185,11 @@ It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N
    identifier per line, at most ~300 tokens). The new draft is validated.
 3. If the regenerated draft passes, it is the answer (`regenerated: true`).
 4. If both drafts fail, or no call is left, **salvage**: take the round with more passing claims
-   (ties go to the regenerated one) and keep only its passing claims. If `answer_text` itself
-   failed (R4/R6), rebuild it from the kept claims' texts. Set `validation_warning`. If no claim
-   passes, refuse ("no verifiable claims").
+   (ties go to the regenerated one) and keep only its passing claims. **Rebuild `answer_text`
+   from the kept claims' texts** whenever a claim was dropped, or the text itself failed (R2,
+   R4 or R6). In live run g, a salvaged answer's prose still stated the lifetime_value link that
+   R8 had just removed from the claims. Set `validation_warning`. If no claim passes, refuse ("no
+   verifiable claims").
 5. Invalid JSON on the regenerate counts as a failure, and the first draft is salvaged.
 
 **Live coverage.** `scripts/smoke_agent.py --inject-bad-draft KIND` swaps the first draft for a
@@ -205,6 +207,30 @@ raw-vs-repaired benchmark split need.
 that is confidently wrong is exactly the case the validator exists for. Using it would let the
 model's own opinion of itself decide whether its claims are checked. It is shown and logged, and
 used by nothing else.
+
+## Known limitations
+- **`answer_text` gets fewer checks than claims.** It is checked by R2 (ids in prose), R4 (known
+  nodes) and R6 (paths and lines) only. R1, R3, R5, R7 and R8 apply to claims, because claims
+  carry the assertions and their ids.
+  - A passing answer's prose can therefore still summarise more than its claims prove.
+  - The benchmark scores **claims**, not prose.
+  - After salvage the prose is rebuilt from the kept claims, so it cannot outrun them.
+
+## Open question for session 5: R8 strictness vs answer completeness
+R8 drops claims whose prose is right but whose citations miss one connecting edge. Seen live in
+the `fake_id` and `laundering` injections: the edge was emitted, just not cited.
+
+To do: measure R8 drops on the dev set. If they are frequent, consider **deterministic citation
+completion**:
+- code adds the missing connecting edges from this question's ledger (shortest path among
+  emitted edges between the named columns, at most a few hops);
+- each added edge is logged separately (like `repairs`, as `completions`), so the benchmark can
+  report raw vs completed;
+- only if no connecting path exists in the ledger does R8 fail.
+
+The trade-off: completion turns "under-cited but true" into a pass. It could also bless a claim
+that asserts a *direct* link where only a multi-hop path exists, so a completed claim's kind
+words (R5) and "directly" wording would need re-checking.
 
 ## Explain-back questions
 1. `s_b3ece5f` is repaired to `s_b3ece5f8`, but a bad id `e_12345678` with two emitted ids

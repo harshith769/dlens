@@ -597,13 +597,20 @@ def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationRe
     )
 
 
+def _sentence(text: str) -> str:
+    text = text.strip()
+    return text if text.endswith((".", "!", "?")) else text + "."
+
+
 def salvage(result: ValidationResult, ledger: Ledger) -> Answer | None:
-    """Keep only the passing claims (answer_text rebuilt from them if it failed itself), with
-    ``validation_warning``. None when no claim passes."""
+    """Keep only the passing claims, with ``validation_warning``. ``answer_text`` is rebuilt from
+    the kept claims whenever a claim was dropped or the text itself failed, so a warned answer
+    never states a relationship the validator rejected. None when no claim passes."""
     a = result.cleaned_answer
     keep = [c for k, c in enumerate(a.claims) if k not in set(result.dropped_claims)]
     if not keep:
         return None
     out = recite(a, ledger, keep)
-    text = " ".join(c.text.strip() for c in keep) if result.answer_text_failed else a.answer_text
+    rebuild = bool(result.dropped_claims) or result.answer_text_failed
+    text = " ".join(_sentence(c.text) for c in keep) if rebuild else a.answer_text
     return out.model_copy(update={"answer_text": text, "validation_warning": True})

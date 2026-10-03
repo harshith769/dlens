@@ -158,6 +158,7 @@ def validator_stats(run: AgentRun) -> dict[str, Any]:
     return {
         "checked": bool(v),
         "counts": dict(v.get("counts") or {}),
+        "second_counts": dict((v.get("second") or {}).get("counts") or {}),
         "repairs": list(v.get("repairs") or []),
         "regenerated": bool(v.get("regenerated")),
         "warning": bool(v.get("warning")),
@@ -172,8 +173,11 @@ def validator_line(run: AgentRun) -> str:
         return "not run (refused or clarified before the answer was validated)"
     counts = ", ".join(f"{k}={n}" for k, n in sorted(s["counts"].items())) or "none"
     repairs = ", ".join(f"{r['from']}->{r['to']}" for r in s["repairs"]) or "none"
+    second = ", ".join(f"{k}={n}" for k, n in sorted(s["second_counts"].items())) or "none"
     return (
-        f"draft failures: {counts}; repairs: {repairs}; "
+        f"draft failures: {counts}; "
+        + (f"second-draft failures: {second}; " if s["regenerated"] else "")
+        + f"repairs: {repairs}; "
         f"regenerated={'y' if s['regenerated'] else 'n'}; warning={'y' if s['warning'] else 'n'}; "
         f"claims kept {s['claims_after']}/{s['claims_before']}"
     )
@@ -184,9 +188,12 @@ def stats_line(runs: list[AgentRun]) -> str:
     before = sum(s["claims_before"] for s in stats)
     after = sum(s["claims_after"] for s in stats)
     totals = {rule: sum(s["counts"].get(rule, 0) for s in stats) for rule in RULES}
+    second = {rule: sum(s["second_counts"].get(rule, 0) for s in stats) for rule in RULES}
     return (
-        f"validator stats: claims {before} -> {after}; "
+        f"validator stats: claims {before} -> {after}; first drafts: "
         + " ".join(f"{k}={n}" for k, n in totals.items())
+        + "\n                 second drafts: "
+        + " ".join(f"{k}={n}" for k, n in second.items())
         + f"; repairs={sum(len(s['repairs']) for s in stats)}"
         + f"; regenerated={sum(s['regenerated'] for s in stats)}"
         + f"; warnings={sum(s['warning'] for s in stats)}"
