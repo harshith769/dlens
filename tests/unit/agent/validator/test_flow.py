@@ -133,3 +133,10 @@ def test_fallback_needs_an_exact_existing_column(box, make_client):
         run = ask(q, client, box)
         assert not [s for s in run.record.steps if s.phase == "code"]
         assert run.answer.refused and "no lineage evidence" in run.answer.refusal_reason
+
+
+def test_model_refusal_is_recorded_as_skipped(box, make_client):
+    refusal = draft("The evidence does not say.", [], refused=True, refusal_reason="no path")
+    client, _ = make_client([call("trace_upstream", column_id="fct.total"), done(), refusal])
+    run = ask(Q, client, box)
+    assert run.answer.refused and run.record.validation["skipped"]

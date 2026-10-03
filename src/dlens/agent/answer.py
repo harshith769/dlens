@@ -169,6 +169,8 @@ def marker(item_id: str, cite: Citation | None) -> str:
 def render(answer: Answer) -> str:
     """Human-readable answer: text, claims with [file:line] markers, then the citation list."""
     out = [answer.answer_text.strip()]
+    if answer.refused and not answer.answer_text.startswith("I can't answer"):
+        out.append(f"(Refused: {answer.refusal_reason or 'the evidence does not answer this'})")
     if answer.clarification is not None:
         out += [f"  - {c}" for c in answer.clarification.candidates]
     if answer.claims:

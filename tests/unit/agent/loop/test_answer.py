@@ -78,3 +78,9 @@ def test_render_dedupes_identical_markers(box: Toolbox):
     a.citations["e_feedface"] = a.citations[e1]
     claim_line = [ln for ln in render(a).splitlines() if ln.startswith("  - c")][0]
     assert claim_line.count("[models/fct.sql:3]") == 1
+
+
+def test_render_marks_a_model_refusal():
+    a = Answer(answer_text="The evidence does not say.", refused=True, refusal_reason="no path")
+    assert "(Refused: no path)" in render(a)
+    assert "(Refused" not in render(Answer.refusal("x"))  # already says "I can't answer"

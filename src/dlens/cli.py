@@ -134,7 +134,7 @@ def trace_summary(run: AgentRun) -> dict[str, object]:
 
 
 def _validator_label(v: dict[str, object] | None) -> str:
-    if not v:
+    if not v or v.get("skipped"):
         return "skipped"
     parts = ["pass" if v.get("passed") else ("warning" if v.get("warning") else "fail")]
     repairs = v.get("repairs") or []

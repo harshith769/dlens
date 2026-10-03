@@ -68,6 +68,7 @@ def test_ask_unknown_provider_exits_2(monkeypatch, shop_root: Path):
 def test_validator_label():
     label = cli._validator_label
     assert label(None) == "skipped"
+    assert label({"passed": True, "skipped": True}) == "skipped"
     assert label({"passed": True, "repairs": [], "regenerated": False}) == "pass"
     assert label({"passed": True, "repairs": [{}], "regenerated": True}) == (
         "pass, repaired 1, regenerated"

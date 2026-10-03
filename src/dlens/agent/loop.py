@@ -320,6 +320,7 @@ class Agent:
             "counts": first.counts,  # draft failures by rule
             "repairs": first.repairs,
             "dropped_claims": [],
+            "skipped": first.skipped,  # refused / clarification: not checked
             "first": _summary(first),
             "second": None,
         }
