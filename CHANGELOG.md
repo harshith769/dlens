@@ -25,6 +25,10 @@ All notable changes to this project are documented here. The format follows
   hops) and returns ordered line windows, each with its own `excerpt_id`. For example,
   `dim_customers.lifetime_value` now shows the CTE line that computes it.
 
+- Live fault injection for the validator's regenerate path
+  (`scripts/smoke_agent.py --inject-bad-draft`, a script-only test hook) and two more dev smoke
+  questions: a false premise and a 7-hop impact.
+
 ### Changed
 - `get_model_sql` payload: `windows: [{excerpt_id, range}]` replaces `excerpt_id` /
   `excerpt_range`; `excerpt` holds `…` between windows.

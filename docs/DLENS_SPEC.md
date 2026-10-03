@@ -577,7 +577,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 - [ ] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
 - [x] Tools: `resolve_entity` (fuzzy v1), `trace_upstream`, `impact_downstream`, `get_model_sql`
 - [x] Agent loop with structured answers; logs pre-validation drafts
-- [ ] [H] Validator rules + adversarial tests
+- [x] [H] Validator rules + adversarial tests (written by Claude at the owner's request, Decision 17; owner-reviewed)
 - [ ] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions
 - [ ] Tag v0.2.0; add the first GenAI resume line
 
