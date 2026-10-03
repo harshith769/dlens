@@ -1,0 +1,170 @@
+# Traps exercised by synthetic_shop v0.1 (15 models). Hand-authored from DESIGN.md.
+# Each edge listed here also carries the trap id in its `traps:` list in lineage_spec.yml.
+# Edges are written as "from -> to".
+
+traps:
+  - id: rename_chain
+    phase: v0.1
+    description: >
+      One value renamed in three consecutive models (tax_usd -> tax_amount -> order_tax -> sales_tax),
+      so text search on any single name loses the trail.
+    edges:
+      - raw_orders.tax_usd -> stg_orders.tax_amount
+      - stg_orders.tax_amount -> int_orders_enriched.order_tax
+      - int_orders_enriched.order_tax -> int_order_financials.sales_tax
+
+  - id: select_star
+    phase: v0.1
+    description: >
+      Columns pass through `SELECT *`; edges exist only after the catalog schema expands the star.
+      One model mixes `*` with a computed window column, the other is a pure `SELECT *`.
+    models: [int_customer_order_history, fct_payment_events]
+    edges:
+      - int_order_financials.order_id -> int_customer_order_history.order_id
+      - int_order_financials.customer_id -> int_customer_order_history.customer_id
+      - int_order_financials.order_date -> int_customer_order_history.order_date
+      - int_order_financials.order_status_group -> int_customer_order_history.order_status_group
+      - int_order_financials.item_count -> int_customer_order_history.item_count
+      - int_order_financials.items_subtotal -> int_customer_order_history.items_subtotal
+      - int_order_financials.sales_tax -> int_customer_order_history.sales_tax
+      - int_order_financials.order_total -> int_customer_order_history.order_total
+      - int_order_financials.refund_amount -> int_customer_order_history.refund_amount
+      - int_order_financials.net_paid_usd -> int_customer_order_history.net_paid_usd
+      - int_payment_events.event_id -> fct_payment_events.event_id
+      - int_payment_events.order_id -> fct_payment_events.order_id
+      - int_payment_events.event_amount_usd -> fct_payment_events.event_amount_usd
+      - int_payment_events.event_at -> fct_payment_events.event_at
+
+  - id: deep_chain
+    phase: v0.1
+    description: >
+      A 7-hop path from a seed column to a mart column, crossing IDENTITY, TRANSFORMATION,
+      AGGREGATION and SELECT * edges. Branches at fct_orders to two mart endpoints.
+    hops: 7
+    path:
+      - raw_order_items.unit_price
+      - stg_order_items.unit_price
+      - int_order_items_enriched.line_amount
+      - int_orders_enriched.items_subtotal
+      - int_order_financials.items_subtotal
+      - int_customer_order_history.items_subtotal
+      - fct_orders.revenue_finance
+      - fct_daily_revenue.revenue_finance
+    branch:   # same first 6 hops, then items_subtotal -> lifetime_value
+      - fct_orders.items_subtotal
+      - dim_customers.lifetime_value
+    edges:
+      - raw_order_items.unit_price -> stg_order_items.unit_price
+      - stg_order_items.unit_price -> int_order_items_enriched.line_amount
+      - int_order_items_enriched.line_amount -> int_orders_enriched.items_subtotal
+      - int_orders_enriched.items_subtotal -> int_order_financials.items_subtotal
+      - int_order_financials.items_subtotal -> int_customer_order_history.items_subtotal
+      - int_customer_order_history.items_subtotal -> fct_orders.revenue_finance
+      - fct_orders.revenue_finance -> fct_daily_revenue.revenue_finance
+      - int_customer_order_history.items_subtotal -> fct_orders.items_subtotal
+      - fct_orders.items_subtotal -> dim_customers.lifetime_value
+
+  - id: fan_in_aggregate
+    phase: v0.1
+    description: >
+      lifetime_value = sum(items_subtotal + sales_tax - refunded_amount): one aggregate fed by three
+      upstream columns, which trace back to three different seeds
+      (raw_order_items, raw_orders, raw_refunds).
+    columns: [dim_customers.lifetime_value]
+    edges:
+      - fct_orders.items_subtotal -> dim_customers.lifetime_value
+      - fct_orders.sales_tax -> dim_customers.lifetime_value
+      - fct_orders.refunded_amount -> dim_customers.lifetime_value
+
+  - id: two_revenue_definitions
+    phase: v0.1
+    description: >
+      Two named revenue definitions plus a third revenue-like one, each with a different upstream set.
+      revenue_finance = items_subtotal - refunds (excludes tax, deducts refunds);
+      revenue_marketing = items_subtotal + sales_tax (includes tax, ignores refunds);
+      dim_customers.lifetime_value = sum(items_subtotal + sales_tax - refunded_amount)
+      (includes tax AND deducts refunds), so it equals neither sum(revenue_finance) nor
+      sum(revenue_marketing).
+    columns:
+      - fct_orders.revenue_finance
+      - fct_orders.revenue_marketing
+      - fct_daily_revenue.revenue_finance
+      - fct_daily_revenue.revenue_marketing
+      - dim_customers.lifetime_value   # third, revenue-like definition
+    edges:
+      - int_customer_order_history.items_subtotal -> fct_orders.revenue_finance
+      - int_customer_order_history.refund_amount -> fct_orders.revenue_finance
+      - int_customer_order_history.items_subtotal -> fct_orders.revenue_marketing
+      - int_customer_order_history.sales_tax -> fct_orders.revenue_marketing
+      - fct_orders.revenue_finance -> fct_daily_revenue.revenue_finance
+      - fct_orders.revenue_marketing -> fct_daily_revenue.revenue_marketing
+      - fct_orders.items_subtotal -> dim_customers.lifetime_value
+      - fct_orders.sales_tax -> dim_customers.lifetime_value
+      - fct_orders.refunded_amount -> dim_customers.lifetime_value
+
+  - id: near_duplicate_names
+    phase: v0.1
+    description: >
+      refund_amt (per refund), refund_amount (per order, summed) and refunded_amount (per order,
+      renamed; per day in fct_daily_revenue) are related but differ in grain. The entity linker must
+      not collapse them.
+    columns:
+      - stg_refunds.refund_amt
+      - int_order_financials.refund_amount
+      - int_customer_order_history.refund_amount
+      - fct_orders.refunded_amount
+      - fct_daily_revenue.refunded_amount
+    edges:
+      - raw_refunds.refund_amt -> stg_refunds.refund_amt
+      - stg_refunds.refund_amt -> int_order_financials.refund_amount
+      - int_order_financials.refund_amount -> int_customer_order_history.refund_amount
+      - int_customer_order_history.refund_amount -> fct_orders.refunded_amount
+      - fct_orders.refunded_amount -> dim_customers.lifetime_value
+      - fct_orders.refunded_amount -> fct_daily_revenue.refunded_amount
+
+  - id: case_transformation
+    phase: v0.1
+    description: >
+      CASE expressions: a single-input value mapping (status -> order_status_group) and a
+      two-input comparison (unit_price vs list_price -> is_discounted).
+    columns:
+      - int_orders_enriched.order_status_group
+      - int_order_items_enriched.is_discounted
+    edges:
+      - stg_orders.status -> int_orders_enriched.order_status_group
+      - stg_order_items.unit_price -> int_order_items_enriched.is_discounted
+      - stg_products.list_price -> int_order_items_enriched.is_discounted
+
+  - id: window_function
+    phase: v0.1
+    description: >
+      lag(order_date) OVER (PARTITION BY customer_id ORDER BY order_date, order_id). The direct edge
+      comes from the lag argument only. The partition and order keys are deferred v0.3 WINDOW edges.
+    columns: [int_customer_order_history.previous_order_date]
+    edges:
+      - int_order_financials.order_date -> int_customer_order_history.previous_order_date
+
+  - id: union_all
+    phase: v0.1
+    description: >
+      Payments UNION ALL refunds into one ledger. Each output column has one edge per branch, and
+      output names come from the payments (first) branch.
+    models: [int_payment_events]
+    edges:
+      - stg_payments.payment_id -> int_payment_events.event_id
+      - stg_refunds.refund_id -> int_payment_events.event_id
+      - stg_payments.order_id -> int_payment_events.order_id
+      - stg_refunds.order_id -> int_payment_events.order_id
+      - stg_payments.amount_usd -> int_payment_events.event_amount_usd
+      - stg_refunds.refund_amt -> int_payment_events.event_amount_usd
+      - stg_payments.paid_at -> int_payment_events.event_at
+      - stg_refunds.refunded_at -> int_payment_events.event_at
+
+# Spec §10 traps not exercised until v0.3 (40-60 models):
+deferred:
+  - id: join_key_only
+    note: candidate fct_orders.customer_id -> dim_customers.* (JOIN/GROUP_BY only); see DESIGN.md
+  - id: stale_doc
+    note: needs schema.yml descriptions (Phase B+); one description will contradict the SQL
+  - id: exposures
+    note: two dashboards on different marts
