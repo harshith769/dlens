@@ -46,7 +46,7 @@ def test_make_client_defaults_to_ollama(tmp_path):
     env = {"DLENS_CACHE_DIR": str(tmp_path / "c"), "DLENS_STATE_DIR": str(tmp_path / "s")}
     client = make_client(env=env)
     assert isinstance(client.provider, OllamaProvider)
-    assert client.provider.model == "qwen3:4b"
+    assert client.provider.model == "qwen3:4b-instruct-2507-q4_K_M"
 
 
 def test_make_client_unknown_and_groq(tmp_path):

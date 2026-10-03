@@ -29,7 +29,7 @@ enforces, in this order:
   itself blocks at the full budget.
 - **`ratelimit.py`**: a 60 s sliding window of send times; when full, sleep until the oldest slot
   expires. Gemini 15, Groq 30, Ollama unlimited. Clock and sleep are injectable.
-- **`ollama.py`**: `qwen3:4b`, `temperature 0`, `num_ctx 8192`, `think=False`. Tool-call ids are
+- **`ollama.py`**: `qwen3:4b-instruct-2507-q4_K_M`, `temperature 0`, `num_ctx 8192`, `think=False`. Tool-call ids are
   `call_{index}`, never random, so a replayed history hashes to the same cache key.
 - **`gemini.py`**: `google-genai` with automatic function calling disabled (we run our own loop).
   Key from `GEMINI_API_KEY` in the process environment only; `.env` is never opened. The model ID
@@ -53,9 +53,12 @@ enforces, in this order:
   `ToolCall.provider_meta` and replays it. It survives the cache because it is plain JSON.
 - **No automatic retries.** `ProviderError` carries `status_code` and `retryable`; the agent loop
   decides, since a retry spends quota and wall time.
-- **qwen3 leaks reasoning even with `think=False`** (observed live on qwen3:4b with Ollama 0.35): the
-  reasoning arrives in `content` followed by a bare `</think>`, with no opening tag. `strip_think`
-  handles closed blocks, unterminated blocks and this "closing tag only" form.
+- **Local model is the Instruct-2507 build, not `qwen3:4b`.** The `qwen3:4b` tag is the
+  thinking-only 2507 build: its chat template inserts `<think>` itself, so `think=False` cannot
+  turn reasoning off. Observed live on Ollama 0.35: ~140 output tokens (reasoning followed by a bare
+  `</think>`) for a one-word answer. `qwen3:4b-instruct-2507-q4_K_M` is the non-thinking build at
+  the same size, so no extra VRAM and the 3K-token input cap is unaffected. `strip_think` stays as a
+  safety net: it handles closed blocks, unterminated blocks and a bare closing tag.
 
 ## Alternatives rejected
 - **LiteLLM / LangChain wrappers**: a big dependency and they hide the thought-signature and quota

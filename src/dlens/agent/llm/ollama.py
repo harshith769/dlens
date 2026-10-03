@@ -1,4 +1,4 @@
-"""Ollama adapter: qwen3:4b, temperature 0, thinking off, num_ctx 8192."""
+"""Ollama adapter: Qwen3-4B-Instruct-2507 (non-thinking), temperature 0, num_ctx 8192."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 from dlens.agent.llm.base import Provider
 from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolCall, ToolSpec, Usage
 
-DEFAULT_MODEL = "qwen3:4b"
+DEFAULT_MODEL = "qwen3:4b-instruct-2507-q4_K_M"
 NUM_CTX = 8192
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)

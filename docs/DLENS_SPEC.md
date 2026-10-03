@@ -30,6 +30,7 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 | 16 | **The "Cowork" role is now "Claude app"** | Those capabilities are now part of the regular Claude app |
 | 17 | **AI writes all code; the owner reviews, approves and explains** (3 Oct 2026). Core modules ship with `docs/explain/<module>.md` + explain-back questions. The owner still approves the gold spec and every test question | Owner decision: speed over hand-writing. Gold-spec independence and question review stay human to keep the benchmark valid |
 | 18 | **Timeline pulled forward after v0.1 shipped 3 Oct** (v0.2 by 8 Nov, v0.3 by 29 Nov, test-set freeze 7 Dec, v1.0 by 3 Jan 2027; buffer to 7 Feb 2027 kept) | v0.1 finished 15 days before its 18 Oct target, so later milestones move up and the end buffer grows |
+| 19 | **Local model → Qwen3-4B-Instruct-2507** (`qwen3:4b-instruct-2507-q4_K_M`) (3 Oct 2026) | The `qwen3:4b` tag is the thinking-only build; instruct is non-thinking, same size |
 
 ---
 
@@ -61,7 +62,7 @@ Changing any line below needs an ADR, because several of them invalidate benchma
 | Graph | NetworkX in memory, persisted as a JSON edge list (diffable in git) |
 | Retrieval | BM25 (`bm25s`) + dense (LanceDB), fused with reciprocal rank fusion; no reranker in v1 |
 | LLM: primary | **Gemini 3.5 Flash-Lite**, free tier: 15 RPM, 250K TPM, 500 RPD (measured in Week 0). Config uses the **versioned** model ID, never the `-latest` alias; daily budget 400 |
-| LLM: local | **Qwen3-4B via Ollama** for development and for the second full benchmark run: 100% GPU at `num_ctx` 8192, about 62 tok/s. Thinking off. Qwen3-8B was rejected because it spills to the CPU even at `num_ctx` 4096 |
+| LLM: local | **Qwen3-4B-Instruct-2507 via Ollama (`qwen3:4b-instruct-2507-q4_K_M`)** for development and for the second full benchmark run: 100% GPU at `num_ctx` 8192, about 62 tok/s. Thinking off. Qwen3-8B was rejected because it spills to the CPU even at `num_ctx` 4096 |
 | LLM: cross-check and judge | **Groq `openai/gpt-oss-120b`**, free tier; used for the 60-question cross-model subset and as the Ask-rubric judge |
 | Embeddings | `BAAI/bge-small-en-v1.5`, local; ablation model `all-MiniLM-L6-v2` |
 | Training | None. All models are pretrained and used as-is |
@@ -311,7 +312,7 @@ Report top-1 and top-3 accuracy.
 | Role | Model | Notes |
 |---|---|---|
 | Primary agent | Gemini Flash-Lite (ID pinned in week 0) | Native tool calling; budget set to 80% of the RPD AI Studio shows |
-| Local agent (dev + second full run) | `qwen3:4b`, `num_ctx` 8192, thinking off (`think=False` in the API) | Unlimited; 100% GPU, ~62 tok/s. `qwen3:8b` spilled to CPU at 8192 (36/64) and 4096 (30/70), ~16 tok/s, so it was rejected |
+| Local agent (dev + second full run) | `qwen3:4b-instruct-2507-q4_K_M` (Qwen3-4B-Instruct-2507, non-thinking build), `num_ctx` 8192 | Unlimited; 100% GPU, ~62 tok/s. `qwen3:8b` spilled to CPU at 8192 (36/64) and 4096 (30/70), ~16 tok/s, so it was rejected |
 | Cross-check + judge | Groq `openai/gpt-oss-120b` | About 200K tokens/day; used for the 60-question subset and the Ask judge. A different model family from the agent, which reduces self-judging bias |
 | Embeddings | `BAAI/bge-small-en-v1.5` | Local; ablation `all-MiniLM-L6-v2` |
 | Reranker | None in v1 | Add only if linker errors demand it |
@@ -612,7 +613,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 | Item | Value |
 |---|---|
 | Gemini | Rate-limit page shows Gemini 3.5 Flash Lite at **15 RPM, 250K TPM, 500 RPD**. `GEMINI_DAILY_BUDGET=400`. Pin the versioned ID from the `check_gemini.py` list (expected `gemini-3.5-flash-lite`), not `gemini-flash-lite-latest` |
-| Local model | `OLLAMA_MODEL=qwen3:4b` (100% GPU @8192, 61.7 tok/s). `qwen3:8b` rejected (30% CPU / 70% GPU @4096, 16.3 tok/s) |
+| Local model | `OLLAMA_MODEL=qwen3:4b-instruct-2507-q4_K_M` (was `qwen3:4b`, the thinking-only build; see §0 row 19) (100% GPU @8192, 61.7 tok/s). `qwen3:8b` rejected (30% CPU / 70% GPU @4096, 16.3 tok/s) |
 | Groq | `GROQ_DAILY_TOKENS=200000`; no 2FA option in the free UI, so the password-manager password is the protection |
 | Keys | Both AI Studio keys and the Groq key are in a password manager |
 | S2 feasibility | 250K TPM fits a ~30K-token stuffed prompt about 8 times a minute; RPM 15 is the real limit |

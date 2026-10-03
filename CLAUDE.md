@@ -42,7 +42,7 @@ Streamlit, pytest, hypothesis, ruff, mypy.
 - Conventional commits. Run `make test` before proposing a commit.
 - The public interfaces in spec Section 7 are stable; propose changes as an ADR first.
 - Environment: WSL2 Ubuntu; repo lives in ~/code/dlens; GPU is an RTX 4050 (6 GB) for Ollama;
-  local model qwen3:4b (dev and benchmark). Gemini: versioned Flash-Lite ID, 400 calls/day budget. Conda is installed: always use `uv run` / `uv pip`, never bare `pip`.
+  local model qwen3:4b-instruct-2507-q4_K_M (Qwen3-4B-Instruct-2507; dev and benchmark). Gemini: versioned Flash-Lite ID, 400 calls/day budget. Conda is installed: always use `uv run` / `uv pip`, never bare `pip`.
 
 ## Current target
 v0.2 Cited Q&A agent (spec Section 14), due 8 Nov 2026. Update this line each release.
