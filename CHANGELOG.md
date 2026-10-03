@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may change behaviour).
 
+## [Unreleased]
+
+### Added
+- `dlens ask "question" [-p PROJECT] [--provider ollama] [--json]`: two-phase cited Q&A agent.
+  The tool phase uses at most 5 LLM calls, with dedupe and token-budget compaction. The answer
+  phase is rebuilt from the tool ledger with a JSON-schema answer. Citations are attached by
+  code, ambiguous names are handled by chain / per-candidate / clarification, and there are at
+  most 8 LLM calls per question.
+- One JSONL draft record per run in `$XDG_STATE_HOME/dlens/runs` (override `DLENS_RUN_DIR`).
+- `LLMClient.chat(..., response_schema=...)` for structured output (Ollama `format`, Gemini
+  `response_json_schema`); part of the cache key only when set.
+- Validator interface (pass-through stub; rules land in the next v0.2 item).
+
+### Changed
+- Agent tool specs are shorter (728 → 425 estimated tokens). They no longer advertise `k` or
+  `include_indirect`, which the tools still accept.
+
 ## [0.1.0] - 2026-10-03
 
 First public release: the lineage CLI.

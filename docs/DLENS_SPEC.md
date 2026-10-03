@@ -297,6 +297,8 @@ Report top-1 and top-3 accuracy.
 
 **Answer schema (Pydantic):** `answer_text`, `claims: list[{text, edge_ids, chunk_ids}]`, `subgraph`, `confidence`, `refused`.
 
+*v0.2 note (additive, no existing field changed):* `Answer` also carries `refusal_reason`, `clarification: {question, candidates} | None`, `partial_evidence` (the answer prompt was trimmed to fit) and `citations` (id → file/lines, attached by code from the tool ledger, never typed by the LLM). The LLM drafts each claim with one `ids` list; code splits it into `edge_ids` (`e_`) and `chunk_ids` (`s_` excerpts and anything else). `subgraph` is computed by code. `confidence` is the model's self-report and is never used by the validator or scoring. **Ambiguity** (tied `resolve_entity` candidates the question does not disambiguate), decided in code: all candidates on one lineage chain → answer for the most downstream (code traces it if needed) and name each layer; otherwise ≤3 candidates → answer per candidate; >3 → clarification with no answer call. See `docs/explain/agent.md`.
+
 **Validator, enforced in code:**
 1. Every claim cites at least one edge or chunk ID.
 2. Every cited ID appears in a tool result from this conversation.
@@ -306,7 +308,7 @@ Report top-1 and top-3 accuracy.
 **Log the pre-validation draft for every S4 answer.** This powers the no-validator ablation at no extra cost.
 
 **Loop limits:**
-- At most 8 steps and about 3K input tokens per call; the token count is checked before sending.
+- At most 8 steps and about 3K input tokens per call; the token count is checked before sending. *(v0.2: "steps" = LLM calls per question, all counted: ≤5 tool-phase calls, then answer + one repair + the validator's regenerate-once. Tool calls made by code are not LLM calls.)*
 - Retrieved text is wrapped as delimited data and never placed in the system prompt.
 
 ---
