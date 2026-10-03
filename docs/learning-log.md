@@ -23,3 +23,11 @@
   parse target/compiled, never source or target/run; manifest includes test nodes, so filter them.
 - Lesson: accepted_values would NOT catch NULLs hidden by `else 'loyal'`; tests only catch what they check.
 - Full notes: ~/scratch/prework/task2_dbt/NOTES.md
+
+## Pre-work Tasks 3-6: artifacts, sqlglot, NetworkX, tool calling, 3 Oct 2026 (fast mode)
+- Task 3: manifest = depends_on + compiled SQL + relation_name; catalog = columns + types. Seen renames (user_id -> customer_id) and cents -> dollars.
+- Task 4: SQL -> AST; lineage(None) on compiled orders.sql gave per-column sources. No schema -> UNKNOWN(amount); with schema -> payments.amount. sqlglot stops at the model boundary (DLens stitches models) and misses join keys (DLens adds indirect edges in v0.3).
+- Task 5: column graph in NetworkX; upstream = trace, downstream = impact, cutoff = max hops.
+- Task 6: tool loop works on qwen3:4b and gemini-3.5-flash-lite. Qwen duplicated a tool call and leaked <think>, so DLens needs dedupe, a step cap, think-stripping and a structured answer schema. Use a manual loop (not SDK auto) to fit cache/quota/validator.
+- Decision 17: AI writes code; I review/approve; core modules get docs/explain/.
+- Pre-work done in one afternoon; v0.1 pulled forward to 18 Oct.
