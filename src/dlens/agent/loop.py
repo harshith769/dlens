@@ -48,6 +48,7 @@ from dlens.agent.runlog import RunLogger, RunRecord, Step, StepResult, now_iso
 from dlens.agent.tools import Toolbox, ToolResult
 from dlens.agent.tools.entity import AMBIGUOUS_GAP
 from dlens.agent.validator import ValidationResult, salvage, validate
+from dlens.lineage import short_id
 
 MAX_LLM_CALLS = 8
 MAX_TOOL_PHASE_CALLS = 5
@@ -58,6 +59,7 @@ REGENERATE_LIST_TOKENS = 300
 
 _TOOL_NAMES = "resolve_entity|trace_upstream|impact_downstream|get_model_sql"
 _TEXT_TOOL_CALL = re.compile(rf'<tool_call>|\{{\s*"name"\s*:\s*"({_TOOL_NAMES})"')
+_QUESTION_COLUMN = re.compile(r"(?<![\w.])[A-Za-z_]\w*\.[A-Za-z_]\w*(?![\w.])")
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 
 
@@ -139,6 +141,8 @@ class Agent:
 
     def _run(self, question: str, t0: float) -> Answer:
         self._tool_phase(question)
+        if not self.toolbox.log:
+            self._fallback_trace(question)
         self.record.timings["tool_ms"] = _ms(t0)
 
         directives: list[str] = []
@@ -421,11 +425,24 @@ class Agent:
         ends = [c for c in cols if all(o in ups[c] for o in cols if o != c)]
         return ends[0] if ends else None
 
-    def _ensure_traced(self, column: str) -> None:
-        for r in self.toolbox.log:
-            if r.tool == "trace_upstream" and r.side_records.get("column") == column:
-                return
-        name = self.toolbox.graph.display_name(column)
+    def _fallback_trace(self, question: str) -> None:
+        """The model made no tool call (seen on false-premise questions). If the question names
+        an exact column id that exists, code traces the first one: a "code" step, not an LLM
+        call, like chain mode."""
+        g = self.toolbox.graph
+        for m in _QUESTION_COLUMN.finditer(question):
+            text = m.group(0).lower()
+            try:
+                column = g.resolve(text)
+            except Exception:
+                continue
+            if g.display_name(column).lower() != text and short_id(column) != text:
+                continue
+            self.record.stop_reason += "+fallback_trace"
+            self._code_trace(g.display_name(column))
+            return
+
+    def _code_trace(self, name: str) -> None:
         result = self.toolbox.call("trace_upstream", {"column_id": name})
         self.record.steps.append(
             Step(
@@ -435,6 +452,12 @@ class Agent:
                 results=[_step_result(result)],
             )
         )
+
+    def _ensure_traced(self, column: str) -> None:
+        for r in self.toolbox.log:
+            if r.tool == "trace_upstream" and r.side_records.get("column") == column:
+                return
+        self._code_trace(self.toolbox.graph.display_name(column))
 
     # -- helpers -----------------------------------------------------------------------------
 

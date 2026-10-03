@@ -25,6 +25,10 @@ All notable changes to this project are documented here. The format follows
   hops) and returns ordered line windows, each with its own `excerpt_id`. For example,
   `dim_customers.lifetime_value` now shows the CTE line that computes it.
 
+- Validator R8 (connectivity): a claim naming ≥2 columns must connect them through its cited
+  edges. R2 now also checks (and safely repairs) ids written in prose.
+- False-premise handling: a system-prompt line, and a code fallback that traces the named column
+  when the model makes no tool call.
 - Live fault injection for the validator's regenerate path
   (`scripts/smoke_agent.py --inject-bad-draft`, a script-only test hook) and two more dev smoke
   questions: a false premise and a 7-hop impact.

@@ -27,8 +27,8 @@ question ─► TOOL PHASE  (≤5 LLM calls, tools on, history compacted to fit)
 
   | Part | Est. tokens |
   |---|---|
-  | Tool-phase system prompt | 265 |
-  | Four tool specs (trimmed, see tools.md) | 425 |
+  | Tool-phase system prompt | 294 |
+  | Four tool specs (trimmed, see tools.md) | 437 |
   | Answer-phase system prompt | 201 |
   | Answer JSON schema (counted as input) | 184 |
 
@@ -104,6 +104,12 @@ benchmark scoring never use it.
 - **Tool error payloads** go back to the model as normal tool results.
 - **Provider errors**: a non-retryable `ProviderError`, `QuotaExceeded` or `InputTooLarge`
   becomes a refused answer with the reason. A retryable provider error gets one retry.
+- **No tool call at all** (seen live on a false-premise question, where the 4B model asked for a
+  column id the question already contained): if the question names an exact, existing
+  `model.column`, code traces the first one. That is a `code` step, not an LLM call, like chain
+  mode, and the answer phase runs normally. The system prompt also says "Questions may contain
+  false assumptions; check them with the tools before answering" (tool phase now 721 estimated
+  tokens with specs, cap 900).
 - **No citable evidence** (unknown column): refused by code with the tool errors as the reason,
   with no answer call.
 
