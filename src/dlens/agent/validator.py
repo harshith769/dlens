@@ -1,4 +1,5 @@
-"""Answer validator (spec §8): rules R1-R7 plus the R2r id repair, all enforced in code.
+"""Answer validator (spec §8): rules R1-R8 plus R2r id repair and R8c citation completion,
+all enforced in code.
 
 Rules run in this order on a copy of the answer (the raw draft is never modified); R6 runs last:
 
@@ -11,6 +12,8 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
   R5 kind_consistency kind words in a claim ("aggregated", "renamed") match a cited edge's kind
   R7 relevance        a claim that names entities cites at least one id that touches one of them
   R8 connectivity     a claim naming >= 2 columns connects them all through its cited edges
+  R8c completion      ... after code adds the shortest connecting path (<= 4 hops) from this
+                      question's emitted edges; not for "directly" claims over > 1 hop
   R6 prose_refs       file paths and "line N" written in prose match an attached citation
 
 Each rule is a function ``rule_*(answer, ctx) -> list[ValidationFailure]``; ``ctx`` is a
@@ -35,6 +38,8 @@ from dlens.agent.tools.provenance import Citation, contains_word, safe_read, tex
 
 ID_PREFIXES = ("e_", "s_")
 MIN_PREFIX_HEX = 7
+MAX_COMPLETION_HOPS = 4  # R8c: longest bridge citation completion may add
+_DIRECT = re.compile(r"\bdirect(ly)?\b", re.IGNORECASE)  # "indirectly" does not match
 FILE_EXTENSIONS = {"sql", "csv", "yml", "yaml", "md"}
 
 # R5: kind words -> edge kinds that make the word true. One table, documented in validator.md.
@@ -81,6 +86,7 @@ class ValidationResult(BaseModel):
     failures: list[ValidationFailure] = Field(default_factory=list)
     cleaned_answer: Answer
     repairs: list[dict[str, Any]] = Field(default_factory=list)  # {claim_index, from, to}
+    completions: list[dict[str, Any]] = Field(default_factory=list)  # {claim_index, added}
     dropped_claims: list[int] = Field(default_factory=list)  # claims that fail >= 1 rule
     counts: dict[str, int] = Field(default_factory=dict)
     regenerated: bool = False  # set by the loop
@@ -492,31 +498,54 @@ def _find(parent: dict[str, str], x: str) -> str:
     return x
 
 
+def _claim_columns(c: Claim, ctx: ValidationContext) -> list[str]:
+    """R8's subject: the distinct in-graph model.column ids a claim names."""
+    return list(
+        dict.fromkeys(e.key for e in ctx.entities(c.text) if e.kind == "column" and ctx.in_graph(e))
+    )
+
+
+def _r8_exempt(c: Claim, ctx: ValidationContext) -> bool:
+    """Every cited edge id failed R2 (counted there), so R8 has nothing to check."""
+    known = [i for i in c.ids if ctx.ledger.record(i) is not None]
+    return len(known) < len(c.ids) and not any(i.startswith("e_") for i in known)
+
+
+def _edge_ends(item_id: str, ctx: ValidationContext) -> tuple[str, str] | None:
+    rec = ctx.ledger.record(item_id)
+    if rec is None or "from" not in rec:
+        return None
+    return ctx.short(rec["from"]), ctx.short(rec["to"])
+
+
+def _components(edge_ids: Iterable[str], ctx: ValidationContext) -> dict[str, str]:
+    """Union-find parents over the edges' endpoints (undirected)."""
+    parent: dict[str, str] = {}
+    for i in edge_ids:
+        ends = _edge_ends(i, ctx)
+        if ends is None:
+            continue  # failed R2: counted there
+        a, b = ends
+        parent.setdefault(a, a)
+        parent.setdefault(b, b)
+        parent[_find(parent, a)] = _find(parent, b)
+    return parent
+
+
+def _root(parent: dict[str, str], col: str) -> str:
+    return _find(parent, col) if col in parent else f"<{col}>"
+
+
 def rule_connectivity(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
     """R8: a claim naming >= 2 in-graph columns must connect them all through its cited edges
     (one undirected component over the edges' from/to)."""
     out: list[ValidationFailure] = []
     for k, c in enumerate(answer.claims):
-        cols = list(
-            dict.fromkeys(
-                e.key for e in ctx.entities(c.text) if e.kind == "column" and ctx.in_graph(e)
-            )
-        )
-        if len(cols) < 2:
+        cols = _claim_columns(c, ctx)
+        if len(cols) < 2 or _r8_exempt(c, ctx):
             continue
-        known = [i for i in c.ids if ctx.ledger.record(i) is not None]
-        if len(known) < len(c.ids) and not any(i.startswith("e_") for i in known):
-            continue  # its edge ids failed R2 (counted there)
-        parent: dict[str, str] = {}
-        for i in c.edge_ids:
-            rec = ctx.ledger.record(i)
-            if rec is None or "from" not in rec:
-                continue  # failed R2: counted there
-            a, b = ctx.short(rec["from"]), ctx.short(rec["to"])
-            parent.setdefault(a, a)
-            parent.setdefault(b, b)
-            parent[_find(parent, a)] = _find(parent, b)
-        roots = {_find(parent, col) if col in parent else f"<{col}>" for col in cols}
+        parent = _components(c.edge_ids, ctx)
+        roots = {_root(parent, col) for col in cols}
         if len(roots) > 1:
             out.append(
                 ValidationFailure(
@@ -527,6 +556,112 @@ def rule_connectivity(answer: Answer, ctx: ValidationContext) -> list[Validation
                 )
             )
     return out
+
+
+Adjacency = dict[str, list[tuple[str, str]]]  # node -> [(next node, edge id)], downstream
+
+
+def _ledger_adjacency(ctx: ValidationContext) -> Adjacency:
+    """Directed (from -> to) adjacency over every edge this question's tools emitted. Sorted,
+    so completion is deterministic."""
+    adj: Adjacency = {}
+    for i in sorted(ctx.ledger.emitted_ids):
+        if i.startswith("e_") and (ends := _edge_ends(i, ctx)) is not None:
+            adj.setdefault(ends[0], []).append((ends[1], i))
+    return adj
+
+
+def _bridge(
+    adj: Adjacency, sources: set[str], targets: set[str], max_hops: int
+) -> list[str] | None:
+    """Edge ids of a shortest DIRECTED path (<= max_hops) from any source to any target."""
+    prev: dict[str, tuple[str, str] | None] = {s: None for s in sorted(sources)}
+    frontier, hops = sorted(sources), 0
+    while frontier and hops < max_hops:
+        hops += 1
+        nxt: list[str] = []
+        for x in frontier:
+            for y, i in adj.get(x, []):
+                if y in prev:
+                    continue
+                prev[y] = (x, i)
+                if y in targets:
+                    path: list[str] = []
+                    node: str = y
+                    while (step := prev[node]) is not None:
+                        node, edge_id = step
+                        path.append(edge_id)
+                    return path[::-1]
+                nxt.append(y)
+        frontier = nxt
+    return None
+
+
+def complete_citations(
+    answer: Answer, ctx: ValidationContext
+) -> tuple[Answer, list[dict[str, Any]]]:
+    """R8c: for a claim that would fail R8, add the missing connecting edges from this
+    question's ledger. All or nothing per claim; otherwise the claim is unchanged and R8 fails
+    it. Conditions (docs/explain/validator.md, R8c):
+
+    * anchor: at least one of the claim's own cited edges touches a column it names, so
+      completion can never make an unrelated citation relevant (R7 stays meaningful);
+    * every bridge is a shortest DIRECTED lineage path (either direction, <= 4 hops) between
+      two columns the claim names, so siblings that only share a descendant stay unconnected;
+    * "direct"/"directly" in the claim forbids any bridge longer than one hop.
+
+    Completed edges are ordinary cited edges afterwards: R3, R5 and R7 check them like any
+    other. Returns the answer and the completions ``{claim_index, added}``."""
+    adj: Adjacency | None = None
+    completions: list[dict[str, Any]] = []
+    claims: list[Claim] = []
+    for k, c in enumerate(answer.claims):
+        cols = _claim_columns(c, ctx)
+        if len(cols) < 2 or _r8_exempt(c, ctx):
+            claims.append(c)
+            continue
+        adj = _ledger_adjacency(ctx) if adj is None else adj
+        added = _complete_one(c, cols, adj, ctx)
+        if not added:
+            claims.append(c)
+            continue
+        claims.append(_with_ids(c, list(dict.fromkeys([*c.ids, *added]))))
+        completions.append({"claim_index": k, "added": added})
+    if not completions:
+        return answer, []
+    return recite(answer, ctx.ledger, claims), completions
+
+
+def _complete_one(c: Claim, cols: list[str], adj: Adjacency, ctx: ValidationContext) -> list[str]:
+    """The edge ids to add so that every column in ``cols`` is connected, or [] if R8 already
+    passes, there is no anchor, a column cannot be bridged, or the "directly" guard applies."""
+    named = set(cols)
+    if not any(set(ends) & named for i in c.edge_ids if (ends := _edge_ends(i, ctx))):
+        return []  # no anchor: the claim's own citations touch none of its columns
+    direct = bool(_DIRECT.search(c.text))
+    added: list[str] = []
+    while True:
+        parent = _components([*c.edge_ids, *added], ctx)
+        root0 = _root(parent, cols[0])
+        if all(_root(parent, col) == root0 for col in cols):
+            return added
+        loose_root = next(_root(parent, col) for col in cols if _root(parent, col) != root0)
+        here = {col for col in cols if _root(parent, col) == root0}
+        there = {col for col in cols if _root(parent, col) == loose_root}
+        paths = [
+            p
+            for p in (
+                _bridge(adj, there, here, MAX_COMPLETION_HOPS),
+                _bridge(adj, here, there, MAX_COMPLETION_HOPS),
+            )
+            if p is not None
+        ]
+        if not paths:
+            return []
+        path = min(paths, key=len)
+        if direct and len(path) > 1:
+            return []
+        added += [i for i in path if i not in added and i not in c.edge_ids]
 
 
 def rule_prose_refs(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
@@ -571,12 +706,14 @@ def rule_prose_refs(answer: Answer, ctx: ValidationContext) -> list[ValidationFa
 
 
 def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationResult:
-    """Run R1-R7 (+R2r). The input answer is not modified; repairs are applied to the copy in
-    ``cleaned_answer``. Refused and clarification answers are not checked (``skipped``)."""
+    """Run R1-R8 (+R2r repair, +R8c completion). The input answer is not modified; repairs and
+    completions are applied to the copy in ``cleaned_answer``. Refused and clarification answers
+    are not checked (``skipped``)."""
     if answer.refused or answer.clarification is not None:
         return ValidationResult(passed=True, cleaned_answer=answer, skipped=True)
     ctx = ValidationContext.build(ledger, question)
     cleaned, repairs, r2 = rule_in_ledger(answer, ctx)
+    cleaned, completions = complete_citations(cleaned, ctx)  # then re-checked by every rule
     failures = [
         *rule_cites(cleaned, ctx),
         *r2,
@@ -592,6 +729,7 @@ def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationRe
         failures=failures,
         cleaned_answer=cleaned,
         repairs=repairs,
+        completions=completions,
         dropped_claims=sorted({f.claim_index for f in failures if f.claim_index is not None}),
         counts=dict(Counter(f.rule for f in failures)),
     )

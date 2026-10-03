@@ -140,6 +140,9 @@ def _validator_label(v: dict[str, object] | None) -> str:
     repairs = v.get("repairs") or []
     if isinstance(repairs, list) and repairs:
         parts.append(f"repaired {len(repairs)}")
+    completions = v.get("completions") or []
+    if isinstance(completions, list) and completions:
+        parts.append(f"completed {len(completions)}")
     if v.get("regenerated"):
         parts.append("regenerated")
     return ", ".join(parts)

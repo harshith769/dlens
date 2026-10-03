@@ -1,5 +1,6 @@
 """Property: a mutated valid answer never passes, unless the mutation is a uniquely repairable
-single-character id change, and then that repair is reported."""
+single-character id change (the repair is reported) or a dropped middle edge of a chain claim
+that R8c completes from the ledger (the completion is reported)."""
 
 import copy
 import re
@@ -17,6 +18,7 @@ Q = "Where does fct_star.total come from?"
 HEX = "0123456789abcdef"
 MUTATIONS = [
     "drop_middle_edge",
+    "drop_middle_edge_direct",
     "swap_char",
     "fake_identifier",
     "shift_prose_line",
@@ -59,6 +61,7 @@ def test_mutated_answers_never_pass_unless_uniquely_repaired(traced: Toolbox, da
     a = copy.deepcopy(base)
     kind = data.draw(st.sampled_from(MUTATIONS), label="mutation")
     expected_repair = None
+    expected_completion = None
     restore = None
 
     if kind == "swap_char":
@@ -107,7 +110,12 @@ def test_mutated_answers_never_pass_unless_uniquely_repaired(traced: Toolbox, da
             rec["citation"] = saved
 
     elif kind == "drop_middle_edge":  # break the chain raw.amt -> stg.amount -> fct.total -> ...
+        dropped = a.claims[CHAIN].edge_ids.pop(1)
+        expected_completion = {"claim_index": CHAIN, "added": [dropped]}
+
+    elif kind == "drop_middle_edge_direct":  # same, but the claim now says "directly"
         a.claims[CHAIN].edge_ids.pop(1)
+        a.claims[CHAIN].text = "fct_star.total comes directly from raw.amt through stg.amount"
 
     else:  # unrelated: a real emitted id that touches none of the claim's entities
         ctx = ValidationContext.build(traced, Q)
@@ -128,10 +136,17 @@ def test_mutated_answers_never_pass_unless_uniquely_repaired(traced: Toolbox, da
     finally:
         if restore:
             restore()
-    event(f"{kind}: {'passed (repaired)' if r.passed else 'rejected'}")
+    event(f"{kind}: {'passed (repaired/completed)' if r.passed else 'rejected'}")
     if r.passed:
-        assert kind == "swap_char", (kind, a)
-        assert expected_repair in r.repairs
+        assert kind in ("swap_char", "drop_middle_edge"), (kind, a)
+        if kind == "swap_char":
+            assert expected_repair in r.repairs and not r.completions
+        else:
+            assert r.completions == [expected_completion] and not r.repairs
+    if kind == "drop_middle_edge":
+        assert r.passed  # the ledger has the edge: completion always applies here
+    if kind == "drop_middle_edge_direct":
+        assert "R8" in r.counts and not r.completions
     if kind == "fake_identifier":
         assert "R4.hallucinated" in r.counts
     if kind == "shift_prose_line":
@@ -140,6 +155,4 @@ def test_mutated_answers_never_pass_unless_uniquely_repaired(traced: Toolbox, da
         assert "R3" in r.counts
     if kind == "unrelated":
         assert "R7" in r.counts
-    if kind == "drop_middle_edge":
-        assert "R8" in r.counts
     assert re.fullmatch(r"[es]_[0-9a-f]{8}", r.repairs[0]["to"]) if r.repairs else True

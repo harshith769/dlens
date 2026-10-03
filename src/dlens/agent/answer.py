@@ -166,9 +166,24 @@ def marker(item_id: str, cite: Citation | None) -> str:
     return f"[{cite.file}:{lines}]"
 
 
+WARN_PARTIAL = "⚠ Part of this answer couldn't be verified and was removed."
+WARN_NONE = "⚠ No part of the answer could be verified."
+
+
+def warning_line(answer: Answer) -> str | None:
+    """The visible validation warning (CLI now, UI later): a refusal with the warning flag was
+    refused by the validator; otherwise the flag means claims were dropped."""
+    if not answer.validation_warning:
+        return None
+    return WARN_NONE if answer.refused else WARN_PARTIAL
+
+
 def render(answer: Answer) -> str:
-    """Human-readable answer: text, claims with [file:line] markers, then the citation list."""
-    out = [answer.answer_text.strip()]
+    """Human-readable answer: a validation warning first if any, then the text, claims with
+    [file:line] markers, then the citation list."""
+    warn = warning_line(answer)
+    out = [warn] if warn else []
+    out.append(answer.answer_text.strip())
     if answer.refused and not answer.answer_text.startswith("I can't answer"):
         out.append(f"(Refused: {answer.refusal_reason or 'the evidence does not answer this'})")
     if answer.clarification is not None:

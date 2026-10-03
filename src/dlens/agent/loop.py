@@ -319,6 +319,7 @@ class Agent:
             "warning": False,
             "counts": first.counts,  # draft failures by rule
             "repairs": first.repairs,
+            "completions": first.completions,  # R8c, reported separately like repairs
             "dropped_claims": [],
             "skipped": first.skipped,  # refused / clarification: not checked
             "first": _summary(first),
@@ -335,7 +336,7 @@ class Agent:
             if second is not None:
                 v["second"] = _summary(second)
                 if second.passed:
-                    v.update(passed=True, repairs=second.repairs)
+                    v.update(passed=True, repairs=second.repairs, completions=second.completions)
                     out = second.cleaned_answer
                     return out
 
@@ -343,11 +344,18 @@ class Agent:
         rounds = [r for r in (second, first) if r is not None]  # ties go to the second
         best = max(rounds, key=lambda r: len(r.cleaned_answer.claims) - len(r.dropped_claims))
         v.update(
-            passed=False, warning=True, repairs=best.repairs, dropped_claims=best.dropped_claims
+            passed=False,
+            warning=True,
+            repairs=best.repairs,
+            completions=best.completions,
+            dropped_claims=best.dropped_claims,
         )
         salvaged = salvage(best, self.toolbox)
         if salvaged is None:
-            raise _Refuse("no verifiable claims: every claim failed validation")
+            # Refused BY THE VALIDATOR: the warning flag tells render() (CLI, UI) to say so.
+            reason = "no verifiable claims: every claim failed validation"
+            self.record.error = reason
+            return Answer.refusal(reason).model_copy(update={"validation_warning": True})
         return salvaged
 
     def _regenerate(
@@ -551,6 +559,7 @@ def _summary(r: ValidationResult) -> dict[str, Any]:
         "passed": r.passed,
         "failures": [f.model_dump() for f in r.failures],
         "repairs": r.repairs,
+        "completions": r.completions,
         "dropped_claims": r.dropped_claims,
         "counts": r.counts,
         "claims": len(r.cleaned_answer.claims),

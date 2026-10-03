@@ -1,7 +1,15 @@
 import pytest
 from pydantic import ValidationError
 
-from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft, attach, render
+from dlens.agent.answer import (
+    DRAFT_SCHEMA,
+    WARN_NONE,
+    WARN_PARTIAL,
+    Answer,
+    AnswerDraft,
+    attach,
+    render,
+)
 from dlens.agent.tools import Toolbox
 
 
@@ -84,3 +92,20 @@ def test_render_marks_a_model_refusal():
     a = Answer(answer_text="The evidence does not say.", refused=True, refusal_reason="no path")
     assert "(Refused: no path)" in render(a)
     assert "(Refused" not in render(Answer.refusal("x"))  # already says "I can't answer"
+
+
+def test_render_starts_with_the_partial_warning_when_claims_were_dropped():
+    a = Answer(answer_text="kept claim.", validation_warning=True)
+    out = render(a)
+    assert out.splitlines()[0] == WARN_PARTIAL
+    assert "kept claim." in out and WARN_NONE not in out
+
+
+def test_render_starts_with_the_none_warning_when_the_validator_refused():
+    a = Answer.refusal("no verifiable claims").model_copy(update={"validation_warning": True})
+    assert render(a).splitlines()[0] == WARN_NONE
+
+
+def test_render_has_no_warning_otherwise():
+    assert "⚠" not in render(Answer(answer_text="fine."))
+    assert "⚠" not in render(Answer.refusal("unknown column"))  # refused before validation

@@ -76,6 +76,8 @@ def test_all_claims_failing_is_refused(box, make_client):
     run = ask(Q, client, box)
     assert run.answer.refused and "no verifiable claims" in run.answer.refusal_reason
     assert run.record.validation["warning"]
+    assert run.answer.validation_warning  # refused BY THE VALIDATOR: render() says so
+    assert run.record.error == run.answer.refusal_reason
 
 
 def test_invalid_json_on_regenerate_salvages_the_first_draft(box, make_client):
@@ -153,7 +155,8 @@ def test_salvage_rebuilds_prose_when_a_claim_is_dropped(box, make_client):
             "fct.total aggregates stg.amount, and fct_star.total comes from stg.amount.",
             [
                 ("fct.total aggregates stg.amount", [agg]),
-                ("fct_star.total comes from stg.amount", [star]),  # skips a hop: R8
+                # skips a hop and says "directly": R8c may not complete it, so R8 fails
+                ("fct_star.total comes directly from stg.amount", [star]),
             ],
         )
 

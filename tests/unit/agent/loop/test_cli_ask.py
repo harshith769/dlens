@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from dlens import cli
+from dlens.agent.answer import WARN_NONE, WARN_PARTIAL
 from dlens.agent.tools import Toolbox
 
 from ..tools.conftest import make_shop
@@ -74,3 +75,53 @@ def test_validator_label():
         "pass, repaired 1, regenerated"
     )
     assert label({"passed": False, "warning": True, "repairs": []}) == "warning"
+    assert label({"passed": True, "repairs": [], "completions": [{}, {}]}) == "pass, completed 2"
+
+
+def _wire_drafts(monkeypatch, shop_root: Path, make_client, tmp_path: Path, claims_of):
+    """`dlens ask` whose two answer drafts (first + regenerate) both carry ``claims_of(agg)``."""
+    holder: dict[str, Toolbox] = {}
+
+    def script():
+        box = holder["box"]
+        e = next(i for i in box.emitted_ids if (box.record(i) or {}).get("kind") == "AGGREGATION")
+        return draft("fct.total sums stg.amount.", claims_of(e))
+
+    client, _ = make_client([call("trace_upstream", column_id="fct.total"), done(), script, script])
+    real_toolbox = cli.Toolbox
+
+    def toolbox(graph, project):
+        holder["box"] = real_toolbox(graph, project)
+        return holder["box"]
+
+    monkeypatch.setattr(cli, "load_or_build", lambda project, rebuild=False: make_shop())
+    monkeypatch.setattr(cli, "make_client", lambda provider=None: client)
+    monkeypatch.setattr(cli, "Toolbox", toolbox)
+    monkeypatch.setenv("DLENS_RUN_DIR", str(tmp_path / "runs"))
+
+
+FAKE = ("fct.total is also renamed from raw.amt", ["e_deadbeef"])
+
+
+def test_ask_shows_the_partial_warning_first(monkeypatch, shop_root, make_client, tmp_path):
+    _wire_drafts(
+        monkeypatch,
+        shop_root,
+        make_client,
+        tmp_path,
+        lambda e: [("fct.total aggregates stg.amount", [e]), FAKE],
+    )
+    r = runner.invoke(cli.app, ["ask", "Where does fct.total come from?", "-p", str(shop_root)])
+    assert r.exit_code == 0, r.output
+    assert r.stdout.splitlines()[0] == WARN_PARTIAL
+    assert "validator: warning" in r.stdout
+
+
+def test_ask_shows_the_none_warning_when_refused_by_validator(
+    monkeypatch, shop_root, make_client, tmp_path
+):
+    _wire_drafts(monkeypatch, shop_root, make_client, tmp_path, lambda e: [FAKE])
+    r = runner.invoke(cli.app, ["ask", "Where does fct.total come from?", "-p", str(shop_root)])
+    assert r.exit_code == 0, r.output
+    assert r.stdout.splitlines()[0] == WARN_NONE
+    assert "no verifiable claims" in r.stdout
