@@ -56,3 +56,4 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = ["integration: runs dbt end to end on a vendored corpus"]

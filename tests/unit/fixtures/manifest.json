@@ -1,0 +1,23 @@
+{
+  "nodes": {
+    "model.p.orders": {"unique_id": "model.p.orders", "resource_type": "model", "name": "orders",
+      "relation_name": "\"Db\".\"Main\".\"Orders\"", "original_file_path": "models/orders.sql",
+      "compiled_code": "select 1 as id", "depends_on": {"macros": [], "nodes": ["seed.p.raw"]}},
+    "model.p.eph": {"unique_id": "model.p.eph", "resource_type": "model", "name": "eph",
+      "relation_name": null, "original_file_path": "models/eph.sql", "depends_on": {"nodes": []}},
+    "seed.p.raw": {"unique_id": "seed.p.raw", "resource_type": "seed", "name": "raw",
+      "relation_name": "\"db\".\"main\".\"raw\"", "original_file_path": "seeds/raw.csv",
+      "compiled_code": null, "depends_on": {"macros": []}, "extra_field": 1},
+    "test.p.not_null": {"unique_id": "test.p.not_null", "resource_type": "test", "name": "not_null",
+      "relation_name": null, "depends_on": {"nodes": ["model.p.orders"]}}
+  },
+  "sources": {
+    "source.p.ext.events": {"unique_id": "source.p.ext.events", "resource_type": "source",
+      "name": "events", "relation_name": "`db`.`ext`.`events`",
+      "original_file_path": "models/src.yml"}
+  },
+  "exposures": {
+    "exposure.p.dash": {"unique_id": "exposure.p.dash", "name": "dash", "type": "dashboard",
+      "depends_on": {"nodes": ["model.p.orders"]}}
+  }
+}

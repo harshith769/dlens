@@ -220,6 +220,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 # DLens
+logs/
+dbt_packages/
 .venv/
 eval/cache/
 *.duckdb

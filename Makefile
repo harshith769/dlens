@@ -1,7 +1,10 @@
-.PHONY: test lint ingest eval-smoke eval-full
+.PHONY: test test-fast lint ingest eval-smoke eval-full
 
 test:
 	uv run pytest
+
+test-fast:
+	uv run pytest -m "not integration"
 
 lint:
 	uv run ruff check .
@@ -9,7 +12,8 @@ lint:
 	uv run mypy
 
 ingest:
-	@echo "ingest: not implemented yet (CORPUS=$(CORPUS))"
+	@test -n "$(CORPUS)" || { echo "usage: make ingest CORPUS=jaffle_shop"; exit 1; }
+	uv run dlens ingest corpora/$(CORPUS)
 
 eval-smoke:
 	@echo "eval-smoke: not implemented yet"

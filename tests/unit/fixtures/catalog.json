@@ -1,0 +1,16 @@
+{
+  "nodes": {
+    "model.p.orders": {"metadata": {"database": "db", "schema": "main", "name": "orders"},
+      "columns": {
+        "Amount": {"name": "Amount", "type": "DOUBLE", "index": 2},
+        "id": {"name": "id", "type": "INTEGER", "index": 1}}},
+    "seed.p.raw": {"metadata": {"database": "db", "schema": "main", "name": "raw"},
+      "columns": {"a": {"name": "a", "type": "VARCHAR", "index": 1}}},
+    "model.p.stray": {"metadata": {"database": "db", "schema": "main", "name": "stray"},
+      "columns": {"x": {"name": "x", "type": "INTEGER", "index": 1}}}
+  },
+  "sources": {
+    "source.p.ext.events": {"metadata": {"database": "db", "schema": "ext", "name": "events"},
+      "columns": {"e": {"name": "e", "type": "TIMESTAMP", "index": 1}}}
+  }
+}
