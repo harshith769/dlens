@@ -13,6 +13,13 @@ Covers the four v0.2 tools, the provenance contract the validator depends on, an
 | `impact_downstream(column_id, max_depth=10, include_indirect=True)` | columns by depth as `{id, via: edge_id}`, affected models and exposures |
 | `get_model_sql(model_id, around_column=None)` | numbered lines of the SOURCE `.sql`, with an `excerpt_id` |
 
+**Specs shown to the LLM are trimmed** (425 estimated tokens for all four, down from 728) because
+they ride on every tool-phase call under the 3K cap. They advertise only `text`, `column_id`,
+`max_depth`, `model_id` and `around_column`. The tools still accept `k` and `include_indirect` with
+the defaults above, so the spec §8 signatures are unchanged. Indirect edges are not in the graph
+yet, so advertising `include_indirect` only invited useless calls. `toolbox.edge_string(eid)` gives
+the agent the same compact line for any edge id when it rebuilds the answer prompt.
+
 `toolbox.call(name, args)` never raises. Bad input comes back as `{"error": {"code", "message",
 "suggestions"}}` (codes: `unknown_column`, `unknown_model`, `ambiguous`, `invalid_argument`,
 `not_sql`, `unknown_tool`) so a small model can correct itself.

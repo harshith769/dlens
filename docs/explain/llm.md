@@ -28,8 +28,7 @@ option existed still hit.
   slightly over-counts and never lets an oversize call through.
 - **`cache.py`**: SQLite. Key = `sha256` of canonical JSON (sorted keys) of provider, model,
   messages, tools, `params` and (when set) `response_schema`. `params` is whatever else changes
-  the output (temperature, thinking
-  level, `num_ctx`). Only successful responses are stored.
+  the output (temperature, thinking level, `num_ctx`). Only successful responses are stored.
 - **`quota.py`**: SQLite table `(provider, day, count)`. The "day" is the date in
   `America/Los_Angeles`, so the count resets at Pacific midnight, DST-safe (`zoneinfo`).
   `reserve()` checks and increments in one `BEGIN IMMEDIATE` transaction, so two processes cannot

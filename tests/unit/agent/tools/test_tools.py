@@ -294,4 +294,22 @@ def test_specs_match_tools() -> None:
     for s in TOOL_SPECS:
         assert s.parameters["type"] == "object" and s.parameters["required"]
         assert set(s.parameters["required"]) <= set(s.parameters["properties"])
-    assert estimate_tokens([], TOOL_SPECS) < 900  # the four specs stay cheap under the 3K cap
+    assert estimate_tokens([], TOOL_SPECS) <= 450  # the four specs ride on every tool-phase call
+
+
+def test_specs_hide_optional_args_the_tools_still_accept(toolbox: Toolbox) -> None:
+    props = {s.name: set(s.parameters["properties"]) for s in TOOL_SPECS}
+    assert "k" not in props["resolve_entity"]
+    assert "include_indirect" not in props["trace_upstream"] | props["impact_downstream"]
+    assert not toolbox.call("resolve_entity", {"text": "amount", "k": 1}).is_error
+    assert not toolbox.call(
+        "trace_upstream", {"column_id": "fct.total", "include_indirect": True}
+    ).is_error
+
+
+def test_edge_string_matches_the_tool_payload(toolbox: Toolbox) -> None:
+    r = toolbox.call("trace_upstream", {"column_id": "fct.total"})
+    line = r.llm_payload["paths"][0][0]
+    eid = line.split(":", 1)[0]
+    assert toolbox.edge_string(eid) == line
+    assert toolbox.edge_string("e_00000000") is None

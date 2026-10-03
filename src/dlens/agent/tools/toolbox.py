@@ -75,6 +75,11 @@ class Toolbox:
         """Full record (with citation) of an emitted id, or None if it was never emitted."""
         return self._emitted.get(item_id)
 
+    def edge_string(self, eid: str) -> str | None:
+        """The compact one-line form of an edge (as tools print it), or None for an unknown id."""
+        edge = self._prov.edge_by_id(eid)
+        return None if edge is None else self._prov.edge_string(edge)
+
     def call(self, name: str, args: dict[str, Any] | None = None) -> ToolResult:
         """Run a tool. Never raises: failures come back as ``{"error": {...}}`` payloads."""
         args = dict(args or {})
