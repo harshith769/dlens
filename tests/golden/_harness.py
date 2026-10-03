@@ -84,9 +84,21 @@ MATRIX_START = "<!-- support-matrix:start -->"
 MATRIX_END = "<!-- support-matrix:end -->"
 
 
+# Constructs with no fixture: behaviour is not guaranteed and nothing guards it.
+UNTESTED = [
+    (
+        "star join with duplicate column names",
+        "`SELECT *` over a join whose sides share a column name; no fixture, so the output "
+        "columns and their edges are not guaranteed",
+    ),
+]
+
+
 def support_matrix_md() -> str:
-    """Markdown table generated from the fixtures: no = strict xfail, partial = a fixture that
-    documents what it does not capture (``partial`` key, or deferred keys), else yes."""
+    """Markdown table generated from the fixtures (plus UNTESTED).
+
+    no = strict xfail, partial = a fixture that documents what it does not capture (``partial``
+    key, or deferred keys), else yes."""
     rows = ["| Construct | Supported | Note |", "|---|---|---|"]
     for name in fixture_names():
         exp = load_expected(name)
@@ -98,4 +110,5 @@ def support_matrix_md() -> str:
         else:
             level, note = "yes", str(exp.get("notes", ""))
         rows.append(f"| `{name}` | {level} | {note} |")
+    rows += [f"| {name} | no (untested) | {note} |" for name, note in UNTESTED]
     return "\n".join(rows)

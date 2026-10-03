@@ -91,6 +91,8 @@ Generated from `tests/golden/fixtures/` by `scripts/gen_support_matrix.py` (a te
 stale). Every row is a golden fixture whose expected edges were written by reasoning from the SQL
 and the strongest-kind rule before the engine ran. `partial` means the direct edges are right but
 a non-value dependency (join / group / filter / window key) is not an edge yet.
+`no (untested)` rows have no fixture at all: they are known gaps listed in `UNTESTED` in
+`tests/golden/_harness.py`, so nobody reads silence as support.
 
 <!-- support-matrix:start -->
 | Construct | Supported | Note |
@@ -112,6 +114,7 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `union_all_3` | yes | each branch has its own kind: the UNION node is not a step |
 | `union_distinct` | yes | UNION vs UNION ALL changes no edge |
 | `window_sum_partition` | partial | window PARTITION BY / ORDER BY keys are deferred |
+| star join with duplicate column names | no (untested) | `SELECT *` over a join whose sides share a column name; no fixture, so the output columns and their edges are not guaranteed |
 <!-- support-matrix:end -->
 
 **Constants are not gaps.** An output column that reads no input column (`'usd' AS currency`,

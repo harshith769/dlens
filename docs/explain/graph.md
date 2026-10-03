@@ -33,11 +33,14 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
    `AmbiguousColumn` listing the full ids. No match raises `ColumnNotFound` with the 3 closest
    short ids (`difflib`). Bare column names are rejected on purpose.
 7. **Save** writes `json.dumps(indent=2, sort_keys=True)`, nodes sorted by id, edges by
-   `(from, to)`, plus `version`. The same graph always gives the same bytes, so it diffs cleanly.
+   `(from, to)`, plus `version` (the cache-format number) and `dlens_version`. The same graph always gives the same bytes, so it diffs cleanly.
    `__eq__` compares that canonical dict, which is what the round-trip tests use.
 8. **Cache** (`cache.py`): `target/dlens_graph.json` is used unless it is missing, older than
    `target/manifest.json`, or older than any file under `models/`, `seeds/`, `macros/`,
    `snapshots/`, `tests/` or `dbt_project.yml`. `--rebuild` forces a rebuild, which re-runs dbt.
+   `load` also rejects a file whose `version` (format) or `dlens_version` differs from the running
+   code, and `load_or_build` treats that as a miss and rebuilds, so an upgrade never serves a graph
+   written by older code.
 9. **Rendering** (`render.py`) merges paths that share a prefix, so each hop prints once. A hop
    shows the column, `[KIND]`, the expression (cut at 60 characters) and `file:lines`.
    Names are `model.column`, or the full id if two columns share that short form.
@@ -53,6 +56,10 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
   Truncation is reported rather than hidden.
 - **Source mtimes in the cache rule**: the manifest only changes when dbt runs, so checking it
   alone serves a stale graph after a SQL edit.
+- **Both a format version and the package version in the header**: the format number catches a
+  deliberate shape change; the package version catches the unplanned case (an engine fix that
+  changes edges without changing the shape). Cost: one rebuild per upgrade. Rejected: format
+  number alone (stale edges after an engine fix) and hashing the source (heavy for little gain).
 - **JSON, sorted**: reviewable in a PR and diffable between runs; nothing is a source of truth
   (spec §6), the graph can always be rebuilt.
 - **`from_results` is pure**: tests build graphs with no dbt, and only the integration tests pay for it.
@@ -86,3 +93,6 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
 3. `include_indirect=True` is the default for `downstream` but changes nothing in v0.1. Why does
    the graph still save `deferred_indirect`, and what has to be added in v0.3 so that an indirect
    (window key) dependency shows up in `impact`?
+4. You upgrade dlens from 0.1.0 to 0.1.1 and the cache file is newer than every source file. Which
+   check rebuilds it, and why isn't the mtime rule enough here? When would you bump
+   `FORMAT_VERSION` rather than rely on the package version?

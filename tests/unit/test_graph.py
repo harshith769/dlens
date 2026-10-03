@@ -1,3 +1,4 @@
+import json
 import os
 import random
 from pathlib import Path
@@ -5,8 +6,10 @@ from pathlib import Path
 import pytest
 
 from conftest import edge, make_graph
+from dlens import __version__
 from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph
 from dlens.graph.cache import cache_path, is_stale, load_or_build
+from dlens.graph.graph import FORMAT_VERSION
 from dlens.graph.render import render_impact, render_trace
 from dlens.lineage import EdgeKind
 
@@ -159,6 +162,42 @@ def test_cache_is_fresh_then_stale_when_manifest_or_source_is_newer(
     os.utime(p / "models" / "m.sql", (1_999_999_000, 1_999_999_000))
     os.utime(p / "target" / "manifest.json", (2_000_000_100, 2_000_000_100))
     assert is_stale(p)
+
+
+@pytest.mark.parametrize(
+    ("key", "value"), [("dlens_version", "0.0.0-old"), ("version", 1), ("dlens_version", None)]
+)
+def test_cache_from_another_version_is_rebuilt(
+    tmp_path: Path,
+    tiny_graph: LineageGraph,
+    monkeypatch: pytest.MonkeyPatch,
+    key: str,
+    value: object,
+) -> None:
+    p = _project(tmp_path, tiny_graph)
+    raw = json.loads(cache_path(p).read_text())
+    raw[key] = value
+    cache_path(p).write_text(json.dumps(raw))
+    now = 2_000_000_000
+    os.utime(cache_path(p), (now, now))  # still fresh by mtime: only the header is wrong
+    assert not is_stale(p)
+    with pytest.raises(ValueError):
+        LineageGraph.load(cache_path(p))
+    calls: list[Path] = []
+
+    def fake_build(project_dir: Path, dialect: str = "duckdb") -> LineageGraph:
+        calls.append(project_dir)
+        return tiny_graph
+
+    monkeypatch.setattr("dlens.graph.cache.build_graph", fake_build)
+    assert load_or_build(p) == tiny_graph
+    assert calls == [p]
+    rewritten = json.loads(cache_path(p).read_text())
+    assert (rewritten["version"], rewritten["dlens_version"]) == (FORMAT_VERSION, __version__)
+    os.utime(cache_path(p), (now, now))  # the rewrite stamped real time; keep it fresh
+    calls.clear()
+    assert load_or_build(p) == tiny_graph  # rewritten cache is now reused
+    assert calls == []
 
 
 def test_cache_missing_is_stale(tmp_path: Path) -> None:

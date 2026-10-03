@@ -7,6 +7,7 @@ from typing import Any
 
 import networkx as nx
 
+from dlens import __version__
 from dlens.graph.models import (
     AmbiguousColumn,
     ColumnNotFound,
@@ -26,7 +27,8 @@ from dlens.lineage import (
     short_id,
 )
 
-FORMAT_VERSION = 1
+# Cache-format version: bump whenever the JSON shape changes. v2 added ``dlens_version``.
+FORMAT_VERSION = 2
 DEFAULT_MAX_PATHS = 1000
 SUGGESTIONS = 3
 
@@ -268,6 +270,7 @@ class LineageGraph:
     def _to_dict(self) -> dict[str, Any]:
         return {
             "version": FORMAT_VERSION,
+            "dlens_version": __version__,
             "nodes": [{"id": c, **self._g.nodes[c]} for c in sorted(self._g.nodes)],
             "derives": [self.edge(u, v).model_dump(mode="json") for u, v in sorted(self._g.edges)],
             "depends_on": [list(p) for p in self._depends_on],
@@ -291,6 +294,10 @@ class LineageGraph:
         raw = json.loads(path.read_text())
         if raw.get("version") != FORMAT_VERSION:
             raise ValueError(f"{path}: unsupported graph version {raw.get('version')!r}")
+        if raw.get("dlens_version") != __version__:
+            raise ValueError(
+                f"{path}: built by dlens {raw.get('dlens_version')!r}, running {__version__!r}"
+            )
         return cls(
             columns={n["id"]: {k: v for k, v in n.items() if k != "id"} for n in raw["nodes"]},
             edges=[Edge.model_validate(e) for e in raw["derives"]],
