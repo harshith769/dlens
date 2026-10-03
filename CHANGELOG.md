@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Local Streamlit UI (`make ui`, extra `ui`): question, cited answer with clickable citation chips
+  and a trace expander, and a source viewer with the cited graph. Ollama only. See
+  `docs/explain/ui.md`.
 - `dlens ask "question" [-p PROJECT] [--provider ollama] [--json]`: two-phase cited Q&A agent.
   The tool phase uses at most 5 LLM calls, with dedupe and token-budget compaction. The answer
   phase is rebuilt from the tool ledger with a JSON-schema answer. Citations are attached by

@@ -128,6 +128,15 @@ Deferred indirect (window keys, v0.3): 2
 Constant columns (no edges): 0
 ```
 
+## Local UI
+
+```bash
+uv sync --extra agent --extra ui
+make ui          # three panes: question | cited answer | source + subgraph (needs Ollama)
+```
+
+<!-- TODO screenshot: docs/img/ui.png -->
+
 ## Support matrix
 
 DLens is tested construct by construct against golden files. The table, including what is partial,

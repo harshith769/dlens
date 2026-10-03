@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           enable-cache: true
-      - run: uv sync --extra agent
+      - run: uv sync --extra agent --extra ui
       - run: make lint
       - run: make test
       # Exact sync removes the extras: the base package must work without ollama/google-genai.
