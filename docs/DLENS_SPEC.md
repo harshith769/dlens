@@ -305,6 +305,33 @@ Report top-1 and top-3 accuracy.
 3. Every cited file and line range exists on disk and contains the column.
 4. On failure, drop the claim and regenerate once. If it fails again, return with a warning flag.
 
+*v0.2 implementation (`src/dlens/agent/validator.py`, explained in `docs/explain/validator.md`):*
+- **R1 cites.** Every claim cites ≥1 id.
+- **R2 in_ledger.** Every cited id was emitted by a tool for this question.
+- **R2r repair.** An id failing R2 is replaced only if exactly one emitted id with the same
+  prefix is within one edit of it, or the bad id is a prefix of it with ≥7 hex characters.
+  Repaired ids still go through R3 and R7.
+- **R3 on_disk.** The ledger citation is re-checked against the file read fresh and
+  traversal-safe: range in bounds and containing the column (`star`: `*`; `model`: the file or
+  CSV header). `s_` excerpts are checked by text hash.
+- **R4 known_nodes.** `model.column` and dbt-style model names in the prose must exist in the
+  graph (else `R4.hallucinated`, even if the question says them) and in this question's evidence
+  (else `R4.unsupported`; in-graph identifiers the question names are exempt).
+- **R5 kind_consistency.** Kind words ("aggregated", "renamed", …) need a cited edge of a
+  compatible kind (one `KIND_WORDS` table).
+- **R7 relevance.** A claim naming entities must cite an id that touches one of them (guards
+  against citation laundering).
+- **R6 prose_refs.** File paths and "line N" written in prose must match an attached citation.
+
+**Flow.** Validate. On failure, regenerate once with a ≤300-token failure list (the 8-call
+budget reserves the call). If it still fails, keep only the passing claims with
+`validation_warning` (rebuilding `answer_text` if it failed itself), or refuse with "no
+verifiable claims". Refused and clarification answers are not validated.
+
+**Benchmark reporting.** Repairs are reported separately: S4 results are given **raw** (repairs
+counted as R2 failures) and **repaired**. The run record keeps the untouched pre-validation
+draft, the regenerated draft and both validation rounds.
+
 **Log the pre-validation draft for every S4 answer.** This powers the no-validator ablation at no extra cost.
 
 **Loop limits:**

@@ -15,7 +15,11 @@ All notable changes to this project are documented here. The format follows
 - One JSONL draft record per run in `$XDG_STATE_HOME/dlens/runs` (override `DLENS_RUN_DIR`).
 - `LLMClient.chat(..., response_schema=...)` for structured output (Ollama `format`, Gemini
   `response_json_schema`); part of the cache key only when set.
-- Validator interface (pass-through stub; rules land in the next v0.2 item).
+- Answer validator with rules R1–R7 and a safe id repair (R2r). It covers ids, citations
+  re-checked on disk, hallucinated or unsupported nodes in prose, kind words versus edge kinds,
+  citation relevance, and prose file/line references. On failure it regenerates once, then keeps
+  only verified claims with `validation_warning`, or refuses. There are adversarial and
+  hypothesis property tests. Results are in the run record and the `dlens ask` trace line.
 
 - `get_model_sql(around_column=…)` follows in-model alias dependencies (CTE columns, up to 3
   hops) and returns ordered line windows, each with its own `excerpt_id`. For example,
