@@ -21,8 +21,8 @@ def wired(monkeypatch, shop_root: Path, make_client, tmp_path: Path):
 
     def script():
         box = box_holder["box"]
-        e = sorted(i for i in box.emitted_ids if i.startswith("e_"))[0]
-        return draft("total sums stg.amount.", [("total aggregates amount", [e])])
+        e = next(i for i in box.emitted_ids if (box.record(i) or {}).get("kind") == "AGGREGATION")
+        return draft("total sums stg.amount.", [("fct.total aggregates stg.amount", [e])])
 
     client, prov = make_client([call("trace_upstream", column_id="fct.total"), done(), script])
     real_toolbox = cli.Toolbox
@@ -44,7 +44,7 @@ def test_ask_prints_answer_citations_and_trace(wired):
     assert r.exit_code == 0, r.output
     assert "total sums stg.amount." in r.stdout
     assert re.search(r"\[models/\w+\.sql:\d+\]", r.stdout) and "Citations:" in r.stdout
-    assert "steps 3 (1 tools, 0 deduped)" in r.stdout and "validator: stub" in r.stdout
+    assert "steps 3 (1 tools, 0 deduped)" in r.stdout and "validator: pass" in r.stdout
     assert len(list(runs.glob("*.jsonl"))) == 1
 
 

@@ -13,11 +13,16 @@ and the benchmark scoring never use it.
 
 from __future__ import annotations
 
-from typing import Any, Literal, Protocol
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from dlens.agent.tools.provenance import Citation
+
+if TYPE_CHECKING:
+    from dlens.agent.tools import ToolResult
+    from dlens.graph import LineageGraph
 
 Confidence = Literal["high", "medium", "low"]
 
@@ -97,6 +102,7 @@ class Answer(BaseModel):
     clarification: Clarification | None = None
     partial_evidence: bool = False
     citations: dict[str, Citation] = Field(default_factory=dict)  # attached by code, per id
+    validation_warning: bool = False  # claims were dropped after the regenerate also failed
 
     @classmethod
     def refusal(cls, reason: str) -> Answer:
@@ -107,6 +113,10 @@ class Answer(BaseModel):
 
 class Ledger(Protocol):
     """What answer building and the validator need from a conversation (``Toolbox`` fits)."""
+
+    graph: LineageGraph
+    project_dir: Path
+    log: list[ToolResult]
 
     @property
     def emitted_ids(self) -> frozenset[str]: ...

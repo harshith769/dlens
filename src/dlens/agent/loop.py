@@ -300,11 +300,12 @@ class Agent:
         self.record.draft = draft.model_dump(mode="json")
 
         answer = attach(draft, self.toolbox, partial_evidence=bool(partial))
-        result = validate(answer, self.toolbox)
+        result = validate(answer, self.toolbox, question)
         self.record.validation = {
             "passed": result.passed,
             "failures": [f.model_dump() for f in result.failures],
-            "stub": result.stub,
+            "repairs": result.repairs,
+            "counts": result.counts,
         }
         # -----------------------------------------------------------------------------------
         # REGENERATE ONCE (session 4, [H] validator rules): if not result.passed, drop the

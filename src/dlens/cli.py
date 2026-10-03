@@ -128,7 +128,7 @@ def trace_summary(run: AgentRun) -> dict[str, object]:
         "partial_evidence": run.answer.partial_evidence,
         "ambiguity": (rec.ambiguity or {}).get("mode"),
         "stop_reason": rec.stop_reason,
-        "validator": "stub" if (rec.validation or {}).get("stub") else "on",
+        "validator": "pass" if (rec.validation or {}).get("passed") else "fail",
         "log": str(run.log_path) if run.log_path else None,
     }
 

@@ -314,7 +314,8 @@ def test_citations_come_from_the_ledger(box, make_client):
     e = first_edge(box)
     assert run.answer.citations[e].model_dump() == box.record(e)["citation"]
     assert "e_deadbeef" not in run.answer.citations
-    assert run.record.validation == {"passed": True, "failures": [], "stub": True}
+    v = run.record.validation
+    assert v["passed"] is False and v["counts"] == {"R2": 1}  # e_deadbeef was never emitted
 
 
 def test_jsonl_record_shape(box, make_client, tmp_path: Path):
