@@ -39,3 +39,13 @@
 - A PyPI version number can never be re-uploaded, which is why the TestPyPI rehearsal and the tag == pyproject version check exist.
 - Attestations: PyPI stores signed provenance linking the file to the workflow run that built it.
 - Caveat I must state in interviews: F1 1.000 is on our own synthetic corpus; real validation is v0.3 (bigger corpus) and v1.0 (public project + colibri).
+
+## 2026-10-03 — v0.2 sessions 1–4: LLM gateway, tools, agent loop, validator
+- LLMClient: every LLM call goes through cache → quota (Gemini 400/day, Pacific-midnight reset) → rate limit → 3K-token cap. Cache hits cost nothing.
+- Switched local model to Qwen3-4B-Instruct-2507: the qwen3:4b tag was the thinking-only build (bare </think> = template-inserted <think>).
+- Gemini 3 gotchas: thought signatures must be replayed in tool-calling history (else 400); keep temperature 1.0; reproducibility comes from the cache.
+- Tools return compact strings to the LLM; full citations stay in a side record; code attaches file:line from ids, so the LLM never types a line number.
+- Two-phase loop: tool phase (≤5 calls, compaction keeps ids) + answer phase rebuilt from the ledger with a JSON schema. Max call 2,152 of 3,000 tokens.
+- Ambiguity handled in code: same-lineage-chain names → answer for the most downstream; unrelated → per-candidate or clarification.
+- Validator R1–R8 + R2r: cites, in-ledger (+ unique 1-edit repair), on-disk, known nodes, kind words, prose refs, relevance (anti-laundering), connectivity (no skipped hops). Regenerate once, then salvage; zero false positives on smoke.
+- Lesson: don't rely on a 4B model for what code can guarantee (ambiguity, refusals, false-premise tracing, citations).
