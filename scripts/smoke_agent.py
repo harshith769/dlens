@@ -103,7 +103,53 @@ def report_row(qid: str, run: AgentRun, result: dict[str, Any]) -> str:
         f"     cited={result['id_list']}\n"
         f"     in_ledger={'yes' if result['structural']['all_cited_in_ledger'] else 'NO'} "
         f"structural={'ok' if not bad else 'FAIL ' + ','.join(bad)} gold_edge_cited={q}\n"
+        f"     validator: {validator_line(run)}\n"
         f"     answer: {outcome}"
+    )
+
+
+RULES = ["R1", "R2", "R3", "R4.hallucinated", "R4.unsupported", "R5", "R6", "R7"]
+
+
+def validator_stats(run: AgentRun) -> dict[str, Any]:
+    """Draft failures by rule, repairs, regenerate, claims before/after for one run."""
+    v = run.record.validation or {}
+    draft_claims = len((run.record.draft or {}).get("claims", []))
+    return {
+        "checked": bool(v),
+        "counts": dict(v.get("counts") or {}),
+        "repairs": list(v.get("repairs") or []),
+        "regenerated": bool(v.get("regenerated")),
+        "warning": bool(v.get("warning")),
+        "claims_before": draft_claims,
+        "claims_after": 0 if run.answer.refused else len(run.answer.claims),
+    }
+
+
+def validator_line(run: AgentRun) -> str:
+    s = validator_stats(run)
+    if not s["checked"]:
+        return "not run (refused or clarified before the answer was validated)"
+    counts = ", ".join(f"{k}={n}" for k, n in sorted(s["counts"].items())) or "none"
+    repairs = ", ".join(f"{r['from']}->{r['to']}" for r in s["repairs"]) or "none"
+    return (
+        f"draft failures: {counts}; repairs: {repairs}; "
+        f"regenerated={'y' if s['regenerated'] else 'n'}; warning={'y' if s['warning'] else 'n'}; "
+        f"claims kept {s['claims_after']}/{s['claims_before']}"
+    )
+
+
+def stats_line(runs: list[AgentRun]) -> str:
+    stats = [validator_stats(r) for r in runs]
+    before = sum(s["claims_before"] for s in stats)
+    after = sum(s["claims_after"] for s in stats)
+    totals = {rule: sum(s["counts"].get(rule, 0) for s in stats) for rule in RULES}
+    return (
+        f"validator stats: claims {before} -> {after}; "
+        + " ".join(f"{k}={n}" for k, n in totals.items())
+        + f"; repairs={sum(len(s['repairs']) for s in stats)}"
+        + f"; regenerated={sum(s['regenerated'] for s in stats)}"
+        + f"; warnings={sum(s['warning'] for s in stats)}"
     )
 
 
@@ -124,6 +170,7 @@ def main() -> int:
     logger = RunLogger(runs_dir())
     only = set(ns.only.split(",")) if ns.only else None
     ok = True
+    runs: list[AgentRun] = []
     for q in spec["questions"]:
         if only and q["id"] not in only:
             continue
@@ -131,9 +178,11 @@ def main() -> int:
         run = ask(q["question"], client, toolbox, logger, project=str(project))
         result = check(q["expect"], run, toolbox)
         ok &= result["structural_ok"]
+        runs.append(run)
         print(report_row(q["id"], run, result))
         if ns.show:
             print("\n" + render(run.answer) + "\n")
+    print(stats_line(runs))
     return 0 if ok else 1
 
 
