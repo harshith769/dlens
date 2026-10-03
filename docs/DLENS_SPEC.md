@@ -1,4 +1,4 @@
-# DLens — Final Spec and Build Plan (v1.3)
+# DLens — Final Spec and Build Plan (v1.4)
 
 **Version:** 1.3, 3 Oct 2026 (v1.1 plus Week-0 results, Section 15.1; Week 0 closed). Supersedes the 30 Sep 2026 handoff report (v1.0).
 **Owner:** Harshith. **Builder tools:** Claude Code (code), Claude app (mentor, review, docs).
@@ -28,6 +28,7 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 | 14 | **The demo uses its own AI Studio project.** Live answers are capped per day, with cached answers as the default | Rate limits are per project, so public traffic must never eat into benchmark quota |
 | 15 | **Diagrams are now Mermaid**, and "tab" wording is removed | The diagrams were lost when the doc was exported to Markdown |
 | 16 | **The "Cowork" role is now "Claude app"** | Those capabilities are now part of the regular Claude app |
+| 17 | **AI writes all code; the owner reviews, approves and explains** (3 Oct 2026). Core modules ship with `docs/explain/<module>.md` + explain-back questions. The owner still approves the gold spec and every test question | Owner decision: speed over hand-writing. Gold-spec independence and question review stay human to keep the benchmark valid |
 
 ---
 
@@ -649,7 +650,7 @@ Keep the repo inside the WSL filesystem (`~/code/dlens`), not under `/mnt/c`. Fi
 
 ## 17. Who does what
 
-**Rule: if an interviewer could ask you to explain it line by line, you write it first by hand.**
+**Rule (v1.4): AI writes the code; the owner must be able to explain every core module, using docs/explain/. The owner still approves the gold spec and test questions.**
 
 | Work item | You, by hand | Claude app (chat) | Claude Code |
 |---|---|---|---|

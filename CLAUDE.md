@@ -9,9 +9,11 @@ An open-source Python tool with three parts:
 - A benchmark against vector RAG (S0–S4, C1).
 
 ## Hard rules
-- Never write code in src/dlens/lineage/ or eval/metrics.py, nor the entity-linker scorer
-  or the validator rules, unless the owner explicitly asks. The owner writes these by hand.
-  You may add tests and refactor on request.
+- You may write all code. For core modules (src/dlens/lineage/, eval/metrics.py, the entity-linker
+  scorer, the validator), every change must add or update docs/explain/<module>.md: what it does,
+  how it works, why this design, alternatives rejected, plus 3 explain-back questions for the owner.
+- The gold spec (lineage_spec.yml) must be derived from the corpus DESIGN, never from parser output.
+  Draft it if asked; the owner approves it. Never auto-generate it from dlens's own lineage results.
 - Never edit eval/questions/test.jsonl, external.jsonl or their .sha256 files. They are frozen.
 - Never run `make eval-full` or any non-cached cloud LLM run without explicit confirmation:
   it spends free quota. Check the quota counter first.
