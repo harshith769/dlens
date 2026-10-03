@@ -86,3 +86,13 @@ def test_error_maps_to_provider_error():
         OllamaProvider(client=FakeOllama(None, err)).send(user("hi"), None)
     assert ei.value.status_code == 503
     assert ei.value.retryable is True
+
+
+def test_response_schema_sent_as_format():
+    schema = {"type": "object", "properties": {"a": {"type": "string"}}}
+    fake = FakeOllama(msg('{"a": "x"}'))
+    resp = OllamaProvider(client=fake).send(user("q"), None, schema)
+    assert fake.kwargs["format"] == schema
+    assert resp.text == '{"a": "x"}'
+    OllamaProvider(client=fake).send(user("q"), None)
+    assert "format" not in fake.kwargs

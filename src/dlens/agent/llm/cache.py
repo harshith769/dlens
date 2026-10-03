@@ -19,15 +19,19 @@ def cache_key(
     messages: Sequence[Message],
     tools: Sequence[ToolSpec] | None,
     params: Mapping[str, Any],
+    response_schema: Mapping[str, Any] | None = None,
 ) -> str:
+    fields: dict[str, Any] = {
+        "provider": provider,
+        "model": model,
+        "messages": [m.model_dump(mode="json") for m in messages],
+        "tools": [t.model_dump(mode="json") for t in tools or []],
+        "params": dict(params),
+    }
+    if response_schema is not None:  # only when set, so keys cached before it existed stay valid
+        fields["response_schema"] = dict(response_schema)
     blob = json.dumps(
-        {
-            "provider": provider,
-            "model": model,
-            "messages": [m.model_dump(mode="json") for m in messages],
-            "tools": [t.model_dump(mode="json") for t in tools or []],
-            "params": dict(params),
-        },
+        fields,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,

@@ -69,3 +69,21 @@ def test_failed_send_still_counts_and_is_not_cached(make):
     assert client.quota.used("gemini") == 1
     prov.send = type(prov).send.__get__(prov)  # type: ignore[method-assign]
     assert not client.chat(user("hi")).cached  # nothing was stored by the failure
+
+
+def test_response_schema_reaches_provider_and_splits_the_cache(make):
+    schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+    client, prov = make()
+    client.chat(user("hi"))
+    assert client.chat(user("hi"), response_schema=schema).cached is False
+    assert prov.last_schema == schema
+    assert client.chat(user("hi"), response_schema=schema).cached is True
+    assert prov.calls == 2
+
+
+def test_response_schema_counts_toward_the_cap(make):
+    client, prov = make(max_input_tokens=100)
+    big = {"type": "object", "description": "x" * 600}
+    client.chat(user("hi"))
+    with pytest.raises(InputTooLarge):
+        client.chat(user("hi"), response_schema=big)

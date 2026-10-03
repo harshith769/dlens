@@ -185,3 +185,16 @@ def test_api_error_maps_with_status_and_retryable():
     with pytest.raises(ProviderError) as ei:
         provider(fake_client(err=err)).send(user("q"), None)
     assert ei.value.retryable is False
+
+
+def test_response_schema_sets_json_mime_and_schema():
+    schema = {"type": "object", "properties": {"a": {"type": "string"}}}
+    c = fake_client(response([gt.Part(text='{"a": "x"}')]))
+    resp = provider(c).send(user("q"), None, schema)
+    cfg = c.models.kwargs["config"]
+    assert cfg.response_mime_type == "application/json"
+    assert cfg.response_json_schema == schema
+    assert resp.text == '{"a": "x"}'
+    provider(c).send(user("q"), None)
+    cfg = c.models.kwargs["config"]
+    assert cfg.response_mime_type is None and cfg.response_json_schema is None

@@ -26,8 +26,14 @@ class FakeProvider(Provider):
     def params(self) -> dict[str, Any]:
         return {"temperature": 0}
 
-    def send(self, messages: Sequence[Message], tools: Sequence[ToolSpec] | None) -> LLMResponse:
+    def send(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ToolSpec] | None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> LLMResponse:
         self.calls += 1
+        self.last_schema = response_schema
         return LLMResponse(text=f"reply {self.calls}", usage=Usage(input_tokens=5, output_tokens=2))
 
 

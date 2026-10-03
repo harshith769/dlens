@@ -54,13 +54,20 @@ class OllamaProvider(Provider):
             out["tool_name"] = m.name
         return out
 
-    def send(self, messages: Sequence[Message], tools: Sequence[ToolSpec] | None) -> LLMResponse:
+    def send(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ToolSpec] | None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> LLMResponse:
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": [self._convert(m) for m in messages],
             "options": {"temperature": 0, "num_ctx": NUM_CTX},
             "think": False,
         }
+        if response_schema is not None:
+            kwargs["format"] = response_schema
         if tools:
             kwargs["tools"] = [
                 {

@@ -34,8 +34,12 @@ class Provider(ABC):
 
     @abstractmethod
     def send(
-        self, messages: Sequence[Message], tools: Sequence[ToolSpec] | None
-    ) -> LLMResponse: ...
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ToolSpec] | None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> LLMResponse:
+        """``response_schema`` (a JSON schema) asks for structured JSON output in ``text``."""
 
 
 class LLMClient:
@@ -54,20 +58,29 @@ class LLMClient:
         self.max_input_tokens = max_input_tokens
 
     def chat(
-        self, messages: Sequence[Message], tools: Sequence[ToolSpec] | None = None
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ToolSpec] | None = None,
+        response_schema: dict[str, Any] | None = None,
     ) -> LLMResponse:
-        estimated = estimate_tokens(messages, tools)
+        estimated = estimate_tokens(messages, tools, response_schema)
         if estimated > self.max_input_tokens:
             raise InputTooLarge(f"~{estimated} input tokens exceeds cap of {self.max_input_tokens}")
         key = cache_key(
-            self.provider.name, self.provider.model, messages, tools, self.provider.params
+            self.provider.name,
+            self.provider.model,
+            messages,
+            tools,
+            self.provider.params,
+            response_schema,
         )
         hit = self.cache.get(key)
         if hit is not None:
             return hit.model_copy(update={"cached": True})
         self.quota.reserve(self.provider.name)
         self.limiter.acquire()
-        response = self.provider.send(messages, tools).model_copy(update={"cached": False})
+        response = self.provider.send(messages, tools, response_schema)
+        response = response.model_copy(update={"cached": False})
         self.cache.put(key, response)
         return response
 

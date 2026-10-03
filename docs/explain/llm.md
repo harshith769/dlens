@@ -12,6 +12,14 @@ enforces, in this order:
 4. **Rate limiter**: may sleep so the provider's requests-per-minute is respected.
 5. **Provider send**, then store the response in the cache.
 
+**Structured output.** `chat(..., response_schema=<JSON schema dict>)` asks the provider for JSON
+that matches the schema, returned in `LLMResponse.text` (the agent's answer phase parses it with
+Pydantic). Ollama gets `format=<schema>` (compiled to a grammar); Gemini gets
+`response_mime_type="application/json"` and `response_json_schema=<schema>` (`response_schema`
+wants the SDK's `Schema` type or a Pydantic class, not a plain dict). The schema counts toward the
+token estimate and is part of the cache key, but only when set, so entries cached before the
+option existed still hit.
+
 ## How each part works
 - **`types.py`**: Pydantic models (`Message`, `ToolSpec`, `ToolCall`, `Usage`, `LLMResponse`) that
   round-trip through JSON, because the cache stores them. `ToolCall.provider_meta` holds opaque
@@ -19,7 +27,8 @@ enforces, in this order:
 - **`tokens.py`**: `ceil(len(json) / 3)`. JSON and SQL run at 3-4 characters per token, so this
   slightly over-counts and never lets an oversize call through.
 - **`cache.py`**: SQLite. Key = `sha256` of canonical JSON (sorted keys) of provider, model,
-  messages, tools and `params`. `params` is whatever else changes the output (temperature, thinking
+  messages, tools, `params` and (when set) `response_schema`. `params` is whatever else changes
+  the output (temperature, thinking
   level, `num_ctx`). Only successful responses are stored.
 - **`quota.py`**: SQLite table `(provider, day, count)`. The "day" is the date in
   `America/Los_Angeles`, so the count resets at Pacific midnight, DST-safe (`zoneinfo`).

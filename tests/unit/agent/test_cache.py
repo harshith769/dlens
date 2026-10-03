@@ -47,3 +47,31 @@ def test_roundtrip_persists_tool_calls_and_provider_meta(tmp_path):
     assert got.tool_calls[0].provider_meta == {"thought_signature": "c2ln"}
     assert got.cached is False  # stored form never claims to be a hit
     assert ResponseCache(tmp_path / "c.sqlite").get("missing") is None
+
+
+SCHEMA = {"type": "object", "properties": {"a": {"type": "string"}}}
+
+
+def test_response_schema_is_part_of_the_key():
+    assert key(response_schema=SCHEMA) != key()
+    assert key(response_schema=SCHEMA) != key(response_schema={"type": "object"})
+
+
+def test_no_schema_keeps_the_pre_schema_key():
+    """Entries cached before response_schema existed must still hit."""
+    import hashlib
+    import json
+
+    legacy = json.dumps(
+        {
+            "provider": "p",
+            "model": "m",
+            "messages": [m.model_dump(mode="json") for m in M],
+            "tools": [t.model_dump(mode="json") for t in T],
+            "params": {"a": 1, "b": 2},
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    assert key(response_schema=None) == hashlib.sha256(legacy.encode()).hexdigest()

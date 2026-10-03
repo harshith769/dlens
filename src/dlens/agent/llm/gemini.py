@@ -111,11 +111,20 @@ class GeminiProvider(Provider):
                     contents.append(gt.Content(role="user", parts=[part]))
         return ("\n\n".join(system) or None), contents
 
-    def send(self, messages: Sequence[Message], tools: Sequence[ToolSpec] | None) -> LLMResponse:
+    def send(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ToolSpec] | None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> LLMResponse:
         system, contents = self._contents(messages)
         config = gt.GenerateContentConfig(
             system_instruction=system,
             temperature=self.temperature,
+            # A plain JSON-schema dict goes to response_json_schema; response_schema wants the
+            # SDK's Schema type or a Pydantic class.
+            response_mime_type="application/json" if response_schema is not None else None,
+            response_json_schema=response_schema,
             automatic_function_calling=gt.AutomaticFunctionCallingConfig(disable=True),
             thinking_config=(
                 gt.ThinkingConfig(thinking_level=gt.ThinkingLevel(self.thinking_level))
