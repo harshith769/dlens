@@ -617,6 +617,7 @@ agent = [
     { name = "google-genai" },
     { name = "groq" },
     { name = "ollama" },
+    { name = "tzdata" },
 ]
 retrieval = [
     { name = "bm25s" },
@@ -654,6 +655,7 @@ requires-dist = [
     { name = "streamlit", marker = "extra == 'ui'" },
     { name = "structlog" },
     { name = "typer" },
+    { name = "tzdata", marker = "extra == 'agent'" },
 ]
 provides-extras = ["agent", "retrieval", "ui"]
 

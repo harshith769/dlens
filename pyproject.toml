@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-agent = ["google-genai", "ollama", "groq"]
+agent = ["google-genai", "ollama", "groq", "tzdata"]
 retrieval = ["lancedb", "bm25s", "sentence-transformers"]
 ui = ["streamlit"]
 
@@ -80,4 +80,7 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-markers = ["integration: runs dbt end to end on a vendored corpus"]
+markers = [
+    "integration: runs dbt end to end on a vendored corpus",
+    "ollama: needs a live local Ollama server (set DLENS_RUN_OLLAMA=1); skipped in CI",
+]
