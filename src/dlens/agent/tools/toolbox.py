@@ -19,6 +19,7 @@ from dlens.agent.tools.common import ToolError, ToolOutput
 from dlens.agent.tools.entity import resolve_entity
 from dlens.agent.tools.impact import impact_downstream
 from dlens.agent.tools.provenance import Provenance
+from dlens.agent.tools.reach import reachability
 from dlens.agent.tools.specs import TOOL_SPECS
 from dlens.agent.tools.sql import get_model_sql
 from dlens.agent.tools.trace import trace_upstream
@@ -30,6 +31,9 @@ _TOOLS = {
     "impact_downstream": impact_downstream,
     "get_model_sql": get_model_sql,
 }
+# Run by code only (``call(..., code=True)``): not in TOOL_SPECS, and an LLM call by this name
+# gets ``unknown_tool``.
+_CODE_TOOLS = {"reachability": reachability}
 
 
 class ToolResult(BaseModel):
@@ -68,7 +72,8 @@ class Toolbox:
 
     @property
     def emitted_ids(self) -> frozenset[str]:
-        """Edge ids (``e_``) and excerpt ids (``s_``) shown to the LLM in this conversation."""
+        """Edge ids (``e_``), excerpt ids (``s_``) and graph-check fact ids (``r_``) shown to
+        the LLM in this conversation."""
         return frozenset(self._emitted)
 
     def record(self, item_id: str) -> dict[str, Any] | None:
@@ -80,10 +85,11 @@ class Toolbox:
         edge = self._prov.edge_by_id(eid)
         return None if edge is None else self._prov.edge_string(edge)
 
-    def call(self, name: str, args: dict[str, Any] | None = None) -> ToolResult:
-        """Run a tool. Never raises: failures come back as ``{"error": {...}}`` payloads."""
+    def call(self, name: str, args: dict[str, Any] | None = None, code: bool = False) -> ToolResult:
+        """Run a tool. Never raises: failures come back as ``{"error": {...}}`` payloads.
+        ``code=True`` also allows the code-only tools (``reachability``)."""
         args = dict(args or {})
-        tool = _TOOLS.get(name)
+        tool = _TOOLS.get(name) or (_CODE_TOOLS.get(name) if code else None)
         try:
             if tool is None:
                 raise ToolError("unknown_tool", f"no tool {name!r}", suggestions=sorted(_TOOLS))
@@ -93,23 +99,23 @@ class Toolbox:
         result = ToolResult(tool=name, args=args, llm_payload=out.payload, side_records=out.side)
         if not result.is_error:
             shown = set(_ids_in(out.payload))
-            for eid, rec in out.side.get("edges", {}).items():
-                if eid in shown:
-                    self._emitted[eid] = rec
-            for sid, rec in out.side.get("excerpts", {}).items():
-                if sid in shown:
-                    self._emitted[sid] = rec
+            for kind in ("edges", "excerpts", "facts"):
+                for item_id, rec in out.side.get(kind, {}).items():
+                    if item_id in shown:
+                        self._emitted[item_id] = rec
         self.log.append(result)
         return result
 
 
 def _ids_in(payload: dict[str, Any]) -> list[str]:
-    """Ids visible in a payload: edge ids in path strings / ``via`` fields, and the excerpt id
-    of every SQL window."""
+    """Ids visible in a payload: edge ids in path strings / ``via`` fields, the excerpt id of
+    every SQL window, and a reachability fact id with its path."""
     found: list[str] = []
     for path in payload.get("paths", []):
         found += [line.split(":", 1)[0] for line in path]
     for items in payload.get("columns_by_depth", {}).values():
         found += [it["via"] for it in items]
     found += [w["excerpt_id"] for w in payload.get("windows", [])]
+    if "fact_id" in payload:
+        found += [payload["fact_id"], *(line.split(":", 1)[0] for line in payload["path"])]
     return found

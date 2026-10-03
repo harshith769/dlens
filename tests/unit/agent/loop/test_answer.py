@@ -109,3 +109,10 @@ def test_render_starts_with_the_none_warning_when_the_validator_refused():
 def test_render_has_no_warning_otherwise():
     assert "⚠" not in render(Answer(answer_text="fine."))
     assert "⚠" not in render(Answer.refusal("unknown column"))  # refused before validation
+
+
+def test_reachability_fact_marker_is_graph_check():
+    from dlens.agent.answer import marker
+
+    assert marker("r_0123abcd", None) == "[graph check]"
+    assert marker("e_0123abcd", None) == "[?e_0123abcd]"

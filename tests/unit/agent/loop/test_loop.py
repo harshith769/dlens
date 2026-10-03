@@ -2,6 +2,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from dlens.agent.answer import DRAFT_SCHEMA
 from dlens.agent.evidence import build_evidence, render_evidence
 from dlens.agent.llm.tokens import estimate_tokens
@@ -391,13 +393,14 @@ def test_real_columns_model_names_ctes_and_files_are_not_refused(box, make_clien
 
 def test_no_evidence_runs_impact_in_code_for_effect_wording(box, make_client):
     # The model traces in the wrong direction (no citable edge), then stops.
-    script = [call("trace_upstream", column_id="raw.amt"), done(), draft("x")]
+    script = [call("trace_upstream", column_id="raw.amt"), done(), draft("Yes, it does.")]
     client, prov = make_client(script)
     run = ask("If raw.amt changes, does it affect fct_star.total?", client, box)
     code = [s for s in run.record.steps if s.phase == "code"]
     assert [(s.tool_calls[0]["name"], s.tool_calls[0]["arguments"]) for s in code] == [
         ("impact_downstream", {"column_id": "raw.amt"}),
         ("impact_downstream", {"column_id": "fct_star.total"}),
+        ("reachability", {"from_column": "raw.amt", "to_column": "fct_star.total"}),
     ]
     assert run.record.llm_calls == 3  # code calls are not LLM calls
     assert "+code_evidence" in run.record.stop_reason
@@ -426,3 +429,84 @@ def test_code_evidence_does_not_run_when_evidence_exists(box, make_client):
     client, _ = make_client(script)
     run = ask("What is affected if raw.amt changes?", client, box)
     assert not [s for s in run.record.steps if s.phase == "code"]
+
+
+# -- reachability fact (code step for yes/no questions naming exactly 2 columns) ---------------
+
+
+def _reach_steps(run) -> list[dict]:
+    return [
+        s.tool_calls[0]["arguments"]
+        for s in run.record.steps
+        if s.phase == "code" and s.tool_calls[0]["name"] == "reachability"
+    ]
+
+
+def _fact(box) -> tuple[str, dict]:
+    [rid] = [i for i in box.emitted_ids if i.startswith("r_")]
+    return rid, box.record(rid)
+
+
+def test_reachability_fact_is_emitted_with_its_shortest_path(box, make_client):
+    script = [call("trace_upstream", column_id="fct_star.total"), done(), draft("Yes.")]
+    client, prov = make_client(script)
+    run = ask("Does raw.amt affect fct_star.total?", client, box)
+    assert _reach_steps(run) == [{"from_column": "raw.amt", "to_column": "fct_star.total"}]
+    rid, rec = _fact(box)
+    assert rec["reaches"] and rec["hops"] == 3 and rec["reverse_hops"] is None
+    assert rec["fact"] == "raw.amt reaches fct_star.total in 3 hops (graph check)"
+    assert set(rec["path"]) <= box.emitted_ids and len(rec["path"]) == 3
+    prompt = prov.requests[-1]["messages"][-1].content
+    assert f"{rid}: raw.amt reaches fct_star.total in 3 hops (graph check)" in prompt
+    assert run.record.llm_calls == 3  # the check is code, not an LLM call
+
+
+def test_reachability_fact_says_not_reached_and_shows_the_reverse_path(box, make_client):
+    script = [call("trace_upstream", column_id="fct.total"), done(), draft("No.")]
+    client, _ = make_client(script)
+    ask("If fct.total changes, does it impact raw.amt?", client, box)
+    _, rec = _fact(box)
+    assert not rec["reaches"] and rec["reverse_hops"] == 2
+    assert rec["fact"] == (
+        "fct.total does NOT reach raw.amt (graph check); raw.amt reaches fct.total in 2 hops"
+    )
+    assert len(rec["path"]) == 2  # the reverse path is emitted, so the answer can cite it
+
+
+def test_reachability_fact_unconnected_has_no_path(box, make_client):
+    script = [call("trace_upstream", column_id="fct.total"), done(), draft("No.")]
+    client, _ = make_client(script)
+    ask("Does raw.id feed fct.total?", client, box)
+    _, rec = _fact(box)
+    assert rec["fact"] == "raw.id does NOT reach fct.total (graph check)" and rec["path"] == []
+
+
+def test_reachability_depend_wording_asks_the_reverse_direction(box, make_client):
+    script = [call("trace_upstream", column_id="fct.total"), done(), draft("Yes.")]
+    client, _ = make_client(script)
+    run = ask("Does fct.total depend on raw.amt?", client, box)
+    assert _reach_steps(run) == [{"from_column": "raw.amt", "to_column": "fct.total"}]
+    assert _fact(box)[1]["reaches"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Does raw.amt affect anything?",  # 1 named column
+        "Does raw.amt affect fct.total or fct_star.total?",  # 3 named columns
+        "How is fct.total computed from stg.amount?",  # 2 columns, no reachability wording
+        "Does raw.amt affect fct.totals?",  # not an exact, existing column
+    ],
+)
+def test_no_reachability_fact_unless_exactly_two_columns_and_wording(box, make_client, question):
+    script = [call("trace_upstream", column_id="fct.total"), done(), draft("Yes.")]
+    client, _ = make_client(script)
+    run = ask(question, client, box)
+    assert not _reach_steps(run)
+    assert not [i for i in box.emitted_ids if i.startswith("r_")]
+
+
+def test_the_llm_cannot_call_the_reachability_tool(box):
+    r = box.call("reachability", {"from_column": "raw.amt", "to_column": "fct.total"})
+    assert r.is_error and r.llm_payload["error"]["code"] == "unknown_tool"
+    assert "reachability" not in {s.name for s in box.specs()}

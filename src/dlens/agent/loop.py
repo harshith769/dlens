@@ -62,6 +62,8 @@ _TOOL_NAMES = "resolve_entity|trace_upstream|impact_downstream|get_model_sql"
 _TEXT_TOOL_CALL = re.compile(rf'<tool_call>|\{{\s*"name"\s*:\s*"({_TOOL_NAMES})"')
 _QUESTION_COLUMN = re.compile(r"(?<![\w.])[A-Za-z_]\w*\.[A-Za-z_]\w*(?![\w.])")
 _IMPACT_WORDING = re.compile(r"\b(affect|impact|chang|break|downstream)\w*", re.IGNORECASE)
+_REACH_WORDING = re.compile(r"\b(affect|impact|depend|feed|flow|reach|chang)\w*", re.IGNORECASE)
+_DEPEND_WORDING = re.compile(r"\bdepend\w*", re.IGNORECASE)
 _FILE_SUFFIXES = {"sql", "csv", "yml", "yaml", "md", "py", "json", "txt"}
 MAX_CODE_EVIDENCE_COLUMNS = 2
 UNKNOWN_COLUMN_SUGGESTIONS = 3
@@ -152,6 +154,7 @@ class Agent:
         self._tool_phase(question)
         if not any(i.startswith(("e_", "s_")) for i in self.toolbox.emitted_ids):
             self._code_evidence(question)
+        self._reachability_fact(question)
         self.record.timings["tool_ms"] = _ms(t0)
 
         directives: list[str] = []
@@ -473,6 +476,16 @@ class Agent:
         ``trace_upstream``. "code" steps, not LLM calls. Calls the log already has are skipped."""
         g = self.toolbox.graph
         tool = "impact_downstream" if _IMPACT_WORDING.search(question) else "trace_upstream"
+        names = self._question_columns(question)
+        for name in names[:MAX_CODE_EVIDENCE_COLUMNS]:
+            if not self._already_called(tool, g.resolve(name)):
+                self._code_call(tool, {"column_id": name})
+        if names:
+            self.record.stop_reason += "+code_evidence"
+
+    def _question_columns(self, question: str) -> list[str]:
+        """Distinct exact, existing ``model.column`` ids the question names, in order."""
+        g = self.toolbox.graph
         names: list[str] = []
         for m in _QUESTION_COLUMN.finditer(question):
             text = m.group(0).lower()
@@ -485,11 +498,18 @@ class Agent:
             name = g.display_name(column)
             if name not in names:
                 names.append(name)
-        for name in names[:MAX_CODE_EVIDENCE_COLUMNS]:
-            if not self._already_called(tool, g.resolve(name)):
-                self._code_call(tool, name)
-        if names:
-            self.record.stop_reason += "+code_evidence"
+        return names
+
+    def _reachability_fact(self, question: str) -> None:
+        """A yes/no reachability question (exactly 2 exact columns named, plus affect / impact /
+        depend / feed / flow / reach / change wording) gets a code-made ``r_`` fact: does the
+        first-named column reach the second? "depend" asks the reverse ("does Y depend on X":
+        X -> Y). The validator's R9 holds the answer's verdict to this fact."""
+        names = self._question_columns(question)
+        if len(names) != 2 or not _REACH_WORDING.search(question):
+            return
+        src, dst = names[::-1] if _DEPEND_WORDING.search(question) else names
+        self._code_call("reachability", {"from_column": src, "to_column": dst})
 
     def _already_called(self, tool: str, column: str) -> bool:
         return any(
@@ -497,13 +517,13 @@ class Agent:
             for r in self.toolbox.log
         )
 
-    def _code_call(self, tool: str, name: str) -> None:
-        result = self.toolbox.call(tool, {"column_id": name})
+    def _code_call(self, tool: str, args: dict[str, Any]) -> None:
+        result = self.toolbox.call(tool, args, code=True)
         self.record.steps.append(
             Step(
                 index=len(self.record.steps),
                 phase="code",
-                tool_calls=[{"name": tool, "arguments": {"column_id": name}}],
+                tool_calls=[{"name": tool, "arguments": args}],
                 results=[_step_result(result)],
             )
         )
@@ -512,7 +532,7 @@ class Agent:
         for r in self.toolbox.log:
             if r.tool == "trace_upstream" and r.side_records.get("column") == column:
                 return
-        self._code_call("trace_upstream", self.toolbox.graph.display_name(column))
+        self._code_call("trace_upstream", {"column_id": self.toolbox.graph.display_name(column)})
 
     # -- helpers -----------------------------------------------------------------------------
 

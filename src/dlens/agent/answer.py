@@ -154,6 +154,8 @@ def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False
 
 
 def marker(item_id: str, cite: Citation | None) -> str:
+    if cite is None and item_id.startswith("r_"):
+        return "[graph check]"  # a reachability fact: checked on the graph, not in a file
     if cite is None:
         return f"[?{item_id}]"
     if cite.level == "model":

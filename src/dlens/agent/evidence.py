@@ -1,11 +1,11 @@
 """The answer-phase evidence list, rebuilt from the Toolbox log (never from chat history).
 
-Each item is one line. Lines with an ``id`` are citable (``e_`` edges, ``s_`` excerpts) and appear
-only if the id is in ``toolbox.emitted_ids``. Lines without one are context: impact models and
-exposures, resolve_entity candidates, tool errors.
+Each item is one line. Lines with an ``id`` are citable (``e_`` edges, ``s_`` excerpts, ``r_``
+graph-check facts) and appear only if the id is in ``toolbox.emitted_ids``. Lines without one
+are context: impact models and exposures, resolve_entity candidates, tool errors.
 
 ``priority`` is the hop distance from the column the tool was asked about (trace: position in the
-path + 1; impact: depth). Excerpts and context lines are 0. ``trim`` drops the most distant
+path + 1; impact: depth). Excerpts, facts and context lines are 0. ``trim`` drops the most distant
 evidence first, so every path keeps a contiguous run of edges starting at the queried column.
 """
 
@@ -105,6 +105,10 @@ def build_evidence(toolbox: Toolbox) -> list[EvidenceItem]:
                 body = [ln for ln in p.get("excerpt", []) if _line_no(ln) in range(a, b + 1)]
                 snippet = _clip(" | ".join(body), SNIPPET_CHARS)
                 add(w["excerpt_id"], f'{w["excerpt_id"]}: {p["file"]}:{a}-{b} "{snippet}"', 0)
+        elif r.tool == "reachability":
+            add(p["fact_id"], f"{p['fact_id']}: {p['fact']}", 0)
+            for pos, line in enumerate(p.get("path", [])):
+                add(line.split(":", 1)[0], line, pos + 1)
         elif r.tool == "resolve_entity":
             note(describe_candidates(r), ambiguous if p.get("ambiguous") else resolved)
 
