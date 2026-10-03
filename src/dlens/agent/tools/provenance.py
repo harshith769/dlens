@@ -45,6 +45,24 @@ def excerpt_id(file: str, line_start: int, line_end: int) -> str:
     return "s_" + hashlib.sha1(f"{file}|{line_start}|{line_end}".encode()).hexdigest()[:8]
 
 
+def safe_read(root: Path, file: str) -> str | None:
+    """Text of ``file`` relative to ``root``, or None if it is missing or resolves outside ``root``
+    (``../`` or symlink escapes). Always reads from disk: no cache."""
+    if not file:
+        return None
+    base = root.resolve()
+    path = (base / file).resolve()
+    if not path.is_relative_to(base) or not path.is_file():
+        return None
+    return path.read_text(errors="replace")
+
+
+def text_sha1(text: str, line_start: int, line_end: int) -> str:
+    """sha1 of lines ``line_start..line_end`` (1-based, inclusive) joined by ``\\n``."""
+    chunk = "\n".join(text.splitlines()[line_start - 1 : line_end])
+    return hashlib.sha1(chunk.encode()).hexdigest()
+
+
 def contains_word(text: str, word: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text, re.IGNORECASE) is not None
 
@@ -71,13 +89,7 @@ class Provenance:
     def source(self, file: str) -> str | None:
         """Text of a project file, or None if it is missing or outside the project root."""
         if file not in self._sources:
-            text: str | None = None
-            if file:
-                root = self.project_dir.resolve()
-                path = (root / file).resolve()
-                if path.is_relative_to(root) and path.is_file():
-                    text = path.read_text(errors="replace")
-            self._sources[file] = text
+            self._sources[file] = safe_read(self.project_dir, file)
         return self._sources[file]
 
     @staticmethod

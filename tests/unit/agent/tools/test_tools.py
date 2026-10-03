@@ -10,7 +10,7 @@ from dlens.agent.tools.budget import MAX_RESULT_TOKENS
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, EdgeKind
 
-from .conftest import make_shop
+from .conftest import STG, make_shop
 
 TOTAL = "fct_star.total"
 
@@ -205,6 +205,9 @@ def test_sql_whole_file(toolbox: Toolbox) -> None:
     assert sid in toolbox.emitted_ids
     rec = toolbox.record(sid)
     assert rec is not None and rec["citation"]["line_end"] == 4
+    import hashlib
+
+    assert rec["text_sha1"] == hashlib.sha1(STG.rstrip("\n").encode()).hexdigest()
 
 
 def test_sql_around_column_uses_source_lines_not_compiled(toolbox: Toolbox) -> None:

@@ -100,3 +100,26 @@ def test_edge_string_has_expression_only_for_computed_kinds(
         Provenance(shop, shop_dir),
         long.model_copy(update={"from_column": f"{P}.stg.x_id", "to_column": f"{P}.fct.x_id"}),
     )
+
+
+def test_safe_read_blocks_escapes_and_reads_fresh(tmp_path) -> None:
+    from dlens.agent.tools.provenance import safe_read
+
+    root = tmp_path / "proj"
+    (root / "models").mkdir(parents=True)
+    (root / "models/a.sql").write_text("select 1")
+    (tmp_path / "secret.sql").write_text("select 2")
+    assert safe_read(root, "models/a.sql") == "select 1"
+    assert safe_read(root, "../secret.sql") is None
+    assert safe_read(root, "models/missing.sql") is None
+    assert safe_read(root, "") is None
+    (root / "models/a.sql").write_text("select 3")
+    assert safe_read(root, "models/a.sql") == "select 3"  # no cache
+
+
+def test_text_sha1_depends_on_the_range() -> None:
+    from dlens.agent.tools.provenance import text_sha1
+
+    text = "a\nb\nc\n"
+    assert text_sha1(text, 1, 2) == text_sha1("a\nb\nzzz", 1, 2)
+    assert text_sha1(text, 1, 2) != text_sha1(text, 2, 3)

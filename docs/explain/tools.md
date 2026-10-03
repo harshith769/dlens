@@ -52,7 +52,11 @@ model saw" and "what the citations were" are preserved for the no-validator abla
   - `model`: the locator found nothing; the whole file is cited and no line is claimed. Seed
     columns always get this (the file is the CSV, whose header holds the name).
   - For an `s_` excerpt id the citation level is `line`, and rule 3 only needs the file and range
-    to exist (the excerpt may legitimately not contain any one column).
+    to exist (the excerpt may legitimately not contain any one column). Each excerpt side record
+    also stores `text_sha1` (sha1 of the window's lines), so the validator can detect a file
+    edited after the tool ran.
+- **`safe_read(root, file)`** is the one path-traversal-safe file reader (`../` and symlink
+  escapes return None). `Provenance` caches it per conversation; the validator calls it fresh.
 - Every citation is re-checked against the file text before it leaves `provenance.py`. If the
   located range lacks the name (and has no `*`) it is downgraded to `model`.
 - **Ledger.** `toolbox.emitted_ids` is the set of edge and excerpt ids the LLM was shown in this

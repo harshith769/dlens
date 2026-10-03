@@ -16,7 +16,7 @@ from typing import Any
 
 from dlens.agent.tools.budget import MAX_RESULT_TOKENS, largest_fit, payload_tokens
 from dlens.agent.tools.common import ToolError, ToolOutput, as_str
-from dlens.agent.tools.provenance import Provenance, excerpt_id
+from dlens.agent.tools.provenance import Provenance, excerpt_id, text_sha1
 from dlens.lineage import column_id
 
 CONTEXT_LINES = 3
@@ -140,6 +140,7 @@ def get_model_sql(prov: Provenance, args: dict[str, Any]) -> ToolOutput:
         "excerpts": {
             w["excerpt_id"]: {
                 "excerpt_id": w["excerpt_id"],
+                "text_sha1": text_sha1(source, w["range"][0], w["range"][1]),
                 "citation": {
                     "file": file,
                     "line_start": w["range"][0],
