@@ -1,0 +1,67 @@
+# Dev smoke questions for the agent loop on corpora/synthetic_shop (NOT eval/questions).
+# Column ids and expected edges are taken from corpora/synthetic_shop/DESIGN.md and
+# lineage_spec.yml (the gold spec, derived from the corpus design), never from parser output.
+# Line numbers refer to lineage_spec.yml.
+#
+# expect keys:
+#   refused: true|false              structural, asserted by the live test
+#   mode: chain|per_candidate|clarification|null   structural, asserted
+#   downstream: <model.column>       structural (chain mode), asserted
+#   clarification: false             structural, asserted
+#   cites_any_edge: [{from, to}]     quality: cites >= 1 of these gold edges (reported only)
+#   cites_excerpt_of: <model>        quality: or cites an s_ excerpt of this model (reported only)
+corpus: synthetic_shop
+questions:
+  - id: a
+    kind: trace
+    question: Where does fct_daily_revenue.revenue_finance come from?
+    expect:
+      refused: false
+      mode: null
+      cites_any_edge:
+        - {from: fct_orders.revenue_finance, to: fct_daily_revenue.revenue_finance}               # l.149
+        - {from: int_customer_order_history.items_subtotal, to: fct_orders.revenue_finance}       # l.125
+        - {from: int_customer_order_history.refund_amount, to: fct_orders.revenue_finance}        # l.126
+
+  - id: b
+    kind: impact
+    question: What is affected if raw_orders.tax_usd changes?
+    expect:
+      refused: false
+      mode: null
+      cites_any_edge:
+        - {from: raw_orders.tax_usd, to: stg_orders.tax_amount}                                    # l.25
+
+  - id: c
+    kind: sql
+    question: How is dim_customers.lifetime_value computed?
+    expect:
+      refused: false
+      mode: null
+      cites_excerpt_of: dim_customers
+      cites_any_edge:
+        - {from: fct_orders.items_subtotal, to: dim_customers.lifetime_value}                     # l.142
+        - {from: fct_orders.sales_tax, to: dim_customers.lifetime_value}                          # l.143
+        - {from: fct_orders.refunded_amount, to: dim_customers.lifetime_value}                    # l.144
+
+  - id: d
+    kind: ambiguous
+    # Trap near_duplicate_names: refund_amt (raw, stg) and refund_amount (int x2) are one chain
+    # (l.50, l.96, l.108), so chain mode answers for the most downstream one.
+    question: Where does refund amt come from?
+    expect:
+      refused: false
+      mode: chain
+      downstream: int_customer_order_history.refund_amount
+      clarification: false
+      cites_any_edge:
+        - {from: raw_refunds.refund_amt, to: stg_refunds.refund_amt}                               # l.50
+        - {from: stg_refunds.refund_amt, to: int_order_financials.refund_amount}                   # l.96
+        - {from: int_order_financials.refund_amount, to: int_customer_order_history.refund_amount} # l.108
+
+  - id: e
+    kind: unknown
+    # DESIGN.md has no discount_pct column anywhere (fct_orders or otherwise).
+    question: Where does fct_orders.discount_pct come from?
+    expect:
+      refused: true

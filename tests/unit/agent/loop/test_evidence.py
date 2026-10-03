@@ -42,3 +42,9 @@ def test_trim_drops_most_distant_first(box: Toolbox):
     assert min(it.priority for it in kept) == 1  # the edge next to the queried column survives
     kept, dropped = trim(items, lambda its: False)
     assert kept == [] and len(dropped) == 3
+
+
+def test_error_line_does_not_repeat_suggestions(box: Toolbox):
+    box.call("trace_upstream", {"column_id": "fct.totl"})
+    line = tool_errors(box)[0]
+    assert line.lower().count("did you mean") == 1

@@ -67,3 +67,14 @@ def test_render_puts_file_line_markers_from_citations(box: Toolbox):
 def test_refusal_helper():
     a = Answer.refusal("no column matches")
     assert a.refused and a.refusal_reason == "no column matches" and not a.claims
+
+
+def test_render_dedupes_identical_markers(box: Toolbox):
+    e1, _ = _traced(box)
+    a = attach(
+        AnswerDraft(answer_text="t", claims=[{"text": "c", "ids": [e1]}], confidence="low"), box
+    )
+    a.claims[0].edge_ids.append("e_feedface")
+    a.citations["e_feedface"] = a.citations[e1]
+    claim_line = [ln for ln in render(a).splitlines() if ln.startswith("  - c")][0]
+    assert claim_line.count("[models/fct.sql:3]") == 1

@@ -164,7 +164,8 @@ def render(answer: Answer) -> str:
     if answer.claims:
         out += ["", "Claims:"]
         for c in answer.claims:
-            marks = " ".join(marker(i, answer.citations.get(i)) for i in c.ids) or "[no citation]"
+            marks = " ".join(dict.fromkeys(marker(i, answer.citations.get(i)) for i in c.ids))
+            marks = marks or "[no citation]"
             out.append(f"  - {c.text.strip()} {marks}")
     if answer.citations:
         out += ["", "Citations:"]

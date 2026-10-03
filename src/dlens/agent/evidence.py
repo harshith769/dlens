@@ -39,7 +39,7 @@ def describe_error(r: ToolResult) -> str:
     arg = next(iter(r.args.values()), "")
     line = f"{r.tool}({arg}): {err.get('code')}: {err.get('message')}"
     extra = err.get("suggestions") or err.get("candidates")
-    if extra:
+    if extra and "did you mean" not in line.lower():
         line += f"; did you mean: {', '.join(map(str, extra))}"
     return line
 

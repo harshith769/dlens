@@ -116,7 +116,7 @@ def report(
 
 def trace_summary(run: AgentRun) -> dict[str, object]:
     rec = run.record
-    results = [r for s in rec.steps for r in s.results]
+    results = [r for s in rec.steps if s.phase != "code" for r in s.results]
     return {
         "llm_calls": rec.llm_calls,
         "tool_calls": sum(not r.deduped for r in results),
