@@ -427,6 +427,7 @@ edges:
 | Second embedding model | Linker and retrieval metrics | 0 |
 | No validator | Score the logged pre-validation S4 drafts | 0 |
 | Model swap | Full S1 + S4 on local Qwen3; S4 on Groq for the variance subset | Local + 300 Groq |
+| Constrained decoding *(v0.3 candidate, not implemented)* | Answer-phase `ids` restricted to a JSON-schema `enum` of this question's ledger ids; compare validator only / constrained only / both. Motivated by v0.2 smoke runs, where qwen3-4b miscopied ids (`e_4b2_403a`, `s_b3ece5f`) | Answer phase re-run only (schema change = new cache key); local Qwen3 first |
 
 ### 11.6 Quota budget (planning numbers; re-check after week 0)
 
@@ -548,7 +549,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 **v0.2 Cited Q&A agent**
 - [ ] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
 - [x] Tools: `resolve_entity` (fuzzy v1), `trace_upstream`, `impact_downstream`, `get_model_sql`
-- [ ] Agent loop with structured answers; logs pre-validation drafts
+- [x] Agent loop with structured answers; logs pre-validation drafts
 - [ ] [H] Validator rules + adversarial tests
 - [ ] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions
 - [ ] Tag v0.2.0; add the first GenAI resume line

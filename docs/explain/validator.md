@@ -25,6 +25,18 @@ with a warning flag. The 8-call budget already reserves that call.
    contains `*`; `s_` excerpts: file and range exist; see tools.md).
 4. On failure, drop the claim and regenerate once; if it fails again, warn.
 
+## Planned rules for session 4 (beyond spec §8)
+These are documented only, not implemented yet.
+- **Hallucinated-node check.** Every model or column identifier mentioned in `answer_text` or in
+  a claim's text (e.g. `fct_orders.revenue_finance`, `stg_refunds`) must appear in this
+  question's evidence: an emitted edge's endpoints, an excerpt's model, or a context line
+  (impact models and exposures, resolve candidates). An unknown identifier fails the claim (or
+  the answer text). This catches a correct-looking id list attached to prose about a node no tool
+  returned.
+- **Unsupported sentences.** Each `answer_text` sentence that no claim supports is flagged:
+  matched by the identifiers it mentions against the claims' texts and cited edges. The answer
+  text is a summary of claims, so a sentence with no claim behind it is uncited narration.
+
 ## What it must not use
 `confidence` is the model's self-report. It is never an input to validation or to benchmark
 scoring.
@@ -33,13 +45,15 @@ scoring.
 - The interface is fixed before the rules, so the loop, the run log and the no-validator
   ablation (which reads `draft_raw` and `validation` from the run records) are already wired.
 - A pass-through stub that labels itself is honest: v0.2 smoke runs show what the raw model
-  does. Question b cited a miscopied id, which rule 2 will catch.
+  does. Questions b and c cited miscopied ids (`e_4b2_403a`, `s_b3ece5f`), which rule 2 will
+  catch; the live smoke check `all_cited_in_ledger` is the test session 4 must turn green.
 
 ## Alternatives rejected
 - Validating inside the LLM prompt ("only cite ids you saw"): it is already in the prompt, and a
   4B model still miscopied an id.
-- Constraining ids with a JSON-schema `enum` of ledger ids: possible later, but it would hide
-  exactly the failures the no-validator ablation is meant to measure.
+- Constraining ids with a JSON-schema `enum` of ledger ids: it would hide exactly the failures
+  the no-validator ablation is meant to measure. It is listed as a v0.3 ablation candidate
+  instead (spec §11.5: validator only / constrained only / both).
 
 ## Explain-back questions
 1. Why does `validate` take the ledger instead of reading the files and ids itself, and what
