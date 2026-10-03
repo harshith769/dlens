@@ -62,7 +62,7 @@ Changing any line below needs an ADR, because several of them invalidate benchma
 | Graph | NetworkX in memory, persisted as a JSON edge list (diffable in git) |
 | Retrieval | BM25 (`bm25s`) + dense (LanceDB), fused with reciprocal rank fusion; no reranker in v1 |
 | LLM: primary | **Gemini 3.5 Flash-Lite**, free tier: 15 RPM, 250K TPM, 500 RPD (measured in Week 0). Config uses the **versioned** model ID, never the `-latest` alias; daily budget 400 |
-| LLM: local | **Qwen3-4B-Instruct-2507 via Ollama (`qwen3:4b-instruct-2507-q4_K_M`)** for development and for the second full benchmark run: 100% GPU at `num_ctx` 8192, about 62 tok/s. Thinking off. Qwen3-8B was rejected because it spills to the CPU even at `num_ctx` 4096 |
+| LLM: local | **Qwen3-4B-Instruct-2507 via Ollama (`qwen3:4b-instruct-2507-q4_K_M`)** for development and for the second full benchmark run: `qwen3:4b-instruct-2507-q4_K_M` at `num_ctx` 8192: 3.9 GB, 100% GPU; ~62 tok/s generation, ~165 tok/s prompt eval (speeds measured at `num_ctx` 4096, 3 Oct 2026). Thinking off. Qwen3-8B was rejected because it spills to the CPU even at `num_ctx` 4096 |
 | LLM: cross-check and judge | **Groq `openai/gpt-oss-120b`**, free tier; used for the 60-question cross-model subset and as the Ask-rubric judge |
 | Embeddings | `BAAI/bge-small-en-v1.5`, local; ablation model `all-MiniLM-L6-v2` |
 | Training | None. All models are pretrained and used as-is |
@@ -316,7 +316,7 @@ Report top-1 and top-3 accuracy.
 | Role | Model | Notes |
 |---|---|---|
 | Primary agent | Gemini Flash-Lite (ID pinned in week 0) | Native tool calling; budget set to 80% of the RPD AI Studio shows |
-| Local agent (dev + second full run) | `qwen3:4b-instruct-2507-q4_K_M` (Qwen3-4B-Instruct-2507, non-thinking build), `num_ctx` 8192 | Unlimited; 100% GPU, ~62 tok/s. `qwen3:8b` spilled to CPU at 8192 (36/64) and 4096 (30/70), ~16 tok/s, so it was rejected |
+| Local agent (dev + second full run) | `qwen3:4b-instruct-2507-q4_K_M` (Qwen3-4B-Instruct-2507, non-thinking build), `num_ctx` 8192 | Unlimited; `qwen3:4b-instruct-2507-q4_K_M` at `num_ctx` 8192: 3.9 GB, 100% GPU; ~62 tok/s generation, ~165 tok/s prompt eval (speeds measured at `num_ctx` 4096, 3 Oct 2026). `qwen3:8b` spilled to CPU at 8192 (36/64) and 4096 (30/70), ~16 tok/s, so it was rejected |
 | Cross-check + judge | Groq `openai/gpt-oss-120b` | About 200K tokens/day; used for the 60-question subset and the Ask judge. A different model family from the agent, which reduces self-judging bias |
 | Embeddings | `BAAI/bge-small-en-v1.5` | Local; ablation `all-MiniLM-L6-v2` |
 | Reranker | None in v1 | Add only if linker errors demand it |
@@ -545,7 +545,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 
 **v0.2 Cited Q&A agent**
 - [ ] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
-- [ ] Tools: `resolve_entity` (fuzzy v1), `trace_upstream`, `impact_downstream`, `get_model_sql`
+- [x] Tools: `resolve_entity` (fuzzy v1), `trace_upstream`, `impact_downstream`, `get_model_sql`
 - [ ] Agent loop with structured answers; logs pre-validation drafts
 - [ ] [H] Validator rules + adversarial tests
 - [ ] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions
@@ -617,7 +617,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 | Item | Value |
 |---|---|
 | Gemini | Rate-limit page shows Gemini 3.5 Flash Lite at **15 RPM, 250K TPM, 500 RPD**. `GEMINI_DAILY_BUDGET=400`. Pin the versioned ID from the `check_gemini.py` list (expected `gemini-3.5-flash-lite`), not `gemini-flash-lite-latest` |
-| Local model | `OLLAMA_MODEL=qwen3:4b-instruct-2507-q4_K_M` (was `qwen3:4b`, the thinking-only build; see §0 row 19) (100% GPU @8192, 61.7 tok/s). `qwen3:8b` rejected (30% CPU / 70% GPU @4096, 16.3 tok/s) |
+| Local model | `OLLAMA_MODEL=qwen3:4b-instruct-2507-q4_K_M` (was `qwen3:4b`, the thinking-only build; see §0 row 19) (`qwen3:4b-instruct-2507-q4_K_M` at `num_ctx` 8192: 3.9 GB, 100% GPU; ~62 tok/s generation, ~165 tok/s prompt eval (speeds measured at `num_ctx` 4096, 3 Oct 2026)). `qwen3:8b` rejected (30% CPU / 70% GPU @4096, 16.3 tok/s) |
 | Groq | `GROQ_DAILY_TOKENS=200000`; no 2FA option in the free UI, so the password-manager password is the protection |
 | Keys | Both AI Studio keys and the Groq key are in a password manager |
 | S2 feasibility | 250K TPM fits a ~30K-token stuffed prompt about 8 times a minute; RPM 15 is the real limit |
