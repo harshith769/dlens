@@ -80,6 +80,12 @@ side records and the ledger are built only from what was kept, so no id is ever 
 model did not see. Models and exposures are dropped last.
 
 ## `get_model_sql` and alias windows
+
+**Leniency.** A `model.column` passed as `model_id` (seen live from the 4B model) is split into
+the model and `around_column`, but only when the whole text is not itself a model and
+`around_column` is empty. If the model part is unknown, the original `unknown_model` error is
+returned for the original text.
+
 Without `around_column`, the excerpt is the whole file as one window. With it, the excerpt starts
 from the column's located lines (+/- 3 context). Then, up to 3 hops, it adds the **earlier lines
 in the same file that define aliases the expression reads**. An identifier counts if it is not a

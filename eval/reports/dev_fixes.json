@@ -1,0 +1,999 @@
+{
+ "rows": [
+  {
+   "id": "dev-01",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "raw_payments.amt",
+     "stg_payments.amount_usd"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1281,
+   "latency_ms": 17.3,
+   "cached": 4,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 0,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-02",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "raw_customers.country",
+     "stg_customers.country_code"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1293,
+   "latency_ms": 23.7,
+   "cached": 4,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 1,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-03",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "raw_order_items.quantity",
+     "stg_order_items.quantity"
+    ],
+    [
+     "raw_order_items.unit_price",
+     "stg_order_items.unit_price"
+    ],
+    [
+     "stg_order_items.quantity",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_order_items.unit_price",
+     "int_order_items_enriched.line_amount"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "completed",
+   "first_counts": {},
+   "completions": 1,
+   "llm_calls": 4,
+   "max_in": 1457,
+   "latency_ms": 28.6,
+   "cached": 4,
+   "r8": {
+    "claims": 3,
+    "r8": 1,
+    "r8_only": 0,
+    "completable": 1,
+    "completable_4": 1,
+    "completed": 1
+   },
+   "tiers": {
+    "raw": 2,
+    "repaired": 0,
+    "completed": 1,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-04",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "int_orders_enriched.order_tax",
+     "int_order_financials.sales_tax"
+    ],
+    [
+     "raw_orders.tax_usd",
+     "stg_orders.tax_amount"
+    ],
+    [
+     "stg_orders.tax_amount",
+     "int_orders_enriched.order_tax"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1353,
+   "latency_ms": 26.7,
+   "cached": 4,
+   "r8": {
+    "claims": 3,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 2,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-05",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.5714285714285714,
+   "cited_edges": [
+    [
+     "int_customer_order_history.net_paid_usd",
+     "fct_orders.net_paid_usd"
+    ],
+    [
+     "int_order_financials.net_paid_usd",
+     "int_customer_order_history.net_paid_usd"
+    ],
+    [
+     "int_payment_events.event_amount_usd",
+     "int_order_financials.net_paid_usd"
+    ],
+    [
+     "stg_payments.amount_usd",
+     "int_payment_events.event_amount_usd"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 3,
+   "max_in": 1284,
+   "latency_ms": 4.1,
+   "cached": 3,
+   "r8": {
+    "claims": 4,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 3,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-06",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.7142857142857143,
+   "cited_edges": [
+    [
+     "fct_orders.revenue_marketing",
+     "fct_daily_revenue.revenue_marketing"
+    ],
+    [
+     "int_customer_order_history.items_subtotal",
+     "fct_orders.revenue_marketing"
+    ],
+    [
+     "int_customer_order_history.sales_tax",
+     "fct_orders.revenue_marketing"
+    ],
+    [
+     "int_order_financials.items_subtotal",
+     "int_customer_order_history.items_subtotal"
+    ],
+    [
+     "int_order_items_enriched.line_amount",
+     "int_orders_enriched.items_subtotal"
+    ],
+    [
+     "int_orders_enriched.items_subtotal",
+     "int_order_financials.items_subtotal"
+    ],
+    [
+     "raw_order_items.quantity",
+     "stg_order_items.quantity"
+    ],
+    [
+     "raw_order_items.unit_price",
+     "stg_order_items.unit_price"
+    ],
+    [
+     "stg_order_items.quantity",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_order_items.unit_price",
+     "int_order_items_enriched.line_amount"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "completed",
+   "first_counts": {},
+   "completions": 1,
+   "llm_calls": 3,
+   "max_in": 1767,
+   "latency_ms": 4.4,
+   "cached": 3,
+   "r8": {
+    "claims": 3,
+    "r8": 1,
+    "r8_only": 0,
+    "completable": 1,
+    "completable_4": 1,
+    "completed": 1
+   },
+   "tiers": {
+    "raw": 2,
+    "repaired": 0,
+    "completed": 1,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-07",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "stg_products.list_price",
+     "int_order_items_enriched.is_discounted"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1289,
+   "latency_ms": 20.2,
+   "cached": 4,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 1,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-08",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.38461538461538464,
+   "cited_edges": [
+    [
+     "int_customer_order_history.refund_amount",
+     "fct_orders.refunded_amount"
+    ],
+    [
+     "int_order_financials.refund_amount",
+     "int_customer_order_history.refund_amount"
+    ],
+    [
+     "raw_refunds.refund_amt",
+     "stg_refunds.refund_amt"
+    ],
+    [
+     "stg_refunds.refund_amt",
+     "int_order_financials.refund_amount"
+    ],
+    [
+     "stg_refunds.refund_amt",
+     "int_payment_events.event_amount_usd"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "completed",
+   "first_counts": {},
+   "completions": 1,
+   "llm_calls": 3,
+   "max_in": 1332,
+   "latency_ms": 5.8,
+   "cached": 3,
+   "r8": {
+    "claims": 4,
+    "r8": 1,
+    "r8_only": 0,
+    "completable": 1,
+    "completable_4": 1,
+    "completed": 1
+   },
+   "tiers": {
+    "raw": 3,
+    "repaired": 0,
+    "completed": 1,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-09",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.7777777777777778,
+   "cited_edges": [
+    [
+     "fct_orders.order_date",
+     "dim_customers.first_order_date"
+    ],
+    [
+     "fct_orders.order_date",
+     "dim_customers.most_recent_order_date"
+    ],
+    [
+     "fct_orders.order_date",
+     "fct_daily_revenue.order_date"
+    ],
+    [
+     "int_customer_order_history.order_date",
+     "fct_orders.days_since_previous_order"
+    ],
+    [
+     "int_customer_order_history.order_date",
+     "fct_orders.order_date"
+    ],
+    [
+     "int_order_financials.order_date",
+     "int_customer_order_history.order_date"
+    ],
+    [
+     "int_order_financials.order_date",
+     "int_customer_order_history.previous_order_date"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "completed",
+   "first_counts": {},
+   "completions": 1,
+   "llm_calls": 4,
+   "max_in": 1495,
+   "latency_ms": 25.8,
+   "cached": 4,
+   "r8": {
+    "claims": 1,
+    "r8": 1,
+    "r8_only": 0,
+    "completable": 1,
+    "completable_4": 1,
+    "completed": 1
+   },
+   "tiers": {
+    "raw": 0,
+    "repaired": 0,
+    "completed": 1,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-10",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": false,
+   "reasons": [
+    "yes/no (heuristic) yes != no"
+   ],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "int_customer_order_history.net_paid_usd",
+     "fct_orders.net_paid_usd"
+    ],
+    [
+     "int_order_financials.net_paid_usd",
+     "int_customer_order_history.net_paid_usd"
+    ],
+    [
+     "int_payment_events.event_amount_usd",
+     "fct_payment_events.event_amount_usd"
+    ],
+    [
+     "int_payment_events.event_amount_usd",
+     "int_order_financials.net_paid_usd"
+    ],
+    [
+     "raw_payments.amt",
+     "stg_payments.amount_usd"
+    ],
+    [
+     "stg_payments.amount_usd",
+     "int_payment_events.event_amount_usd"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 6,
+   "max_in": 1946,
+   "latency_ms": 6057.9,
+   "cached": 5,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 0,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-11",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.0,
+   "cited_edges": [],
+   "extra_edges": [],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 3,
+   "max_in": 1060,
+   "latency_ms": 2875.4,
+   "cached": 1,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 1,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-12",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.0,
+   "cited_edges": [],
+   "extra_edges": [],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1540,
+   "latency_ms": 28.1,
+   "cached": 4,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 1,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-13",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "int_order_items_enriched.line_amount",
+     "int_orders_enriched.items_subtotal"
+    ],
+    [
+     "int_orders_enriched.items_subtotal",
+     "int_order_financials.order_total"
+    ],
+    [
+     "int_orders_enriched.order_tax",
+     "int_order_financials.order_total"
+    ],
+    [
+     "raw_orders.tax_usd",
+     "stg_orders.tax_amount"
+    ],
+    [
+     "stg_order_items.quantity",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_order_items.unit_price",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_orders.tax_amount",
+     "int_orders_enriched.order_tax"
+    ]
+   ],
+   "extra_edges": [
+    [
+     "int_order_items_enriched.line_amount",
+     "int_orders_enriched.items_subtotal"
+    ],
+    [
+     "raw_orders.tax_usd",
+     "stg_orders.tax_amount"
+    ],
+    [
+     "stg_order_items.quantity",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_order_items.unit_price",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_orders.tax_amount",
+     "int_orders_enriched.order_tax"
+    ]
+   ],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1739,
+   "latency_ms": 25.6,
+   "cached": 4,
+   "r8": {
+    "claims": 3,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 2,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-14",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "raw_products.category",
+     "stg_products.category"
+    ],
+    [
+     "stg_products.category",
+     "int_order_items_enriched.product_category"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 4,
+   "max_in": 1343,
+   "latency_ms": 28.1,
+   "cached": 4,
+   "r8": {
+    "claims": 2,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 2,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-15",
+   "verdict": "clarification",
+   "verdict_ok": false,
+   "pass": false,
+   "reasons": [
+    "verdict clarification != answered",
+    "missing fct_orders.order_id->dim_customers.order_count"
+   ],
+   "recall": 0.0,
+   "cited_edges": [],
+   "extra_edges": [],
+   "outcome": "n/a",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 2,
+   "max_in": 1058,
+   "latency_ms": 26.1,
+   "cached": 2,
+   "r8": {
+    "claims": 0,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 0,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-16",
+   "verdict": "chain",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "int_customer_order_history.previous_order_date",
+     "fct_orders.previous_order_date"
+    ],
+    [
+     "int_order_financials.order_date",
+     "int_customer_order_history.previous_order_date"
+    ],
+    [
+     "int_orders_enriched.order_date",
+     "int_order_financials.order_date"
+    ],
+    [
+     "raw_orders.order_date",
+     "stg_orders.order_date"
+    ],
+    [
+     "stg_orders.order_date",
+     "int_orders_enriched.order_date"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 3,
+   "max_in": 1062,
+   "latency_ms": 20.0,
+   "cached": 3,
+   "r8": {
+    "claims": 5,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 4,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-17",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 0.5,
+   "cited_edges": [
+    [
+     "int_customer_order_history.items_subtotal",
+     "fct_orders.revenue_finance"
+    ],
+    [
+     "int_order_financials.items_subtotal",
+     "int_customer_order_history.items_subtotal"
+    ],
+    [
+     "int_order_items_enriched.line_amount",
+     "int_orders_enriched.items_subtotal"
+    ],
+    [
+     "int_orders_enriched.items_subtotal",
+     "int_order_financials.items_subtotal"
+    ],
+    [
+     "stg_order_items.quantity",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_order_items.unit_price",
+     "int_order_items_enriched.line_amount"
+    ]
+   ],
+   "extra_edges": [
+    [
+     "int_order_financials.items_subtotal",
+     "int_customer_order_history.items_subtotal"
+    ],
+    [
+     "int_order_items_enriched.line_amount",
+     "int_orders_enriched.items_subtotal"
+    ],
+    [
+     "int_orders_enriched.items_subtotal",
+     "int_order_financials.items_subtotal"
+    ],
+    [
+     "stg_order_items.quantity",
+     "int_order_items_enriched.line_amount"
+    ],
+    [
+     "stg_order_items.unit_price",
+     "int_order_items_enriched.line_amount"
+    ]
+   ],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 3,
+   "max_in": 1614,
+   "latency_ms": 3.6,
+   "cached": 3,
+   "r8": {
+    "claims": 1,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 1,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-18",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": 1.0,
+   "cited_edges": [
+    [
+     "int_payment_events.event_amount_usd",
+     "int_order_financials.net_paid_usd"
+    ],
+    [
+     "raw_payments.amt",
+     "stg_payments.amount_usd"
+    ],
+    [
+     "stg_payments.amount_usd",
+     "int_payment_events.event_amount_usd"
+    ]
+   ],
+   "extra_edges": [
+    [
+     "raw_payments.amt",
+     "stg_payments.amount_usd"
+    ]
+   ],
+   "outcome": "repaired",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 2,
+   "max_in": 780,
+   "latency_ms": 4218.9,
+   "cached": 1,
+   "r8": {
+    "claims": 2,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 1,
+    "repaired": 1,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-19",
+   "verdict": "refused",
+   "verdict_ok": true,
+   "pass": true,
+   "reasons": [],
+   "recall": null,
+   "cited_edges": [],
+   "extra_edges": [],
+   "outcome": "n/a",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 0,
+   "max_in": 0,
+   "latency_ms": 0.2,
+   "cached": 0,
+   "r8": {
+    "claims": 0,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 0,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  },
+  {
+   "id": "dev-20",
+   "verdict": "answered",
+   "verdict_ok": true,
+   "pass": false,
+   "reasons": [
+    "missing stg_refunds.refunded_at->int_payment_events.event_at"
+   ],
+   "recall": 0.6,
+   "cited_edges": [
+    [
+     "int_payment_events.event_at",
+     "fct_payment_events.event_at"
+    ],
+    [
+     "raw_payments.created_at",
+     "stg_payments.paid_at"
+    ],
+    [
+     "stg_payments.paid_at",
+     "int_payment_events.event_at"
+    ]
+   ],
+   "extra_edges": [],
+   "outcome": "pass",
+   "first_counts": {},
+   "completions": 0,
+   "llm_calls": 3,
+   "max_in": 1079,
+   "latency_ms": 4.3,
+   "cached": 3,
+   "r8": {
+    "claims": 3,
+    "r8": 0,
+    "r8_only": 0,
+    "completable": 0,
+    "completable_4": 0,
+    "completed": 0
+   },
+   "tiers": {
+    "raw": 3,
+    "repaired": 0,
+    "completed": 0,
+    "failed": 0
+   }
+  }
+ ],
+ "summary": {
+  "questions": 20,
+  "verdict_ok": 19,
+  "pass": 17,
+  "mean_recall": 0.713,
+  "extra_edges": 11,
+  "outcomes": {
+   "repaired": 7,
+   "pass": 7,
+   "completed": 4,
+   "n/a": 2
+  },
+  "first_counts": {},
+  "completions": 4,
+  "llm_calls": 67,
+  "max_in": 1946,
+  "latency_ms": 13445,
+  "cached_calls": 63
+ },
+ "r8": {
+  "claims": 40,
+  "r8": 4,
+  "r8_only": 0,
+  "completable": 4,
+  "completable_4": 4,
+  "completed": 4
+ },
+ "claim_tiers": {
+  "raw": 29,
+  "repaired": 7,
+  "completed": 4,
+  "failed": 0
+ }
+}

@@ -48,6 +48,15 @@ All notable changes to this project are documented here. The format follows
 - Visible validation warning in `dlens ask` output: "⚠ Part of this answer couldn't be verified
   and was removed." when claims were dropped, and "⚠ No part of the answer could be verified."
   when the validator refused (that refusal now also sets `validation_warning`).
+- Unknown-column refusal in code, before the tool phase. A dotted `model.column` whose model,
+  seed or source exists but whose column does not is refused with "<model> has no column <col>"
+  plus up to 3 closest columns, with no LLM call. CTE aliases, unique_ids and file names are
+  never refused.
+- Evidence guarantee. If the tool phase emitted no citable id, code runs `impact_downstream`
+  (effect wording) or `trace_upstream` on up to 2 exact `model.column` ids named in the
+  question, as `code` steps, then answers. This replaces the narrower "no tool call" fallback.
+- `get_model_sql` accepts a `model.column` as `model_id` and splits it into model +
+  `around_column`. An unknown model still returns `unknown_model`.
 
 ### Changed
 - `get_model_sql` payload: `windows: [{excerpt_id, range}]` replaces `excerpt_id` /

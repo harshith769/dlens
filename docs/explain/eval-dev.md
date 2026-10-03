@@ -76,38 +76,57 @@ The decision rule was fixed before the run: completable R8 drops ≥ 10% of all 
 - Recall is over cited edges only; it ignores prose, and it does not score nodes the way §11.4 does.
 
 ## Results (local qwen3:4b-instruct-2507-q4_K_M, 3 Oct 2026)
-Raw reports: `eval/reports/dev_before.json` (no completion) and `eval/reports/dev_after.json`
-(with R8c). Latency is from the uncached "before" run: 144.5 s for 20 questions (median 6.5 s). The "after" run was fully cached (69/69 calls).
+Raw reports are in `eval/reports/`, one per stage:
+- `dev_before.json`: no completion;
+- `dev_after.json`: with R8c;
+- `dev_fixes.json`: R8c plus three general robustness fixes in code: the unknown-column
+  refusal, the evidence guarantee, and `get_model_sql` accepting a `model.column` (agent.md,
+  tools.md).
 
-| | before R8c | after R8c |
-|---|---|---|
-| verdict correct | 17/20 | 17/20 |
-| pass | 15/20 | 16/20 |
-| mean gold-edge recall (answered) | 0.62 | 0.72 |
-| cited edges not in gold | 10 | 10 |
-| validator outcomes | pass 6, repaired 5, regenerated 1, warning 3, refused 1, n/a 4 | pass 6, repaired 5, completed 4, refused 1, n/a 4 |
-| first-draft claims raw / repaired / completed / failed | 28 / 5 / 0 / 4 | 28 / 5 / 4 / 0 |
-| first-draft failures | R8 = 4, R4.hallucinated = 1 | R4.hallucinated = 1 |
-| LLM calls (total) / max est. input tokens | 73 / 1,946 | 69 / 1,946 |
+Latency is from the uncached "before" run: 144.5 s for 20 questions (median 6.5 s). Later runs
+reuse the cache (63 of 67 calls were cached in the last run).
+
+| | before R8c | + R8c | + robustness fixes |
+|---|---|---|---|
+| verdict correct | 17/20 | 17/20 | 19/20 |
+| pass | 15/20 | 16/20 | 17/20 |
+| mean gold-edge recall (answered) | 0.62 | 0.72 | 0.71 (3 more answered questions in the mean) |
+| cited edges not in gold | 10 | 10 | 11 |
+| validator outcomes | pass 6, repaired 5, regenerated 1, warning 3, refused 1, n/a 4 | pass 6, repaired 5, completed 4, refused 1, n/a 4 | pass 7, repaired 7, completed 4, n/a 2 |
+| first-draft claims raw / repaired / completed / failed | 28 / 5 / 0 / 4 | 28 / 5 / 4 / 0 | 29 / 7 / 4 / 0 |
+| first-draft failures | R8 = 4, R4.hallucinated = 1 | R4.hallucinated = 1 | none |
+| LLM calls (total) / max est. input tokens | 73 / 1,946 | 69 / 1,946 | 67 / 1,946 |
 
 **R8 measurement:** 4 of 37 first-draft claims were R8 drops, all completable. That is 10.8%,
 at or above the 10% threshold, so completion (R8c) was built. See validator.md, "Resolved
 (session 5a)", including the margin note.
 
-The 4 failures after R8c are agent and linker problems, not validator problems. They are for later
-sessions (one checklist item per session):
-- **dev-10** (yes/no "no"): the tool calls found no citable evidence, so code refused before
-  the answer phase. The correct "no" needed `impact_downstream(raw_payments.amt)`.
-- **dev-11** (how is revenue_finance computed): the model called `get_model_sql` with a column
-  id as the model, got `unknown_model`, and stopped, so code refused. A tool-argument problem.
-- **dev-15** (paraphrase "number of orders per customer"): the fuzzy v1 linker returned 5 mixed
-  candidates, so the policy asks for clarification. This is linker v2 work (v0.3).
-- **dev-20** (star + union trap): it cited the payments branch only and missed `refunded_at`.
+What the robustness fixes changed:
+- **dev-11** (how is revenue_finance computed) now passes. `get_model_sql("fct_orders.revenue_finance")`
+  is split into model + column instead of returning `unknown_model`.
+- **dev-18** (false premise "directly") now corrects the premise. The model called no tool, and
+  code traced both named columns. Before, it passed only as a refusal.
+- **dev-19** (`stg_orders.ship_date`) is refused in code with 0 LLM calls ("stg_orders has no
+  column ship_date (closest: order_date, status, customer_id)"). Before, the validator refused
+  a chain-mode answer about `order_date`.
+- **dev-10** now gets evidence (code ran `impact_downstream` on both named columns), but still
+  fails. See below.
 
-Two passes are worth a look. dev-18 passed only as a refusal ("the evidence does not
-explain…"), not by correcting the premise. dev-19 was refused by the validator (R4.hallucinated
-on `stg_orders.ship_date` in the prose), not by code, because the linker tied 5 `order_date`
-columns for "ship_date" and chain mode answered.
+Remaining failures (3):
+- **dev-10** (yes/no, gold "no"): the model answers **"Yes"**. That is wrong: amt reaches only
+  `net_paid_usd`, which `lifetime_value` does not read. The validator passed it because:
+  - the false link is in `answer_text` ("…which is used to compute customer lifetime value");
+  - its only claim names a single dotted column, so R8 does not apply;
+  - and `answer_text` gets no R8 check (validator.md, Known limitations).
+
+  A rule for this would be new validator scope (an `answer_text` connectivity or reachability
+  check), so it is left for the owner to decide.
+- **dev-15** (paraphrase "number of orders per customer"): the fuzzy v1 linker returns 5 mixed
+  candidates, so the agent asks for clarification. This is linker v2 work (v0.3).
+- **dev-20** (star + union trap): it cites the payments branch only and misses `refunded_at`.
+
+None of the fixes looks at question text beyond generic patterns (dotted ids, effect wording);
+there is no dev-question-specific logic.
 
 ## Explain-back questions
 1. Why must a dev question never appear in the frozen test set, and why is a different *target

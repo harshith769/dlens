@@ -104,14 +104,22 @@ benchmark scoring never use it.
 - **Tool error payloads** go back to the model as normal tool results.
 - **Provider errors**: a non-retryable `ProviderError`, `QuotaExceeded` or `InputTooLarge`
   becomes a refused answer with the reason. A retryable provider error gets one retry.
-- **No tool call at all** (seen live on a false-premise question, where the 4B model asked for a
-  column id the question already contained): if the question names an exact, existing
-  `model.column`, code traces the first one. That is a `code` step, not an LLM call, like chain
-  mode, and the answer phase runs normally. The system prompt also says "Questions may contain
-  false assumptions; check them with the tools before answering" (tool phase now 721 estimated
-  tokens with specs, cap 900).
-- **No citable evidence** (unknown column): refused by code with the tool errors as the reason,
-  with no answer call.
+- **Unknown column (before the tool phase).** If the question contains a dotted `model.column`
+  whose model, seed or source exists but whose column does not, code refuses with
+  "<model> has no column <col> (closest: a, b, c)". There are no LLM calls. Only real node names
+  count, so CTE aliases (`order_agg.lifetime_value`), full unique_ids (`model.p.fct`) and file
+  names (`fct.sql`) are never refused. Live: the linker tied five `order_date` columns for
+  "stg_orders.ship_date", and chain mode answered for one of them.
+- **Evidence guarantee.** If the tool phase emitted no citable id (no `e_`/`s_`), code looks for
+  exact, existing `model.column` ids in the question (at most 2). For each it runs
+  `impact_downstream` when the wording is about effects (affect / impact / change / break /
+  downstream), else `trace_upstream`. These are `code` steps, not LLM calls, and calls already in
+  the log are skipped. The answer phase then runs normally. This generalises the earlier
+  "no tool call" fallback. It was seen live in two shapes: no tool call at all (false premise),
+  and tools called in the wrong direction (upstream of a seed, downstream of a leaf mart).
+  The record's `stop_reason` gets `+code_evidence`.
+- **No citable evidence after that**: refused by code with the tool errors as the reason, with
+  no answer call.
 
 ## Draft logging (`runlog.py`)
 One JSONL line per run in `$DLENS_RUN_DIR` (or `$XDG_STATE_HOME/dlens/runs`), one file per day. A
