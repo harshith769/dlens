@@ -57,6 +57,13 @@ All notable changes to this project are documented here. The format follows
   question, as `code` steps, then answers. This replaces the narrower "no tool call" fallback.
 - `get_model_sql` accepts a `model.column` as `model_id` and splits it into model +
   `around_column`. An unknown model still returns `unknown_model`.
+- Reachability fact and validator R9. For a yes/no question naming exactly 2 exact columns with
+  affect/impact/depend/feed/flow/reach/change wording, code checks graph reachability both ways
+  and emits a citable `r_` fact plus the shortest path's edges. R9 requires the answer's yes/no
+  verdict (first sentence, heuristic) to match. On failure the answer is regenerated once with
+  the fact; if it still fails, salvage states code's verdict citing `r_`, with
+  `validation_warning`. `r_` ids work in R2/R3/R7/R8 and render as `[graph check]`. This fixes
+  dev-10 (a wrong "Yes" that passed validation): dev pass is 18/20.
 
 ### Changed
 - `get_model_sql` payload: `windows: [{excerpt_id, range}]` replaces `excerpt_id` /

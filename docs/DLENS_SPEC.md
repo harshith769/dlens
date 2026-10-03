@@ -305,7 +305,7 @@ Report top-1 and top-3 accuracy.
 3. Every cited file and line range exists on disk and contains the column.
 4. On failure, drop the claim and regenerate once. If it fails again, return with a warning flag.
 
-*v0.2 implementation, rules R1–R8 (`src/dlens/agent/validator.py`, explained in `docs/explain/validator.md`):*
+*v0.2 implementation, rules R1–R9 (`src/dlens/agent/validator.py`, explained in `docs/explain/validator.md`):*
 - **R1 cites.** Every claim cites ≥1 id.
 - **R2 in_ledger.** Every cited id was emitted by a tool for this question.
 - **R2r repair.** An id failing R2 is replaced only if exactly one emitted id with the same
@@ -331,8 +331,17 @@ Report top-1 and top-3 accuracy.
   are re-checked by R3, R5 and R7 and recorded as `completions`. Built after the dev-set
   measurement: completable R8 drops were 4/37 = 10.8% of first-draft claims, against a 10%
   threshold fixed in advance (docs/explain/validator.md).
+- **R9 verdict** (after R8). For a question naming exactly 2 exact columns with reachability
+  wording, code checks graph reachability both ways and emits a citable fact `r_<8 hex>`
+  ("X does NOT reach Y (graph check)" or "X reaches Y in n hops", plus the shortest path's
+  edges). The yes/no verdict of `answer_text`'s first sentence (documented heuristic; no verdict
+  fails) must match it, and a claim citing `r_` must not state the opposite. On failure the
+  regenerate prompt states the fact; if it still fails, salvage leads with code's verdict claim
+  citing `r_`, with `validation_warning`. `r_` ids pass R2, are re-checked on the graph by R3,
+  and touch/connect their two columns in R7/R8. There is deliberately no connectivity check on
+  `answer_text`: a correct "No, X does not affect Y" names two unconnected columns.
 - **R6 prose_refs.** File paths and "line N" written in prose must match an attached citation.
-- R2 also covers `e_`/`s_` ids written in prose; repaired prose ids are rewritten.
+- R2 also covers `e_`/`s_`/`r_` ids written in prose; repaired prose ids are rewritten.
 
 **Flow.** Validate. On failure, regenerate once with a ≤300-token failure list (the 8-call
 budget reserves the call). If it still fails, keep only the passing claims with

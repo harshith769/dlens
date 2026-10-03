@@ -79,6 +79,7 @@ The decision rule was fixed before the run: completable R8 drops ≥ 10% of all 
 Raw reports are in `eval/reports/`, one per stage:
 - `dev_before.json`: no completion;
 - `dev_after.json`: with R8c;
+- `dev_r9.json`: plus the reachability fact and R9;
 - `dev_fixes.json`: R8c plus three general robustness fixes in code: the unknown-column
   refusal, the evidence guarantee, and `get_model_sql` accepting a `model.column` (agent.md,
   tools.md).
@@ -86,16 +87,16 @@ Raw reports are in `eval/reports/`, one per stage:
 Latency is from the uncached "before" run: 144.5 s for 20 questions (median 6.5 s). Later runs
 reuse the cache (63 of 67 calls were cached in the last run).
 
-| | before R8c | + R8c | + robustness fixes |
-|---|---|---|---|
-| verdict correct | 17/20 | 17/20 | 19/20 |
-| pass | 15/20 | 16/20 | 17/20 |
-| mean gold-edge recall (answered) | 0.62 | 0.72 | 0.71 (3 more answered questions in the mean) |
-| cited edges not in gold | 10 | 10 | 11 |
-| validator outcomes | pass 6, repaired 5, regenerated 1, warning 3, refused 1, n/a 4 | pass 6, repaired 5, completed 4, refused 1, n/a 4 | pass 7, repaired 7, completed 4, n/a 2 |
-| first-draft claims raw / repaired / completed / failed | 28 / 5 / 0 / 4 | 28 / 5 / 4 / 0 | 29 / 7 / 4 / 0 |
-| first-draft failures | R8 = 4, R4.hallucinated = 1 | R4.hallucinated = 1 | none |
-| LLM calls (total) / max est. input tokens | 73 / 1,946 | 69 / 1,946 | 67 / 1,946 |
+| | before R8c | + R8c | + robustness fixes | + R9 |
+|---|---|---|---|---|
+| verdict correct | 17/20 | 17/20 | 19/20 | 19/20 |
+| pass | 15/20 | 16/20 | 17/20 | 18/20 |
+| mean gold-edge recall (answered) | 0.62 | 0.72 | 0.71 (3 more answered questions in the mean) | 0.66 (dev-10 cites only the fact) |
+| cited edges not in gold | 10 | 10 | 11 | 11 |
+| validator outcomes | pass 6, repaired 5, regenerated 1, warning 3, refused 1, n/a 4 | pass 6, repaired 5, completed 4, refused 1, n/a 4 | pass 7, repaired 7, completed 4, n/a 2 | pass 8, repaired 6, completed 4, n/a 2 |
+| first-draft claims raw / repaired / completed / failed | 28 / 5 / 0 / 4 | 28 / 5 / 4 / 0 | 29 / 7 / 4 / 0 | 30 / 6 / 4 / 0 |
+| first-draft failures | R8 = 4, R4.hallucinated = 1 | R4.hallucinated = 1 | none | none |
+| LLM calls (total) / max est. input tokens | 73 / 1,946 | 69 / 1,946 | 67 / 1,946 | 67 / 1,946 |
 
 **R8 measurement:** 4 of 37 first-draft claims were R8 drops, all completable. That is 10.8%,
 at or above the 10% threshold, so completion (R8c) was built. See validator.md, "Resolved
@@ -112,15 +113,21 @@ What the robustness fixes changed:
 - **dev-10** now gets evidence (code ran `impact_downstream` on both named columns), but still
   fails. See below.
 
-Remaining failures (3):
-- **dev-10** (yes/no, gold "no"): the model answers **"Yes"**. That is wrong: amt reaches only
+Remaining failures after the robustness fixes (3):
+- **dev-10** (yes/no, gold "no"): the model answered **"Yes"**. That is wrong: amt reaches only
   `net_paid_usd`, which `lifetime_value` does not read. The validator passed it because:
   - the false link is in `answer_text` ("…which is used to compute customer lifetime value");
   - its only claim names a single dotted column, so R8 does not apply;
   - and `answer_text` gets no R8 check (validator.md, Known limitations).
 
-  A rule for this would be new validator scope (an `answer_text` connectivity or reachability
-  check), so it is left for the owner to decide.
+  **Fixed (session 5a-final, `dev_r9.json`):** code now adds a reachability fact for yes/no
+  questions, and R9 holds the verdict to it (validator.md, R9). With the fact in its evidence,
+  the model's first draft answered "No, raw_payments.amt does not affect
+  dim_customers.lifetime_value…", citing only the `r_` fact, and passed with no regenerate.
+  Its gold-edge recall is now 0.00 (it cites no edges; there is no path to cite), which is
+  why the mean recall fell from 0.71 to 0.66. No other row changed; 1 of 67 calls missed the
+  cache (dev-10's answer call).
+  Pass is now **18/20**.
 - **dev-15** (paraphrase "number of orders per customer"): the fuzzy v1 linker returns 5 mixed
   candidates, so the agent asks for clarification. This is linker v2 work (v0.3).
 - **dev-20** (star + union trap): it cites the payments branch only and misses `refunded_at`.

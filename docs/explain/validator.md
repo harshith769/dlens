@@ -5,14 +5,14 @@ and must be able to explain every rule from this page.
 
 ## What it does
 `validate(answer, ledger, question) -> ValidationResult` checks an answer against what the tools
-actually returned for this question. `ledger` is the per-question `Toolbox`. Eight rules, one
+actually returned for this question. `ledger` is the per-question `Toolbox`. Nine rules, one
 repair (R2r) and one completion step (R8c) run in code; no LLM is involved. The input answer is
 never modified. Repairs and completions go into a copy (`cleaned_answer`), and the raw draft
 stays untouched in the run record for the no-validator ablation.
 
 ```
 R2 in_ledger (+R2r repair) → R8c completion → R1 cites → R3 on_disk → R4 known_nodes
-        → R5 kind_consistency → R7 relevance → R8 connectivity → R6 prose_refs
+        → R5 kind_consistency → R7 relevance → R8 connectivity → R9 verdict → R6 prose_refs
 ```
 (R8c runs before the rules, so every rule checks the completed claim.)
 
@@ -203,6 +203,60 @@ completion), **repaired** and **completed** (spec §8).
   comes from B" is completed by a path B → A or A → B. The kind words and R4 still apply, and the
   dev report scores the cited edges against gold.
 
+### `r_` reachability facts in R2, R3, R7 and R8
+For a yes/no question naming exactly two exact columns with reachability wording, code adds one
+fact id `r_<8 hex>` to the ledger (agent.md, "Reachability fact"). Its record holds `from`, `to`,
+`reaches`, `hops`, `reverse_hops`, the shortest-path edge ids and the sentence, e.g.
+`raw_payments.amt does NOT reach dim_customers.lifetime_value (graph check)`. It has no file
+citation, and `render()` marks it `[graph check]`.
+- **R2/R2r:** `r_` is a third id prefix, so it is accepted when emitted, repaired under the same
+  rule (same prefix, so never into an `e_`/`s_`), and checked in prose.
+- **R3:** re-runs the reachability check on the graph and compares `reaches`, both hop counts and
+  the path. A forged or stale fact record fails.
+- **R7:** an `r_` id touches both of its columns (and their models), like an edge.
+- **R8:** a cited `r_` connects its two columns, *whatever it says*. "raw.id does not reach
+  fct.total" citing the fact names two unconnected columns, and the fact is exactly the evidence
+  for that claim. It connects only those two: a third named column still needs an edge.
+- **R8c:** an `r_` fact is never the *anchor* for completion (a "does NOT reach" fact must not
+  license bridges to other columns); only cited edges anchor.
+
+### R9 `rule_verdict`: the yes/no verdict matches the graph check
+Runs only when an `r_` fact exists.
+- `answer_text`: the verdict of its **first sentence** must equal the fact (`reaches` → yes).
+  No verdict is a failure (`claim_index` None).
+- a claim that **cites** the `r_` id must not state the opposite verdict (a claim with no verdict
+  is fine; it may just describe a path).
+
+**Verdict heuristic** (`answer_verdict`), on the first sentence (split at `.`/`!`/`?` followed by
+whitespace, so `model.column` does not split it):
+1. a leading "Yes" → yes; a leading "No" → no;
+2. otherwise any negation (`not`, `n't`, `never`, `cannot`, `no`, `none`, `neither`) → no;
+3. otherwise a reach verb (affect, impact, depend, feed, flow, reach, change, propagate,
+   influence) → yes;
+4. otherwise no verdict.
+
+- **Why:** dev-10. The model answered "Yes, amt affects lifetime_value" and the answer passed:
+  the false link was in `answer_text`, its one claim named a single column, so neither R7 nor R8
+  could see it. Reachability is a fact code can compute exactly, so code computes it and the
+  model's verdict is held to it.
+- **Catches:** "Yes" when the graph says not reached; "No" when it is reached; an answer that
+  never says yes or no; a claim citing the fact with the wrong verdict.
+- **False-positive risk:** "X does not *directly* affect Y; it flows through Z" reads as "no"
+  (negation before the reach verb) and fails when the fact says reached. The regenerate hint
+  states the fact, so the model usually rewrites it as "Yes, through Z". A claim citing the fact
+  that describes the *reverse* direction ("Y reaches X") reads as "yes".
+- **Flow:** on an R9 failure the regenerate prompt gets the line `The graph check says: r_…:
+  <fact>` first (never trimmed away). If the second draft still fails, salvage leads the rebuilt
+  answer with **code's verdict claim** (`No: <fact>`, citing `r_`) and sets `validation_warning`.
+  This verdict claim is kept even if every LLM claim failed, so the answer is not refused.
+
+**Why not R8 on `answer_text` instead?** It would reject correct answers. A correct "No,
+raw_payments.amt does not affect dim_customers.lifetime_value" names two columns that are *not*
+connected; that is the point of the sentence. A connectivity check cannot tell a true negative
+from a false positive without parsing negation in free prose, and parsing it is exactly the
+fragile part. R9 needs to parse only one yes/no verdict, and compares it to a fact computed on
+the whole graph (not only on what the tools happened to emit).
+
 ### R6 `rule_prose_refs`: paths and line numbers in prose match a citation
 It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N to M`:
 - a claim is checked against its own citations; `answer_text` against all of the answer's;
@@ -219,14 +273,16 @@ It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N
 1. Validate the first draft. If it passes (possibly with repairs), it is the answer.
 2. Otherwise, if a call is left (`llm_calls < 8`, which the budget reserves), **regenerate once**:
    the same answer-phase prompt plus a short list of what failed (rule and failing id or
-   identifier per line, at most ~300 tokens). The new draft is validated.
+   identifier per line, at most ~300 tokens; on R9, the graph-check fact first). The new draft
+   is validated.
 3. If the regenerated draft passes, it is the answer (`regenerated: true`).
 4. If both drafts fail, or no call is left, **salvage**: take the round with more passing claims
    (ties go to the regenerated one) and keep only its passing claims. **Rebuild `answer_text`
    from the kept claims' texts** whenever a claim was dropped, or the text itself failed (R2,
-   R4 or R6). In live run g, a salvaged answer's prose still stated the lifetime_value link that
-   R8 had just removed from the claims. Set `validation_warning`. If no claim passes, refuse ("no
-   verifiable claims").
+   R4, R6 or R9). In live run g, a salvaged answer's prose still stated the lifetime_value link
+   that R8 had just removed from the claims. With an `r_` fact, a rebuilt text starts with code's
+   verdict claim. Set `validation_warning`. If no claim passes (and there is no fact), refuse
+   ("no verifiable claims").
 5. Invalid JSON on the regenerate counts as a failure, and the first draft is salvaged.
 
 **Live coverage.** `scripts/smoke_agent.py --inject-bad-draft KIND` swaps the first draft for a
@@ -247,7 +303,7 @@ used by nothing else.
 
 ## Known limitations
 - **`answer_text` gets fewer checks than claims.** It is checked by R2 (ids in prose), R4 (known
-  nodes) and R6 (paths and lines) only. R1, R3, R5, R7 and R8 apply to claims, because claims
+  nodes), R6 (paths and lines) and, for yes/no reachability questions, R9 (the verdict) only. R1, R3, R5, R7 and R8 apply to claims, because claims
   carry the assertions and their ids.
   - A passing answer's prose can therefore still summarise more than its claims prove.
   - The benchmark scores **claims**, not prose.
@@ -298,3 +354,11 @@ calls fell from 4 to 0 (73 → 69 LLM calls). See docs/explain/eval-dev.md.
 7. The completable rate was 10.8% by the fixed rule and 8.1% by a stricter 4-hop measure. Why
    is it important that the rule was written down before the run, and what would you check on
    the v0.3 dev set before keeping R8c?
+8. dev-10's wrong "Yes" passed R1–R8. Walk through what happens now: which code step makes the
+   `r_` fact, what R9 reads, what the regenerate prompt says, and what the user sees if the
+   second draft also says "Yes".
+9. Why is "R8 on `answer_text`" the wrong fix for dev-10? Give the correct answer it would
+   reject, and say why R8 lets a claim citing a "does NOT reach" fact connect its two columns.
+10. "Does raw.id affect fct.total or fct_star.total?" names three columns. Why does code make no
+   fact, and what still checks that answer? What would go wrong with a fact for only the first
+   two?

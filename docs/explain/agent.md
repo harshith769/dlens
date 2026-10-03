@@ -15,7 +15,7 @@ question ─► TOOL PHASE  (≤5 LLM calls, tools on, history compacted to fit)
             ANSWER PHASE (1 call + ≤1 repair, no tools, JSON schema)
               prompt = question + evidence rebuilt from the ledger
               ▼
-            attach citations (code) ─► validate R1–R8 (+R2r, R8c) ─► regenerate once ─► salvage / refuse
+            attach citations (code) ─► validate R1–R9 (+R2r, R8c) ─► regenerate once ─► salvage / refuse
 ```
 
 ## Budgets
@@ -118,6 +118,17 @@ benchmark scoring never use it.
   "no tool call" fallback. It was seen live in two shapes: no tool call at all (false premise),
   and tools called in the wrong direction (upstream of a seed, downstream of a leaf mart).
   The record's `stop_reason` gets `+code_evidence`.
+- **Reachability fact (yes/no questions).** After the tool phase (and the evidence guarantee),
+  if the question names **exactly 2** exact, existing `model.column` ids and has reachability
+  wording (affect / impact / depend / feed / flow / reach / change), code runs the code-only
+  `reachability` tool (not in the tool specs; an LLM call by that name gets `unknown_tool`).
+  It checks the shortest directed path both ways on the **whole graph** and emits one citable
+  fact `r_<8 hex>` plus the shortest path's edges (as normal `e_` ids). The direction asked is
+  first-named → second-named, reversed for "depend" ("does Y depend on X" asks X → Y). The
+  evidence line reads e.g. `r_…: raw_payments.amt does NOT reach dim_customers.lifetime_value
+  (graph check)`. This is a `code` step, not an LLM call. One or three named columns make no
+  fact, because there is then no single yes/no pair. The validator's R9 holds the answer's
+  verdict to the fact (validator.md).
 - **No citable evidence after that**: refused by code with the tool errors as the reason, with
   no answer call.
 
