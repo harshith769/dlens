@@ -15,7 +15,15 @@ from .conftest import answer, eid
 
 Q = "Where does fct_star.total come from?"
 HEX = "0123456789abcdef"
-MUTATIONS = ["swap_char", "fake_identifier", "shift_prose_line", "citation_past_eof", "unrelated"]
+MUTATIONS = [
+    "drop_middle_edge",
+    "swap_char",
+    "fake_identifier",
+    "shift_prose_line",
+    "citation_past_eof",
+    "unrelated",
+]
+CHAIN = 3  # index of the multi-edge chain claim in valid_answer
 
 
 def valid_answer(box: Toolbox) -> Answer:
@@ -28,6 +36,7 @@ def valid_answer(box: Toolbox) -> Answer:
         ("fct_star.total is the same value as fct.total", [star]),
         ("fct.total aggregates stg.amount on line 3", [agg, sid]),
         ("stg.amount renames raw.amt", [ren]),
+        ("fct_star.total traces back to raw.amt through stg.amount", [ren, agg, star]),
     )
 
 
@@ -97,6 +106,9 @@ def test_mutated_answers_never_pass_unless_uniquely_repaired(traced: Toolbox, da
         def restore() -> None:
             rec["citation"] = saved
 
+    elif kind == "drop_middle_edge":  # break the chain raw.amt -> stg.amount -> fct.total -> ...
+        a.claims[CHAIN].edge_ids.pop(1)
+
     else:  # unrelated: a real emitted id that touches none of the claim's entities
         ctx = ValidationContext.build(traced, Q)
         k = data.draw(st.integers(0, len(a.claims) - 1))
@@ -128,4 +140,6 @@ def test_mutated_answers_never_pass_unless_uniquely_repaired(traced: Toolbox, da
         assert "R3" in r.counts
     if kind == "unrelated":
         assert "R7" in r.counts
+    if kind == "drop_middle_edge":
+        assert "R8" in r.counts
     assert re.fullmatch(r"[es]_[0-9a-f]{8}", r.repairs[0]["to"]) if r.repairs else True

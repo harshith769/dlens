@@ -148,7 +148,7 @@ def report_row(qid: str, run: AgentRun, result: dict[str, Any]) -> str:
     )
 
 
-RULES = ["R1", "R2", "R3", "R4.hallucinated", "R4.unsupported", "R5", "R6", "R7"]
+RULES = ["R1", "R2", "R3", "R4.hallucinated", "R4.unsupported", "R5", "R6", "R7", "R8"]
 
 
 def validator_stats(run: AgentRun) -> dict[str, Any]:

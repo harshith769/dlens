@@ -305,7 +305,7 @@ Report top-1 and top-3 accuracy.
 3. Every cited file and line range exists on disk and contains the column.
 4. On failure, drop the claim and regenerate once. If it fails again, return with a warning flag.
 
-*v0.2 implementation (`src/dlens/agent/validator.py`, explained in `docs/explain/validator.md`):*
+*v0.2 implementation, rules R1–R8 (`src/dlens/agent/validator.py`, explained in `docs/explain/validator.md`):*
 - **R1 cites.** Every claim cites ≥1 id.
 - **R2 in_ledger.** Every cited id was emitted by a tool for this question.
 - **R2r repair.** An id failing R2 is replaced only if exactly one emitted id with the same
@@ -321,7 +321,11 @@ Report top-1 and top-3 accuracy.
   compatible kind (one `KIND_WORDS` table).
 - **R7 relevance.** A claim naming entities must cite an id that touches one of them (guards
   against citation laundering).
+- **R8 connectivity.** A claim naming ≥2 columns must connect them all through its cited
+  edges (one undirected component). This catches skipped hops and false-premise "directly
+  from" claims.
 - **R6 prose_refs.** File paths and "line N" written in prose must match an attached citation.
+- R2 also covers `e_`/`s_` ids written in prose; repaired prose ids are rewritten.
 
 **Flow.** Validate. On failure, regenerate once with a ≤300-token failure list (the 8-call
 budget reserves the call). If it still fails, keep only the passing claims with

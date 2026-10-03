@@ -1,6 +1,6 @@
 """Answer validator (spec §8): rules R1-R7 plus the R2r id repair, all enforced in code.
 
-Rules run in this order on a copy of the answer (the raw draft is never modified):
+Rules run in this order on a copy of the answer (the raw draft is never modified); R6 runs last:
 
   R1 cites            every claim cites >= 1 id
   R2 in_ledger        every cited id was emitted by a tool for THIS question
@@ -10,6 +10,7 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
                       and in this question's evidence (unsupported)
   R5 kind_consistency kind words in a claim ("aggregated", "renamed") match a cited edge's kind
   R7 relevance        a claim that names entities cites at least one id that touches one of them
+  R8 connectivity     a claim naming >= 2 columns connects them all through its cited edges
   R6 prose_refs       file paths and "line N" written in prose match an attached citation
 
 Each rule is a function ``rule_*(answer, ctx) -> list[ValidationFailure]``; ``ctx`` is a
@@ -64,11 +65,13 @@ _CHAIN = re.compile(r"(?<![\w/.-])([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)")
 _PATH = re.compile(r"(?<![\w/])((?:[\w.-]+/)*[\w.-]+\.(?:sql|csv|yml|yaml))\b", re.IGNORECASE)
 _LINES = re.compile(r"\blines?\s+(\d+)(?:\s*(?:-|–|to)\s*(\d+))?", re.IGNORECASE)
 _WORD = re.compile(r"\b[A-Za-z_]\w*\b")
+# e_/s_ ids written in prose, including miscopies with a stray "_" (e_4b2_403a)
+_PROSE_ID = re.compile(r"(?<![\w])[es]_[0-9a-f_]{6,10}(?![\w])")
 
 
 class ValidationFailure(BaseModel):
     claim_index: int | None  # None: the answer_text itself
-    rule: str  # R1 R2 R3 R4.hallucinated R4.unsupported R5 R6 R7
+    rule: str  # R1 R2 R3 R4.hallucinated R4.unsupported R5 R6 R7 R8
     item_id: str | None = None
     message: str
 
@@ -273,10 +276,55 @@ def recite(answer: Answer, ledger: Ledger, claims: list[Claim]) -> Answer:
     )
 
 
+def _check_id(
+    item_id: str, emitted: frozenset[str], k: int | None
+) -> tuple[str | None, ValidationFailure | None]:
+    """R2/R2r for one id: (repaired id or None, failure or None)."""
+    if item_id in emitted:
+        return None, None
+    cands = repair_candidates(item_id, emitted)
+    if len(cands) == 1:
+        return cands[0], None
+    why = (
+        "no emitted id is a unique 1-edit match"
+        if not cands
+        else f"{len(cands)} emitted ids match; ambiguous, not repaired"
+    )
+    return None, ValidationFailure(
+        claim_index=k,
+        rule="R2",
+        item_id=item_id,
+        message=f"{item_id} was not emitted by a tool in this question ({why})",
+    )
+
+
+def _check_prose_ids(
+    text: str,
+    emitted: frozenset[str],
+    k: int | None,
+    repairs: list[dict[str, Any]],
+    failures: list[ValidationFailure],
+) -> str:
+    """R2 for e_/s_ tokens written in prose; uniquely repairable ones are rewritten."""
+
+    def fix(m: re.Match[str]) -> str:
+        token = m.group(0)
+        to, failure = _check_id(token, emitted, k)
+        if failure is not None:
+            failures.append(failure)
+        if to is None:
+            return token
+        repairs.append({"claim_index": k, "from": token, "to": to, "in": "text"})
+        return to
+
+    return _PROSE_ID.sub(fix, text)
+
+
 def rule_in_ledger(
     answer: Answer, ctx: ValidationContext
 ) -> tuple[Answer, list[dict[str, Any]], list[ValidationFailure]]:
-    """R2 + R2r. Returns the answer with unique repairs applied, the repairs, the failures."""
+    """R2 + R2r, for cited ids and for e_/s_ ids written in the prose. Returns the answer with
+    unique repairs applied (prose ids rewritten), the repairs and the failures."""
     emitted = ctx.ledger.emitted_ids
     repairs: list[dict[str, Any]] = []
     failures: list[ValidationFailure] = []
@@ -284,30 +332,17 @@ def rule_in_ledger(
     for k, c in enumerate(answer.claims):
         ids: list[str] = []
         for i in c.ids:
-            if i in emitted:
-                ids.append(i)
-                continue
-            cands = repair_candidates(i, emitted)
-            if len(cands) == 1:
-                repairs.append({"claim_index": k, "from": i, "to": cands[0]})
-                ids.append(cands[0])
-                continue
-            ids.append(i)
-            why = (
-                "no emitted id is a unique 1-edit match"
-                if not cands
-                else (f"{len(cands)} emitted ids match; ambiguous, not repaired")
-            )
-            failures.append(
-                ValidationFailure(
-                    claim_index=k,
-                    rule="R2",
-                    item_id=i,
-                    message=f"{i} was not emitted by a tool in this question ({why})",
-                )
-            )
-        claims.append(_with_ids(c, list(dict.fromkeys(ids))))
-    return recite(answer, ctx.ledger, claims), repairs, failures
+            to, failure = _check_id(i, emitted, k)
+            if to is not None:
+                repairs.append({"claim_index": k, "from": i, "to": to})
+            if failure is not None:
+                failures.append(failure)
+            ids.append(to or i)
+        text = _check_prose_ids(c.text, emitted, k, repairs, failures)
+        claims.append(_with_ids(c.model_copy(update={"text": text}), list(dict.fromkeys(ids))))
+    answer_text = _check_prose_ids(answer.answer_text, emitted, None, repairs, failures)
+    out = recite(answer.model_copy(update={"answer_text": answer_text}), ctx.ledger, claims)
+    return out, repairs, failures
 
 
 # -- rules ---------------------------------------------------------------------------------------
@@ -449,6 +484,51 @@ def rule_relevance(answer: Answer, ctx: ValidationContext) -> list[ValidationFai
     return out
 
 
+def _find(parent: dict[str, str], x: str) -> str:
+    """Union-find root, with path halving."""
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]
+        x = parent[x]
+    return x
+
+
+def rule_connectivity(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
+    """R8: a claim naming >= 2 in-graph columns must connect them all through its cited edges
+    (one undirected component over the edges' from/to)."""
+    out: list[ValidationFailure] = []
+    for k, c in enumerate(answer.claims):
+        cols = list(
+            dict.fromkeys(
+                e.key for e in ctx.entities(c.text) if e.kind == "column" and ctx.in_graph(e)
+            )
+        )
+        if len(cols) < 2:
+            continue
+        known = [i for i in c.ids if ctx.ledger.record(i) is not None]
+        if len(known) < len(c.ids) and not any(i.startswith("e_") for i in known):
+            continue  # its edge ids failed R2 (counted there)
+        parent: dict[str, str] = {}
+        for i in c.edge_ids:
+            rec = ctx.ledger.record(i)
+            if rec is None or "from" not in rec:
+                continue  # failed R2: counted there
+            a, b = ctx.short(rec["from"]), ctx.short(rec["to"])
+            parent.setdefault(a, a)
+            parent.setdefault(b, b)
+            parent[_find(parent, a)] = _find(parent, b)
+        roots = {_find(parent, col) if col in parent else f"<{col}>" for col in cols}
+        if len(roots) > 1:
+            out.append(
+                ValidationFailure(
+                    claim_index=k,
+                    rule="R8",
+                    item_id=",".join(cols),
+                    message="the cited edges do not connect " + ", ".join(cols),
+                )
+            )
+    return out
+
+
 def rule_prose_refs(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
     """R6: file paths and line numbers written in prose must match an attached citation."""
     out: list[ValidationFailure] = []
@@ -504,6 +584,7 @@ def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationRe
         *rule_known_nodes(cleaned, ctx),
         *rule_kind_consistency(cleaned, ctx),
         *rule_relevance(cleaned, ctx),
+        *rule_connectivity(cleaned, ctx),
         *rule_prose_refs(cleaned, ctx),
     ]
     return ValidationResult(

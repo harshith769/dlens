@@ -311,3 +311,83 @@ def test_refused_and_clarification_answers_are_skipped(traced: Toolbox):
     ):
         r = validate(a, traced)
         assert r.passed and r.skipped
+
+
+# -- R8 ----------------------------------------------------------------------------------------
+
+
+def _r8(box: Toolbox, a):
+    from dlens.agent.validator import rule_connectivity
+
+    return [f.rule for f in rule_connectivity(a, ValidationContext.build(box))]
+
+
+def test_r8_skipped_hop_fails_and_the_full_chain_passes(traced: Toolbox):
+    # like g: "fct_star.total comes from stg.amount" citing only the last hop
+    last = eid(traced, "fct.total", "fct_star.total")
+    agg = eid(traced, "stg.amount", "fct.total")
+    claim = "fct_star.total comes from stg.amount"
+    assert _r8(traced, answer("t", (claim, [last]))) == ["R8"]
+    assert _r8(traced, answer("t", (claim, [agg, last]))) == []
+
+
+def test_r8_false_premise_direct_claim(traced: Toolbox):
+    last = eid(traced, "fct.total", "fct_star.total")
+    assert _r8(traced, answer("t", ("fct_star.total comes directly from raw.amt", [last]))) == [
+        "R8"
+    ]
+
+
+def test_r8_two_inputs_feeding_one_column(shop_root: Path):
+    from dlens.lineage import Edge, EdgeKind
+
+    from ..loop.conftest import P, _extend
+    from ..tools.conftest import make_shop
+
+    extra = Edge(
+        from_column=f"{P}.stg.x_id",
+        to_column=f"{P}.fct.total",
+        kind=EdgeKind.TRANSFORMATION,
+        expression="sum(amount) + x_id",
+        file="models/fct.sql",
+        lines=(3, 3),
+    )
+    box = Toolbox(_extend(make_shop(), {}, {}, [extra]), shop_root)
+    box.call("trace_upstream", {"column_id": "fct.total"})
+    a_in, b_in = eid(box, "stg.amount", "fct.total"), eid(box, "stg.x_id", "fct.total")
+    claim = "stg.amount and stg.x_id both feed fct.total"
+    assert _r8(box, answer("t", (claim, [a_in, b_in]))) == []
+    assert _r8(box, answer("t", (claim, [a_in]))) == ["R8"]
+
+
+def test_r8_exemptions(traced: Toolbox):
+    agg = eid(traced, "stg.amount", "fct.total")
+    assert _r8(traced, answer("fct_star.total comes from raw.amt", ("fct.total sums", [agg]))) == []
+    assert _r8(traced, answer("t", ("fct.total comes from stg.amount", ["e_deadbeef"]))) == []
+
+
+# -- R2 on ids written in prose ----------------------------------------------------------------
+
+
+def test_r2_prose_ids_must_be_in_the_ledger(traced: Toolbox):
+    agg = eid(traced, "stg.amount", "fct.total")
+    ok = answer(
+        f"fct.total aggregates stg.amount ({agg}).", ("fct.total aggregates stg.amount", [agg])
+    )
+    assert validate(ok, traced).passed
+    bad = answer("t", ("fct.total aggregates stg.amount (e_deadbeef)", [agg]))
+    r = validate(bad, traced)
+    assert [(f.rule, f.claim_index, f.item_id) for f in r.failures] == [("R2", 0, "e_deadbeef")]
+
+
+def test_r2_prose_id_miscopy_is_repaired_and_rewritten(traced: Toolbox):
+    agg = eid(traced, "stg.amount", "fct.total")
+    bad = agg[:-1] + ("0" if agg[-1] != "0" else "1")
+    a = answer(
+        f"fct.total aggregates stg.amount ({bad}).", ("fct.total aggregates stg.amount", [agg])
+    )
+    r = validate(a, traced)
+    assert r.passed, r.failures
+    assert {"claim_index": None, "from": bad, "to": agg, "in": "text"} in r.repairs
+    assert agg in r.cleaned_answer.answer_text and bad not in r.cleaned_answer.answer_text
+    assert bad in a.answer_text  # the input answer is untouched

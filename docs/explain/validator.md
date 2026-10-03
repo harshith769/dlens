@@ -5,14 +5,14 @@ and must be able to explain every rule from this page.
 
 ## What it does
 `validate(answer, ledger, question) -> ValidationResult` checks an answer against what the tools
-actually returned for this question. `ledger` is the per-question `Toolbox`. Seven rules plus one
+actually returned for this question. `ledger` is the per-question `Toolbox`. Eight rules plus one
 repair run in code; no LLM is involved. The input answer is never modified. Repairs go into a
 copy (`cleaned_answer`), and the raw draft stays untouched in the run record for the
 no-validator ablation.
 
 ```
 R1 cites → R2 in_ledger (+R2r repair) → R3 on_disk → R4 known_nodes → R5 kind_consistency
-        → R7 relevance → R6 prose_refs
+        → R7 relevance → R8 connectivity → R6 prose_refs
 ```
 
 Each failure is `ValidationFailure{claim_index | None, rule, item_id, message}`. `claim_index`
@@ -38,6 +38,10 @@ and files read **fresh** from disk.
   the commonest grounding failure of a small model.
 - **Catches:** `e_deadbeef`; an id from the previous question (the ledger is reset per
   question); `s_6d4fdcfe` when only `e_6d4fdcfe` was emitted (wrong prefix).
+- **Ids written in prose count too.** Every `e_`/`s_` token in `answer_text` or a claim's text
+  must be in the ledger, under the same R2r repair rule. A repaired prose id is rewritten in
+  `cleaned_answer` (repair recorded with `"in": "text"`). Live run g wrote ids inline, so prose
+  can no longer carry an unchecked id.
 - **False-positive risk:** a correct but miscopied id. R2r handles the safe subset.
 
 ### R2r `repair_id`: repairing a miscopied id
@@ -137,6 +141,31 @@ under R2).
   edge two hops away fails. Exempt claims ("the value is renamed") are still covered by R2, R3
   and R5.
 
+### R8 `rule_connectivity`: a multi-column claim is connected by its cited edges
+For each claim naming ≥2 distinct in-graph columns (R4's extractor, dotted `model.column`), all
+of them must lie in **one connected component** of the claim's cited edges, treated as
+undirected over each edge's from/to.
+
+Exemptions:
+- claims naming fewer than 2 columns;
+- `answer_text` (the claims carry the assertions);
+- ids that already failed R2 (counted once, under R2).
+
+- **Why:** R7 only asks that a cited id touch *one* named entity. In live run g a claim said
+  "dim_customers.lifetime_value is aggregated from int_customer_order_history.items_subtotal"
+  while citing only `fct_orders.items_subtotal → dim_customers.lifetime_value`. That skips a hop
+  (the gold path goes through `fct_orders.items_subtotal`, lineage_spec l.120/142). R8 requires
+  evidence for the whole relationship a claim asserts.
+- **Catches:** the skipped-hop claim above; a false-premise "X comes directly from Y" citing one
+  real edge that touches only X.
+- **Passes:** the same claim citing the full chain; "X and Y both feed Z" citing X→Z and Y→Z
+  (one component through Z).
+- **False-positive risk:**
+  - a claim naming two columns that cites only an `s_` SQL excerpt, which has no edges, fails
+    (the model must cite the edge);
+  - a claim that mentions an unrelated column in passing ("unlike stg_x.y, …") fails unless it
+    cites a connecting edge.
+
 ### R6 `rule_prose_refs`: paths and line numbers in prose match a citation
 It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N to M`:
 - a claim is checked against its own citations; `answer_text` against all of the answer's;
@@ -160,6 +189,11 @@ It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N
    failed (R4/R6), rebuild it from the kept claims' texts. Set `validation_warning`. If no claim
    passes, refuse ("no verifiable claims").
 5. Invalid JSON on the regenerate counts as a failure, and the first draft is salvaged.
+
+**Live coverage.** `scripts/smoke_agent.py --inject-bad-draft KIND` swaps the first draft for a
+bad one and lets the real model regenerate, so steps 2–3 run live. Salvage (step 4) is covered
+only by scripted tests, on purpose: it makes no LLM call, so a live run would execute exactly the
+same code on the same inputs.
 
 The run record keeps the untouched first draft (`draft_raw`, `draft`), the regenerated draft
 (`regenerate_draft_raw`) and both validation rounds (`validation.first`, `validation.second`)
