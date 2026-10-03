@@ -17,7 +17,13 @@ All notable changes to this project are documented here. The format follows
   `response_json_schema`); part of the cache key only when set.
 - Validator interface (pass-through stub; rules land in the next v0.2 item).
 
+- `get_model_sql(around_column=…)` follows in-model alias dependencies (CTE columns, up to 3
+  hops) and returns ordered line windows, each with its own `excerpt_id`. For example,
+  `dim_customers.lifetime_value` now shows the CTE line that computes it.
+
 ### Changed
+- `get_model_sql` payload: `windows: [{excerpt_id, range}]` replaces `excerpt_id` /
+  `excerpt_range`; `excerpt` holds `…` between windows.
 - Agent tool specs are shorter (728 → 425 estimated tokens). They no longer advertise `k` or
   `include_indirect`, which the tools still accept.
 

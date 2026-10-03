@@ -162,3 +162,17 @@ def test_near_duplicate_refund_names_are_not_collapsed(box: Toolbox) -> None:
 def test_models_resolve(box: Toolbox) -> None:
     first = top(box, "fct_orders", 3)[0]
     assert (first["kind"], first["id"]) == ("model", "fct_orders")
+
+
+def test_get_model_sql_shows_where_lifetime_value_is_computed(box: Toolbox) -> None:
+    """Expected lines read by hand from corpora/synthetic_shop/models/marts/dim_customers.sql:
+    line 7 computes it inside the order_agg CTE
+    (``sum(items_subtotal + sales_tax - refunded_amount) as lifetime_value``);
+    line 21 is the final select (``coalesce(order_agg.lifetime_value, 0) as lifetime_value``)."""
+    box.reset()
+    r = box.call("get_model_sql", {"model_id": "dim_customers", "around_column": "lifetime_value"})
+    p = r.llm_payload
+    shown = {int(line.split(":", 1)[0]) for line in p["excerpt"] if line != "…"}
+    assert {7, 21} <= shown
+    assert any(line.startswith("7:") and "sum(items_subtotal" in line for line in p["excerpt"])
+    assert all(w["excerpt_id"] in box.emitted_ids for w in p["windows"])

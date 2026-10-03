@@ -73,7 +73,9 @@ def check(expect: dict[str, Any], run: AgentRun, toolbox: Toolbox) -> dict[str, 
                     and not r.is_error
                     and r.llm_payload.get("model") == model
                 ):
-                    hit_sql = hit_sql or r.llm_payload["excerpt_id"] in cited
+                    hit_sql = hit_sql or any(
+                        w["excerpt_id"] in cited for w in r.llm_payload["windows"]
+                    )
         quality = hit_edge or hit_sql
     return {
         "id_list": cited,

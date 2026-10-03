@@ -11,7 +11,7 @@ Covers the four v0.2 tools, the provenance contract the validator depends on, an
 | `resolve_entity(text, k=5)` | ranked candidate columns and models, each with a score and a match tier |
 | `trace_upstream(column_id, max_depth=10, include_indirect=False)` | paths, each a list of one-line edge strings |
 | `impact_downstream(column_id, max_depth=10, include_indirect=True)` | columns by depth as `{id, via: edge_id}`, affected models and exposures |
-| `get_model_sql(model_id, around_column=None)` | numbered lines of the SOURCE `.sql`, with an `excerpt_id` |
+| `get_model_sql(model_id, around_column=None)` | numbered lines of the SOURCE `.sql` as ordered windows (`…` between gaps), one `excerpt_id` per window |
 
 **Specs shown to the LLM are trimmed** (425 estimated tokens for all four, down from 728) because
 they ride on every tool-phase call under the 3K cap. They advertise only `text`, `column_id`,
@@ -41,8 +41,8 @@ model saw" and "what the citations were" are preserved for the no-validator abla
 - **`edge_id`** = `"e_" + sha1("from_column|to_column|kind")[:8]`, on full lower-case column ids and
   the kind's string value. It depends only on the edge's content, so the same graph gives the same
   ids on any run or machine. `Provenance` raises if two different edges collide.
-- **`excerpt_id`** = `"s_" + sha1("file|line_start|line_end")[:8]`, for the lines `get_model_sql`
-  actually returned (after truncation). Claims put edge ids and excerpt ids in the same
+- **`excerpt_id`** = `"s_" + sha1("file|line_start|line_end")[:8]`, one per line window
+  `get_model_sql` actually returned (after truncation); every window id goes into the ledger. Claims put edge ids and excerpt ids in the same
   `chunk_ids`-style slot; v0.3 chunks will use it too.
 - **Citation** = `{file, line_start, line_end, level}`. `file` is the SOURCE `.sql` relative to the
   project root. Levels:
@@ -74,6 +74,22 @@ lines) whose payload is within the cap. Items are in graph order, so which ones 
 deterministic. The payload then says `truncated: true` and `dropped: {paths|columns|lines: n}`, and
 side records and the ledger are built only from what was kept, so no id is ever emitted that the
 model did not see. Models and exposures are dropped last.
+
+## `get_model_sql` and alias windows
+Without `around_column`, the excerpt is the whole file as one window. With it, the excerpt starts
+from the column's located lines (+/- 3 context). Then, up to 3 hops, it adds the **earlier lines
+in the same file that define aliases the expression reads**. An identifier counts if it is not a
+qualifier (`order_agg.` is skipped, `lifetime_value` is followed). A definition is the nearest
+earlier line with `as <identifier>` that is not a CTE header (`x as (`). A definition that spans
+several lines (`case … end as x`) is followed upward to the start of its select item.
+
+On `dim_customers.lifetime_value` the excerpt becomes line 7 (`sum(items_subtotal + sales_tax -
+refunded_amount) as lifetime_value`, where it is computed) plus lines 18–24 (the final
+`coalesce`), not the final select alone. Windows are ordered by line and merged when adjacent,
+and the flat `excerpt` puts `…` between gaps. Under the 1,500-token cap, the deepest alias
+windows are dropped first (`dropped.windows`), then the remaining window's tail is cut. This is
+text search, not a parser: it can only add context lines. Ids and edges still come from the
+graph. On both corpora every model column gives at most 2 windows and at most 321 tokens.
 
 ## `resolve_entity`
 Tiers, strongest first: exact id or model name (1.00), literal column name (0.97), normalised column

@@ -34,6 +34,11 @@ def _clip(text: str, n: int) -> str:
     return text if len(text) <= n else text[: n - 1] + "…"
 
 
+def _line_no(line: str) -> int:
+    head = line.split(":", 1)[0]
+    return int(head) if head.isdigit() else -1
+
+
 def describe_error(r: ToolResult) -> str:
     err = r.llm_payload["error"]
     arg = next(iter(r.args.values()), "")
@@ -95,10 +100,11 @@ def build_evidence(toolbox: Toolbox) -> list[EvidenceItem]:
             more = " (truncated)" if p.get("truncated") else ""
             note(f"impact of {p.get('column')}: models: {models}; exposures: {exps}{more}", context)
         elif r.tool == "get_model_sql":
-            sid = p["excerpt_id"]
-            a, b = p["excerpt_range"]
-            snippet = _clip(" | ".join(p.get("excerpt", [])), SNIPPET_CHARS)
-            add(sid, f'{sid}: {p["file"]}:{a}-{b} "{snippet}"', 0)
+            for w in p.get("windows", []):
+                a, b = w["range"]
+                body = [ln for ln in p.get("excerpt", []) if _line_no(ln) in range(a, b + 1)]
+                snippet = _clip(" | ".join(body), SNIPPET_CHARS)
+                add(w["excerpt_id"], f'{w["excerpt_id"]}: {p["file"]}:{a}-{b} "{snippet}"', 0)
         elif r.tool == "resolve_entity":
             note(describe_candidates(r), ambiguous if p.get("ambiguous") else resolved)
 

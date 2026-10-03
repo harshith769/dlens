@@ -2,7 +2,7 @@
 
 Older tool messages are replaced by digests, oldest first and the newest last:
   level 1  trace: edge lines deduplicated across paths; impact: ``column via e_id`` list;
-           get_model_sql: excerpt_id + file + range (SQL text dropped); resolve: candidate ids
+           get_model_sql: window excerpt ids + ranges (SQL text dropped); resolve: candidate ids
   level 2  as level 1, minus edge expressions and impact models/exposures
 Every id the original payload showed survives both levels (``ID_RE`` finds the same set or more).
 Error payloads are small and left as they are.
@@ -51,8 +51,7 @@ def digest(result: ToolResult, level: int) -> dict[str, Any]:
         out |= {
             "model": p.get("model"),
             "file": p.get("file"),
-            "excerpt_id": p.get("excerpt_id"),
-            "excerpt_range": p.get("excerpt_range"),
+            "windows": p.get("windows", []),
         }
     elif result.tool == "resolve_entity":
         out |= {

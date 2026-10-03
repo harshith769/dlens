@@ -45,8 +45,8 @@ TOOL_SPECS: list[ToolSpec] = [
     ToolSpec(
         name="get_model_sql",
         description=(
-            "Numbered source SQL of a model; around_column narrows to that column. "
-            "Returns excerpt_id."
+            "Numbered source SQL of a model; around_column narrows to that column and the "
+            "lines defining it. Each window has an excerpt_id."
         ),
         parameters={
             "type": "object",

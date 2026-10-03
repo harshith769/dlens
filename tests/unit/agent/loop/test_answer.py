@@ -32,7 +32,7 @@ def _traced(box: Toolbox) -> tuple[str, str]:
 def test_attach_splits_ids_and_takes_citations_from_the_ledger(box: Toolbox):
     e1, e2 = _traced(box)
     s = box.call("get_model_sql", {"model_id": "fct", "around_column": "total"})
-    sid = s.llm_payload["excerpt_id"]
+    sid = s.llm_payload["windows"][0]["excerpt_id"]
     d = AnswerDraft(
         answer_text="total is sum(amount)",
         claims=[

@@ -104,12 +104,12 @@ class Toolbox:
 
 
 def _ids_in(payload: dict[str, Any]) -> list[str]:
-    """Ids visible in a payload: edge ids in path strings / ``via`` fields, and ``excerpt_id``."""
+    """Ids visible in a payload: edge ids in path strings / ``via`` fields, and the excerpt id
+    of every SQL window."""
     found: list[str] = []
     for path in payload.get("paths", []):
         found += [line.split(":", 1)[0] for line in path]
     for items in payload.get("columns_by_depth", {}).values():
         found += [it["via"] for it in items]
-    if "excerpt_id" in payload:
-        found.append(payload["excerpt_id"])
+    found += [w["excerpt_id"] for w in payload.get("windows", [])]
     return found

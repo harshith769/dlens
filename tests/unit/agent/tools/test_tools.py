@@ -198,18 +198,21 @@ def make_fan_in(n: int, tmp_path: Path) -> LineageGraph:
 def test_sql_whole_file(toolbox: Toolbox) -> None:
     r = toolbox.call("get_model_sql", {"model_id": "stg"})
     p = r.llm_payload
-    assert p["file"] == "models/stg.sql" and p["excerpt_range"] == [1, 4]
+    assert p["file"] == "models/stg.sql" and [w["range"] for w in p["windows"]] == [[1, 4]]
     assert p["excerpt"][1] == "2:     id as x_id,"
     assert p["truncated"] is False and p["total_lines"] == 4
-    assert p["excerpt_id"] in toolbox.emitted_ids
-    rec = toolbox.record(p["excerpt_id"])
+    sid = p["windows"][0]["excerpt_id"]
+    assert sid in toolbox.emitted_ids
+    rec = toolbox.record(sid)
     assert rec is not None and rec["citation"]["line_end"] == 4
 
 
 def test_sql_around_column_uses_source_lines_not_compiled(toolbox: Toolbox) -> None:
     r = toolbox.call("get_model_sql", {"model_id": "fct", "around_column": "total"})
     p = r.llm_payload
-    assert p["excerpt_range"] == [1, 6]  # the column is on line 3 (line 1 is a comment); +/-3
+    # the column is on line 3 (line 1 is a comment); +/-3. `amount` is not aliased earlier in
+    # fct.sql, so there is exactly one window.
+    assert [w["range"] for w in p["windows"]] == [[1, 6]]
     assert any(line.startswith("3:") and "sum(amount)" in line for line in p["excerpt"])
     assert r.side_records["column_citation"]["line_start"] == 3
 
@@ -239,7 +242,7 @@ def test_sql_truncates_long_files(tmp_path: Path) -> None:
     r = Toolbox(g, tmp_path).call("get_model_sql", {"model_id": "big"})
     p = r.llm_payload
     assert p["truncated"] and p["dropped"]["lines"] > 0
-    assert p["excerpt_range"][1] == len(p["excerpt"])  # range matches what is shown
+    assert p["windows"][0]["range"][1] == len(p["excerpt"])  # range matches what is shown
     assert tokens(r) <= MAX_RESULT_TOKENS
 
 
@@ -251,6 +254,84 @@ def test_sql_never_reads_outside_the_project(shop_dir: Path) -> None:
     g._models["model.p.stg"]["file"] = "../secret.sql"  # simulate a hostile manifest
     r = Toolbox(g, shop_dir).call("get_model_sql", {"model_id": "stg"})
     assert r.llm_payload["error"]["code"] == "not_sql"
+
+
+# -- get_model_sql: alias windows ------------------------------------------------------------
+
+ALIASED = """with base as (
+    select
+        a + b as raw_sum,
+        c as other
+    from t
+),
+mid as (
+    select
+        case
+            when raw_sum > 0 then raw_sum
+            else 0
+        end as clean_sum,
+        other
+    from base
+)
+select
+    mid.other,
+    coalesce(mid.clean_sum, 0) as final_sum
+from mid
+"""
+
+
+def _aliased_box(tmp_path: Path, sql: str = ALIASED) -> Toolbox:
+    (tmp_path / "models").mkdir(exist_ok=True)
+    (tmp_path / "models/agg.sql").write_text(sql)
+    g = LineageGraph(
+        columns={
+            "model.p.agg.final_sum": {"model": "model.p.agg", "name": "final_sum", "type": "int"},
+            "model.p.agg.other": {"model": "model.p.agg", "name": "other", "type": "int"},
+        },
+        edges=[], depends_on=[], consumes=[],
+        models={"model.p.agg": {"resource_type": "model", "name": "agg", "file": "models/agg.sql"}},
+        exposures={}, parse={}, deferred=[],
+    )  # fmt: skip
+    return Toolbox(g, tmp_path)
+
+
+def test_sql_around_column_follows_aliases_into_ctes(tmp_path: Path) -> None:
+    box = _aliased_box(tmp_path)
+    r = box.call("get_model_sql", {"model_id": "agg", "around_column": "final_sum"})
+    p = r.llm_payload
+    # final_sum is line 18 (window 15-19 with +/-3 context, file ends at 19); it reads
+    # clean_sum, a multi-line CASE item on lines 9-12, which reads raw_sum, defined on line 3.
+    assert [w["range"] for w in p["windows"]] == [[3, 3], [9, 12], [15, 19]]
+    assert p["excerpt"].count("…") == 2
+    assert all(w["excerpt_id"] in box.emitted_ids for w in p["windows"])
+    for w in p["windows"]:
+        cite = box.record(w["excerpt_id"])["citation"]
+        assert [cite["line_start"], cite["line_end"]] == w["range"]
+
+
+def test_sql_alias_depth_is_capped(tmp_path: Path) -> None:
+    chain = "\n".join(
+        ["with c0 as (select 1 as v0)"]
+        + [f", c{i} as (select v{i - 1} + 1 as v{i} from c{i - 1})" for i in range(1, 6)]
+        + ["select", "", "", "", "    v5 as final_sum", "from c5"]
+    )
+    box = _aliased_box(tmp_path, chain)
+    p = box.call("get_model_sql", {"model_id": "agg", "around_column": "final_sum"}).llm_payload
+    shown = {int(x.split(":", 1)[0]) for x in p["excerpt"] if x != "…"}
+    # v5 (line 6), v4 (line 5), v3 (line 4): three hops; v2 (line 3) is a fourth hop, not shown
+    assert {4, 5, 6} <= shown and 3 not in shown
+
+
+def test_sql_drops_deepest_alias_windows_first_under_the_cap(tmp_path: Path, monkeypatch) -> None:
+    import dlens.agent.tools.sql as sql_mod
+
+    box = _aliased_box(tmp_path)
+    full = box.call("get_model_sql", {"model_id": "agg", "around_column": "final_sum"})
+    monkeypatch.setattr(sql_mod, "MAX_RESULT_TOKENS", tokens(full) - 1)
+    box.reset()
+    p = box.call("get_model_sql", {"model_id": "agg", "around_column": "final_sum"}).llm_payload
+    assert [w["range"] for w in p["windows"]] == [[9, 12], [15, 19]]  # raw_sum (depth 2) went
+    assert p["truncated"] and p["dropped"]["windows"] == 1
 
 
 # -- ledger -----------------------------------------------------------------------------------

@@ -26,7 +26,7 @@ def test_digests_keep_every_id_at_both_levels(box: Toolbox):
             assert original <= set(ID.findall(d)), (r.tool, level)
     sql = _results(box)[2]
     d1 = digest(sql, 1)
-    assert "excerpt" not in d1 and d1["excerpt_range"] == sql.llm_payload["excerpt_range"]
+    assert "excerpt" not in d1 and d1["windows"] == sql.llm_payload["windows"]
 
 
 def test_level_two_drops_expressions(box: Toolbox):
