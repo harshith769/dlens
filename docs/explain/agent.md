@@ -15,7 +15,7 @@ question ─► TOOL PHASE  (≤5 LLM calls, tools on, history compacted to fit)
             ANSWER PHASE (1 call + ≤1 repair, no tools, JSON schema)
               prompt = question + evidence rebuilt from the ledger
               ▼
-            attach citations (code) ─► validate R1–R7 ─► regenerate once ─► salvage / refuse
+            attach citations (code) ─► validate R1–R8 (+R2r, R8c) ─► regenerate once ─► salvage / refuse
 ```
 
 ## Budgets

@@ -324,6 +324,13 @@ Report top-1 and top-3 accuracy.
 - **R8 connectivity.** A claim naming ≥2 columns must connect them all through its cited
   edges (one undirected component). This catches skipped hops and false-premise "directly
   from" claims.
+- **R8c completion** (after R2r, before the rules run). A claim that would fail R8 gets the
+  shortest **directed** lineage path (≤4 hops per bridge) between the columns it names, built
+  only from this question's emitted edges. Conditions: one of its own cited edges must touch a
+  named column, and a "direct(ly)" claim cannot get a bridge longer than one hop. Completed edges
+  are re-checked by R3, R5 and R7 and recorded as `completions`. Built after the dev-set
+  measurement: completable R8 drops were 4/37 = 10.8% of first-draft claims, against a 10%
+  threshold fixed in advance (docs/explain/validator.md).
 - **R6 prose_refs.** File paths and "line N" written in prose must match an attached citation.
 - R2 also covers `e_`/`s_` ids written in prose; repaired prose ids are rewritten.
 
@@ -332,8 +339,9 @@ budget reserves the call). If it still fails, keep only the passing claims with
 `validation_warning` (rebuilding `answer_text` from them whenever a claim is dropped), or refuse with "no
 verifiable claims". Refused and clarification answers are not validated.
 
-**Benchmark reporting.** Repairs are reported separately: S4 results are given **raw** (repairs
-counted as R2 failures) and **repaired**. The run record keeps the untouched pre-validation
+**Benchmark reporting.** Repairs and completions are reported separately: S4 results are given
+**raw** (repairs counted as R2 failures, completions as R8 failures), **repaired** and
+**completed**. The run record keeps the untouched pre-validation
 draft, the regenerated draft and both validation rounds.
 
 **Log the pre-validation draft for every S4 answer.** This powers the no-validator ablation at no extra cost.

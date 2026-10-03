@@ -5,20 +5,22 @@ and must be able to explain every rule from this page.
 
 ## What it does
 `validate(answer, ledger, question) -> ValidationResult` checks an answer against what the tools
-actually returned for this question. `ledger` is the per-question `Toolbox`. Eight rules plus one
-repair run in code; no LLM is involved. The input answer is never modified. Repairs go into a
-copy (`cleaned_answer`), and the raw draft stays untouched in the run record for the
-no-validator ablation.
+actually returned for this question. `ledger` is the per-question `Toolbox`. Eight rules, one
+repair (R2r) and one completion step (R8c) run in code; no LLM is involved. The input answer is
+never modified. Repairs and completions go into a copy (`cleaned_answer`), and the raw draft
+stays untouched in the run record for the no-validator ablation.
 
 ```
-R1 cites → R2 in_ledger (+R2r repair) → R3 on_disk → R4 known_nodes → R5 kind_consistency
-        → R7 relevance → R8 connectivity → R6 prose_refs
+R2 in_ledger (+R2r repair) → R8c completion → R1 cites → R3 on_disk → R4 known_nodes
+        → R5 kind_consistency → R7 relevance → R8 connectivity → R6 prose_refs
 ```
+(R8c runs before the rules, so every rule checks the completed claim.)
 
 Each failure is `ValidationFailure{claim_index | None, rule, item_id, message}`. `claim_index`
 None means the `answer_text` itself failed. The result carries:
 - `passed`, `failures`, `cleaned_answer`;
-- `repairs` (`{claim_index, from, to}`), `dropped_claims` (claims with ≥1 failure);
+- `repairs` (`{claim_index, from, to}`), `completions` (`{claim_index, added}`),
+  `dropped_claims` (claims with ≥1 failure);
 - `counts` per rule, and `regenerated`, `warning`, `skipped` (refused and clarification answers
   are not checked: they have no claims, and their text comes from code).
 
@@ -166,6 +168,41 @@ Exemptions:
   - a claim that mentions an unrelated column in passing ("unlike stg_x.y, …") fails unless it
     cites a connecting edge.
 
+### R8c `complete_citations`: completing an under-cited claim
+R8 dropped claims whose prose was right but whose citations missed a connecting edge that the
+tools *had* emitted. R8c adds those edges in code before the rules run, under four conditions:
+
+1. **Only ledger edges.** The path is built from edges this question's tools emitted, never
+   from the whole graph. The tools still have to have found the evidence.
+2. **Anchor.** At least one of the claim's own cited edges must touch a column it names.
+   Without this, completion would turn an unrelated citation into a relevant one: the added
+   path touches the named columns, so R7 would pass. That would be laundering by code.
+   Caught by the existing test `test_r7_a_repair_cannot_launder_an_unrelated_id`.
+3. **Directed bridges between named columns.** Each bridge is a shortest *directed* lineage
+   path, in either direction, ≤4 hops (`MAX_COMPLETION_HOPS`), from one named column to another
+   named column in a different component. An undirected path is not enough: `quantity` and
+   `unit_price` both feed `line_amount`, and an undirected path would "complete" the false
+   "quantity comes from unit_price".
+4. **"direct"/"directly"** (word boundary, so "indirectly" does not count) forbids any bridge
+   longer than one hop. A multi-hop path cannot make a direct claim true, so the false-premise
+   "X comes directly from Y" still fails R8. Negation is not parsed ("not directly" is also
+   blocked), which errs on the strict side.
+
+It is all or nothing per claim. Completed edges are then ordinary cited edges, so R3 (on disk),
+R5 (kind words) and R7 (relevance) check them. For example, "fct_star.total is renamed from
+stg.amount" citing the IDENTITY edge is completed with the AGGREGATION edge and still fails R5.
+Completions are recorded like repairs (`completions`, in both validation rounds of the run
+record). The benchmark reports first-draft claims as **raw** (passing with no repair and no
+completion), **repaired** and **completed** (spec §8).
+
+- **Catches (turns into a pass):** dev-03 "line_amount is quantity × unit_price" citing one of
+  the two input edges; dev-09 "these 7 columns are affected by order_date" citing 6 edges.
+- **Still fails:** a "directly" claim over a 2+ hop path; a claim whose only citation is
+  unrelated; siblings; a column the tools never reached.
+- **False-positive risk (a wrong claim passing):** the claim's *direction* is not parsed. "A
+  comes from B" is completed by a path B → A or A → B. The kind words and R4 still apply, and the
+  dev report scores the cited edges against gold.
+
 ### R6 `rule_prose_refs`: paths and line numbers in prose match a citation
 It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N to M`:
 - a claim is checked against its own citations; `answer_text` against all of the answer's;
@@ -216,21 +253,31 @@ used by nothing else.
   - The benchmark scores **claims**, not prose.
   - After salvage the prose is rebuilt from the kept claims, so it cannot outrun them.
 
-## Open question for session 5: R8 strictness vs answer completeness
-R8 drops claims whose prose is right but whose citations miss one connecting edge. Seen live in
-the `fake_id` and `laundering` injections: the edge was emitted, just not cited.
+## Resolved (session 5a): R8 strictness vs answer completeness
+**Question.** R8 drops claims whose prose is right but whose citations miss one connecting edge.
+Should code complete them?
 
-To do: measure R8 drops on the dev set. If they are frequent, consider **deterministic citation
-completion**:
-- code adds the missing connecting edges from this question's ledger (shortest path among
-  emitted edges between the named columns, at most a few hops);
-- each added edge is logged separately (like `repairs`, as `completions`), so the benchmark can
-  report raw vs completed;
-- only if no connecting path exists in the ledger does R8 fail.
+**Decision rule, fixed before the run.** Count first-draft claims dropped by R8 whose named
+columns are connected by this question's ledger edges ("completable"). Build completion if
+completable drops are ≥ 10% of all first-draft claims; otherwise do not, and record the rate.
 
-The trade-off: completion turns "under-cited but true" into a pass. It could also bless a claim
-that asserts a *direct* link where only a multi-hop path exists, so a completed claim's kind
-words (R5) and "directly" wording would need re-checking.
+**Measured** (`scripts/dev_report.py`, 20 dev questions, qwen3:4b-instruct-2507-q4_K_M, 3 Oct 2026):
+37 first-draft claims, 4 dropped by R8 (R8 was their only failure), all 4 completable:
+**4/37 = 10.8% ≥ 10% → built.**
+- Margin note: within 4 hops of the claim's *first* named column (the stricter pairwise
+  measure), only 3/37 = 8.1% were completable, which would have been below the threshold. The
+  fixed rule counts any connecting path, so the decision stands. R8c bridges from the nearest
+  named column, so in practice all 4 completed within ≤4-hop bridges.
+- Sample size: 4 events in 37 claims is small. Re-measure on the 96 dev questions in v0.3.
+
+| first-draft claims | raw | repaired | completed | failed |
+|---|---|---|---|---|
+| before R8c | 28 | 5 | 0 | 4 |
+| after R8c | 28 | 5 | 4 | 0 |
+
+The 4 completed claims are dev-03, dev-08 and dev-09 (one edge added each) and dev-06 (4 edges
+added, for a claim naming 4 columns along the deep chain). dev-03 went from fail to pass, mean gold-edge recall went from 0.62 to 0.72, and regenerate
+calls fell from 4 to 0 (73 → 69 LLM calls). See docs/explain/eval-dev.md.
 
 ## Explain-back questions
 1. `s_b3ece5f` is repaired to `s_b3ece5f8`, but a bad id `e_12345678` with two emitted ids
@@ -243,3 +290,11 @@ words (R5) and "directly" wording would need re-checking.
    why are `s_` excerpts checked with a hash rather than a column name?
 4. Give an answer that passes R2 and R3 but fails R7, and explain why R7 is needed for the
    repair rule to be safe.
+5. R8c completes "fct_star.total comes from stg.amount" citing only the last hop, but not the
+   same claim with "directly". Walk through both. Then explain why the anchor condition is
+   needed: what would `fct.total comes from stg.amount` citing `raw.id → stg.x_id` do without it?
+6. Why must R8c bridges be *directed* paths between *named* columns, when R8 itself checks an
+   undirected component? Use quantity / unit_price / line_amount.
+7. The completable rate was 10.8% by the fixed rule and 8.1% by a stricter 4-hop measure. Why
+   is it important that the rule was written down before the run, and what would you check on
+   the v0.3 dev set before keeping R8c?

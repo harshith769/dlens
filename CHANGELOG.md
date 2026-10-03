@@ -34,6 +34,20 @@ All notable changes to this project are documented here. The format follows
 - Live fault injection for the validator's regenerate path
   (`scripts/smoke_agent.py --inject-bad-draft`, a script-only test hook) and two more dev smoke
   questions: a false premise and a 7-hop impact.
+- Dev set: 20 questions on synthetic_shop in `eval/questions/dev.jsonl`, with gold taken from
+  DESIGN.md and `lineage_spec.yml` lines (never parser output). `scripts/dev_report.py` scores
+  them (dev-only, not the §11.4 metric; see `docs/explain/eval-dev.md`). `make eval-smoke` runs
+  it on Ollama with the cache in `eval/cache`.
+- Validator R8c (citation completion). A claim failing R8 gets the shortest directed path
+  (≤4 hops per bridge) from this question's emitted edges. Conditions: one of its own cited
+  edges must touch a column it names, and "direct(ly)" claims cannot get a bridge longer than
+  one hop. Completed edges are re-checked by R3/R5/R7. Completions are recorded separately
+  (`validation.completions`), and the benchmark reports claims as raw / repaired / completed.
+  Built because completable R8 drops were 4/37 = 10.8% of first-draft claims on the dev set
+  (decision threshold 10%, fixed in advance).
+- Visible validation warning in `dlens ask` output: "⚠ Part of this answer couldn't be verified
+  and was removed." when claims were dropped, and "⚠ No part of the answer could be verified."
+  when the validator refused (that refusal now also sets `validation_warning`).
 
 ### Changed
 - `get_model_sql` payload: `windows: [{excerpt_id, range}]` replaces `excerpt_id` /
