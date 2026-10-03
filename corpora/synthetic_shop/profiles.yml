@@ -1,0 +1,8 @@
+synthetic_shop:
+
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: 'synthetic_shop.duckdb'
+      threads: 4

@@ -1,0 +1,40 @@
+name: 'synthetic_shop'
+
+config-version: 2
+version: '0.1'
+
+profile: 'synthetic_shop'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+analysis-paths: ["analysis"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+    - "target"
+    - "dbt_modules"
+    - "logs"
+
+require-dbt-version: [">=1.11.0", "<2.0.0"]
+
+models:
+  synthetic_shop:
+    +materialized: table
+    staging:
+      +materialized: view
+
+# Pin money columns: dbt's CSV type inference otherwise reads "42.00" as INTEGER and drops cents.
+seeds:
+  synthetic_shop:
+    raw_orders:
+      +column_types: {tax_usd: "decimal(10,2)"}
+    raw_order_items:
+      +column_types: {unit_price: "decimal(10,2)"}
+    raw_products:
+      +column_types: {list_price: "decimal(10,2)"}
+    raw_payments:
+      +column_types: {amt: "decimal(10,2)"}
+    raw_refunds:
+      +column_types: {refund_amt: "decimal(10,2)"}

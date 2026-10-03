@@ -26,7 +26,7 @@ ui = ["streamlit"]
 dlens = "dlens.cli:app"
 
 [dependency-groups]
-dev = ["pytest", "hypothesis", "ruff", "mypy", "pre-commit"]
+dev = ["pytest", "hypothesis", "ruff", "mypy", "pre-commit", "pyyaml"]
 
 [build-system]
 requires = ["hatchling"]
