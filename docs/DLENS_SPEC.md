@@ -1,6 +1,6 @@
 # DLens — Final Spec and Build Plan (v1.5)
 
-**Version:** 1.5, 3 Oct 2026 (v1.3 plus timeline pulled forward after v0.1 shipped; change-log row 18). Supersedes the 30 Sep 2026 handoff report (v1.0).
+**Version:** 1.5, 3 Oct 2026 (v1.4 plus timeline pulled forward after v0.1 shipped; change-log row 18). Supersedes the 30 Sep 2026 handoff report (v1.0).
 **Owner:** Harshith. **Builder tools:** Claude Code (code), Claude app (mentor, review, docs).
 **Save as:** `docs/DLENS_SPEC.md` in the repo. This file is the single source of truth. Where any older draft (including the MetricTrace drafts) disagrees, this file wins.
 
