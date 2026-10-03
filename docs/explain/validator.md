@@ -126,7 +126,8 @@ For a claim that names ≥1 in-graph entity (R4's extractor), at least one cited
 - an **`s_` excerpt** touches X if its file is X's model file, or X's column name appears in the
   excerpt range.
 
-Claims that name no entity are exempt.
+Claims that name no entity are exempt. Ids that already failed R2 are ignored here (counted once,
+under R2).
 
 - **Why:** citation laundering. A real, in-ledger, on-disk id attached to an unrelated claim
   passes R2 and R3. R7 is also what makes the R2r repair safe (see above).

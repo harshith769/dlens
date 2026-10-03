@@ -434,9 +434,10 @@ def rule_relevance(answer: Answer, ctx: ValidationContext) -> list[ValidationFai
     out: list[ValidationFailure] = []
     for k, c in enumerate(answer.claims):
         named = [e for e in ctx.entities(c.text) if ctx.in_graph(e)]
-        if not named or not c.ids:
-            continue
-        if not any(ctx.touches(i, e) for i in c.ids for e in named):
+        known = [i for i in c.ids if ctx.ledger.record(i) is not None]
+        if not named or not known:
+            continue  # no entity named, or every id already failed R2 (counted there)
+        if not any(ctx.touches(i, e) for i in known for e in named):
             out.append(
                 ValidationFailure(
                     claim_index=k,

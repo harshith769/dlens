@@ -258,6 +258,11 @@ def test_r7_model_level_mention_touches_an_edge_out_of_that_model(shop_root: Pat
     assert _r7(box, answer("t", ("the refund amount is read by r_hist", [e]))) == ["R7"]
 
 
+def test_r7_does_not_double_count_ids_that_failed_r2(traced: Toolbox):
+    r = validate(answer("t", ("fct.total comes from stg.amount", ["e_deadbeef"])), traced)
+    assert r.counts == {"R2": 1}
+
+
 def test_r7_excerpt_touches_its_model_and_entity_free_claims_are_exempt(traced: Toolbox):
     assert _r7(traced, answer("t", ("fct.total is computed here", [sql_id(traced)]))) == []
     other = eid(traced, "raw.id", "stg.x_id")
