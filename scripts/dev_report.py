@@ -31,7 +31,7 @@ from typing import Any
 
 ROOT = Path(__file__).parents[1]
 DEV = ROOT / "eval" / "questions" / "dev.jsonl"
-RULES = ["R1", "R2", "R3", "R4.hallucinated", "R4.unsupported", "R5", "R6", "R7", "R8"]
+RULES = ["R1", "R2", "R3", "R4.hallucinated", "R4.unsupported", "R5", "R6", "R7", "R8", "R9"]
 COMPLETION_MAX_HOPS = 4
 DECISION_THRESHOLD = 0.10  # fixed in advance (session 5a): completable R8 drops / all claims
 

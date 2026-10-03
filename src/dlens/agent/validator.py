@@ -1,4 +1,4 @@
-"""Answer validator (spec §8): rules R1-R8 plus R2r id repair and R8c citation completion,
+"""Answer validator (spec §8): rules R1-R9 plus R2r id repair and R8c citation completion,
 all enforced in code.
 
 Rules run in this order on a copy of the answer (the raw draft is never modified); R6 runs last:
@@ -14,7 +14,12 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
   R8 connectivity     a claim naming >= 2 columns connects them all through its cited edges
   R8c completion      ... after code adds the shortest connecting path (<= 4 hops) from this
                       question's emitted edges; not for "directly" claims over > 1 hop
+  R9 verdict          if code made a reachability fact (r_ id), the yes/no verdict in the first
+                      sentence of answer_text matches it
   R6 prose_refs       file paths and "line N" written in prose match an attached citation
+
+r_ ids (reachability facts) are accepted by R2, re-checked on the graph by R3, and count as
+touching (R7) and connecting (R8) both of their columns.
 
 Each rule is a function ``rule_*(answer, ctx) -> list[ValidationFailure]``; ``ctx`` is a
 ``ValidationContext`` built once per call from the ledger (graph, evidence, emitted ids, files read
@@ -35,8 +40,10 @@ from pydantic import BaseModel, Field
 
 from dlens.agent.answer import Answer, Claim, Ledger
 from dlens.agent.tools.provenance import Citation, contains_word, safe_read, text_sha1
+from dlens.agent.tools.reach import check, fact_record
 
-ID_PREFIXES = ("e_", "s_")
+ID_PREFIXES = ("e_", "s_", "r_")
+LINK_PREFIXES = ("e_", "r_")  # ids with from/to columns: edges and reachability facts
 MIN_PREFIX_HEX = 7
 MAX_COMPLETION_HOPS = 4  # R8c: longest bridge citation completion may add
 _DIRECT = re.compile(r"\bdirect(ly)?\b", re.IGNORECASE)  # "indirectly" does not match
@@ -70,13 +77,23 @@ _CHAIN = re.compile(r"(?<![\w/.-])([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)")
 _PATH = re.compile(r"(?<![\w/])((?:[\w.-]+/)*[\w.-]+\.(?:sql|csv|yml|yaml))\b", re.IGNORECASE)
 _LINES = re.compile(r"\blines?\s+(\d+)(?:\s*(?:-|–|to)\s*(\d+))?", re.IGNORECASE)
 _WORD = re.compile(r"\b[A-Za-z_]\w*\b")
-# e_/s_ ids written in prose, including miscopies with a stray "_" (e_4b2_403a)
-_PROSE_ID = re.compile(r"(?<![\w])[es]_[0-9a-f_]{6,10}(?![\w])")
+# e_/s_/r_ ids written in prose, including miscopies with a stray "_" (e_4b2_403a)
+_PROSE_ID = re.compile(r"(?<![\w])[esr]_[0-9a-f_]{6,10}(?![\w])")
+
+# R9: the verdict of the first sentence of answer_text (HEURISTIC, docs/explain/validator.md).
+# An explicit leading "Yes"/"No" wins; else a negation means no; else a reach verb means yes.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+_YES_WORD = re.compile(r"^\W*yes\b", re.IGNORECASE)
+_NO_WORD = re.compile(r"^\W*no\b", re.IGNORECASE)
+_NEGATION = re.compile(r"\b(not|never|cannot|no|none|neither)\b|n't\b", re.IGNORECASE)
+_REACH_VERB = re.compile(
+    r"\b(affect|impact|depend|feed|flow|reach|chang|propagat|influenc)\w*", re.IGNORECASE
+)
 
 
 class ValidationFailure(BaseModel):
     claim_index: int | None  # None: the answer_text itself
-    rule: str  # R1 R2 R3 R4.hallucinated R4.unsupported R5 R6 R7 R8
+    rule: str  # R1 R2 R3 R4.hallucinated R4.unsupported R5 R6 R7 R8 R9
     item_id: str | None = None
     message: str
 
@@ -88,6 +105,7 @@ class ValidationResult(BaseModel):
     repairs: list[dict[str, Any]] = Field(default_factory=list)  # {claim_index, from, to}
     completions: list[dict[str, Any]] = Field(default_factory=list)  # {claim_index, added}
     dropped_claims: list[int] = Field(default_factory=list)  # claims that fail >= 1 rule
+    fact: dict[str, Any] | None = None  # the reachability fact's ledger record, if any (R9)
     counts: dict[str, int] = Field(default_factory=dict)
     regenerated: bool = False  # set by the loop
     warning: bool = False  # set by the loop when it had to salvage
@@ -118,6 +136,7 @@ class ValidationContext:
     evidence_models: set[str] = field(default_factory=set)  # names
     evidence_sql: str = ""  # every SQL line a tool showed, lower-case
     question_entities: set[str] = field(default_factory=set)  # in-graph keys named in question
+    fact: dict[str, Any] | None = None  # the r_ reachability fact's record (R9), if code made one
     _files: dict[str, str | None] = field(default_factory=dict)
 
     @classmethod
@@ -131,6 +150,8 @@ class ValidationContext:
             ctx.short_cols.setdefault(ctx.short(cid), []).append(cid)
         ctx._collect_evidence()
         ctx.question_entities = {e.key for e in ctx.entities(question) if ctx.in_graph(e)}
+        facts = sorted(i for i in ledger.emitted_ids if i.startswith("r_"))
+        ctx.fact = ledger.record(facts[0]) if facts else None
         return ctx
 
     # graph helpers
@@ -210,7 +231,7 @@ class ValidationContext:
             return False
         g = self.ledger.graph
         model = e.key.rsplit(".", 1)[0] if e.kind == "column" else e.key
-        if item_id.startswith("e_"):
+        if item_id.startswith(LINK_PREFIXES):  # an edge, or a fact about its two columns
             ends = [rec["from"], rec["to"]]
             if e.kind == "column" and any(self.short(c) == e.key for c in ends):
                 return True
@@ -378,6 +399,8 @@ def rule_on_disk(answer: Answer, ctx: ValidationContext) -> list[ValidationFailu
 
 
 def _citation_problem(item_id: str, rec: dict[str, Any], ctx: ValidationContext) -> str | None:
+    if item_id.startswith("r_"):
+        return _fact_problem(rec, ctx)
     cite = rec.get("citation") or {}
     file, a, b = cite.get("file", ""), cite.get("line_start", 0), cite.get("line_end", 0)
     text = ctx.read(file)
@@ -405,6 +428,18 @@ def _citation_problem(item_id: str, rec: dict[str, Any], ctx: ValidationContext)
                 return f"{file} header has no column {name!r}"
         elif not contains_word(text, name):
             return f"{file} does not mention {name!r}"
+    return None
+
+
+def _fact_problem(rec: dict[str, Any], ctx: ValidationContext) -> str | None:
+    """R3 for an r_ fact: re-run the reachability check on the graph and compare."""
+    g = ctx.ledger.graph
+    if not (g.has_column(rec.get("from", "")) and g.has_column(rec.get("to", ""))):
+        return "the graph check's columns are not in the graph"
+    fresh = fact_record(g, check(g, rec["from"], rec["to"]))
+    keys = ("fact_id", "reaches", "hops", "reverse_hops", "path")
+    if any(fresh[k] != rec.get(k) for k in keys):
+        return f"the graph check no longer holds: now {fresh['fact']!r}"
     return None
 
 
@@ -505,10 +540,15 @@ def _claim_columns(c: Claim, ctx: ValidationContext) -> list[str]:
     )
 
 
+def _link_ids(c: Claim) -> list[str]:
+    """R8's links: the cited edges, plus cited r_ facts (each connects its two columns)."""
+    return [*c.edge_ids, *(i for i in c.chunk_ids if i.startswith("r_"))]
+
+
 def _r8_exempt(c: Claim, ctx: ValidationContext) -> bool:
     """Every cited edge id failed R2 (counted there), so R8 has nothing to check."""
     known = [i for i in c.ids if ctx.ledger.record(i) is not None]
-    return len(known) < len(c.ids) and not any(i.startswith("e_") for i in known)
+    return len(known) < len(c.ids) and not any(i.startswith(LINK_PREFIXES) for i in known)
 
 
 def _edge_ends(item_id: str, ctx: ValidationContext) -> tuple[str, str] | None:
@@ -538,13 +578,14 @@ def _root(parent: dict[str, str], col: str) -> str:
 
 def rule_connectivity(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
     """R8: a claim naming >= 2 in-graph columns must connect them all through its cited edges
-    (one undirected component over the edges' from/to)."""
+    (one undirected component over the edges' from/to). A cited r_ fact links its two columns,
+    whatever it says: "No, X does not reach Y" citing it is about exactly those columns."""
     out: list[ValidationFailure] = []
     for k, c in enumerate(answer.claims):
         cols = _claim_columns(c, ctx)
         if len(cols) < 2 or _r8_exempt(c, ctx):
             continue
-        parent = _components(c.edge_ids, ctx)
+        parent = _components(_link_ids(c), ctx)
         roots = {_root(parent, col) for col in cols}
         if len(roots) > 1:
             out.append(
@@ -636,12 +677,14 @@ def _complete_one(c: Claim, cols: list[str], adj: Adjacency, ctx: ValidationCont
     """The edge ids to add so that every column in ``cols`` is connected, or [] if R8 already
     passes, there is no anchor, a column cannot be bridged, or the "directly" guard applies."""
     named = set(cols)
+    links = _link_ids(c)
+    # the anchor must be an EDGE: an r_ fact (maybe "X does NOT reach Y") never anchors a bridge
     if not any(set(ends) & named for i in c.edge_ids if (ends := _edge_ends(i, ctx))):
         return []  # no anchor: the claim's own citations touch none of its columns
     direct = bool(_DIRECT.search(c.text))
     added: list[str] = []
     while True:
-        parent = _components([*c.edge_ids, *added], ctx)
+        parent = _components([*links, *added], ctx)
         root0 = _root(parent, cols[0])
         if all(_root(parent, col) == root0 for col in cols):
             return added
@@ -662,6 +705,47 @@ def _complete_one(c: Claim, cols: list[str], adj: Adjacency, ctx: ValidationCont
         if direct and len(path) > 1:
             return []
         added += [i for i in path if i not in added and i not in c.edge_ids]
+
+
+def answer_verdict(text: str) -> str | None:
+    """ "yes", "no" or None from the FIRST sentence of ``text`` (heuristic, see validator.md)."""
+    first = _SENTENCE_END.split(text.strip(), maxsplit=1)[0]
+    if _YES_WORD.search(first):
+        return "yes"
+    if _NO_WORD.search(first) or _NEGATION.search(first):
+        return "no"
+    return "yes" if _REACH_VERB.search(first) else None
+
+
+def fact_verdict(fact: dict[str, Any]) -> str:
+    return "yes" if fact["reaches"] else "no"
+
+
+def rule_verdict(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
+    """R9: when code made a reachability fact, the answer_text's yes/no verdict must match it
+    (no verdict in its first sentence fails too). A claim that cites the r_ id must not state
+    the opposite verdict (a claim with no verdict is fine: it may describe the path)."""
+    if ctx.fact is None:
+        return []
+    rid, want = ctx.fact["fact_id"], fact_verdict(ctx.fact)
+
+    def failure(k: int | None, why: str) -> ValidationFailure:
+        msg = f"{why}, but the graph check says: {ctx.fact['fact'] if ctx.fact else ''}"
+        return ValidationFailure(claim_index=k, rule="R9", item_id=rid, message=msg)
+
+    out: list[ValidationFailure] = []
+    said = answer_verdict(answer.answer_text)
+    if said != want:
+        out.append(
+            failure(
+                None, "no yes/no verdict in the first sentence" if said is None else f"says {said}"
+            )
+        )
+    for k, c in enumerate(answer.claims):
+        said = answer_verdict(c.text) if rid in c.ids else None
+        if said is not None and said != want:
+            out.append(failure(k, f"cites {rid} but says {said}"))
+    return out
 
 
 def rule_prose_refs(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
@@ -706,7 +790,7 @@ def rule_prose_refs(answer: Answer, ctx: ValidationContext) -> list[ValidationFa
 
 
 def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationResult:
-    """Run R1-R8 (+R2r repair, +R8c completion). The input answer is not modified; repairs and
+    """Run R1-R9 (+R2r repair, +R8c completion). The input answer is not modified; repairs and
     completions are applied to the copy in ``cleaned_answer``. Refused and clarification answers
     are not checked (``skipped``)."""
     if answer.refused or answer.clarification is not None:
@@ -722,6 +806,7 @@ def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationRe
         *rule_kind_consistency(cleaned, ctx),
         *rule_relevance(cleaned, ctx),
         *rule_connectivity(cleaned, ctx),
+        *rule_verdict(cleaned, ctx),
         *rule_prose_refs(cleaned, ctx),
     ]
     return ValidationResult(
@@ -732,6 +817,7 @@ def validate(answer: Answer, ledger: Ledger, question: str = "") -> ValidationRe
         completions=completions,
         dropped_claims=sorted({f.claim_index for f in failures if f.claim_index is not None}),
         counts=dict(Counter(f.rule for f in failures)),
+        fact=ctx.fact,
     )
 
 
@@ -740,15 +826,26 @@ def _sentence(text: str) -> str:
     return text if text.endswith((".", "!", "?")) else text + "."
 
 
+def verdict_claim(fact: dict[str, Any]) -> Claim:
+    """Code's own verdict sentence for a yes/no reachability question, citing the r_ fact."""
+    head = "Yes" if fact["reaches"] else "No"
+    return Claim(text=f"{head}: {fact['fact']}", chunk_ids=[fact["fact_id"]])
+
+
 def salvage(result: ValidationResult, ledger: Ledger) -> Answer | None:
     """Keep only the passing claims, with ``validation_warning``. ``answer_text`` is rebuilt from
     the kept claims whenever a claim was dropped or the text itself failed, so a warned answer
-    never states a relationship the validator rejected. None when no claim passes."""
+    never states a relationship the validator rejected. When code made a reachability fact, a
+    rebuilt text leads with code's verdict claim (citing the r_ id), so an R9 failure ends with
+    the graph's yes/no. None when no claim passes (and there is no fact)."""
     a = result.cleaned_answer
     keep = [c for k, c in enumerate(a.claims) if k not in set(result.dropped_claims)]
+    rebuild = bool(result.dropped_claims) or result.answer_text_failed
+    fact = result.fact
+    if fact is not None and rebuild and not any(fact["fact_id"] in c.ids for c in keep):
+        keep = [verdict_claim(fact), *keep]
     if not keep:
         return None
     out = recite(a, ledger, keep)
-    rebuild = bool(result.dropped_claims) or result.answer_text_failed
     text = " ".join(_sentence(c.text) for c in keep) if rebuild else a.answer_text
     return out.model_copy(update={"answer_text": text, "validation_warning": True})

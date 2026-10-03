@@ -379,6 +379,10 @@ class Agent:
             f"{f.rule} {f.item_id or ''}: {_clip(f.message, 100)}"
             for f in failed.failures
         ]
+        if failed.fact is not None and any(f.rule == "R9" for f in failed.failures):
+            # first, so trimming the list never drops it; the fact is not clipped
+            fact = failed.fact
+            lines.insert(0, f"- The graph check says: {fact['fact_id']}: {fact['fact']}")
         cap = self.client.max_input_tokens
 
         def build(n: int) -> list[Message]:

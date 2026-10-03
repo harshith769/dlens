@@ -177,3 +177,69 @@ def test_salvage_rebuilds_prose_when_a_claim_is_dropped(box, make_client):
     ]
     assert a.answer_text == "fct.total aggregates stg.amount."
     assert "fct_star.total" not in a.answer_text
+
+
+# -- R9: wrong yes/no verdict -> regenerate with the fact -> code's verdict --------------------
+
+RQ = "Does raw.id affect fct.total?"  # the graph check says: NOT reached
+
+
+def _fact_id(box: Toolbox) -> str:
+    return next(i for i in box.emitted_ids if i.startswith("r_"))
+
+
+def _verdict_draft(box: Toolbox, text: str):
+    def make():
+        agg = eid(box, "stg.amount", "fct.total")
+        return draft(text, [("fct.total aggregates stg.amount", [agg])])
+
+    return make
+
+
+def test_wrong_verdict_regenerates_with_the_graph_check(box, make_client):
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        _verdict_draft(box, "Yes, raw.id affects fct.total."),
+        _verdict_draft(box, "No, raw.id does not affect fct.total."),
+    ]
+    client, prov = make_client(script)
+    run = ask(RQ, client, box)
+    v = run.record.validation
+    assert v["first"]["counts"] == {"R9": 1} and v["regenerated"] and v["passed"]
+    regen = prov.requests[-1]["messages"][-1].content
+    assert f"The graph check says: {_fact_id(box)}: raw.id does NOT reach fct.total" in regen
+    assert run.answer.answer_text.startswith("No") and not run.answer.validation_warning
+
+
+def test_wrong_verdict_twice_is_salvaged_to_code_verdict(box, make_client):
+    wrong = "Yes, raw.id affects fct.total."
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        _verdict_draft(box, wrong),
+        _verdict_draft(box, wrong),
+    ]
+    client, _ = make_client(script)
+    run = ask(RQ, client, box)
+    a, rid = run.answer, _fact_id(box)
+    assert run.record.validation["warning"] and a.validation_warning
+    assert a.answer_text.startswith("No: raw.id does NOT reach fct.total (graph check).")
+    assert a.claims[0].chunk_ids == [rid] and a.claims[0].text.startswith("No:")
+    assert [c.text for c in a.claims[1:]] == ["fct.total aggregates stg.amount"]  # still true
+    assert "Yes" not in a.answer_text
+
+
+def test_wrong_verdict_and_bad_regenerate_json_still_get_code_verdict(box, make_client):
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        draft("Yes.", [("raw.id feeds fct.total", ["e_deadbeef"])]),
+        LLMResponse(text="{nope"),
+    ]
+    client, _ = make_client(script)
+    run = ask(RQ, client, box)
+    a = run.answer
+    assert not a.refused and a.validation_warning  # every LLM claim failed, code's verdict stays
+    assert [c.chunk_ids for c in a.claims] == [[_fact_id(box)]]
+    assert a.answer_text == "No: raw.id does NOT reach fct.total (graph check)."
