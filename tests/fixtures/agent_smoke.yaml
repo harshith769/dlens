@@ -10,6 +10,10 @@
 #   clarification: false             structural, asserted
 #   cites_any_edge: [{from, to}]     quality: cites >= 1 of these gold edges (reported only)
 #   cites_excerpt_of: <model>        quality: or cites an s_ excerpt of this model (reported only)
+#   forbid_edges: [{from, to}]       structural: no cited edge has these endpoints, asserted
+#                                    (quality also flags a claim that asserts it "direct"ly)
+#   quality_or_refused: true         quality: refusing also counts as correct (reported only)
+#   names: [<model.column>]          quality: named in the prose AND touched by a cited edge
 corpus: synthetic_shop
 questions:
   - id: a
@@ -65,3 +69,37 @@ questions:
     question: Where does fct_orders.discount_pct come from?
     expect:
       refused: true
+
+  - id: f
+    kind: false_premise
+    # There is no direct edge. The gold path is raw_refunds.refund_amt -> stg_refunds.refund_amt
+    # (l.50) -> int_order_financials.refund_amount (l.96) -> int_customer_order_history
+    # .refund_amount (l.108) -> fct_orders.refunded_amount (l.123) -> dim_customers.lifetime_value
+    # (l.144). A good answer corrects the premise via that path, or refuses.
+    question: Why is dim_customers.lifetime_value aggregated directly from raw_refunds.refund_amt?
+    expect:
+      forbid_edges:
+        - {from: raw_refunds.refund_amt, to: dim_customers.lifetime_value}
+      quality_or_refused: true
+      cites_any_edge:
+        - {from: raw_refunds.refund_amt, to: stg_refunds.refund_amt}                               # l.50
+        - {from: stg_refunds.refund_amt, to: int_order_financials.refund_amount}                   # l.96
+        - {from: int_order_financials.refund_amount, to: int_customer_order_history.refund_amount} # l.108
+        - {from: int_customer_order_history.refund_amount, to: fct_orders.refunded_amount}         # l.123
+        - {from: fct_orders.refunded_amount, to: dim_customers.lifetime_value}                     # l.144
+
+  - id: g
+    kind: multi_hop_impact
+    # Neither corpus has exposures yet (DESIGN.md: deferred to v0.3), so the target is the deepest
+    # mart instead (owner decision). Gold path, 7 hops: raw_order_items.unit_price ->
+    # stg_order_items.unit_price (l.32) -> int_order_items_enriched.line_amount (l.63) ->
+    # int_orders_enriched.items_subtotal (l.74) -> int_order_financials.items_subtotal (l.92) ->
+    # int_customer_order_history.items_subtotal (l.105) -> fct_orders.items_subtotal (l.120) ->
+    # dim_customers.lifetime_value (l.142).
+    question: If raw_order_items.unit_price changes, does it affect dim_customers.lifetime_value?
+    expect:
+      refused: false
+      names: [dim_customers.lifetime_value]
+      cites_any_edge:
+        - {from: fct_orders.items_subtotal, to: dim_customers.lifetime_value}                      # l.142
+        - {from: raw_order_items.unit_price, to: stg_order_items.unit_price}                       # l.32
