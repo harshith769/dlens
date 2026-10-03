@@ -4,6 +4,7 @@ Usage (in WSL, inside any uv venv, with the Ollama server already running):
     uv pip install ollama
     uv run python check_ollama.py
 """
+
 import subprocess
 
 import ollama

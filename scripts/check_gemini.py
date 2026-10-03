@@ -7,6 +7,7 @@ Usage (in WSL, inside any uv venv):
 
 The key is read from the environment and is never printed.
 """
+
 import os
 import sys
 
@@ -23,7 +24,12 @@ client = genai.Client(api_key=key)
 flash = []
 for m in client.models.list():
     actions = getattr(m, "supported_actions", None) or []
-    if "flash" in m.name and "generateContent" in actions and "image" not in m.name and "tts" not in m.name:
+    if (
+        "flash" in m.name
+        and "generateContent" in actions
+        and "image" not in m.name
+        and "tts" not in m.name
+    ):
         flash.append(m.name.removeprefix("models/"))
 flash.sort()
 print("Flash models with generateContent:")
@@ -42,8 +48,11 @@ try:
     u = r.usage_metadata
     print("Reply:", (r.text or "").strip())
     print("Tokens in/out:", u.prompt_token_count, u.candidates_token_count)
-    print("\nRESULT: call succeeded. Now open https://aistudio.google.com/rate-limit "
-          "with project dlens-eval selected and note RPM / TPM / RPD for", model)
+    print(
+        "\nRESULT: call succeeded. Now open https://aistudio.google.com/rate-limit "
+        "with project dlens-eval selected and note RPM / TPM / RPD for",
+        model,
+    )
 except errors.APIError as e:
     print("API error code:", e.code)
     print("Message:", e.message)
