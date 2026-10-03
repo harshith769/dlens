@@ -6,7 +6,7 @@ Thanks for helping. DLens is pre-1.0, so small, focused changes are easiest to r
 
 ```bash
 git clone https://github.com/harshith769/dlens.git && cd dlens
-uv sync
+uv sync --extra agent
 make test    # unit + golden + property + integration (runs dbt on the vendored corpora)
 make lint    # ruff check, ruff format --check, mypy
 ```
