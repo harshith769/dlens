@@ -139,7 +139,7 @@ class ScriptedProvider(Provider):
     name = "ollama"
     model = "scripted-1"
 
-    def __init__(self, script: Sequence[LLMResponse | Exception]) -> None:
+    def __init__(self, script: Sequence[Any]) -> None:
         self.script = list(script)
         self.requests: list[dict[str, Any]] = []
 
@@ -159,6 +159,8 @@ class ScriptedProvider(Provider):
         if not self.script:
             raise AssertionError("scripted provider ran out of responses")
         item = self.script.pop(0)
+        if callable(item):  # a hook run at send time (e.g. to change the client between phases)
+            item = item()
         if isinstance(item, Exception):
             raise item
         return item
@@ -204,7 +206,7 @@ def box(shop_root: Path) -> Toolbox:
 
 @pytest.fixture
 def make_client(tmp_path: Path):
-    def _make(script: Sequence[LLMResponse | Exception], cap: int = 3000):
+    def _make(script: Sequence[Any], cap: int = 3000):
         prov = ScriptedProvider(script)
         client = LLMClient(
             prov,
