@@ -1,0 +1,23 @@
+# DLens UI theme (docs/explain/ui.md). Colors and fonts only; layout CSS is in src/dlens/ui/style.py.
+[theme]
+base = "light"
+primaryColor = "#1F5F8B"
+backgroundColor = "#F7F9FB"
+secondaryBackgroundColor = "#EEF2F6"
+textColor = "#1B2A3A"
+borderColor = "#D5DEE7"
+dataframeBorderColor = "#D5DEE7"
+linkColor = "#1F5F8B"
+greenColor = "#2E7D5B"
+orangeColor = "#B7791F"
+codeBackgroundColor = "#FFFFFF"
+baseRadius = "small"
+showWidgetBorder = true
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap, sans-serif"
+codeFont = "IBM Plex Mono:https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap, monospace"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
