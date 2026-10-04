@@ -324,6 +324,34 @@ def explore_tab(project: str) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
+def how_tab() -> None:
+    st.markdown("#### From question to cited answer")
+    st.graphviz_chart(view.pipeline_dot(), width="stretch")
+    st.markdown(
+        "The model only narrates what the tools returned. Code attaches every file and line, "
+        "and the validator checks each claim before you see it."
+    )
+    rules, score = st.columns([3, 2], gap="large")
+    with rules:
+        st.markdown("#### The nine rules")
+        st.markdown("\n".join(f"- **{r}** {m}" for r, m in view.NINE_RULES))
+        st.caption(
+            "Two code steps help before the rules run: R2r fixes a miscopied id, "
+            "R8c adds a missing connecting edge the tools returned."
+        )
+    with score:
+        s = view.dev_score()
+        st.markdown("#### Current score")
+        if s is None:
+            st.caption("No dev report yet: run make eval-smoke.")
+            return
+        st.metric(s.label, f"{s.passed} of {s.questions} pass")
+        st.caption(
+            f"Verdict right on {s.verdict_ok} of {s.questions} · mean edge recall "
+            f"{s.mean_recall:.2f} · report of {s.date} (eval/reports/dev_r9.json)"
+        )
+
+
 def main() -> None:
     st.set_page_config(page_title="DLens", layout="wide")
     st.markdown(style.CSS, unsafe_allow_html=True)
@@ -336,7 +364,7 @@ def main() -> None:
     with explore:
         explore_tab(project)
     with how:
-        st.caption("Coming in this release.")
+        how_tab()
 
 
 main()

@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -615,6 +617,83 @@ def model_source(graph: LineageGraph, project: Path, uid: str) -> Source | None:
     file = (graph.model_info(uid) or {}).get("file", "")
     text = safe_read(project, file)
     return None if text is None else Source(file, text, 1, 1, "model")
+
+
+# -- how it works --------------------------------------------------------------------------------
+
+PIPELINE = (
+    ("Question", "your words"),
+    ("Tools", "trace, impact, SQL, graph check"),
+    ("Evidence", "edge ids with file:line"),
+    ("Answer", "the model narrates the evidence"),
+    ("Validator", "9 rules, in code"),
+    ("Cited answer", "every claim checked"),
+)
+
+
+def pipeline_dot() -> str:
+    nodes = "\n".join(
+        f'  p{i} [label=<<B>{escape(t)}</B><BR/><FONT POINT-SIZE="9" COLOR="{MUTED}">'
+        f"{escape(d)}</FONT>>];"
+        for i, (t, d) in enumerate(PIPELINE)
+    )
+    chain = " -> ".join(f"p{i}" for i in range(len(PIPELINE)))
+    return (
+        "digraph pipeline {\n"
+        "  rankdir=LR; bgcolor=transparent; nodesep=0.3;\n"
+        f'  node [shape=box, style="rounded,filled", fillcolor="#FFFFFF", color={_q(BORDER)}, '
+        'fontname="IBM Plex Sans", fontsize=11];\n'
+        f'  edge [color={_q(MUTED)}, arrowsize=0.6, fontname="IBM Plex Sans", fontsize=9, '
+        f"fontcolor={_q(MUTED)}];\n"
+        f"{nodes}\n  {chain};\n"
+        f'  p4 -> p3 [label="fails: regenerate once", style=dashed, constraint=false];\n'
+        "}"
+    )
+
+
+@dataclass(frozen=True)
+class DevScore:
+    questions: int
+    passed: int
+    verdict_ok: int
+    mean_recall: float
+    date: str  # YYYY-MM-DD the report was last committed (or modified)
+
+    @property
+    def label(self) -> str:
+        return f"Dev set: {self.questions} hand-written questions (not the benchmark)"
+
+
+def _report_date(path: Path) -> str:
+    """Date of the report's last commit; the file's mtime when git has none."""
+    try:
+        out = subprocess.run(
+            ["git", "log", "-1", "--format=%cs", "--", path.name],
+            cwd=path.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        out = ""
+    return out or datetime.fromtimestamp(path.stat().st_mtime, UTC).date().isoformat()
+
+
+def dev_score(report: Path = DEV_REPORT) -> DevScore | None:
+    if not report.is_file():
+        return None
+    try:
+        summary = json.loads(report.read_text())["summary"]
+        return DevScore(
+            questions=int(summary["questions"]),
+            passed=int(summary["pass"]),
+            verdict_ok=int(summary["verdict_ok"]),
+            mean_recall=float(summary["mean_recall"]),
+            date=_report_date(report),
+        )
+    except (ValueError, KeyError, TypeError):
+        return None
 
 
 # -- steps and checks --------------------------------------------------------------------------

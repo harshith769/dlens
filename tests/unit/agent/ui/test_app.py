@@ -150,3 +150,12 @@ def test_explore_is_instant_and_makes_no_llm_call(start):
     assert any("dl-src" in t and "sum" in t for t in texts(at))
     at.segmented_control(key="explore_dir").set_value("Downstream").run()
     assert any("no downstream lineage" in c.value for c in at.caption)
+
+
+def test_how_it_works_shows_rules_and_dated_dev_score(start):
+    at = start([])
+    assert not at.exception
+    assert any("**R9**" in t for t in texts(at))
+    metric = at.metric[0]
+    assert metric.label == "Dev set: 20 hand-written questions (not the benchmark)"
+    assert any("eval/reports/dev_r9.json" in c.value for c in at.caption)

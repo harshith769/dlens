@@ -494,3 +494,27 @@ def test_edge_models_and_model_source_stay_inside_the_project(shop_root: Path, t
     (tmp_path / "secret.sql").write_text("select 1")
     g._models["model.p.fct"]["file"] = "../secret.sql"
     assert view.model_source(g, shop_root, "model.p.fct") is None
+
+
+def test_pipeline_dot_has_the_six_stages_and_regenerate_loop():
+    dot = view.pipeline_dot()
+    for title, _ in view.PIPELINE:
+        assert f"<B>{title}</B>" in dot
+    assert "p0 -> p1 -> p2 -> p3 -> p4 -> p5" in dot and "regenerate once" in dot
+    for color in style.KIND_COLORS.values():
+        assert color not in dot  # kind colors belong to the lineage diagram only
+
+
+def test_dev_score_label_and_date(tmp_path: Path):
+    real = view.dev_score()
+    assert real and real.questions == 20 and real.passed <= real.questions
+    assert real.label == "Dev set: 20 hand-written questions (not the benchmark)"
+    assert len(real.date) == 10 and real.date[4] == "-"
+    report = tmp_path / "r.json"
+    summary = {"questions": 3, "pass": 2, "verdict_ok": 3, "mean_recall": 0.5}
+    report.write_text(json.dumps({"summary": summary}))
+    got = view.dev_score(report)
+    assert got and (got.passed, got.questions) == (2, 3) and len(got.date) == 10
+    report.write_text("{}")
+    assert view.dev_score(report) is None
+    assert view.dev_score(tmp_path / "none.json") is None
