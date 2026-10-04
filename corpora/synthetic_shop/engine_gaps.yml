@@ -17,6 +17,5 @@ direct_edges: []  # S04: the 4 kind gaps (scalar-subquery leak, sum(sum(x)) OVER
 model_level_citations: []  # S04: provenance reads * EXCLUDE / REPLACE (fct_order_margins)
 
 # Indirect edges (S03, ADR 0020). Asserted equal to what the engine does: the citation entry is
-# present iff every indirect edge carries a model-level citation (no clause locator yet).
-indirect_edges:
-  - {gap: "indirect-edge clause citations are model-level", construct: "JOIN/WHERE/GROUP BY/OVER/... clause lines", target: S04}
+# present iff some indirect edge carries a model-level citation (ModelParse.citation_gaps says why).
+indirect_edges: []  # S04: the clause locator cites every indirect edge at its clause's lines

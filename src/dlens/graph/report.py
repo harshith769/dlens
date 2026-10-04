@@ -12,6 +12,7 @@ class ModelReport(BaseModel):
     reason: str | None
     gaps: list[str]
     constants: list[str]
+    citation_gaps: list[str] = []
 
 
 class Totals(BaseModel):
@@ -19,6 +20,8 @@ class Totals(BaseModel):
     edges: int
     edges_by_kind: dict[str, int]
     model_level_citations: int
+    indirect_edges: int = 0
+    indirect_model_level_citations: int = 0
     low_confidence_edges: int
     deferred_indirect: int
     constants: int
@@ -37,6 +40,7 @@ def build_report(graph: LineageGraph) -> Report:
             reason=p.reason,
             gaps=p.gaps,
             constants=p.constants,
+            citation_gaps=p.citation_gaps,
         )
         for uid, p in graph.parse_details().items()
     ]
@@ -51,6 +55,10 @@ def build_report(graph: LineageGraph) -> Report:
             edges=len(edges),
             edges_by_kind=dict(sorted(by_kind.items())),
             model_level_citations=sum(e.model_level_citation for e in edges),
+            indirect_edges=len(graph.indirect_edges()),
+            indirect_model_level_citations=sum(
+                e.model_level_citation for e in graph.indirect_edges()
+            ),
             low_confidence_edges=sum(e.confidence == Confidence.LOW for e in edges),
             deferred_indirect=sum(len(p.deferred_indirect) for p in graph.parse_details().values()),
             constants=sum(len(m.constants) for m in models),

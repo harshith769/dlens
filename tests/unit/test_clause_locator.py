@@ -288,9 +288,6 @@ def key_is_cited(key: str, chunk: str) -> bool:
     return _word(key.replace('"', "").split(".")[-1], chunk)
 
 
-@pytest.mark.xfail(
-    strict=True, reason="S04: no clause locator yet; indirect citations are model-level"
-)
 @pytest.mark.parametrize(
     ("source", "compiled", "expected"), [c[1:] for c in CASES], ids=[c[0] for c in CASES]
 )
@@ -312,7 +309,6 @@ def test_indirect_edges_cite_their_clause_lines(
     assert parse.citation_gaps == []
 
 
-@pytest.mark.xfail(strict=True, reason="S04: no clause locator yet; no citation_gaps record")
 def test_a_clause_only_a_macro_writes_falls_back_to_model_level_with_a_reason(
     tmp_path: Path,
 ) -> None:
@@ -325,9 +321,6 @@ def test_a_clause_only_a_macro_writes_falls_back_to_model_level_with_a_reason(
     assert parse.citation_gaps[0].startswith("FILTER where amt > 100: ")
 
 
-@pytest.mark.xfail(
-    strict=True, reason="S04: no clause locator yet; indirect citations are model-level"
-)
 def test_direct_and_indirect_citations_share_file_and_line_numbering(tmp_path: Path) -> None:
     source = dict((c[0], c[1]) for c in CASES)["join_on_cte_column_renamed_from_source"]
     indirect, _, direct = _run(tmp_path, source)

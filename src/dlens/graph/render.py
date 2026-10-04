@@ -104,12 +104,15 @@ def render_report(report: Report) -> str:
         if m.quality == "FAILED" and m.reason:
             lines.append(f"      reason: {_expr(m.reason)}")
         lines += [f"      gap: {g}" for g in m.gaps]
+        lines += [f"      citation gap: {g}" for g in m.citation_gaps]
     q = t.models_by_quality
     lines += [
         "",
         f"Models: {q['FULL']} FULL, {q['TABLE_ONLY']} TABLE_ONLY, {q['FAILED']} FAILED",
         f"Edges: {t.edges}  (" + ", ".join(f"{k} {n}" for k, n in t.edges_by_kind.items()) + ")",
         f"Model-level citations: {t.model_level_citations}",
+        f"Indirect edges: {t.indirect_edges}  "
+        f"(model-level citations: {t.indirect_model_level_citations})",
         f"Low-confidence edges: {t.low_confidence_edges}",
         f"Deferred indirect (window keys, v0.3): {t.deferred_indirect}",
         f"Constant columns (no edges): {t.constants}",

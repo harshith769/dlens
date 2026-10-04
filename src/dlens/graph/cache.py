@@ -42,7 +42,8 @@ def load_or_build(
     if not rebuild and not is_stale(project_dir):
         try:
             # LineageGraph.load also reads older formats (the demo bundle); a cache is rebuilt
-            # instead, so it gains what the newer format carries (v3: indirect edges).
+            # instead, so it gains what the newer format carries (v3: indirect edges; v4:
+            # citation gaps).
             if json.loads(cache.read_text()).get("version") == FORMAT_VERSION:
                 return LineageGraph.load(cache)
         except (ValueError, KeyError, OSError):

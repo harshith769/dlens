@@ -265,7 +265,7 @@ def test_model_and_exposure_info_are_copies(tiny_graph: LineageGraph) -> None:
     assert tiny_graph.exposure_info("exposure.p.nope") is None
 
 
-# -- indirect edges (ADR 0020) and format v3 -----------------------------------------------
+# -- indirect edges (ADR 0020) and format v4 -----------------------------------------------
 
 REPO = Path(__file__).parents[2]
 
@@ -307,11 +307,11 @@ def _with_indirect(g: LineageGraph) -> LineageGraph:
     )
 
 
-def test_indirect_edges_round_trip_in_format_v3(tmp_path: Path, tiny_graph: LineageGraph) -> None:
+def test_indirect_edges_round_trip_in_format_v4(tmp_path: Path, tiny_graph: LineageGraph) -> None:
     g = _with_indirect(tiny_graph)
     g.save(tmp_path / "g.json")
     raw = json.loads((tmp_path / "g.json").read_text())
-    assert raw["version"] == FORMAT_VERSION == 3
+    assert raw["version"] == FORMAT_VERSION == 4
     assert [e["kind"] for e in raw["indirect"]] == ["GROUP_BY", "JOIN"]  # sorted
     loaded = LineageGraph.load(tmp_path / "g.json")
     assert loaded == g and loaded.indirect_edges() == g.indirect_edges()
@@ -327,6 +327,19 @@ def test_a_v2_file_still_loads_with_no_indirect_edges(
     (tmp_path / "v2.json").write_text(json.dumps(raw))
     loaded = LineageGraph.load(tmp_path / "v2.json")
     assert loaded == tiny_graph and loaded.indirect_edges() == []
+
+
+def test_a_v3_file_still_loads_with_no_citation_gaps(
+    tmp_path: Path, tiny_graph: LineageGraph
+) -> None:
+    tiny_graph.save(tmp_path / "g.json")
+    raw = json.loads((tmp_path / "g.json").read_text())
+    raw["parse_report"] = {"model.p.fct": {"quality": "FULL", "gaps": [], "constants": []}}
+    raw["version"] = 3
+    (tmp_path / "v3.json").write_text(json.dumps(raw))
+    loaded = LineageGraph.load(tmp_path / "v3.json")
+    assert loaded.edges() == tiny_graph.edges()
+    assert loaded.parse_details()["model.p.fct"].citation_gaps == []
 
 
 def test_the_committed_v2_demo_graph_loads_unchanged() -> None:

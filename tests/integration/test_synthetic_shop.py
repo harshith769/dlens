@@ -114,10 +114,9 @@ def test_data_checks_are_dbt_tests_that_ingest_ignores(ingested: tuple[Path, Ing
 def test_indirect_edges_follow_d7_and_carry_their_clause(
     ingested: tuple[Path, IngestResult],
 ) -> None:
-    """ADR 0020 invariants on the real corpus (the F1 gate against the gold is S04):
-    no indirect (from, to) pair also has a direct edge, every edge has the clause text that
-    contains its key column, and engine_gaps.yml records the model-level citation gap exactly
-    while it exists."""
+    """ADR 0020 invariants on the real corpus: no indirect (from, to) pair also has a direct
+    edge, every edge has the clause text that contains its key, and engine_gaps.yml records the
+    model-level citation gap exactly while it exists."""
     project, r = ingested
     result = extract_lineage(r, project)
     assert result.indirect
@@ -125,11 +124,11 @@ def test_indirect_edges_follow_d7_and_carry_their_clause(
     assert not {(e.from_column, e.to_column) for e in result.indirect} & direct
     for e in result.indirect:
         assert e.expression.strip(), e
-        assert e.key.split(".")[-1].lower() in e.expression.lower(), e
+        assert e.key.split(".")[-1].lower() in e.expression.lower() or e.key.isdigit(), e
     gaps = yaml.safe_load((CORPUS / "engine_gaps.yml").read_text())
     listed = {g["gap"] for g in gaps["indirect_edges"]}
     citation_gap = "indirect-edge clause citations are model-level"
-    assert (citation_gap in listed) == all(e.model_level_citation for e in result.indirect)
+    assert (citation_gap in listed) == any(e.model_level_citation for e in result.indirect)
     assert listed <= {citation_gap}
 
 
@@ -138,9 +137,6 @@ def _key_is_cited(key: str, chunk: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(token)}(?!\w)", chunk, re.IGNORECASE) is not None
 
 
-@pytest.mark.xfail(
-    strict=True, reason="S04: no clause locator yet; indirect citations are model-level"
-)
 def test_every_indirect_edge_cites_lines_that_hold_its_key(
     ingested: tuple[Path, IngestResult],
 ) -> None:

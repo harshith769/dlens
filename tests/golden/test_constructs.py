@@ -45,14 +45,7 @@ def test_indirect_edges(name: str) -> None:
     assert run_fixture(name).indirect == expected_indirect(name)
 
 
-def _cite_param(name: str) -> object:
-    marks = []
-    if load_expected(name)["indirect"]:  # a fixture with no indirect edge passes trivially
-        marks = [pytest.mark.xfail(strict=True, reason="S04: no clause locator yet")]
-    return pytest.param(name, id=name, marks=marks)
-
-
-@pytest.mark.parametrize("name", [_cite_param(n) for n in fixture_names()])  # type: ignore[misc]
+@pytest.mark.parametrize("name", fixture_names())
 def test_indirect_edges_cite_the_clause_that_holds_their_key(name: str) -> None:
     """S04 rule over every fixture: an indirect edge cites its clause's lines in the source file
     (never the whole model), and those lines hold the key as written (a column, a position, ALL)."""

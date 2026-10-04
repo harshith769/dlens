@@ -380,12 +380,13 @@ def test_indirect_clause_text_is_verbatim_from_the_compiled_sql(
 
 def test_clause_text_falls_back_to_qualified_sql_when_tokens_point_elsewhere() -> None:
     """GROUP BY 1 is expanded by qualify with copies of the projection's tokens: the text is
-    the qualified clause, not a wrong slice of the SELECT list."""
+    the qualified clause, not a wrong slice of the SELECT list. The key is the position as
+    written (S04)."""
     sql = (
         "with x as (select id from db.main.orders group by id) "
         "select user_id from db.main.orders group by 1"
     )
-    assert _clauses(sql)[("GROUP_BY", "orders.user_id")] == "GROUP BY orders.user_id"
+    assert _clauses(sql)[("GROUP_BY", "1")] == "GROUP BY orders.user_id"
 
 
 def test_unqualified_ambiguous_key_is_low_confidence_to_each_candidate() -> None:

@@ -41,7 +41,9 @@ from dlens.lineage.models import (
     ParseQuality,
     column_id,
 )
-from dlens.lineage.provenance import locate
+from dlens.lineage.provenance import Citation, line_map, locate, locate_clause
+
+Span = tuple[int, int]  # [start, end) character offsets in the compiled SQL
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,7 @@ class _RawIndirect:
     key: str  # the key column as written in the qualified clause
     clause: str  # the clause SQL, verbatim from the compiled SQL where positions allow
     confidence: Confidence
+    span: Span | None  # the clause in the compiled SQL, None if it could not be found
 
 
 @dataclass
@@ -249,11 +252,14 @@ _STARTERS = re.compile(
 )
 
 
-def _clause_text(sql: str, clause: exp.Expr, dialect: str) -> str:
+def _clause_text(sql: str, clause: exp.Expr, dialect: str) -> tuple[str, Span | None]:
     """The clause as written in the compiled SQL (whitespace collapsed), e.g. ``on o.user_id =
-    c.id`` or ``over (partition by k order by d)``. Located through the token positions sqlglot
-    keeps on identifiers and literals; falls back to the qualified SQL when they are missing
-    or point elsewhere (positional GROUP BY copies the projection's tokens)."""
+    c.id`` or ``over (partition by k order by d)``, and its span in the compiled SQL.
+
+    Located through the token positions sqlglot keeps on identifiers and literals. When they are
+    missing or point elsewhere (USING is expanded by qualify; positional GROUP BY copies the
+    projection's tokens), the text falls back to the qualified SQL and the span comes from a
+    keyword scan of the owning SELECT (``_keyword_span``), or is None."""
     span: list[exp.Expr] = [clause]
     closes = False  # the clause is a parenthesised suffix: stop at its closing paren
     allowed: set[str] = set()
@@ -281,14 +287,24 @@ def _clause_text(sql: str, clause: exp.Expr, dialect: str) -> str:
     starts = [n.meta["start"] for c in span for n in c.walk() if "start" in n.meta]
     ends = [n.meta["end"] for c in span for n in c.walk() if "end" in n.meta]
     if not starts:
-        return fallback
+        return fallback, _keyword_span(sql, clause)
     first, last = min(starts), max(ends)
     found = None
     for m in re.finditer(rf"\b(?:{keyword})", sql[:first], re.IGNORECASE):
         found = m
     if found is None or not _clean_gap(sql, found.end(), first, allowed):
-        return fallback
-    begin = found.start()
+        return fallback, _keyword_span(sql, clause)
+    end = _clause_end(sql, found.start(), last, closes, allowed)
+    return " ".join(sql[found.start() : end].split()), (found.start(), end)
+
+
+def _clause_end(
+    sql: str, begin: int, last: int, closes: bool, allowed: set[str], lists: bool = False
+) -> int:
+    """End offset (exclusive, trailing whitespace dropped) of a clause that starts at `begin`
+    and whose last known token ends at `last`: the next comma, semicolon, unmatched paren or
+    clause starter at the clause's paren depth (or its own closing paren, for `closes`). With
+    `lists`, a comma continues the clause (``group by 1, 2`` scanned from its keyword)."""
     depth = sql.count("(", begin, last + 1) - sql.count(")", begin, last + 1)
     i = last + 1
     while i < len(sql):
@@ -306,14 +322,99 @@ def _clause_text(sql: str, clause: exp.Expr, dialect: str) -> str:
             if depth == 0 and closes:
                 i += 1
                 break
-        elif depth == 0 and ch in ",;":
+        elif depth == 0 and (ch == ";" or (ch == "," and not lists)):
             break
         elif depth == 0 and (i == 0 or not (sql[i - 1].isalnum() or sql[i - 1] == "_")):
             w = _STARTERS.match(sql, i)
             if w and w.group().lower() not in allowed:
                 break
         i += 1
-    return " ".join(sql[begin:i].split())
+    return begin + len(sql[begin:i].rstrip())
+
+
+def _select_start(sql: str, select: exp.Select) -> int | None:
+    """Offset of the ``select`` keyword of a SELECT, found before its first projection token."""
+    starts = [n.meta["start"] for p in select.expressions for n in p.walk() if "start" in n.meta]
+    if not starts:
+        return None
+    found = None
+    for m in re.finditer(r"\bselect\b", sql[: min(starts)], re.IGNORECASE):
+        found = m
+    return found.start() if found else None
+
+
+def _keyword_span(sql: str, clause: exp.Expr) -> Span | None:
+    """Span of a row-set clause whose own tokens are missing or copied: scan the owning SELECT at
+    its paren depth for the clause keyword. GROUP BY / ORDER BY: the first match. A JOIN's
+    condition (USING): the k-th ON / USING, k counting the joins that have a condition."""
+    if isinstance(clause, exp.Group | exp.Order) and isinstance(clause.parent, exp.Select):
+        select, keyword, nth = clause.parent, rf"{clause.key}\s+by\b", 0
+    elif isinstance(clause.parent, exp.Join) and isinstance(clause.parent.parent, exp.Select):
+        select, keyword = clause.parent.parent, r"(?:on|using)\b"
+        joins = [j for j in select.args.get("joins") or [] if j.args.get("on")]
+        nth = next((k for k, j in enumerate(joins) if j is clause.parent), -1)
+        if nth < 0:
+            return None
+    else:
+        return None
+    i = _select_start(sql, select)
+    if i is None:
+        return None
+    i += len("select")
+    depth, seen = 0, 0
+    while i < len(sql):
+        ch = sql[i]
+        if ch in "'\"":
+            j = sql.find(ch, i + 1)
+            i = len(sql) if j < 0 else j + 1
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                return None
+        elif ch == ";":
+            return None
+        elif depth == 0 and not (sql[i - 1].isalnum() or sql[i - 1] == "_"):
+            m = re.compile(keyword, re.IGNORECASE).match(sql, i)
+            if m:
+                if seen == nth:
+                    closes = m.group().lower() == "using"
+                    lists = isinstance(clause, exp.Group | exp.Order)
+                    return i, _clause_end(sql, i, m.end() - 1, closes, set(), lists)
+                seen += 1
+            elif re.compile(r"union\b|except\b|intersect\b", re.IGNORECASE).match(sql, i):
+                return None
+        i += 1
+    return None
+
+
+def _written_key(sql: str, span: Span | None, clause: exp.Expr, col: exp.Column) -> str | None:
+    """The GROUP BY / ORDER BY item as written when it is a position (``group by 1`` ->
+    ``"1"``): qualify replaces positions with copies of the projection."""
+    if span is None or not isinstance(clause, exp.Group | exp.Order):
+        return None
+    if isinstance(clause.parent, exp.AggFunc):
+        return None
+    item: exp.Expr = col
+    while item.parent is not None and item.parent is not clause:
+        item = item.parent
+    if item.parent is not clause or item.arg_key != "expressions":
+        return None
+    body = re.sub(r"^\w+\s+by\s*", "", sql[span[0] : span[1]], flags=re.IGNORECASE)
+    written, depth, start = [], 0, 0
+    for i, ch in enumerate(body):
+        depth += (ch == "(") - (ch == ")")
+        if ch == "," and depth == 0:
+            written.append(body[start:i])
+            start = i + 1
+    written.append(body[start:])
+    k = next((k for k, e in enumerate(clause.expressions) if e is item), -1)
+    if not 0 <= k < len(written):
+        return None
+    token = written[k].split()[0] if written[k].split() else ""
+    return token if token.isdigit() else None
 
 
 def _clean_gap(sql: str, start: int, end: int, allowed: set[str]) -> bool:
@@ -423,20 +524,24 @@ def _indirect(
             by_projection.setdefault(id(node.expression), set()).add(output)
 
     out: list[_RawIndirect] = []
-    texts: dict[int, str] = {}
+    texts: dict[int, tuple[str, Span | None]] = {}
 
     def emit(
-        col: exp.Column, scope: Scope, kind: IndirectKind, clause: exp.Expr, to: set[str]
+        col: exp.Column,
+        scope: Scope,
+        kind: IndirectKind,
+        clause: exp.Expr,
+        to: set[str],
+        key: str | None = None,
     ) -> None:
         if not to:
             return
         if id(clause) not in texts:
             texts[id(clause)] = _clause_text(sql, clause, dialect)
-        key = col.sql(dialect=dialect)
+        text, span = texts[id(clause)]
+        key = key or _written_key(sql, span, clause, col) or col.sql(dialect=dialect)
         for upstream, conf in _resolve_key(col, scope, ingest, schema, dialect):
-            out.extend(
-                _RawIndirect(upstream, t, kind, key, texts[id(clause)], conf) for t in sorted(to)
-            )
+            out.extend(_RawIndirect(upstream, t, kind, key, text, conf, span) for t in sorted(to))
 
     def targets(pos: Position, select: exp.Expr) -> set[str]:
         if pos.projection is not None:
@@ -463,7 +568,7 @@ def _indirect(
                 for proj in select.selects:
                     if step_kind(proj) != EdgeKind.AGGREGATION:
                         for col in proj.find_all(exp.Column):
-                            emit(col, scope, IndirectKind.GROUP_BY, group, to)
+                            emit(col, scope, IndirectKind.GROUP_BY, group, to, "ALL")
         for child in _children(scope):
             if inherited is not None or not isinstance(select, exp.Select):
                 visit(child, inherited)
@@ -515,17 +620,27 @@ def _model_edges(
 
 def _model_indirect(
     model: DbtNode, raw: _ModelLineage, source: str | None, direct: set[tuple[str, str]]
-) -> list[IndirectEdge]:
+) -> tuple[list[IndirectEdge], list[str]]:
     """One edge per (from, to, kind), HIGH over LOW; pairs with a direct edge are dropped (D7).
-    Citations are model-level: the whole source file (ADR 0020)."""
-    lines = (
+    Each edge cites its clause's lines in the source file (``locate_clause``). A clause that
+    can't be located cites the whole file, and its reason is returned (``citation_gaps``)."""
+    whole = (
         (1, max(1, source.count("\n") + (0 if source.endswith("\n") else 1))) if source else (1, 1)
     )
+    compiled = model.compiled_code or ""
+    lines_of = line_map(source, compiled) if source is not None else None
     best: dict[tuple[str, str, IndirectKind], IndirectEdge] = {}
+    gaps: list[str] = []
     for r in raw.indirect:
         to = column_id(model.unique_id, r.output)
         if (r.upstream, to) in direct:
             continue
+        if source is None:
+            cite: Citation | str = "source file not found"
+        else:
+            cite = locate_clause(source, compiled, r.span, r.key, lines_of)
+        if isinstance(cite, str) and (gap := f"{r.kind} {r.clause}: {cite}") not in gaps:
+            gaps.append(gap)
         edge = IndirectEdge(
             from_column=r.upstream,
             to_column=to,
@@ -533,14 +648,15 @@ def _model_indirect(
             key=r.key,
             expression=r.clause,
             file=model.original_file_path or "",
-            lines=lines,
+            lines=whole if isinstance(cite, str) else cite.lines,
+            model_level_citation=isinstance(cite, str),
             confidence=r.confidence,
         )
         k = (edge.from_column, edge.to_column, edge.kind)
         old = best.get(k)
         if old is None or (old.confidence == Confidence.LOW and r.confidence == Confidence.HIGH):
             best[k] = edge
-    return sorted(best.values(), key=lambda e: (e.to_column, e.from_column, e.kind))
+    return sorted(best.values(), key=lambda e: (e.to_column, e.from_column, e.kind)), gaps
 
 
 def extract_lineage(
@@ -571,7 +687,8 @@ def extract_lineage(
         source = src_path.read_text() if src_path.is_file() else None
         edges += _model_edges(model, raw, source, dialect)
         direct = {(e.from_column, e.to_column) for e in edges}
-        indirect += _model_indirect(model, raw, source, direct)
+        model_indirect, citation_gaps = _model_indirect(model, raw, source, direct)
+        indirect += model_indirect
         deferred = sorted(
             {
                 DeferredIndirect(from_column=up, to_column=to, kind="WINDOW")
@@ -587,5 +704,6 @@ def extract_lineage(
             gaps=raw.gaps,
             constants=sorted({c.lower() for c in raw.constants}),
             deferred_indirect=deferred,
+            citation_gaps=citation_gaps,
         )
     return LineageResult(edges=edges, depends_on=depends_on, parse_report=report, indirect=indirect)

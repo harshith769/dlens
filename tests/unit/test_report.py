@@ -31,7 +31,10 @@ def _graph() -> LineageGraph:
         exposures={},
         parse={
             "model.p.good": ModelParse(
-                unique_id="model.p.good", quality=ParseQuality.FULL, constants=["currency"]
+                unique_id="model.p.good",
+                quality=ParseQuality.FULL,
+                constants=["currency"],
+                citation_gaps=["FILTER where amt > 100: key 'amt' not in source lines 3-3"],
             ),
             "model.p.gap": ModelParse(
                 unique_id="model.p.gap",
@@ -64,6 +67,8 @@ def test_render_lists_problems_first_with_reasons() -> None:
     assert "reason: ParseError: boom" in out
     assert "gap: t <- table db.main.q is not a dbt node" in out
     assert "Low-confidence edges: 1" in out
+    assert "citation gap: FILTER where amt > 100: key 'amt' not in source lines 3-3" in out
+    assert "Indirect edges: 0  (model-level citations: 0)" in out
 
 
 def test_cli_report_json_and_text(tmp_path: Path) -> None:

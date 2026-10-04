@@ -62,9 +62,12 @@ class IndirectEdge(_Frozen):
     """A DEPENDS_ON_INDIRECT edge (ADR 0020): `from_column` decides which rows reach
     `to_column`, or how they are grouped or ordered, without flowing into its value.
 
-    `key` is the column as written in the clause (qualified), `expression` the clause SQL taken
-    verbatim from the compiled SQL (whitespace collapsed). Citations are model-level until a
-    clause locator ships with the exposure of indirect edges (ADR 0020, engine_gaps.yml).
+    `key` is the column as written in the clause (qualified), or the position (``"1"``) of a
+    positional GROUP BY / ORDER BY item, or ``"ALL"`` for GROUP BY ALL. `expression` is the
+    clause SQL taken verbatim from the compiled SQL (whitespace collapsed). `file`/`lines` cite
+    the clause in the model's source file, with the same numbering as direct edges (S04); when
+    it can't be located the citation is the whole file (`model_level_citation`) and the reason
+    is in ``ModelParse.citation_gaps``.
     """
 
     from_column: str
@@ -95,6 +98,8 @@ class ModelParse(BaseModel):
     constants: list[str] = Field(default_factory=list)
     """Output columns that read no input column (literals, ``current_timestamp``). Not gaps."""
     deferred_indirect: list[DeferredIndirect] = Field(default_factory=list)
+    citation_gaps: list[str] = Field(default_factory=list)
+    """Indirect-edge clauses cited at model level, each ``"<TYPE> <clause>: <reason>"`` (S04)."""
 
 
 class LineageResult(BaseModel):

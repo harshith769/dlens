@@ -29,9 +29,10 @@ from dlens.lineage import (
 )
 
 # Cache-format version: bump whenever the JSON shape changes. v2 added ``dlens_version``; v3 added
-# ``indirect`` (ADR 0020). ``load`` still reads v2 files (no indirect edges), e.g. the demo bundle.
-FORMAT_VERSION = 3
-READABLE_VERSIONS = (2, 3)
+# ``indirect`` (ADR 0020); v4 added ``citation_gaps`` to the parse report (S04 clause citations).
+# ``load`` still reads v2 files (no indirect edges, e.g. the demo bundle) and v3 files.
+FORMAT_VERSION = 4
+READABLE_VERSIONS = (2, 3, 4)
 DEFAULT_MAX_PATHS = 1000
 SUGGESTIONS = 3
 
