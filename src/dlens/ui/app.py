@@ -8,6 +8,7 @@ Ollama only: the provider is fixed and shown read-only.
 
 from __future__ import annotations
 
+import json
 from html import escape
 
 import streamlit as st
@@ -22,6 +23,7 @@ from dlens.graph import LineageGraph, load_or_build
 from dlens.ui import style, view
 
 PROVIDER = "ollama"
+HISTORY = 10
 EMPTY = "Ask where a column comes from or what it affects. Every claim is checked against the code."
 
 
@@ -46,6 +48,16 @@ def _ask(project: str, question: str) -> None:
         st.session_state.update(error=run.answer.refusal_reason, run=None)
         return
     st.session_state.update(error=None, run=run, box=box, project_of_run=project, selected=None)
+    history = st.session_state.setdefault("history", [])
+    history.insert(0, {"question": question, "project": project, "run": run, "box": box})
+    del history[HISTORY:]
+
+
+def _restore(n: int) -> None:
+    h = st.session_state.history[n]
+    st.session_state.update(
+        error=None, run=h["run"], box=h["box"], project_of_run=h["project"], selected=None
+    )
 
 
 def _example(text: str) -> None:
@@ -115,6 +127,19 @@ def question_panel(project: str) -> None:
     if asked or st.session_state.pop("pending", False):
         with st.spinner("Asking the local model..."):
             _ask(project, st.session_state.question.strip())
+    history = st.session_state.get("history") or []
+    if history:
+        st.markdown("**This session**")
+        for n, h in enumerate(history):
+            v = view.verdict(h["run"]).label
+            st.button(
+                f"{h['question']} · {v}",
+                key=f"hist{n}",
+                on_click=_restore,
+                args=(n,),
+                type="tertiary",
+                width="stretch",
+            )
     groups = view.examples(project)
     if groups:
         st.markdown("**Examples**")
@@ -153,12 +178,16 @@ def answer_panel(project: str) -> None:
     answer = run.answer
     v, c = view.verdict(run), view.verification(run)
     st.markdown(style.badge(v.label, v.tone) + style.badge(c.label, c.tone), unsafe_allow_html=True)
+    asked_on = st.session_state.get("project_of_run")
+    if asked_on and asked_on != project:
+        st.caption(f"Asked on {asked_on}.")
     if (warn := warning_line(answer)) is not None:
         st.warning(warn)
     st.markdown(answer.answer_text.strip())
     if answer.clarification is not None:
         st.markdown("\n".join(f"- {c}" for c in answer.clarification.candidates))
     claims(run)
+    exports(run)
     details()
 
 
@@ -177,6 +206,27 @@ def claims(run: AgentRun) -> None:
             for r in removed:
                 rules = ", ".join(r.rules) or "?"
                 st.markdown(f"- {r.text or '(text not recorded)'} · failed {rules}")
+
+
+def exports(run: AgentRun) -> None:
+    project = st.session_state.get("project_of_run", "")
+    data = view.answer_export(run, project, view.run_facts(run, st.session_state.box))
+    stem = f"dlens-answer-{run.record.run_id[:8]}"
+    with st.container(horizontal=True, gap="small"):
+        st.download_button(
+            "Download Markdown",
+            view.answer_markdown(data),
+            file_name=f"{stem}.md",
+            mime="text/markdown",
+            on_click="ignore",
+        )
+        st.download_button(
+            "Download JSON",
+            json.dumps(data, indent=2, ensure_ascii=False),
+            file_name=f"{stem}.json",
+            mime="application/json",
+            on_click="ignore",
+        )
 
 
 def details() -> None:

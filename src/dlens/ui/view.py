@@ -575,6 +575,86 @@ def build_lineage_dot(
     return LineageDot("\n".join(out), len(shown), len(dict.fromkeys(edges)))
 
 
+# -- export ------------------------------------------------------------------------------------
+
+
+def _cite_dict(item_id: str, cite: Citation | None, facts: dict[str, str]) -> dict[str, Any]:
+    if cite is None:
+        return {"id": item_id, "graph_check": facts.get(item_id, "")}
+    return {
+        "id": item_id,
+        "file": cite.file,  # relative to the project root
+        "lines": [cite.line_start, cite.line_end],
+        "level": cite.level,
+    }
+
+
+def answer_export(run: AgentRun, project: str, facts: dict[str, str]) -> dict[str, Any]:
+    """The answer with its citations, for download. Paths are project-relative; nothing
+    machine-specific (log path, project folder) is included."""
+    rec = run.record
+    return {
+        "question": rec.question,
+        "project": project,
+        "asked_at": rec.started_at,
+        "model": f"{rec.provider}:{rec.model}",
+        "verdict": verdict(run).label,
+        "verification": verification(run).label,
+        "answer": run.answer.answer_text.strip(),
+        "claims": [
+            {
+                "text": row.text,
+                "status": row.status,
+                "citations": [
+                    _cite_dict(i, run.answer.citations.get(i), facts) for i, _ in row.chips
+                ],
+            }
+            for row in claim_rows(run)
+        ],
+        "removed_claims": [{"text": r.text, "failed": list(r.rules)} for r in removed_claims(run)],
+    }
+
+
+def answer_markdown(export: dict[str, Any]) -> str:
+    lines = [
+        f"# {export['question']}",
+        "",
+        f"Project: {export['project']} · {export['verdict']} · {export['verification']} · "
+        f"{export['model']} · {export['asked_at']}",
+        "",
+        export["answer"],
+    ]
+    if export["claims"]:
+        lines += ["", "## Claims", ""]
+    for c in export["claims"]:
+        refs = []
+        for cite in c["citations"]:
+            if "file" in cite:
+                a, b = cite["lines"]
+                where = cite["file"] if cite["level"] == "model" else f"{cite['file']}:{a}"
+                refs.append(where + (f"-{b}" if cite["level"] != "model" and b != a else ""))
+            else:
+                refs.append(f"graph check: {cite['graph_check']}")
+        mark = "✓" if c["status"] == "verified" else f"⚠ {c['status']}"
+        lines.append(f"- {mark} {c['text']}" + "".join(f" [{r}]" for r in refs))
+    if export["removed_claims"]:
+        lines += ["", "## Removed by the validator", ""]
+        lines += [
+            f"- {r['text'] or '(text not recorded)'} (failed {', '.join(r['failed']) or '?'})"
+            for r in export["removed_claims"]
+        ]
+    return "\n".join(lines) + "\n"
+
+
+def run_facts(run: AgentRun, toolbox: Toolbox) -> dict[str, str]:
+    return {
+        i: f
+        for row in claim_rows(run)
+        for i, _ in row.chips
+        if i.startswith("r_") and (f := fact_statement(toolbox, i)) is not None
+    }
+
+
 # -- explore (no LLM) ---------------------------------------------------------------------------
 
 DIRECTIONS = {"Upstream": "upstream", "Downstream": "downstream", "Both": "both"}

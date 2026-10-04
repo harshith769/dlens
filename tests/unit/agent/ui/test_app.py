@@ -159,3 +159,15 @@ def test_how_it_works_shows_rules_and_dated_dev_score(start):
     metric = at.metric[0]
     assert metric.label == "Dev set: 20 hand-written questions (not the benchmark)"
     assert any("eval/reports/dev_r9.json" in c.value for c in at.caption)
+
+
+def test_history_restores_and_exports_exist(start):
+    script = [*_agg_answer(), *_agg_answer()]
+    at = ask(start(script))
+    assert [b.label for b in at.get("download_button")] == ["Download Markdown", "Download JSON"]
+    first = at.session_state.run
+    ask(at, "Where does fct.total come from, again?")
+    hist = [b for b in at.button if b.key and b.key.startswith("hist")]
+    assert len(hist) == 2 and hist[0].label.startswith("Where does fct.total come from, again?")
+    hist[1].click().run()
+    assert not at.exception and at.session_state.run is first

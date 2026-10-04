@@ -518,3 +518,42 @@ def test_dev_score_label_and_date(tmp_path: Path):
     report.write_text("{}")
     assert view.dev_score(report) is None
     assert view.dev_score(tmp_path / "none.json") is None
+
+
+def test_export_markdown_and_json_are_project_relative(shop_root: Path):
+    cite = Citation(file="models/fct.sql", line_start=3, line_end=4, level="line")
+    whole = Citation(file="seeds/raw.csv", line_start=1, line_end=2, level="model")
+    ans = Answer(
+        answer_text=" total <sums> amount ",
+        claims=[Claim(text="fct.total aggregates", edge_ids=["e_1", "e_2"], chunk_ids=["r_1"])],
+        citations={"e_1": cite, "e_2": whole},
+    )
+    run = _run(
+        ans,
+        _v(),
+        question="Where?",
+        started_at="2026-10-04T10:00:00Z",
+        provider="ollama",
+        model="qwen",
+        run_id="abc",
+    )
+    run.log_path = shop_root / "runs" / "abc.json"
+    data = view.answer_export(run, "synthetic_shop", {"r_1": "a reaches b (graph check)"})
+    assert data["claims"][0]["citations"] == [
+        {"id": "e_1", "file": "models/fct.sql", "lines": [3, 4], "level": "line"},
+        {"id": "e_2", "file": "seeds/raw.csv", "lines": [1, 2], "level": "model"},
+        {"id": "r_1", "graph_check": "a reaches b (graph check)"},
+    ]
+    assert (data["verdict"], data["verification"], data["model"]) == (
+        "Answered",
+        "Verified",
+        "ollama:qwen",
+    )
+    md = view.answer_markdown(data)
+    assert md.startswith("# Where?\n")
+    assert (
+        "- ✓ fct.total aggregates [models/fct.sql:3-4] [seeds/raw.csv] "
+        "[graph check: a reaches b (graph check)]" in md
+    )
+    blob = json.dumps(data) + md
+    assert str(shop_root) not in blob and "/home/" not in blob and "abc.json" not in blob
