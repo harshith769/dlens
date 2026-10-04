@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from dlens.agent.answer import Answer, marker
 from dlens.agent.llm.ollama import DEFAULT_MODEL as OLLAMA_MODEL
@@ -371,25 +371,41 @@ class Source:
         return range(0) if self.level == "model" else range(self.start, self.end + 1)
 
 
+def source_css() -> str:
+    """Token colors for ``highlight_sql`` (Pygments "friendly"), scoped to ``.dl-src``."""
+    try:
+        from pygments.formatters import HtmlFormatter
+    except ImportError:  # pragma: no cover
+        return ""
+    defs = HtmlFormatter(style="friendly").get_style_defs(".dl-src")
+    # Keep only token rules: drop Pygments' own background, pre and line-number rules.
+    return "\n".join(r for r in defs.splitlines() if r.startswith(".dl-src ."))
+
+
 def highlight_sql(text: str, lines: range = range(0), sql: bool = True) -> str:
-    """Escaped HTML of ``text`` with line numbers and the ``lines`` (1-based) highlighted.
-    Pygments colors SQL when it is installed; otherwise the text is shown plain."""
+    """Escaped HTML of ``text`` with a line-number gutter and the ``lines`` (1-based)
+    highlighted. ``sql`` files are dbt models, so the lexer is "sql+jinja" (``{{ ref() }}`` is
+    a template tag, not an error). Rendered with ``st.html``: one line of output per source line,
+    newlines kept inside ``<pre>``; colors come from ``source_css``."""
     body = text.expandtabs(4).rstrip("\n")
     try:
         from pygments import highlight
         from pygments.formatters import HtmlFormatter
-        from pygments.lexers import SqlLexer, TextLexer
+        from pygments.lexers import SqlJinjaLexer, TextLexer
     except ImportError:  # pragma: no cover - pygments ships with pytest and rich
         rendered = [escape(line) for line in body.split("\n")]
     else:
-        fmt = HtmlFormatter(nowrap=True, noclasses=True, style="friendly")
         # HtmlFormatter closes its spans at every line end, so the output splits on newlines.
-        rendered = highlight(body, SqlLexer() if sql else TextLexer(), fmt).rstrip("\n").split("\n")
+        lexer = SqlJinjaLexer() if sql else TextLexer()
+        rendered = highlight(body, lexer, HtmlFormatter(nowrap=True)).rstrip("\n").split("\n")
     width = len(str(len(rendered)))
     out = []
     for n, line in enumerate(rendered, start=1):
-        num = f'<span class="ln" style="width:{width + 1}ch">{n}</span>'
-        out.append(f'<span class="hl">{num}{line}</span>' if n in lines else num + line)
+        cls = "row hl" if n in lines else "row"
+        out.append(
+            f'<span class="{cls}"><span class="ln" style="width:{width + 1}ch">{n}</span>'
+            f"{line}</span>"
+        )
     return '<div class="dl-src"><pre>' + "\n".join(out) + "</pre></div>"
 
 
@@ -405,6 +421,10 @@ def load_source(project: Path, cite: Citation) -> Source | None:
 LAYERS = ("Sources", "Seeds", "Staging", "Intermediate", "Marts", "Models")
 DIAGRAM_EDGE_CAP = 40
 LABEL_CHARS = 30
+SMALL_DIAGRAM = 6  # fewer model nodes than this: draw at natural size, not container width
+# Graphviz lays text out with its own font metrics; a font it knows (Arial) keeps labels inside
+# their boxes, where IBM Plex (unknown to it) overflowed. Sizes match the UI's ~11-12pt text.
+DOT_FONT = "Arial"
 KIND_NAMES = {k: k.capitalize() for k in KIND_COLORS}
 _PREFIXES = (
     ("stg_", "Staging"),
@@ -503,12 +523,20 @@ class LineageDot:
     dot: str
     shown: int  # edges drawn
     total: int  # edges given
+    models: int = 0  # model nodes drawn
+    kinds: tuple[str, ...] = ()  # edge kinds drawn, in KIND_COLORS order (for the legend)
 
     @property
     def note(self) -> str | None:
         if self.shown == self.total:
             return None
         return f"Showing the {self.shown} nearest of {self.total} edges."
+
+    @property
+    def width(self) -> Literal["content", "stretch"]:
+        """``st.graphviz_chart`` width: small graphs keep their natural size, so a two-node
+        diagram is not blown up to the container width."""
+        return "content" if self.models < SMALL_DIAGRAM else "stretch"
 
 
 def _port_table(
@@ -532,17 +560,15 @@ def _port_table(
     )
 
 
-def _legend() -> str:
-    rows = "".join(
-        f'<TR><TD ALIGN="LEFT"><FONT COLOR="{KIND_COLORS[k]}">━━ {KIND_NAMES[k]}</FONT></TD></TR>'
-        for k in KIND_COLORS
-    )
-    return (
-        "  subgraph cluster_legend {\n"
-        f'    label="Edge kinds"; color={_q(BORDER)}; fontcolor={_q(MUTED)}; fontsize=9;\n'
-        f'    legend [label=<<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1">{rows}</TABLE>>];\n'
-        "  }"
-    )
+def legend_kinds(edges: list[Edge]) -> tuple[str, ...]:
+    """The edge kinds present in ``edges``, in ``KIND_COLORS`` order (legend above a diagram)."""
+    present = {e.kind.value for e in edges}
+    return tuple(k for k in KIND_COLORS if k in present)
+
+
+def _tooltip(graph: LineageGraph, e: Edge) -> str:
+    kind = KIND_NAMES.get(e.kind.value, e.kind.value)
+    return f"{graph.display_name(e.from_column)} → {graph.display_name(e.to_column)} ({kind})"
 
 
 def build_lineage_dot(
@@ -555,8 +581,9 @@ def build_lineage_dot(
     """Graphviz DOT: one cluster per layer, one table node per model listing its relevant columns
     as ports, column-to-column edges colored by kind and labeled with a short expression
     (identity edges are unlabeled), ``focus`` drawn with a bold border, edges whose id is in
-    ``highlight`` drawn thick, and a legend of the kinds. At most ``cap`` edges, in the given
-    order."""
+    ``highlight`` drawn thick. At most ``cap`` edges, in the given order. Every node, cluster and
+    edge has a tooltip, so hovering never shows Graphviz's internal port ids (``m1:c3:e->m0:w``).
+    The kind legend is HTML above the chart (``LineageDot.kinds``), not part of the DOT."""
     shown = list(dict.fromkeys(edges))[:cap]
     cols: set[str] = {c for e in shown for c in (e.from_column, e.to_column)}
     if focus is not None and graph.has_column(focus):
@@ -569,24 +596,29 @@ def build_lineage_dot(
 
     out = [
         "digraph lineage {",
-        "  rankdir=LR; nodesep=0.3; ranksep=1.1; bgcolor=transparent;",
-        f'  graph [fontname="IBM Plex Sans", fontsize=11, fontcolor={_q(MUTED)}];',
-        '  node [shape=plaintext, fontname="IBM Plex Sans", fontsize=10];',
-        '  edge [fontname="IBM Plex Sans", fontsize=9, arrowsize=0.6];',
+        '  rankdir=LR; nodesep=0.3; ranksep=1.1; bgcolor=transparent; tooltip="Lineage";',
+        f"  graph [fontname={_q(DOT_FONT)}, fontsize=12, fontcolor={_q(MUTED)}];",
+        f"  node [shape=plaintext, fontname={_q(DOT_FONT)}, fontsize=12];",
+        f"  edge [fontname={_q(DOT_FONT)}, fontsize=11, arrowsize=0.6];",
     ]
     layers: dict[str, list[str]] = {}
     for uid in sorted(by_model):
         layers.setdefault(layer_of(graph, uid), []).append(uid)
     for n, layer in enumerate(sorted(layers, key=LAYERS.index)):
         out.append(f"  subgraph cluster_{n} {{")
-        out.append(f"    label={_q(layer)}; labeljust=l; style=rounded; color={_q(BORDER)};")
+        out.append(
+            f"    label={_q(layer)}; tooltip={_q(layer)}; labeljust=l; style=rounded; "
+            f"color={_q(BORDER)};"
+        )
         for uid in layers[layer]:
             label = _port_table(graph, uid, by_model[uid], ports, focus)
-            out.append(f"    {node[uid]} [label={label}];")
+            tip = _q(_model_name(graph, uid))
+            out.append(f"    {node[uid]} [label={label}, tooltip={tip}];")
         out.append("  }")
     for e in shown:
         color = KIND_COLORS.get(e.kind.value, MUTED)
         attrs = [f"color={_q(color)}", f"fontcolor={_q(color)}"]
+        attrs.append(f"tooltip={_q(_tooltip(graph, e))}")
         if e.kind.value != "IDENTITY":
             attrs.append(f"label={_q(short_expression(e.expression))}")
         if edge_id(e) in highlight:
@@ -594,9 +626,10 @@ def build_lineage_dot(
         src = f"{node[graph.model_of(e.from_column)]}:{ports[e.from_column]}:e"
         dst = f"{node[graph.model_of(e.to_column)]}:{ports[e.to_column]}:w"
         out.append(f"  {src} -> {dst} [{', '.join(attrs)}];")
-    out.append(_legend())
     out.append("}")
-    return LineageDot("\n".join(out), len(shown), len(dict.fromkeys(edges)))
+    return LineageDot(
+        "\n".join(out), len(shown), len(dict.fromkeys(edges)), len(by_model), legend_kinds(shown)
+    )
 
 
 # -- export ------------------------------------------------------------------------------------
@@ -735,24 +768,7 @@ PIPELINE = (
 )
 
 
-def pipeline_dot() -> str:
-    nodes = "\n".join(
-        f'  p{i} [label=<<B>{escape(t)}</B><BR/><FONT POINT-SIZE="9" COLOR="{MUTED}">'
-        f"{escape(d)}</FONT>>];"
-        for i, (t, d) in enumerate(PIPELINE)
-    )
-    chain = " -> ".join(f"p{i}" for i in range(len(PIPELINE)))
-    return (
-        "digraph pipeline {\n"
-        "  rankdir=LR; bgcolor=transparent; nodesep=0.3;\n"
-        f'  node [shape=box, style="rounded,filled", fillcolor="#FFFFFF", color={_q(BORDER)}, '
-        'fontname="IBM Plex Sans", fontsize=11];\n'
-        f'  edge [color={_q(MUTED)}, arrowsize=0.6, fontname="IBM Plex Sans", fontsize=9, '
-        f"fontcolor={_q(MUTED)}];\n"
-        f"{nodes}\n  {chain};\n"
-        f'  p4 -> p3 [label="fails: regenerate once", style=dashed, constraint=false];\n'
-        "}"
-    )
+PIPELINE_NOTE = "If the validator finds a failing claim, the answer is regenerated once."
 
 
 @dataclass(frozen=True)

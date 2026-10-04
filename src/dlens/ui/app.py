@@ -282,7 +282,9 @@ def diagram(d: view.LineageDot) -> None:
     if d.shown == 0:
         st.caption("No edges to draw.")
         return
-    st.graphviz_chart(d.dot, width="stretch")
+    if d.kinds:
+        st.markdown(style.legend_row(d.kinds), unsafe_allow_html=True)
+    st.graphviz_chart(d.dot, width=d.width)
     if d.note:
         st.caption(d.note)
 
@@ -330,8 +332,7 @@ def source_view(run: AgentRun, box: Toolbox, selected: str | None) -> None:
         st.error(f"{cite.file if cite else selected} could not be read inside the project.")
         return
     st.markdown(f"`{src.file}` · level: {src.level} · highlighted: **{src.range_label}**")
-    html = view.highlight_sql(src.text, src.highlighted, sql=src.file.endswith(".sql"))
-    st.markdown(html, unsafe_allow_html=True)
+    st.html(view.highlight_sql(src.text, src.highlighted, sql=src.file.endswith(".sql")))
 
 
 def ask_tab(project: str) -> None:
@@ -380,13 +381,13 @@ def explore_tab(project: str) -> None:
         st.caption("No source file inside the project for this model.")
         return
     st.markdown(f"`{src.file}`")
-    html = view.highlight_sql(src.text, sql=src.file.endswith(".sql"))
-    st.markdown(html, unsafe_allow_html=True)
+    st.html(view.highlight_sql(src.text, sql=src.file.endswith(".sql")))
 
 
 def how_tab() -> None:
     st.markdown("#### From question to cited answer")
-    st.graphviz_chart(view.pipeline_dot(), width="stretch")
+    st.markdown(style.pipeline(view.PIPELINE), unsafe_allow_html=True)
+    st.caption(view.PIPELINE_NOTE)
     st.markdown(
         "The model only narrates what the tools returned. Code attaches every file and line, "
         "and the validator checks each claim before you see it."
@@ -414,7 +415,7 @@ def how_tab() -> None:
 
 def main() -> None:
     st.set_page_config(page_title="DLens", layout="wide")
-    st.markdown(style.CSS, unsafe_allow_html=True)
+    st.html(style.CSS + f"<style>{view.source_css()}</style>")
     project, slot = header()
     if project is None:
         return

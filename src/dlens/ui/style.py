@@ -45,11 +45,30 @@ CSS = f"""
 .dl-claim {{ margin: 0.15rem 0 0.1rem 0; }}
 .dl-src {{ border: 1px solid {BORDER}; border-radius: 4px; background: #FFFFFF;
   overflow-x: auto; max-height: 34rem; overflow-y: auto; }}
-.dl-src pre {{ margin: 0; padding: 0.5rem 0.75rem; font-size: 0.82rem; line-height: 1.45;
-  font-family: "IBM Plex Mono", monospace; background: transparent; }}
-.dl-src .ln {{ color: {MUTED}; user-select: none; display: inline-block; width: 3ch;
-  text-align: right; margin-right: 1ch; }}
-.dl-src .hl {{ background: #FFF3D6; display: inline-block; width: 100%; }}
+.dl-src pre {{ margin: 0; padding: 0.5rem 0; font-size: 0.82rem; line-height: 1.5;
+  font-family: "IBM Plex Mono", monospace; background: transparent; white-space: pre;
+  color: {TEXT}; }}
+.dl-src .row {{ display: inline-block; min-width: 100%; padding-right: 0.75rem; }}
+.dl-src .ln {{ color: {MUTED}; user-select: none; display: inline-block; text-align: right;
+  box-sizing: content-box;
+  padding: 0 0.6rem 0 0.75rem; margin-right: 0.75rem; border-right: 1px solid {BORDER};
+  background: {BACKGROUND}; }}
+.dl-src .hl {{ background: #FFF3D6; }}
+.dl-src .hl .ln {{ background: #FCE7B6; color: {TEXT}; }}
+.dl-legend {{ display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.82rem;
+  color: {MUTED}; margin: 0.25rem 0 0.25rem 0; }}
+.dl-legend span {{ display: inline-flex; align-items: center; gap: 0.35rem; }}
+.dl-legend i {{ display: inline-block; width: 1.4rem; height: 0; border-top: 2px solid; }}
+/* Tabs: the underline marks the active tab; no focus box or bar on top of it. */
+[data-testid="stTab"], [data-testid="stTab"]:focus, [data-testid="stTab"]:focus-visible {{
+  outline: none !important; box-shadow: none !important; }}
+[data-testid="stTab"][data-focus-visible] p {{ text-decoration: underline; }}
+.dl-pipe {{ display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem 0;
+  margin: 0.25rem 0 0.4rem 0; }}
+.dl-pipe .step {{ border: 1px solid {BORDER}; border-radius: 6px; background: #FFFFFF;
+  padding: 0.4rem 0.7rem; font-size: 0.9rem; line-height: 1.3; }}
+.dl-pipe .step small {{ display: block; color: {MUTED}; font-size: 0.8rem; }}
+.dl-pipe .arrow {{ color: {MUTED}; align-self: center; padding: 0 0.45rem; }}
 .dl-timeline {{ list-style: none; padding-left: 0; margin: 0; }}
 .dl-timeline li {{ border-left: 2px solid {BORDER}; padding: 0 0 0.8rem 0.9rem;
   position: relative; }}
@@ -66,6 +85,15 @@ CSS = f"""
 def badge(label: str, tone: Tone = "neutral") -> str:
     """A small outlined label; ``label`` is escaped."""
     return f'<span class="dl-badge" style="color:{_TONES[tone]}">{escape(label)}</span>'
+
+
+def legend_row(kinds: tuple[str, ...] | list[str]) -> str:
+    """The edge-kind legend: a colored line and the kind's name, for the given kinds only."""
+    items = "".join(
+        f'<span><i style="color:{KIND_COLORS.get(k, MUTED)}"></i>{escape(k.capitalize())}</span>'
+        for k in kinds
+    )
+    return f'<div class="dl-legend">{items}</div>'
 
 
 def muted(text: str) -> str:
@@ -87,6 +115,16 @@ def claim_line(text: str, status: str) -> str:
         f'<div class="dl-claim"><span style="color:{color};font-weight:600">{mark}</span> '
         f"{escape(text)}{tail}</div>"
     )
+
+
+def pipeline(steps: tuple[tuple[str, str], ...] | list[tuple[str, str]]) -> str:
+    """The question-to-answer pipeline as boxes joined by arrows; wraps on narrow screens, so no
+    label is ever clipped or shrunk. All text is escaped."""
+    boxes = [
+        f'<div class="step"><b>{escape(title)}</b><small>{escape(detail)}</small></div>'
+        for title, detail in steps
+    ]
+    return '<div class="dl-pipe">' + '<span class="arrow">→</span>'.join(boxes) + "</div>"
 
 
 def timeline(items: list[tuple[str, str, str, str]]) -> str:

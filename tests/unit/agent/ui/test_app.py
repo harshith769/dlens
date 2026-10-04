@@ -62,6 +62,10 @@ def texts(at):
     return [m.value for m in at.markdown]
 
 
+def htmls(at):
+    return [h.proto.body for h in at.get("html")]
+
+
 def ask(at, question="Where does fct.total come from?"):
     at.text_area(key="question").set_value(question).run()
     button(at, "Ask").click().run()
@@ -90,7 +94,7 @@ def test_ask_shows_answer_and_chip_opens_source(start):
     assert not at.exception
     assert at.session_state.detail == "Source"
     assert any("highlighted: **line 3**" in t for t in texts(at))
-    assert any('class="hl"' in t and "sum" in t for t in texts(at))
+    assert any('class="row hl"' in t and "sum" in t for t in htmls(at))
 
 
 def test_example_button_asks_immediately(start):
@@ -147,7 +151,7 @@ def test_explore_is_instant_and_makes_no_llm_call(start):
     edges = next(f.value for f in at.dataframe if "Where" in f.value.columns)
     assert list(edges["Where"]) == ["models/star.sql:1", "models/fct.sql:3", "models/stg.sql:3"]
     at.selectbox(key="explore_model").set_value("model.p.fct").run()
-    assert any("dl-src" in t and "sum" in t for t in texts(at))
+    assert any("dl-src" in t and "sum" in t for t in htmls(at))
     at.segmented_control(key="explore_dir").set_value("Downstream").run()
     assert any("no downstream lineage" in c.value for c in at.caption)
 

@@ -1,6 +1,7 @@
 """Pure UI helpers (no Streamlit)."""
 
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -168,9 +169,9 @@ def test_lineage_dot_clusters_ports_kind_colors_and_focus():
     dot = d.dot
     assert dot.startswith("digraph lineage {") and dot.rstrip().endswith("}")
     assert "rankdir=LR" in dot
-    assert dot.count("subgraph cluster_") == 4  # Seeds, Models, Marts (fct_star), legend
-    assert 'label="Seeds"' in dot and 'label="Marts"' in dot and 'label="Edge kinds"' in dot
-    assert dot.count("<TABLE") == 4 + 1  # four models + the legend
+    assert dot.count("subgraph cluster_") == 3  # Seeds, Models, Marts (fct_star); no legend
+    assert 'label="Seeds"' in dot and 'label="Marts"' in dot and "Edge kinds" not in dot
+    assert dot.count("<TABLE") == 4  # four models
     assert 'PORT="c' in dot and ":e -> " in dot and ":w [" in dot
     for kind in ("IDENTITY", "RENAME", "AGGREGATION"):
         assert style.KIND_COLORS[kind] in dot
@@ -181,6 +182,41 @@ def test_lineage_dot_clusters_ports_kind_colors_and_focus():
     focus_row = next(line for line in dot.splitlines() if 'BORDER="2"' in line)
     assert "<B>total</B>" in focus_row and "fct" in focus_row
     assert (d.shown, d.total, d.note) == (6, 6, None)
+    assert d.kinds == ("IDENTITY", "RENAME", "AGGREGATION")  # KIND_COLORS order
+
+
+# Graphviz names an edge "m1:c3:e->m0:c1:w" in its SVG <title>; a hover must never show that.
+_PORT_ID = re.compile(r"\bm\d+(:c\d+)?(:[nsew])?\s*->")
+
+
+def test_lineage_dot_never_exposes_port_ids():
+    g = make_shop()
+    dot = view.build_lineage_dot(g, g.edges(), focus="model.p.fct.total").dot
+    values = re.findall(r'\b(?:label|xlabel|tooltip)="((?:[^"\\]|\\.)*)"', dot)
+    assert values and not any(_PORT_ID.search(v) for v in values)
+    edge_lines = [line for line in dot.splitlines() if " -> " in line]
+    assert edge_lines and all("tooltip=" in line for line in edge_lines)
+    assert all("tooltip=" in line for line in dot.splitlines() if "[label=<<TABLE" in line)
+    assert any("→" in line and "(" in line for line in edge_lines)
+
+
+def test_small_diagrams_keep_their_natural_size():
+    g = make_shop()
+    d = view.build_lineage_dot(g, g.edges())
+    assert d.models == 4 and d.width == "content"
+    assert view.LineageDot("", 1, 1, models=view.SMALL_DIAGRAM).width == "stretch"
+    assert "fontsize=12" in d.dot and "fontsize=11" in d.dot
+
+
+def test_legend_lists_only_the_kinds_drawn():
+    g = make_shop()
+    agg = [e for e in g.edges() if e.kind.value == "AGGREGATION"]
+    assert view.legend_kinds(agg) == ("AGGREGATION",)
+    assert view.legend_kinds([]) == ()
+    html = style.legend_row(("RENAME", "AGGREGATION"))
+    assert "Rename" in html and "Aggregation" in html and "Identity" not in html
+    assert style.KIND_COLORS["RENAME"] in html
+    assert "&lt;b&gt;" in style.legend_row(("<b>",))
 
 
 def test_lineage_dot_cap_label_length_and_escaping():
@@ -367,10 +403,25 @@ def test_highlight_sql_numbers_lines_marks_range_and_escapes():
     assert "<script>" not in html and "&lt;" in html
     rows = html.removeprefix('<div class="dl-src"><pre>').removesuffix("</pre></div>").split("\n")
     assert len(rows) == 4
-    assert [r.startswith('<span class="hl">') for r in rows] == [False, True, True, False]
+    assert [r.startswith('<span class="row hl">') for r in rows] == [False, True, True, False]
     assert ">1</span>" in rows[0] and ">4</span>" in rows[3]
     plain = view.highlight_sql("id,amt\n1,5", sql=False)
-    assert "hl" not in plain.replace('class="ln"', "") and "id,amt" in plain
+    assert "hl" not in plain and "id,amt" in plain
+
+
+def test_highlight_sql_keeps_every_line_and_lexes_jinja():
+    text = (
+        "select\n    {{ ref('x') }} as a,\n\n"
+        "{% if var('y') %}\n    b\n{% endif %}\nfrom {{ source('s', 't') }}\n"
+    )
+    html = view.highlight_sql(text, range(2, 3))
+    body = html.removeprefix('<div class="dl-src"><pre>').removesuffix("</pre></div>")
+    assert body.count("\n") == text.count("\n") - 1  # one row per line, blank line included
+    assert len(body.split("\n")) == 7 and ">3</span></span>" in body  # line 3 is empty
+    assert 'class="err"' not in html
+    assert '<span class="cp">{{</span>' in html and '<span class="cp">{%</span>' in html
+    css = view.source_css()
+    assert ".dl-src .k " in css and all(r.startswith(".dl-src .") for r in css.splitlines())
 
 
 def test_star_level_range_label():
@@ -496,13 +547,17 @@ def test_edge_models_and_model_source_stay_inside_the_project(shop_root: Path, t
     assert view.model_source(g, shop_root, "model.p.fct") is None
 
 
-def test_pipeline_dot_has_the_six_stages_and_regenerate_loop():
-    dot = view.pipeline_dot()
-    for title, _ in view.PIPELINE:
-        assert f"<B>{title}</B>" in dot
-    assert "p0 -> p1 -> p2 -> p3 -> p4 -> p5" in dot and "regenerate once" in dot
+def test_pipeline_has_the_six_stages_in_order_and_the_loop_as_a_note():
+    html = style.pipeline(view.PIPELINE)
+    titles = [t for t, _ in view.PIPELINE]
+    assert [html.index(f"<b>{t}</b>") for t in titles] == sorted(
+        html.index(f"<b>{t}</b>") for t in titles
+    )
+    assert html.count('class="arrow"') == len(titles) - 1
+    assert "regenerate" not in html and "regenerated once" in view.PIPELINE_NOTE
+    assert "&lt;i&gt;" in style.pipeline([("<i>", "x")])
     for color in style.KIND_COLORS.values():
-        assert color not in dot  # kind colors belong to the lineage diagram only
+        assert color not in html  # kind colors belong to the lineage diagram only
 
 
 def test_dev_score_label_and_date(tmp_path: Path):

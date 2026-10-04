@@ -35,7 +35,7 @@ dependencies = [
 [project.optional-dependencies]
 agent = ["google-genai", "ollama", "groq", "tzdata"]
 retrieval = ["lancedb", "bm25s", "sentence-transformers"]
-ui = ["streamlit"]
+ui = ["streamlit>=1.65,<1.66"]  # style.py targets 1.65 internal selectors
 
 [project.urls]
 Homepage = "https://github.com/harshith769/dlens"
