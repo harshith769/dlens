@@ -13,5 +13,7 @@
     "two"
   ],
   "deferred": [],
-  "notes": "constants have no edges and are recorded in ModelParse.constants, not gaps"
+  "notes": "constants have no edges and are recorded in ModelParse.constants, not gaps",
+  "indirect": [],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

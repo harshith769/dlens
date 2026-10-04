@@ -1,0 +1,55 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amt",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "payments.pay_amt",
+      "to": "m.paid_amt",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.id",
+      "to": "m.amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.id",
+      "to": "m.paid_amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.paid_amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.paid_amt",
+      "type": "GROUP_BY"
+    }
+  ],
+  "notes": "the JOIN key paid.order_id is resolved through the CTE to payments.order_id; the CTE's GROUP BY targets only paid_amt"
+}

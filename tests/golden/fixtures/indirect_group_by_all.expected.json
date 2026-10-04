@@ -1,0 +1,45 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.status",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.total",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.status",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.total",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.user_id",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.total",
+      "type": "GROUP_BY"
+    }
+  ],
+  "notes": "GROUP BY ALL groups by the non-aggregate projections' columns"
+}

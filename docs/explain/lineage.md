@@ -101,19 +101,34 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `cast_and_coloncolon` | yes | a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged |
 | `cte_chain_3` | yes |  |
 | `distinct` | yes |  |
-| `group_by_having` | partial | GROUP BY and HAVING keys are not captured (GROUP_BY/FILTER edges are v0.3) |
-| `join_aliases` | partial | join keys are not captured (JOIN edges are v0.3) |
+| `group_by_having` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_agg_filter_vs_case` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_group_by_all` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_group_by_cte` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_in_subquery` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_join_final` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_join_key_via_cte` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_join_using` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_order_by_limit` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_order_by_no_limit` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_positional_group_order` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_string_agg_order` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_union_branch_where` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_where` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_where_exists` | partial | indirect edges are expected; the engine does not emit them yet |
+| `indirect_window_lag_suppressed` | partial | indirect edges are expected; the engine does not emit them yet |
+| `join_aliases` | partial | indirect edges are expected; the engine does not emit them yet |
 | `literal_column` | yes | constants have no edges and are recorded in ModelParse.constants, not gaps |
 | `nested_case` | yes | CASE conditions are direct (they decide the value) |
-| `qualify_row_number` | partial | QUALIFY partition/order keys are not captured (FILTER edges are v0.3) |
-| `scalar_subquery_select` | yes | correlation key o.user_id only filters the subquery: no direct edge |
-| `self_join` | yes |  |
+| `qualify_row_number` | partial | indirect edges are expected; the engine does not emit them yet |
+| `scalar_subquery_select` | partial | indirect edges are expected; the engine does not emit them yet |
+| `self_join` | partial | indirect edges are expected; the engine does not emit them yet |
 | `star_exclude_replace` | yes | price is excluded: no output column, no edge |
-| `star_join` | yes | tables share no column names; duplicate names across a star join are out of scope |
-| `subquery_from` | yes |  |
+| `star_join` | partial | indirect edges are expected; the engine does not emit them yet |
+| `subquery_from` | partial | indirect edges are expected; the engine does not emit them yet |
 | `union_all_3` | yes | each branch has its own kind: the UNION node is not a step |
 | `union_distinct` | yes | UNION vs UNION ALL changes no edge |
-| `window_sum_partition` | partial | window PARTITION BY / ORDER BY keys are deferred |
+| `window_sum_partition` | partial | indirect edges are expected; the engine does not emit them yet |
 | star join with duplicate column names | no (untested) | `SELECT *` over a join whose sides share a column name; no fixture, so the output columns and their edges are not guaranteed |
 <!-- support-matrix:end -->
 

@@ -34,5 +34,7 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "each branch has its own kind: the UNION node is not a step"
+  "notes": "each branch has its own kind: the UNION node is not a step",
+  "indirect": [],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

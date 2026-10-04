@@ -1,0 +1,30 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.prev_amt",
+      "kind": "TRANSFORMATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [
+    [
+      "orders.user_id",
+      "m.prev_amt"
+    ]
+  ],
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.prev_amt",
+      "type": "WINDOW"
+    }
+  ],
+  "notes": "amt is the lag argument and the ORDER BY key: direct only (suppressed); user_id is WINDOW"
+}

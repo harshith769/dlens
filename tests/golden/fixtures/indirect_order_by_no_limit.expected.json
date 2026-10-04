@@ -1,0 +1,30 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.status",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.order_date",
+      "to": "m.id",
+      "type": "SORT"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.status",
+      "type": "SORT"
+    }
+  ],
+  "notes": "top-level ORDER BY without LIMIT is still SORT to every column"
+}

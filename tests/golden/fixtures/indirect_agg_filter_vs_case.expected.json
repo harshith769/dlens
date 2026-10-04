@@ -1,0 +1,40 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.id",
+      "to": "m.late_n",
+      "kind": "AGGREGATION"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.late_n_case",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.status",
+      "to": "m.late_n",
+      "type": "CONDITIONAL"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.late_n",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.late_n_case",
+      "type": "GROUP_BY"
+    }
+  ],
+  "notes": "same logic, two classes: FILTER (WHERE) is CONDITIONAL; the CASE condition is a direct AGGREGATION input"
+}

@@ -1,0 +1,55 @@
+{
+  "edges": [
+    {
+      "from": "customers.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "customers.name",
+      "to": "m.name",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.id",
+      "to": "m.n_orders",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.n_orders",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.name",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.n_orders",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.name",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.n_orders",
+      "type": "JOIN"
+    }
+  ],
+  "notes": "GROUP BY inside a CTE targets only the columns computed through it (n_orders), not c.id / c.name"
+}

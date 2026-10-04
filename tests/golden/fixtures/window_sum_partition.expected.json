@@ -23,5 +23,18 @@
       "m.running_amt"
     ]
   ],
-  "notes": "windowed aggregate keeps the row grain; keys are deferred WINDOW"
+  "notes": "windowed aggregate keeps the row grain; PARTITION BY / ORDER BY keys are WINDOW to running_amt",
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.running_amt",
+      "type": "WINDOW"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.running_amt",
+      "type": "WINDOW"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

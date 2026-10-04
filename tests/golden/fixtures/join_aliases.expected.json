@@ -24,6 +24,49 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "join keys o.user_id / c.id are not direct edges (JOIN is v0.3)",
-  "partial": "join keys are not captured (JOIN edges are v0.3)"
+  "notes": "join keys o.user_id / c.id are JOIN edges to every output column, never direct",
+  "partial": "join keys are not captured (JOIN edges are v0.3)",
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.order_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.customer_name",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.region",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.order_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.customer_name",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.region",
+      "type": "JOIN"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

@@ -1,0 +1,50 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "customers.name",
+      "to": "m.name",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.name",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.name",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.name",
+      "type": "JOIN"
+    }
+  ],
+  "notes": "every column in ON (equi and non-equi) is a JOIN key to every output column of the final SELECT"
+}

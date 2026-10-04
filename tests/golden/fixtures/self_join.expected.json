@@ -19,5 +19,33 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": ""
+  "notes": "both ON columns are JOIN keys; employees.id -> m.id stays direct only",
+  "indirect": [
+    {
+      "from": "employees.manager_id",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "employees.manager_id",
+      "to": "m.employee",
+      "type": "JOIN"
+    },
+    {
+      "from": "employees.manager_id",
+      "to": "m.manager",
+      "type": "JOIN"
+    },
+    {
+      "from": "employees.id",
+      "to": "m.employee",
+      "type": "JOIN"
+    },
+    {
+      "from": "employees.id",
+      "to": "m.manager",
+      "type": "JOIN"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

@@ -39,5 +39,68 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "tables share no column names; duplicate names across a star join are out of scope"
+  "notes": "tables share no column names; ON keys are JOIN to every column except their own pass-through",
+  "indirect": [
+    {
+      "from": "order_items.product_id",
+      "to": "m.order_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.qty",
+      "type": "JOIN"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.price",
+      "type": "JOIN"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.id",
+      "type": "JOIN"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.title",
+      "type": "JOIN"
+    },
+    {
+      "from": "order_items.product_id",
+      "to": "m.list_price",
+      "type": "JOIN"
+    },
+    {
+      "from": "products.id",
+      "to": "m.order_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "products.id",
+      "to": "m.product_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "products.id",
+      "to": "m.qty",
+      "type": "JOIN"
+    },
+    {
+      "from": "products.id",
+      "to": "m.price",
+      "type": "JOIN"
+    },
+    {
+      "from": "products.id",
+      "to": "m.title",
+      "type": "JOIN"
+    },
+    {
+      "from": "products.id",
+      "to": "m.list_price",
+      "type": "JOIN"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

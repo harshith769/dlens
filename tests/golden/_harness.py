@@ -37,6 +37,7 @@ class Result:
     quality: str
     constants: list[str]
     deferred: set[tuple[str, str]]
+    indirect: set[tuple[str, str, str]]  # (from, to, type) as short ids
 
 
 def run_sql(sql: str) -> Result:
@@ -64,6 +65,10 @@ def run_sql(sql: str) -> Result:
         deferred={
             (short_id(d.from_column), short_id(d.to_column)) for d in parse.deferred_indirect
         },
+        indirect={
+            (short_id(e.from_column), short_id(e.to_column), str(e.kind))
+            for e in getattr(result, "indirect", [])
+        },
     )
 
 
@@ -78,6 +83,17 @@ def load_expected(name: str) -> dict[str, object]:
 
 def run_fixture(name: str) -> Result:
     return run_sql((FIXTURES / f"{name}.sql").read_text())
+
+
+# S03 step 3a: the indirect expectations are written from ADR 0020 before the engine emits any
+# indirect edge. While True, fixtures that expect indirect edges are strict xfails.
+INDIRECT_PENDING = True
+
+
+def expected_indirect(name: str) -> set[tuple[str, str, str]]:
+    rows = load_expected(name)["indirect"]  # required in every fixture
+    assert isinstance(rows, list)
+    return {(r["from"], r["to"], r["type"]) for r in rows}
 
 
 MATRIX_START = "<!-- support-matrix:start -->"
@@ -104,6 +120,9 @@ def support_matrix_md() -> str:
         exp = load_expected(name)
         if exp.get("xfail"):
             level, note = "no", str(exp["xfail"])
+        elif INDIRECT_PENDING and exp["indirect"]:
+            level = "partial"
+            note = "indirect edges are expected; the engine does not emit them yet"
         elif exp.get("partial") or exp.get("deferred"):
             level = "partial"
             note = str(exp.get("partial") or "window PARTITION BY / ORDER BY keys are deferred")

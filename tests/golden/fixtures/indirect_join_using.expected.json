@@ -1,0 +1,55 @@
+{
+  "edges": [
+    {
+      "from": "refunds.id",
+      "to": "m.refund_id",
+      "kind": "RENAME"
+    },
+    {
+      "from": "refunds.refund_amt",
+      "to": "m.refund_amt",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "payments.pay_amt",
+      "to": "m.pay_amt",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "refunds.order_id",
+      "to": "m.refund_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "refunds.order_id",
+      "to": "m.refund_amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "refunds.order_id",
+      "to": "m.pay_amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.refund_id",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.refund_amt",
+      "type": "JOIN"
+    },
+    {
+      "from": "payments.order_id",
+      "to": "m.pay_amt",
+      "type": "JOIN"
+    }
+  ],
+  "notes": "a USING column is a JOIN key on both sides"
+}

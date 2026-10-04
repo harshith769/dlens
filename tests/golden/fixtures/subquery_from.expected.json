@@ -14,5 +14,13 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": ""
+  "notes": "GROUP BY inside the derived table targets only total_plus (user_id is direct)",
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.total_plus",
+      "type": "GROUP_BY"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

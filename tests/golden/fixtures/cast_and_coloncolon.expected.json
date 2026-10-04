@@ -19,5 +19,7 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged"
+  "notes": "a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged",
+  "indirect": [],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

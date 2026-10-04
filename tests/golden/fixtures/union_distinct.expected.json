@@ -24,5 +24,7 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "UNION vs UNION ALL changes no edge"
+  "notes": "UNION vs UNION ALL changes no edge",
+  "indirect": [],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

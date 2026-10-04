@@ -1,0 +1,40 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "refunds.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amount",
+      "kind": "RENAME"
+    },
+    {
+      "from": "refunds.refund_amt",
+      "to": "m.amount",
+      "kind": "RENAME"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.status",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.amount",
+      "type": "FILTER"
+    }
+  ],
+  "notes": "a WHERE in one branch of a top-level UNION is FILTER to every output column"
+}

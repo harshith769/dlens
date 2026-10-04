@@ -1,0 +1,55 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.status",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.total",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.status",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.total",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.user_id",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.total",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.status",
+      "type": "SORT"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.total",
+      "type": "SORT"
+    }
+  ],
+  "notes": "GROUP BY 1, 2 and ORDER BY 1 resolve to the columns of those projections"
+}

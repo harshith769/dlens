@@ -14,5 +14,18 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "correlation key o.user_id only filters the subquery: no direct edge"
+  "notes": "correlation keys c.id and o.user_id select rows in the subquery: FILTER to cust_name only, no direct edge",
+  "indirect": [
+    {
+      "from": "customers.id",
+      "to": "m.cust_name",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.cust_name",
+      "type": "FILTER"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

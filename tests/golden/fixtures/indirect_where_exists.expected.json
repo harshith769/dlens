@@ -1,0 +1,45 @@
+{
+  "edges": [
+    {
+      "from": "customers.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "customers.name",
+      "to": "m.name",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.name",
+      "type": "FILTER"
+    },
+    {
+      "from": "customers.id",
+      "to": "m.name",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.name",
+      "type": "FILTER"
+    }
+  ],
+  "notes": "every column in the correlated EXISTS subquery is FILTER (the outer WHERE decides); c.id -> m.id stays direct only"
+}

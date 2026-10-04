@@ -1,0 +1,40 @@
+{
+  "edges": [
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.statuses",
+      "kind": "AGGREGATION"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.top_amt",
+      "kind": "AGGREGATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.order_date",
+      "to": "m.statuses",
+      "type": "SORT"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.statuses",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.top_amt",
+      "type": "GROUP_BY"
+    }
+  ],
+  "notes": "ORDER BY inside an aggregate is SORT to that column only"
+}

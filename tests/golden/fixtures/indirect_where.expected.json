@@ -1,0 +1,35 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amt",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.status",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.status",
+      "to": "m.amt",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.id",
+      "type": "FILTER"
+    }
+  ],
+  "notes": "WHERE columns are FILTER to every output; amt -> amt stays direct only"
+}

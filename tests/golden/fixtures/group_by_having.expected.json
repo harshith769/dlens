@@ -16,6 +16,34 @@
     "n"
   ],
   "deferred": [],
-  "notes": "HAVING tax is no edge; count(*) reads no column, so it is recorded like a constant",
-  "partial": "GROUP BY and HAVING keys are not captured (GROUP_BY/FILTER edges are v0.3)"
+  "notes": "GROUP BY user_id targets every column but user_id (direct wins); HAVING tax is FILTER to all; count(*) reads no column, so it is recorded like a constant",
+  "partial": "GROUP BY and HAVING keys are not captured (GROUP_BY/FILTER edges are v0.3)",
+  "indirect": [
+    {
+      "from": "orders.user_id",
+      "to": "m.total",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.n",
+      "type": "GROUP_BY"
+    },
+    {
+      "from": "orders.tax",
+      "to": "m.user_id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.tax",
+      "to": "m.total",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.tax",
+      "to": "m.n",
+      "type": "FILTER"
+    }
+  ],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

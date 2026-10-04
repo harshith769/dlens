@@ -24,5 +24,7 @@
   "quality": "FULL",
   "constants": [],
   "deferred": [],
-  "notes": "CASE conditions are direct (they decide the value)"
+  "notes": "CASE conditions are direct (they decide the value)",
+  "indirect": [],
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
 }

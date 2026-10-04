@@ -1,0 +1,35 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amt",
+      "kind": "IDENTITY"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "indirect": [
+    {
+      "from": "orders.amt",
+      "to": "m.id",
+      "type": "SORT"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.id",
+      "type": "SORT"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.amt",
+      "type": "SORT"
+    }
+  ],
+  "notes": "top-level ORDER BY (with LIMIT) is SORT to every column; amt -> amt stays direct only"
+}

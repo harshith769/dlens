@@ -8,7 +8,13 @@ Never edit an expected file to match output; a deliberate change needs a one-lin
 """
 
 import pytest
-from _harness import fixture_names, load_expected, run_fixture
+from _harness import (
+    INDIRECT_PENDING,
+    expected_indirect,
+    fixture_names,
+    load_expected,
+    run_fixture,
+)
 
 
 def _param(name: str) -> object:
@@ -28,6 +34,22 @@ def test_construct(name: str) -> None:
     assert got.quality == exp["quality"]
     assert got.constants == sorted(exp["constants"])  # type: ignore[arg-type]
     assert got.deferred == {tuple(d) for d in exp["deferred"]}  # type: ignore[attr-defined]
+
+
+def _indirect_param(name: str) -> object:
+    marks = []
+    if load_expected(name).get("xfail"):
+        marks.append(pytest.mark.xfail(strict=True, reason=str(load_expected(name)["xfail"])))
+    elif INDIRECT_PENDING and expected_indirect(name):
+        pending = "indirect edges: engine pending (S03 3b)"
+        marks.append(pytest.mark.xfail(strict=True, reason=pending))
+    return pytest.param(name, id=name, marks=marks)
+
+
+@pytest.mark.parametrize("name", [_indirect_param(n) for n in fixture_names()])  # type: ignore[misc]
+def test_indirect_edges(name: str) -> None:
+    """Indirect edges (ADR 0020), compared as (from, to, type). Every fixture states them."""
+    assert run_fixture(name).indirect == expected_indirect(name)
 
 
 def test_at_least_fifteen_constructs() -> None:
