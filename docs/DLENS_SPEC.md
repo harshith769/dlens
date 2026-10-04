@@ -577,7 +577,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 | Week(s) | Dates | Phase | Hours | Done when |
 |---|---|---|---|---|
 | pre | → 3 Oct | Pre-work + accounts + checks + **v0.1 Lineage CLI (shipped 3 Oct; target was 18 Oct)** | 62 | Direct-edge F1 ≥ 0.95 on the mini spec; `pip install dlens-lineage` works |
-| 0–4 | 5 Oct – 8 Nov | **v0.2 Cited Q&A agent** | 40 | Live demo answers 20 dev questions with valid citations |
+| 0–4 | 5 Oct – 8 Nov | **v0.2 Cited Q&A agent (shipped 4 Oct; target was 8 Nov)** | 40 | Live demo answers 20 dev questions with valid citations |
 | 5–7 | 9 Nov – 29 Nov | **v0.3 Hybrid RAG + pilot** | 40 | S1 vs S4 pilot table on 96 dev questions committed; indirect-edge F1 ≥ 0.90 |
 | 8 | 30 Nov – 6 Dec | Buffer A | — | For SIH, exams or slips; otherwise pull v1.0 work forward |
 | 9–12 | 7 Dec – 3 Jan | **v1.0 Benchmarked release** (test-set freeze 7 Dec) | 55 | `make eval` reproduces every number from a clean clone |
@@ -595,12 +595,17 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 - [x] TestPyPI → PyPI `dlens-lineage` 0.1.0 via Trusted Publishing; tag v0.1.0
 
 **v0.2 Cited Q&A agent**
-- [ ] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
+- [x] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
 - [x] Tools: `resolve_entity` (fuzzy v1), `trace_upstream`, `impact_downstream`, `get_model_sql`
 - [x] Agent loop with structured answers; logs pre-validation drafts
 - [x] [H] Validator rules + adversarial tests (written by Claude at the owner's request, Decision 17; owner-reviewed)
-- [ ] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions
+- [x] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions (https://dlens-lineage.streamlit.app/; presets are replayed run records, see `docs/explain/deploy.md`)
 - [ ] Tag v0.2.0; add the first GenAI resume line
+
+Done-when status (4 Oct 2026): dev pass 18/20 on local qwen3:4b (`eval/reports/dev_r9.json`); the
+live demo replays 10 of those (all re-validated offline) and answers live questions on Gemini.
+All 20 dev questions on Gemini were not run, to save quota; the capped end-to-end check is
+`scripts/smoke_agent.py --provider gemini` (dev-01, dev-10).
 
 **v0.3 Hybrid RAG + pilot**
 - [ ] [H] Full 40–60 model spec with every trap and ≥40 columns at 6+ hops; SQL generated and reviewed
@@ -610,6 +615,10 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 - [ ] S1 baseline; Groq adapter
 - [ ] Question generator; [H] review all 96 dev questions
 - [ ] [H] Pilot metrics (dev only); tag v0.3.0
+- [ ] Backlog from the v0.2 demo: a multi-part or out-of-scope question ("…come from? can I remove
+  it?") gets an explicit "I can't answer X; try asking Y" instead of a silent validator drop
+- [ ] Backlog: a `premise_corrected` answer field (ADR first) so the UI can show a corrected-premise
+  badge from a real signal
 
 **v1.0 Benchmarked release**
 - [ ] [H] Review and freeze test (224) and set E (60); commit hashes (week 9, first day, 7 Dec)

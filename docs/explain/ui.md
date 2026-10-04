@@ -2,6 +2,8 @@
 
 ## What it does
 `make ui` starts a Streamlit app on the local Ollama model. Nothing in it calls a cloud provider.
+The public demo is the same app in demo mode (prebuilt bundle, Gemini behind caps, replayed
+presets): see `docs/explain/deploy.md`.
 
 **Header:** the title, a one-line intro and a GitHub link, the provider on the right, then a
 project picker (`synthetic_shop`, `jaffle_shop`, or `?project=` in the URL) and the stats
@@ -13,9 +15,9 @@ quota-limited provider, so never for now). Whether an answer was cached is a bad
 
 | Tab | Shows |
 |---|---|
-| Ask | Left 30%: question box, Ask, this session's history (`view.push_history`: one entry per question and project, latest kept, newest first, at most 8; a verdict-colored dot and the question on one line), and examples as buttons under their group heading (the hint is the heading's tooltip). Examples are dev questions that passed in `eval/reports/dev_r9.json`. Right 70%: verdict, verification and (if every LLM call was a cache hit) "Cached" badges, the answer, claims with ✓/⚠ and clickable mono citation chips, removed claims, detail tabs Lineage, Source, Steps and Checks, then small Markdown/JSON download buttons. |
+| Ask | Left 30%: question box, Ask, this session's history (`view.push_history`: one entry per question and project, latest kept, newest first, at most 8; a verdict-colored dot and the question on one line, clipped in the middle so questions with the same start stay distinct; the tooltip has the full question), and examples as buttons under their group heading (the hint is the heading's tooltip). Examples are dev questions that passed in `eval/reports/dev_r9.json`. Right 70%: verdict, verification and (if every LLM call was a cache hit) "Cached" badges, the answer, claims with ✓/⚠ and clickable mono citation chips, removed claims, detail tabs Lineage, Source, Steps and Checks, then small Markdown/JSON download buttons. |
 | Explore lineage | No LLM. A searchable `model.column` picker, direction (upstream/downstream/both) and a depth slider. Shows the lineage diagram, an edge table (from, to, kind, expression, checked `file:line`) and the SQL of any model shown. |
-| How it works | The pipeline (question → tools → evidence → answer → validator → cited answer), the nine rules in one sentence each, and the current dev score. The score is labeled "Dev set: 20 hand-written questions (not the benchmark)" with the report's commit date. |
+| How it works | The pipeline (question → tools → evidence → answer → validator → cited answer), the nine rules in one sentence each, and the current dev score. The score is labeled "Dev set: 20 hand-written questions, local qwen3:4b (not the benchmark)" with the report's commit date. |
 
 **Badges.**
 - **Verdict** comes from real fields only. It is *Refused* (`answer.refused`), *Clarification*

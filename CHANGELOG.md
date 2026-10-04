@@ -6,7 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-04
+
+The cited Q&A agent, a local UI and a public demo at https://dlens-lineage.streamlit.app/.
+
 ### Added
+- Public demo on Streamlit Community Cloud (`demo/`, `docs/deploy.md`, `docs/explain/deploy.md`).
+  `DLENS_DEMO=1` (forced by `demo/streamlit_app.py`) makes the UI read a prebuilt
+  `synthetic_shop` bundle: `graph.json` plus only the files it cites, with no dbt and no
+  `target/`. Live questions go to Gemini Flash-Lite on a separate AI Studio project. Caps:
+  50 model calls a day app-wide (`QuotaCounter` in a demo-only state dir), 5 live questions per
+  session and 300 characters; a question starts only if a full 8-call run still fits. Limits
+  show a friendly "Demo limit reached, try a preset" state, and the header shows "x of 50 left
+  today". The key comes from Streamlit secrets and is never shown or logged.
+- 10 demo presets (`demo/presets/*.json`): full run records made with local qwen3:4b by
+  `scripts/record_presets.py`, which writes only runs that pass the dev scoring. The UI replays
+  the recorded tool calls on the graph with no LLM client, under a "Precomputed with local
+  qwen3:4b" badge and a short tag per preset. Tests re-validate each preset offline.
+- `demo/requirements.txt` (`make demo-requirements`, exported from `uv.lock`): the light Cloud
+  install, base + agent + ui without dbt or groq, about 418 MB. CI job `demo-install` boots the
+  demo from that file alone and replays a preset.
+- Capped live smokes the owner runs: `scripts/smoke_llm.py --provider gemini` (text, JSON, tool
+  call; hard cap 10) and `scripts/smoke_agent.py --provider gemini` (dev-01 and dev-10 end to end;
+  hard cap 16). Both need `--yes-spend-quota`, use the dev key and dev quota counter, and print
+  the counter before and after.
 - Local Streamlit UI (`make ui`, extra `ui`), Ollama only, with three tabs.
   - **Ask:** verdict and verification badges, per-claim ✓/⚠ with citation chips, and detail tabs:
     Lineage (a layered column-level diagram), Source (highlighted cited lines), Steps and Checks.
@@ -74,6 +97,12 @@ All notable changes to this project are documented here. The format follows
   dev-10 (a wrong "Yes" that passed validation): dev pass is 18/20.
 
 ### Changed
+- A source tree that is not installed reads its version from `pyproject.toml` instead of
+  reporting `0+unknown` (the demo runs `src/` uninstalled).
+- UI history labels are clipped in the middle, so questions with the same start stay distinct.
+  The dev score is labeled "Dev set: 20 hand-written questions, local qwen3:4b (not the
+  benchmark)".
+- `.streamlit/secrets.toml` is ignored at any depth.
 - `get_model_sql` payload: `windows: [{excerpt_id, range}]` replaces `excerpt_id` /
   `excerpt_range`; `excerpt` holds `…` between windows.
 - Agent tool specs are shorter (728 → 425 estimated tokens). They no longer advertise `k` or
@@ -101,4 +130,6 @@ First public release: the lineage CLI.
 - Only value dependencies are edges; join/filter/group/window keys are deferred.
 - `SELECT *` over a join with duplicate column names is untested.
 
+[Unreleased]: https://github.com/harshith769/dlens/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/harshith769/dlens/releases/tag/v0.2.0
 [0.1.0]: https://github.com/harshith769/dlens/releases/tag/v0.1.0

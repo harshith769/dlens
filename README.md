@@ -7,6 +7,18 @@ the file and line for every step.
 [![PyPI](https://img.shields.io/pypi/v/dlens-lineage)](https://pypi.org/project/dlens-lineage/)
 [![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](https://github.com/harshith769/dlens/blob/main/LICENSE)
 
+**Live demo: https://dlens-lineage.streamlit.app/**. Ask where a column comes from or what it
+affects in a 15-model dbt project. It needs no install and no key.
+
+![DLens UI: a cited answer with its column-level lineage diagram](https://raw.githubusercontent.com/harshith769/dlens/main/docs/img/ui.png)
+
+How the agent works, in three lines:
+1. Tools query the lineage graph (trace, impact, model SQL) and return ids; code attaches each
+   id's file and line.
+2. The model only narrates those tool results, citing the ids.
+3. A validator checks every claim against the graph and the files on disk (nine rules) and
+   removes what fails, so what you see is what the code supports.
+
 DLens reads a dbt project, parses the *compiled* SQL with [sqlglot](https://github.com/tobymao/sqlglot)
 against the real warehouse schema, and builds a column-level lineage graph. Every edge records how a
 column is derived (rename, transformation, aggregation, ...), the expression, and where in the model
@@ -14,8 +26,10 @@ file it lives.
 
 ## Status
 
-**v0.1.0: lineage CLI.** It works on DuckDB dbt projects (dbt-core 1.12, dbt-duckdb 1.11), Python
-3.12 and 3.13. The Q&A agent and the benchmark are not built yet: see the [roadmap](#roadmap).
+**v0.2.0: lineage CLI + cited Q&A agent + UI.** It works on DuckDB dbt projects (dbt-core 1.12,
+dbt-duckdb 1.11), Python 3.12 and 3.13. The agent runs on a local model (Ollama) or Gemini. On the
+20 hand-written dev questions it passes 18 with local qwen3:4b; that is a dev check, not the
+benchmark, which is v1.0 (see the [roadmap](#roadmap)).
 
 ## Quickstart
 
@@ -128,6 +142,23 @@ Deferred indirect (window keys, v0.3): 2
 Constant columns (no edges): 0
 ```
 
+## Ask a question
+
+```bash
+pip install "dlens-lineage[agent]"
+ollama pull qwen3:4b-instruct-2507-q4_K_M        # the default local model
+dlens ask "Where does fct_orders.net_paid_usd come from?" -p corpora/synthetic_shop
+```
+
+The answer lists each claim with its `file:line` citations; `--json` gives the structured answer.
+Each run writes one JSONL record (the draft before validation and the validator's verdict) to
+`~/.local/state/dlens/runs/`.
+
+When part of an answer fails a check, that part is removed and the rest stays. The CLI prints
+"⚠ Part of this answer couldn't be verified and was removed."; the UI marks the answer
+**Partially removed** and lists the dropped claims with the rules they failed. This happens, for example, with a two-part question such as "Where does
+X come from? Can I remove it?", where the second part goes beyond what the lineage tools can show.
+
 ## Local UI
 
 ```bash
@@ -140,8 +171,9 @@ citation chips that open the cited source lines, a column-level lineage diagram,
 and the validator's checks. **Explore lineage** browses the graph directly, with no LLM and no
 quota. **How it works** shows the pipeline, the nine validator rules and the current dev score.
 
-<!-- TODO screenshot: docs/img/ui.png (Ask tab with an answered question and the Lineage tab
-open), added before the deploy release. Not captured yet: no browser in the dev environment. -->
+The [live demo](https://dlens-lineage.streamlit.app/) is the same app in demo mode: a prebuilt
+graph, 10 precomputed answers that replay with no model call, and live questions on Gemini within
+a daily budget. See [`docs/deploy.md`](https://github.com/harshith769/dlens/blob/main/docs/deploy.md).
 
 ## Support matrix
 
@@ -167,9 +199,10 @@ Design notes for each part are in [`docs/explain/`](https://github.com/harshith7
 
 ## Roadmap
 
-- **v0.1** (this release): lineage CLI.
-- **v0.2**: a Q&A agent that answers lineage questions by calling these graph tools; every claim
-  carries a file/line citation checked by a validator.
+- **v0.1**: lineage CLI.
+- **v0.2** (this release): a Q&A agent that answers lineage questions by calling these graph
+  tools; every claim carries a file/line citation checked by a validator. A local UI and a public
+  demo.
 - **v0.3**: hybrid retrieval (graph + RAG) and window/join-key (indirect) edges.
 - **v1.0**: a published benchmark against vector-only RAG, with design-authored gold labels.
 
@@ -186,6 +219,11 @@ Design notes for each part are in [`docs/explain/`](https://github.com/harshith7
   the project, `dlens ingest` fails with dbt's error.
 - Diff (comparing the lineage of two columns, e.g. two revenue definitions) is planned for v1.x;
   comparing two versions of a project is out of scope.
+- The agent answers lineage questions only (where a column comes from, what it affects, how it is
+  computed). Other parts of a question are dropped by the validator rather than answered; an
+  explicit "can't answer that part" is planned for v0.3.
+- The live demo is capped (50 model calls a day for everyone, 5 questions per visit); the
+  presets always work.
 - Pre-1.0: the CLI output and the Python API may change between minor versions.
 
 ## Credits

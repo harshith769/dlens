@@ -57,3 +57,14 @@
 - Streamlit 1.65 has stateful tabs (`key` + `on_change="rerun"`), so a citation chip can open the Source tab from code. The theme font option takes Google Fonts URLs, so no CSS @import is needed.
 - Safety rules for a UI that renders model output: escape everything shown as HTML (tested with `<script>`), read files only through `safe_read` (never outside the project), and export only project-relative paths.
 - Lesson: keep `view.py` free of Streamlit. 46 UI tests (pure helpers plus AppTest smoke tests per tab with a scripted fake LLM) run in about 3 s, with no browser and no Ollama.
+
+## 2026-10-04 — v0.2.0: public demo on Streamlit Community Cloud
+- Live at https://dlens-lineage.streamlit.app/. It is the same app as `make ui`; `DLENS_DEMO=1` swaps the inputs (prebuilt graph, Gemini, caps), never the pipeline.
+- Ship the graph, not the build: `demo/synthetic_shop/graph.json` plus only the 21 files it cites. No dbt on Cloud. `graph.json` stores the dlens version, so every release rebuilds the bundle (the 0.2.0 rebuild changed exactly that one line).
+- Streamlit Cloud reads the dependency file next to the entrypoint before the root one: `demo/requirements.txt` (exported from `uv.lock`, without dbt) beats the dev `uv.lock`. About 418 MB, mostly pyarrow from Streamlit; no torch.
+- Bug found only by booting from a clean venv: an uninstalled `src/` reported version `0+unknown`, so the version-stamped graph refused to load. Fix: read `pyproject.toml`. Lesson: test the real install path; CI job `demo-install` now does it on every push.
+- Caps reuse `QuotaCounter` (reserve before send): 50 calls/day app-wide, 5 per session, 300 characters, and start only if a full 8-call run fits. Known gap: the container's disk is not persistent, so the counter resets on reboot; the demo AI Studio project's own daily limit is the backstop.
+- Presets are replayed run records, not cached LLM responses. The tool calls are re-run on the graph (deterministic), so no client is built. Tests compare every tool payload with the record and re-run the validator, so a lineage change that breaks a preset fails CI.
+- dev-11 failed recall twice when re-recorded fresh, after passing in dev_r9: a 4B model is not deterministic across runs. I swapped in dev-13 (also "computed") instead of relaxing the pass rule.
+- Live check: the title and the "x of 50 left today" status sat under Cloud's toolbar. They were invisible in AppTest and only showed up in a real browser screenshot, so demo mode now adds top padding.
+- Seen live on Gemini: a two-part question ("…come from? can i remove it?") came back Answered + Partially removed. The validator did its job, but the user should hear "I can't answer that part". That is v0.3 backlog, together with a `premise_corrected` field (ADR).

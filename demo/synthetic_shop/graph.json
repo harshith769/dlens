@@ -1595,7 +1595,7 @@
       "to_column": "model.synthetic_shop.stg_refunds.refund_amt"
     }
   ],
-  "dlens_version": "0.1.0",
+  "dlens_version": "0.2.0",
   "exposures": [],
   "models": [
     {

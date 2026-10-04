@@ -45,4 +45,4 @@ Streamlit, pytest, hypothesis, ruff, mypy.
   local model qwen3:4b-instruct-2507-q4_K_M (Qwen3-4B-Instruct-2507; dev and benchmark). Gemini: versioned Flash-Lite ID, 400 calls/day budget. Conda is installed: always use `uv run` / `uv pip`, never bare `pip`.
 
 ## Current target
-v0.2 Cited Q&A agent (spec Section 14), due 8 Nov 2026. Update this line each release.
+v0.3 Hybrid RAG + pilot (spec Section 14), due 29 Nov 2026. Update this line each release.
