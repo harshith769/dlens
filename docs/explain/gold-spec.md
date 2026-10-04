@@ -1,8 +1,9 @@
 # Explain: the gold spec format, the D7 expansion and the spec checker
 
 Files: `src/dlens/gold_spec.py` (D7 expansion), `scripts/check_gold_spec.py` (checker),
-`corpora/synthetic_shop/lineage_spec_v2.yml` (v2 gold), `corpora/synthetic_shop/spec_v2_expected.yml`
-(the design's numbers), `corpora/synthetic_shop/traps_v2.yml` (v2 traps).
+`corpora/synthetic_shop/lineage_spec.yml` (v2 gold), `corpora/synthetic_shop/spec_expected.yml`
+(the design's numbers), `corpora/synthetic_shop/traps.yml` (v2 traps). Corpus guards (S02b):
+`corpora/synthetic_shop/tests/*.sql` (data guarantees), `v1_frozen.sha256`, `engine_gaps.yml`, `linker_gaps.yml`.
 
 ## What it does
 The gold lineage spec is the answer key for the lineage engine and for every benchmark question.
@@ -12,9 +13,9 @@ states, before any SQL exists. If the spec and the design disagree, one of them 
 checker finds it without running dlens or dbt.
 
 ```
-uv run python scripts/check_gold_spec.py                       # v1 spec: structure only
-uv run python scripts/check_gold_spec.py --spec corpora/synthetic_shop/lineage_spec_v2.yml \
-    --expected corpora/synthetic_shop/spec_v2_expected.yml     # v2: every check
+uv run python scripts/check_gold_spec.py                       # synthetic_shop: every check
+uv run python scripts/check_gold_spec.py --spec other.yml      # any spec: structure only
+uv run python scripts/check_gold_spec.py --v1-spec v1.yml      # + v1 edges unchanged
 ```
 
 ## How it works
@@ -65,9 +66,9 @@ With `--expected`: counts per layer and kind (§0, §2); depth recomputed from *
 against the §5 histogram, the n/a set and every Appendix B row (column, hops, and each path step is
 a real direct edge); 6+ columns per model; max depth; columns the design says must not exist (§1:
 `stg_orders.ship_date` for dev-19); unreachable pairs, both direct-only and direct + indirect
-(dev-10: `raw_payments.amt` never reaches `dim_customers.lifetime_value`); the v1 direct edges are
-content-identical to `lineage_spec.yml` (from, to, kind, phase, compared as a multiset over the v1
-models); every model, column, edge, path and indirect row named in the traps file exists, and its
+(dev-10: `raw_payments.amt` never reaches `dim_customers.lifetime_value`); with `--v1-spec`, the v1
+direct edges are content-identical to that file (from, to, kind, phase, compared as a multiset over
+the v1 models; in the default run until the S02b swap, now retired); every model, column, edge, path and indirect row named in the traps file exists, and its
 `absent_edges` (no edge at all, e.g. `is_profitable` into `fct_order_margins`) and
 `absent_direct_edges` (join-key-only columns: no direct edge into that model) hold.
 
@@ -79,10 +80,41 @@ Depth: longest direct-edge path from a seed column (`docs/explain/eval-dev.md`).
 direct path to a seed has depth n/a; in v2 that is only `int_web_sessions_clean.session_number`
 (`row_number()` with no argument).
 
+### After the swap: guards on the corpus itself (S02b)
+S02a checked the gold against the design with no SQL. S02b wrote the SQL and the data, then renamed
+the v2 files over the v1 ones (`lineage_spec_v2.yml` → `lineage_spec.yml`, `traps_v2.yml` →
+`traps.yml`, `spec_v2_expected.yml` → `spec_expected.yml`). Four guards keep SQL, data and gold in
+step without ever deriving gold from the parser:
+- **Data guarantees** (DESIGN_v2 §7.2) are dbt singular tests in `corpora/synthetic_shop/tests/`.
+  Each returns one labelled row per broken guarantee, so `dbt build` (and `test_dbt_tests_pass`)
+  fails loudly. `dlens ingest` never sees them: it builds with `--exclude resource_type:test` and
+  keeps only model, seed and source nodes (an integration test asserts this).
+- **Frozen v1 SQL**: `v1_frozen.sha256` holds the hashes of the 15 v1 SQL files in `sha256sum`
+  format; a unit test (or `sha256sum -c`) checks them, with no git tag needed in CI. It replaces the
+  v1-identity check, which compared spec files rather than SQL.
+- **`via` names in SQL**: every CTE or derived table the gold names in `via` must be a CTE
+  (`name as (`) or derived-table alias (`) as name`) in that model's SQL; `subquery` means an
+  unnamed `IN (select ...)`.
+- **`depends_on` = dbt's ref graph**: the spec's `models.<m>.depends_on` must equal
+  `manifest.json` `depends_on.nodes` per model. That is dbt's graph, not dlens output.
+
+**Engine vs gold.** The 15 v1 models must match the gold exactly. Disagreements on new models are
+listed in `engine_gaps.yml` (from, to, gold kind, engine result, construct, target session), and
+the tests assert that the observed set **equals** the file. A new gap fails, and so does a fixed
+gap until its entry is removed. The file is not gold: it records where the parser is behind the
+gold, and every entry was classified by reading the SQL against DESIGN_v2 Appendix C.
+`linker_gaps.yml` does the same for the entity linker (S08): three exact column ids that lose
+top-1 to their model name, asserted equal to the file, plus a non-asserted `fragile` list.
+
+**Data decision (owner, S02b).** Frozen v1 data sells all 15 products in completed orders, so the
+§7.2 guarantee "products never sold in a completed order" needed one appended product (id 16, costs
+and stock, no order items). The only v1 CSV diffs are appended rows in `raw_orders` (cancelled
+orders) and `raw_products` (product 16); DESIGN_v2 §1 item 4 records it.
+
 ## Why this design
 - **Gold before SQL.** The spec is checked against the design's own counts while no SQL exists,
   so nothing the parser does can leak into it.
-- **Numbers in one file.** `spec_v2_expected.yml` holds every expected number with the design
+- **Numbers in one file.** `spec_expected.yml` holds every expected number with the design
   section it comes from, so a reviewer checks one file against one document.
 - **Compact indirect rows.** 120 rows instead of 621 pairs (63 more pairs are suppressed by D7).
   A reviewer reads one row per clause, the way the SQL is written, and D7 does the fan-out the
@@ -128,7 +160,8 @@ direct path to a seed has depth n/a; in v2 that is only `int_web_sessions_clean.
 1. `stg_a.k` is a JOIN key in model `m`'s final SELECT, and `m.k` is `stg_a.k` unchanged. Which
    pairs does the row `{from: stg_a.k, model: m, type: JOIN, targets: all}` produce, and why is
    `stg_a.k -> m.k` not among them?
-2. Why does the spec carry a column inventory (`models.columns`) when every column already appears
-   as an edge endpoint, and which check would become meaningless without it?
-3. `int_web_sessions_clean.session_number` has depth n/a but passes D3. Explain both facts, and
-   say why it changes none of the 55 columns at 6+ hops.
+2. `engine_gaps.yml` is written from what the engine produced. Why does that not break the rule
+   "gold is never derived from parser output", and what makes the tests fail when S03 fixes the
+   aggregate `FILTER (WHERE ...)` gap?
+3. Why are the §7.2 data checks safe as dbt singular tests for the graph, and which two code paths
+   in `dlens ingest` guarantee it?

@@ -1,7 +1,6 @@
 import json
 import shutil
 import subprocess
-from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -9,24 +8,22 @@ import yaml
 
 from dlens.ingest import IngestResult, ingest
 from dlens.ingest.runner import find_dbt
-from dlens.lineage import ParseQuality, compare, extract_lineage
+from dlens.lineage import ParseQuality, compare, extract_lineage, short_id
 
 pytestmark = pytest.mark.integration
 
 CORPUS = Path(__file__).parents[2] / "corpora" / "synthetic_shop"
+V1_MODELS = {
+    Path(line.split()[1]).stem for line in (CORPUS / "v1_frozen.sha256").read_text().splitlines()
+}
 
 
 def _spec_columns() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
-    """(models, seeds) -> column names, taken from the gold spec's edge endpoints (names only)."""
-    edges = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())["edges"]
-    models: dict[str, set[str]] = defaultdict(set)
-    seeds: dict[str, set[str]] = defaultdict(set)
-    for edge in edges:
-        models[edge["to"].split(".")[0]].add(edge["to"].split(".")[1])
-        src_table, src_col = edge["from"].split(".")
-        if src_table.startswith("raw_"):
-            seeds[src_table].add(src_col)
-    return dict(models), dict(seeds)
+    """(models, seeds) -> column names, from the gold spec's inventory (`models:` and `seeds:`)."""
+    spec = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())
+    models = {name: set(m["columns"]) for name, m in spec["models"].items()}
+    seeds = {name: set(cols) for name, cols in spec["seeds"].items()}
+    return models, seeds
 
 
 @pytest.fixture(scope="module")
@@ -38,7 +35,7 @@ def ingested(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, IngestResu
 
 def test_catalog_matches_gold_spec(ingested: tuple[Path, IngestResult]) -> None:
     spec_models, spec_seeds = _spec_columns()
-    assert len(spec_models) == 15
+    assert len(spec_models) == 49
 
     _, r = ingested
     assert r.unmapped == []
@@ -62,22 +59,42 @@ def test_dbt_tests_pass(tmp_path: Path) -> None:
 
 
 def test_lineage_matches_gold_spec(ingested: tuple[Path, IngestResult]) -> None:
-    """Gate (spec §14, v0.1): direct-edge F1 >= 0.95 against the hand-written gold spec."""
+    """Gate (spec §14, v0.1): direct-edge F1 >= 0.95 against the hand-written gold spec.
+
+    The 15 frozen v1 models match the gold exactly. Every disagreement on a new model, and every
+    model-level citation, is a known parser gap listed in engine_gaps.yml: the observed sets must
+    equal the file, so a new gap fails and a fixed gap fails until its entry is removed."""
     project, r = ingested
     result = extract_lineage(r, project)
     assert all(p.quality == ParseQuality.FULL for p in result.parse_report.values())
-    assert not any(e.model_level_citation for e in result.edges)
     gold = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())["edges"]
     report = compare(result.edges, [g for g in gold if g["phase"] == "v0.1"])
-    detail = f"missing={report.missing} extra={report.extra} kinds={report.kind_mismatches}"
-    assert report.f1 >= 0.95, detail
-    assert report.kind_accuracy >= 0.95, detail
+    seen = (
+        {(f, t, None, "extra", k) for f, t, k in report.extra}
+        | {(f, t, k, "missing", None) for f, t, k in report.missing}
+        | {(f, t, g, "wrong_kind", e) for f, t, g, e in report.kind_mismatches}
+    )
+    assert {d for d in seen if d[1].split(".")[0] in V1_MODELS} == set()
+
+    gaps = yaml.safe_load((CORPUS / "engine_gaps.yml").read_text())
+    known = {
+        (g["from"], g["to"], g["gold_kind"], g["engine"], g.get("engine_kind"))
+        for g in gaps["direct_edges"]
+    }
+    assert seen == known
+    cited_by_model = {
+        (short_id(e.from_column), short_id(e.to_column))
+        for e in result.edges
+        if e.model_level_citation
+    }
+    assert cited_by_model == {(g["from"], g["to"]) for g in gaps["model_level_citations"]}
+    assert report.f1 >= 0.95 and report.kind_accuracy >= 0.95
 
 
 def test_spec_depends_on_matches_dbt_ref_graph(ingested: tuple[Path, IngestResult]) -> None:
     """The gold's models.<m>.depends_on (DESIGN_v2 §2 "Upstream") equals dbt's ref graph."""
     _, r = ingested
-    spec = yaml.safe_load((CORPUS / "lineage_spec_v2.yml").read_text())["models"]
+    spec = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())["models"]
     name = {n.unique_id: n.name for n in [*r.manifest.models, *r.manifest.seeds]}
     dbt = {m.name: sorted(name[u] for u in m.depends_on.nodes) for m in r.manifest.models}
     assert dbt == {m: sorted(v["depends_on"]) for m, v in spec.items()}

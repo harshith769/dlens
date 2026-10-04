@@ -287,10 +287,10 @@ def test_indirect_report_splits_v1_and_new_models(v1_models: set, label: str) ->
 CORPUS = ROOT / "corpora" / "synthetic_shop"
 
 
-def test_synthetic_shop_v2_spec_passes() -> None:
-    checks = cg.run(CORPUS / "lineage_spec_v2.yml", CORPUS / "spec_v2_expected.yml")
+def test_synthetic_shop_spec_passes() -> None:
+    checks = cg.run(CORPUS / "lineage_spec.yml", CORPUS / "spec_expected.yml")
     names = {c.name for c in checks}
-    assert "v1 direct edges content-identical (115 edges)" in names
+    assert not any(n.startswith("v1 direct edges") for n in names)  # retired at the S02b swap
     assert "traps reference spec models/columns/edges" in names
     assert "trap tags vs traps file: 0 mismatches" in names  # informational, but kept clean
     assert failed(checks) == {}
@@ -301,3 +301,13 @@ def test_synthetic_shop_v2_spec_passes() -> None:
                           ("SORT", 0, 4), ("CONDITIONAL", 0, 4)]:  # fmt: skip
         counts = [int(x) for x in models[kind].split() if x.isdigit()]
         assert (counts[2], counts[5]) == (v1, new), models[kind]
+
+
+def test_main_defaults_to_the_synthetic_shop_spec_and_expected_numbers(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr("sys.argv", ["check_gold_spec.py"])
+    assert cg.main() == 0
+    out = capsys.readouterr().out
+    assert "PASS  depth histogram (DESIGN_v2 §5)" in out
+    assert "v1 direct edges" not in out

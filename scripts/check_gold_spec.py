@@ -1,14 +1,13 @@
 """Check a hand-written gold lineage spec for internal consistency and against its design numbers.
 
-    uv run python scripts/check_gold_spec.py                                   # v1 spec, structure
-    uv run python scripts/check_gold_spec.py \
-        --spec corpora/synthetic_shop/lineage_spec_v2.yml \
-        --expected corpora/synthetic_shop/spec_v2_expected.yml                # v2, all checks
+    uv run python scripts/check_gold_spec.py              # synthetic_shop spec + spec_expected.yml
+    uv run python scripts/check_gold_spec.py --spec other.yml             # structure only
+    uv run python scripts/check_gold_spec.py --v1-spec v1.yml             # + v1 edges unchanged
 
 Reads only YAML; never runs dlens or dbt. Without --expected only the structural checks run
 (schema, endpoints, duplicates, direct/indirect overlap, depends_on, incoming edges). The expected
 file holds the design's numbers (counts, depth histogram, Appendix B, reachability) and points at
-the v1 spec and the traps file. Indirect rows are expanded with dlens.gold_spec.expand_indirect
+the traps file. The v1-identity check runs only with --v1-spec (or a `v1_spec:` key). Indirect rows are expanded with dlens.gold_spec.expand_indirect
 (DESIGN_v2 §10 D7). Exits 1 if a gated check fails; INFO lines are reported, never gated.
 See docs/explain/gold-spec.md.
 """
@@ -27,6 +26,7 @@ from dlens.gold_spec import ALL_TARGETS, INDIRECT_TYPES, IndirectPair, expand_in
 
 ROOT = Path(__file__).parents[1]
 DEFAULT_SPEC = ROOT / "corpora" / "synthetic_shop" / "lineage_spec.yml"
+DEFAULT_EXPECTED = DEFAULT_SPEC.with_name("spec_expected.yml")
 DIRECT_KINDS = ("IDENTITY", "RENAME", "TRANSFORMATION", "AGGREGATION")
 EDGE_KEYS = {"from", "to", "kind", "phase", "traps"}
 INDIRECT_REQUIRED = {"from", "model", "type", "phase", "targets"}
@@ -462,7 +462,7 @@ def check_traps(v: View, traps: Mapping[str, Any]) -> list[Check]:
     any_pair = direct | {(x.from_column, x.to_column) for x in v.pairs}
     rows = {(str(r["from"]), str(r["model"]), str(r["type"])) for r in v.indirect_rows}
     p: list[str] = []
-    for where, key, val in _walk(traps, "traps_v2"):
+    for where, key, val in _walk(traps, "traps"):
         vals = val if isinstance(val, list) else [val]
         for x in vals:
             if key in ("models", "depends_on") and x not in tables:
@@ -569,6 +569,7 @@ def check_spec(
     if traps is not None:
         checks += check_traps(v, traps)
     v1_models = {table(str(e["to"])) for e in _rows(v1_spec or {}, "edges")}
+    v1_models |= set((expected or {}).get("v1_models", []))
     checks.append(indirect_report(v, v1_models))
     return checks
 
@@ -606,10 +607,16 @@ def run(
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--spec", type=Path, default=DEFAULT_SPEC)
-    ap.add_argument("--expected", type=Path, help="design numbers (e.g. spec_v2_expected.yml)")
+    ap.add_argument(
+        "--expected",
+        type=Path,
+        help="design numbers (default for the default spec: spec_expected.yml)",
+    )
     ap.add_argument("--v1-spec", type=Path, help="v1 spec whose edges must be kept unchanged")
     ap.add_argument("--traps", type=Path, help="traps file whose references must exist")
     args = ap.parse_args()
+    if args.expected is None and args.spec == DEFAULT_SPEC:
+        args.expected = DEFAULT_EXPECTED
     checks = run(args.spec, args.expected, args.v1_spec, args.traps)
     print(f"spec: {args.spec}")
     for c in checks:

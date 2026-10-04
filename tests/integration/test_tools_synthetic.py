@@ -27,11 +27,28 @@ def gold_kinds() -> dict[tuple[str, str], str]:
     return {(e["from"].lower(), e["to"].lower()): e["kind"] for e in spec}
 
 
+GAPS = yaml.safe_load((CORPUS / "engine_gaps.yml").read_text())
+
+
+def known_engine_kinds() -> dict[tuple[str, str], str]:
+    """Known parser gaps where the graph has an edge the gold lacks or kinds differ."""
+    return {
+        (g["from"], g["to"]): g["engine_kind"]
+        for g in GAPS["direct_edges"]
+        if g["engine"] in ("extra", "wrong_kind")
+    }
+
+
+MODEL_LEVEL_CITED = {(g["from"], g["to"]) for g in GAPS["model_level_citations"]}
+
+
 def test_every_edge_returned_by_trace_and_impact_is_in_the_gold_spec(
     box: Toolbox, synthetic_graph: LineageGraph
 ) -> None:
     gold = gold_kinds()
+    gaps = known_engine_kinds()
     seen: set[str] = set()
+    seen_gaps: set[tuple[str, str]] = set()
     for col in synthetic_graph.columns():
         box.reset()
         for tool in ("trace_upstream", "impact_downstream"):
@@ -39,9 +56,12 @@ def test_every_edge_returned_by_trace_and_impact_is_in_the_gold_spec(
             assert not r.is_error, (tool, col, r.llm_payload)
             for eid, rec in r.side_records["edges"].items():
                 key = (short_id(rec["from"]), short_id(rec["to"]))
-                assert gold.get(key) == rec["kind"], (key, rec["kind"], gold.get(key))
+                if gold.get(key) != rec["kind"]:  # only a listed gap may disagree
+                    assert gaps.get(key) == rec["kind"], (key, rec["kind"], gold.get(key))
+                    seen_gaps.add(key)
                 seen.add(eid)
     assert len(seen) == len(synthetic_graph.edges())  # and together they reach every edge
+    assert seen_gaps == set(gaps)  # engine_gaps.yml is exact: no stale entries
 
 
 def test_edge_ids_are_stable_across_two_builds_and_unique(
@@ -67,12 +87,15 @@ def test_locator_quality_on_every_column(
     box: Toolbox, synthetic_graph: LineageGraph, capsys
 ) -> None:  # type: ignore[no-untyped-def]
     counts: Counter[str] = Counter()
+    model_level: set[str] = set()
     for col in synthetic_graph.columns():
         c = box._prov.column_citation(col)
         name = synthetic_graph.nx_graph.nodes[col]["name"]
         text = (box.project_dir / c.file).read_text()
         counts[c.level] += 1
         if c.level == "model":
+            if not col.startswith("seed."):
+                model_level.add(synthetic_graph.display_name(col))
             assert (c.line_start, c.line_end) == (1, len(text.splitlines()))
             continue
         chunk = "\n".join(text.splitlines()[c.line_start - 1 : c.line_end])
@@ -82,18 +105,21 @@ def test_locator_quality_on_every_column(
             assert c.level == "star" and "*" in chunk, (col, chunk)
     with capsys.disabled():
         print(f"\nlocator on synthetic_shop columns: {dict(counts)} of {sum(counts.values())}")
-    seeds = sum(1 for c in synthetic_graph.columns() if c.startswith("seed."))
-    assert counts["model"] == seeds  # only seed columns (CSV, no SQL) fall back to model level
+    # only seed columns (CSV, no SQL) fall back to model level, plus the listed parser gap
+    assert model_level == {to for _, to in MODEL_LEVEL_CITED}
 
 
 def test_edge_citations_hold_for_every_edge(box: Toolbox, synthetic_graph: LineageGraph) -> None:
     levels: Counter[str] = Counter()
+    model_level: set[tuple[str, str]] = set()
     for e in synthetic_graph.edges():
         c = box._prov.edge_citation(e)
         levels[c.level] += 1
         assert (box.project_dir / c.file).is_file() and c.file.startswith("models/")
+        if c.level == "model":
+            model_level.add((short_id(e.from_column), short_id(e.to_column)))
     assert levels["line"] + levels["star"] + levels["model"] == len(synthetic_graph.edges())
-    assert levels["model"] == 0
+    assert model_level == MODEL_LEVEL_CITED  # engine_gaps.yml; zero once the gap is fixed
 
 
 # -- resolve_entity -----------------------------------------------------------------------------
@@ -104,9 +130,15 @@ def top(box: Toolbox, text: str, k: int = 5) -> list[dict[str, object]]:
 
 
 def test_top1_on_every_exact_column_id(box: Toolbox, synthetic_graph: LineageGraph) -> None:
+    """Every exact column id is top-1, except the known linker gaps in linker_gaps.yml (S08). The
+    failures must equal that list: a new failure fails, and a fixed one fails until removed."""
+    failures = set()
     for col in synthetic_graph.columns():
         want = synthetic_graph.display_name(col)
-        assert top(box, want, 1)[0]["id"] == want
+        if top(box, want, 1)[0]["id"] != want:
+            failures.add(want)
+    gaps = yaml.safe_load((CORPUS / "linker_gaps.yml").read_text())["exact_id_top1"]
+    assert failures == {g["id"] for g in gaps}
 
 
 def test_top1_on_exact_bare_names_is_a_column_with_that_name(box: Toolbox) -> None:
@@ -146,8 +178,16 @@ def test_equal_candidates_are_all_returned_and_flagged(box: Toolbox) -> None:
 
 
 def test_qty_finds_every_quantity_column(box: Toolbox) -> None:
-    ids = [str(c["id"]) for c in top(box, "qty", 5)]
-    assert {"stg_order_items.quantity", "raw_order_items.quantity"} <= set(ids[:3])
+    # DESIGN_v2 §9 + owner decision (S02b): no order between `quantity` and literal `qty_*`
+    # columns is asserted; that ranking is S08 linker design.
+    ids = [str(c["id"]) for c in top(box, "qty", 6)]
+    assert {
+        "raw_order_items.quantity",
+        "stg_order_items.quantity",
+        "int_order_items_enriched.quantity",
+        "int_order_item_margins.quantity",
+    } <= set(ids)
+    assert box.call("resolve_entity", {"text": "qty"}).llm_payload["ambiguous"] is True
 
 
 def test_near_duplicate_refund_names_are_not_collapsed(box: Toolbox) -> None:

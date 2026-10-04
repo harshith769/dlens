@@ -1,9 +1,16 @@
-# Expected numbers for lineage_spec_v2.yml, every one taken from corpora/synthetic_shop/DESIGN_v2.md.
+# Expected numbers for lineage_spec.yml (v2), every one taken from corpora/synthetic_shop/DESIGN_v2.md.
 # Used by scripts/check_gold_spec.py --expected and by tests/unit/test_check_gold_spec.py.
 # Paths below are relative to this file. Never fill these in from dlens output.
 
-v1_spec: lineage_spec.yml  # the 115 v1 edges must stay content-identical (DESIGN_v2 §1.2, §10 D2)
-traps: traps_v2.yml  # every reference must exist (DESIGN_v2 §3)
+# The v1-identity check (`v1_spec:`) ran until the S02b swap. v1 SQL is now guarded by
+# v1_frozen.sha256; pass --v1-spec <file> to rerun it against a saved v1 spec.
+traps: traps.yml  # every reference must exist (DESIGN_v2 §3)
+
+# DESIGN_v2 Appendix A: the 15 frozen v1 models (splits the indirect-edge report v1 vs new)
+v1_models: [stg_customers, stg_orders, stg_order_items, stg_products, stg_payments, stg_refunds,
+            int_order_items_enriched, int_orders_enriched, int_payment_events, int_order_financials,
+            int_customer_order_history, fct_orders, dim_customers, fct_daily_revenue,
+            fct_payment_events]
 
 # DESIGN_v2 §0 Summary and §2 Model inventory
 counts:

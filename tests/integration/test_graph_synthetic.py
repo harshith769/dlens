@@ -50,7 +50,7 @@ def test_save_load_round_trip(synthetic_graph: LineageGraph, tmp_path: Path) -> 
 
 def test_parse_report_covers_every_model(synthetic_graph: LineageGraph) -> None:
     report = synthetic_graph.parse_report()
-    assert len([u for u in report if u.startswith("model.")]) == 15
+    assert len([u for u in report if u.startswith("model.")]) == 49
     assert set(report.values()) <= set(ParseQuality)
 
 

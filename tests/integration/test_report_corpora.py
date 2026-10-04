@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from dlens.cli import app
@@ -13,13 +14,16 @@ pytestmark = pytest.mark.integration
 
 runner = CliRunner()
 JAFFLE = Path(__file__).parents[2] / "corpora" / "jaffle_shop"
+GAPS = Path(__file__).parents[2] / "corpora" / "synthetic_shop" / "engine_gaps.yml"
 
 
 def test_report_on_synthetic_shop(synthetic_project: Path, synthetic_graph: LineageGraph) -> None:
     r = build_report(synthetic_graph)
-    assert r.totals.models_by_quality == {"FULL": 15, "TABLE_ONLY": 0, "FAILED": 0}
+    assert r.totals.models_by_quality == {"FULL": 49, "TABLE_ONLY": 0, "FAILED": 0}
     assert r.totals.edges == len(synthetic_graph.edges()) == sum(r.totals.edges_by_kind.values())
-    assert r.totals.model_level_citations == 0
+    # known parser gap (SELECT * EXCLUDE), listed in engine_gaps.yml
+    known = yaml.safe_load(GAPS.read_text())["model_level_citations"]
+    assert r.totals.model_level_citations == len(known)
     assert r.totals.low_confidence_edges == 0
     out = runner.invoke(app, ["report", "-p", str(synthetic_project), "--json"])
     assert out.exit_code == 0, out.output

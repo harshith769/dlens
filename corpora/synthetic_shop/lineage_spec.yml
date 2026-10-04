@@ -1,13 +1,189 @@
-# Gold lineage spec for corpora/synthetic_shop (v0.1: 15 models, direct edges only).
+# Gold lineage spec v2 for corpora/synthetic_shop (v0.3: 49 models).
 #
-# Hand-authored from DESIGN.md. NEVER regenerate this file from dlens (or any parser) output.
-# Column ids are model.column; seed columns (raw_*) only ever appear as `from` (leaves).
-# Edge kind = the strongest operation on the path inside one model:
-#   AGGREGATION > TRANSFORMATION > RENAME > IDENTITY   (see DESIGN.md "Conventions").
-# Indirect edges (JOIN, GROUP_BY, WINDOW, FILTER, ...) are phase v0.3 and are listed in
-# DESIGN.md "Deferred indirect edges"; they are not in this file yet.
+# Hand-authored from DESIGN_v2.md (Appendix A for the frozen v1 names, §2 for seeds and
+# "Upstream", Appendix C for every new column). NEVER regenerate this file from dlens (or any
+# parser) output. Written in S02a as lineage_spec_v2.yml; swapped in by S02b with the v2 SQL.
+#
+# seeds / models: the column inventory, written from the design tables independently of the edges.
+#   models.<name>.depends_on is DESIGN_v2 §2 "Upstream" (seeds for staging).
+# edges: direct edges (phase v0.1). The first block is the 115 v1 edges, copied unchanged from
+#   the v1 lineage_spec.yml (tag corpus-v1). Edge kind = the strongest operation on the path
+#   inside one model: AGGREGATION > TRANSFORMATION > RENAME > IDENTITY. `traps` tags are informational;
+#   traps.yml is the source of truth.
+# indirect_edges: phase v0.3, one row per key column and clause (DESIGN_v2 §4, §10 D1 and D7).
+#   Expanded to pairs by dlens.gold_spec.expand_indirect. See docs/explain/gold-spec.md.
+# Check: uv run python scripts/check_gold_spec.py   (defaults: this file + spec_expected.yml)
+
+seeds:
+  raw_customers:           [id, first_name, last_name, email, country, created_at]
+  raw_orders:              [id, user_id, order_date, status, tax_usd]
+  raw_order_items:         [id, order_id, product_id, quantity, unit_price]
+  raw_products:            [id, name, category, list_price]
+  raw_payments:            [id, order_id, method, amt, created_at]
+  raw_refunds:             [id, order_id, refund_amt, reason, created_at]
+  raw_shipments:           [id, order_id, carrier, shipped_at, delivered_at, shipping_cost_usd]
+  raw_web_sessions:        [id, user_id, started_at, channel, utm_campaign, page_views, is_bot]
+  raw_marketing_spend:     [spend_day, channel, campaign, spend_usd, impressions, clicks]
+  raw_promotions:          [id, code, discount_pct, starts_at, ends_at, channel]
+  raw_order_promotions:    [id, order_id, promotion_id, discount_usd]
+  raw_suppliers:           [id, name, country, lead_time_days]
+  raw_product_costs:       [id, product_id, supplier_id, unit_cost, valid_from]
+  raw_inventory_snapshots: [id, product_id, snapshot_date, qty_on_hand, warehouse]
+
+models:
+  # ---------------------------------------------------------------- staging
+  stg_customers:  # v1, frozen
+    depends_on: [raw_customers]
+    columns: [customer_id, first_name, last_name, email, country_code, signup_at]
+  stg_orders:  # v1, frozen
+    depends_on: [raw_orders]
+    columns: [order_id, customer_id, order_date, status, tax_amount]
+  stg_order_items:  # v1, frozen
+    depends_on: [raw_order_items]
+    columns: [order_item_id, order_id, product_id, quantity, unit_price]
+  stg_products:  # v1, frozen
+    depends_on: [raw_products]
+    columns: [product_id, product_name, category, list_price]
+  stg_payments:  # v1, frozen
+    depends_on: [raw_payments]
+    columns: [payment_id, order_id, payment_method, amount_usd, paid_at]
+  stg_refunds:  # v1, frozen
+    depends_on: [raw_refunds]
+    columns: [refund_id, order_id, refund_amt, refund_reason, refunded_at]
+  stg_shipments:
+    depends_on: [raw_shipments]
+    columns: [shipment_id, order_id, carrier, shipped_at, delivered_at, shipping_cost_usd, delivery_days]
+  stg_web_sessions:
+    depends_on: [raw_web_sessions]
+    columns: [session_id, customer_id, session_started_at, channel, utm_campaign, page_views, is_bot]
+  stg_marketing_spend:
+    depends_on: [raw_marketing_spend]
+    columns: [spend_date, channel, campaign_name, spend_usd, impressions, clicks]
+  stg_promotions:
+    depends_on: [raw_promotions]
+    columns: [promotion_id, promo_code, discount_pct, starts_at, ends_at, promo_channel]
+  stg_order_promotions:
+    depends_on: [raw_order_promotions]
+    columns: [order_promotion_id, order_id, promotion_id, discount_usd]
+  stg_suppliers:
+    depends_on: [raw_suppliers]
+    columns: [supplier_id, supplier_name, supplier_country, lead_time_days]
+  stg_product_costs:
+    depends_on: [raw_product_costs]
+    columns: [product_cost_id, product_id, supplier_id, unit_cost, valid_from]
+  stg_inventory_snapshots:
+    depends_on: [raw_inventory_snapshots]
+    columns: [snapshot_id, product_id, snapshot_date, qty_on_hand, warehouse_code]
+  # ----------------------------------------------------------- intermediate
+  int_order_items_enriched:  # v1, frozen
+    depends_on: [stg_order_items, stg_products]
+    columns: [order_item_id, order_id, product_id, product_category, quantity, unit_price, line_amount, is_discounted]
+  int_orders_enriched:  # v1, frozen
+    depends_on: [stg_orders, int_order_items_enriched]
+    columns: [order_id, customer_id, order_date, order_status_group, order_tax, item_count, items_subtotal]
+  int_payment_events:  # v1, frozen
+    depends_on: [stg_payments, stg_refunds]
+    columns: [event_id, order_id, event_amount_usd, event_at]
+  int_order_financials:  # v1, frozen
+    depends_on: [int_orders_enriched, stg_refunds, int_payment_events]
+    columns: [order_id, customer_id, order_date, order_status_group, item_count, items_subtotal, sales_tax, order_total, refund_amount, net_paid_usd]
+  int_customer_order_history:  # v1, frozen
+    depends_on: [int_order_financials]
+    columns: [order_id, customer_id, order_date, order_status_group, item_count, items_subtotal, sales_tax, order_total, refund_amount, net_paid_usd, previous_order_date]
+  int_shipments_enriched:
+    depends_on: [stg_shipments, stg_orders]
+    columns: [shipment_id, order_id, carrier, shipped_at, delivered_at, delivery_days, shipping_cost_usd, days_to_ship, is_late_delivery]
+  int_order_shipping:
+    depends_on: [int_shipments_enriched]
+    columns: [order_id, shipment_count, shipping_cost_total, first_shipped_at, last_delivered_at, late_shipment_count]
+  int_web_sessions_clean:
+    depends_on: [stg_web_sessions]
+    columns: [session_id, customer_id, session_started_at, channel, utm_campaign, page_views, session_date, session_number]
+  int_campaign_spend_daily:
+    depends_on: [stg_marketing_spend]
+    columns: [spend_date, channel, spend_usd, impressions, clicks, click_through_rate]
+  int_sessions_daily:
+    depends_on: [int_web_sessions_clean]
+    columns: [session_date, channel, session_count, visitor_count, page_views]
+  int_customer_sessions:
+    depends_on: [int_web_sessions_clean]
+    columns: [customer_id, session_count, paid_session_count, first_session_at, last_session_at, total_page_views]
+  int_order_attribution:
+    depends_on: [int_customer_order_history, int_web_sessions_clean]
+    columns: [order_id, customer_id, order_date, attributed_session_id, attributed_channel, attributed_campaign, attributed_revenue, days_to_convert]
+  int_product_costs_current:
+    depends_on: [stg_product_costs, stg_suppliers]
+    columns: [product_id, supplier_id, unit_cost, cost_valid_from, supplier_name, supplier_country, lead_time_days]
+  int_order_item_margins:
+    depends_on: [int_order_items_enriched, int_product_costs_current]
+    columns: [order_item_id, order_id, product_id, quantity, line_amount, is_discounted, unit_cost, supplier_id, line_cost, line_margin]
+  int_order_promotions:
+    depends_on: [stg_order_promotions, stg_promotions]
+    columns: [order_id, promotion_count, discount_total, max_discount_pct, promo_codes]
+  int_inventory_daily:
+    depends_on: [stg_inventory_snapshots, stg_products]
+    columns: [product_id, snapshot_date, warehouse_code, qty_on_hand, inventory_value, prior_qty_on_hand, qty_change]
+  int_order_adjustments:
+    depends_on: [stg_order_promotions, stg_refunds, stg_shipments]
+    columns: [adjustment_id, order_id, adjustment_amount_usd]
+  int_order_profit:
+    depends_on: [int_customer_order_history, int_order_item_margins, int_order_shipping, int_order_promotions]
+    columns: [order_id, customer_id, order_date, net_revenue, cogs_total, gross_margin, shipping_cost_total, discount_total, contribution_margin, is_profitable]
+  # ------------------------------------------------------------------ marts
+  fct_orders:  # v1, frozen
+    depends_on: [int_customer_order_history]
+    columns: [order_id, customer_id, order_date, previous_order_date, order_status_group, item_count, items_subtotal, sales_tax, order_total, refunded_amount, net_paid_usd, revenue_finance, revenue_marketing, days_since_previous_order]
+  dim_customers:  # v1, frozen
+    depends_on: [stg_customers, fct_orders]
+    columns: [customer_id, full_name, email, country_code, signup_at, first_order_date, most_recent_order_date, order_count, lifetime_value]
+  fct_daily_revenue:  # v1, frozen
+    depends_on: [fct_orders]
+    columns: [order_date, order_count, revenue_finance, revenue_marketing, refunded_amount]
+  fct_payment_events:  # v1, frozen
+    depends_on: [int_payment_events]
+    columns: [event_id, order_id, event_amount_usd, event_at]
+  fct_order_margins:
+    depends_on: [int_order_profit]
+    columns: [order_id, customer_id, order_date, net_revenue, cogs_total, gross_margin, shipping_cost_total, discount_total, contribution_margin, margin_pct]
+  dim_customer_rfm:
+    depends_on: [dim_customers, fct_orders, int_customer_sessions]
+    columns: [customer_id, recency_days, rfm_recency_score, rfm_frequency_score, rfm_monetary_score, rfm_score, web_session_count]
+  dim_customer_segments:
+    depends_on: [dim_customer_rfm]
+    columns: [customer_id, rfm_score, recency_days, customer_segment, is_high_value]
+  fct_segment_monthly:
+    depends_on: [fct_orders, dim_customer_segments]
+    columns: [order_month, customer_segment, segment_order_count, active_customers, segment_revenue_finance]
+  fct_marketing_attribution:
+    depends_on: [int_campaign_spend_daily, int_sessions_daily, int_order_attribution]
+    columns: [report_date, channel, spend_usd, session_count, attributed_orders, attributed_revenue, cost_per_order, roas]
+  fct_channel_performance_monthly:
+    depends_on: [fct_marketing_attribution]
+    columns: [report_month, channel, spend_usd, attributed_revenue, roas]
+  fct_product_performance:
+    depends_on: [int_order_item_margins, int_orders_enriched, stg_products]
+    columns: [product_id, product_name, product_category, units_sold, discounted_units, gross_sales, gross_margin]
+  fct_top_products:
+    depends_on: [fct_product_performance]
+    columns: [product_id, product_name, units_sold, gross_margin]
+  fct_customer_leaderboard:
+    depends_on: [dim_customers, dim_customer_segments]
+    columns: [customer_id, full_name, lifetime_value_usd, customer_segment]
+  fct_inventory_status:
+    depends_on: [int_inventory_daily, fct_product_performance]
+    columns: [product_id, warehouse_code, as_of_date, qty_on_hand, inventory_value, days_of_cover]
+  fct_shipping_performance:
+    depends_on: [int_shipments_enriched]
+    columns: [carrier, ship_month, shipment_count, late_shipment_count, avg_delivery_days, shipping_costs_usd]
+  fct_customer_cohorts:
+    depends_on: [fct_orders, dim_customers]
+    columns: [cohort_month, order_month, months_since_signup, cohort_customers, repeat_customers, cohort_net_paid, cumulative_net_paid]
+  fct_monthly_finance:
+    depends_on: [fct_daily_revenue, fct_order_margins, int_order_adjustments, fct_orders]
+    columns: [finance_month, revenue_finance, revenue_marketing, refunded_amount, net_revenue, contribution_margin, adjustments_total, revenue_finance_mom_change]
 
 edges:
+  # ==================================== v1 edges (115, unchanged from the v1 spec)
   # ---------------------------------------------------------------- staging
   # stg_customers  <- raw_customers
   - {from: raw_customers.id,         to: stg_customers.customer_id,  kind: RENAME,         phase: v0.1, traps: []}
@@ -155,3 +331,539 @@ edges:
   - {from: int_payment_events.order_id,         to: fct_payment_events.order_id,         kind: IDENTITY, phase: v0.1, traps: [select_star]}
   - {from: int_payment_events.event_amount_usd, to: fct_payment_events.event_amount_usd, kind: IDENTITY, phase: v0.1, traps: [select_star]}
   - {from: int_payment_events.event_at,         to: fct_payment_events.event_at,         kind: IDENTITY, phase: v0.1, traps: [select_star]}
+
+  # ====================================== v2 edges (248, from DESIGN_v2 Appendix C)
+  # ---------------------------------------------------------------- staging
+  # stg_shipments  <- raw_shipments
+  - {from: raw_shipments.id,                to: stg_shipments.shipment_id,       kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_shipments.order_id,          to: stg_shipments.order_id,          kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_shipments.carrier,           to: stg_shipments.carrier,           kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: raw_shipments.shipped_at,        to: stg_shipments.shipped_at,        kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_shipments.delivered_at,      to: stg_shipments.delivered_at,      kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_shipments.shipping_cost_usd, to: stg_shipments.shipping_cost_usd, kind: IDENTITY,       phase: v0.1, traps: [near_duplicate_names]}
+  - {from: raw_shipments.shipped_at,        to: stg_shipments.delivery_days,     kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: raw_shipments.delivered_at,      to: stg_shipments.delivery_days,     kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # stg_web_sessions  <- raw_web_sessions (no filter in staging)
+  - {from: raw_web_sessions.id,           to: stg_web_sessions.session_id,         kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_web_sessions.user_id,      to: stg_web_sessions.customer_id,        kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_web_sessions.started_at,   to: stg_web_sessions.session_started_at, kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_web_sessions.channel,      to: stg_web_sessions.channel,            kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: raw_web_sessions.utm_campaign, to: stg_web_sessions.utm_campaign,       kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_web_sessions.page_views,   to: stg_web_sessions.page_views,         kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_web_sessions.is_bot,       to: stg_web_sessions.is_bot,             kind: IDENTITY,       phase: v0.1, traps: []}
+
+  # stg_marketing_spend  <- raw_marketing_spend
+  - {from: raw_marketing_spend.spend_day,   to: stg_marketing_spend.spend_date,    kind: RENAME,         phase: v0.1, traps: [rename_chain]}
+  - {from: raw_marketing_spend.channel,     to: stg_marketing_spend.channel,       kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: raw_marketing_spend.campaign,    to: stg_marketing_spend.campaign_name, kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_marketing_spend.spend_usd,   to: stg_marketing_spend.spend_usd,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_marketing_spend.impressions, to: stg_marketing_spend.impressions,   kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_marketing_spend.clicks,      to: stg_marketing_spend.clicks,        kind: IDENTITY,       phase: v0.1, traps: []}
+
+  # stg_promotions  <- raw_promotions
+  - {from: raw_promotions.id,           to: stg_promotions.promotion_id,  kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_promotions.code,         to: stg_promotions.promo_code,    kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: raw_promotions.discount_pct, to: stg_promotions.discount_pct,  kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_promotions.starts_at,    to: stg_promotions.starts_at,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_promotions.ends_at,      to: stg_promotions.ends_at,       kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_promotions.channel,      to: stg_promotions.promo_channel, kind: RENAME,         phase: v0.1, traps: []}
+
+  # stg_order_promotions  <- raw_order_promotions (bridge: 0..2 promotions per order)
+  - {from: raw_order_promotions.id,           to: stg_order_promotions.order_promotion_id, kind: RENAME,   phase: v0.1, traps: []}
+  - {from: raw_order_promotions.order_id,     to: stg_order_promotions.order_id,           kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: raw_order_promotions.promotion_id, to: stg_order_promotions.promotion_id,       kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: raw_order_promotions.discount_usd, to: stg_order_promotions.discount_usd,       kind: IDENTITY, phase: v0.1, traps: []}
+
+  # stg_suppliers  <- raw_suppliers
+  - {from: raw_suppliers.id,             to: stg_suppliers.supplier_id,      kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_suppliers.name,           to: stg_suppliers.supplier_name,    kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_suppliers.country,        to: stg_suppliers.supplier_country, kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: raw_suppliers.lead_time_days, to: stg_suppliers.lead_time_days,   kind: IDENTITY,       phase: v0.1, traps: []}
+
+  # stg_product_costs  <- raw_product_costs (cost history)
+  - {from: raw_product_costs.id,          to: stg_product_costs.product_cost_id, kind: RENAME,   phase: v0.1, traps: []}
+  - {from: raw_product_costs.product_id,  to: stg_product_costs.product_id,      kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: raw_product_costs.supplier_id, to: stg_product_costs.supplier_id,     kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: raw_product_costs.unit_cost,   to: stg_product_costs.unit_cost,       kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: raw_product_costs.valid_from,  to: stg_product_costs.valid_from,      kind: IDENTITY, phase: v0.1, traps: []}
+
+  # stg_inventory_snapshots  <- raw_inventory_snapshots
+  - {from: raw_inventory_snapshots.id,            to: stg_inventory_snapshots.snapshot_id,    kind: RENAME,         phase: v0.1, traps: []}
+  - {from: raw_inventory_snapshots.product_id,    to: stg_inventory_snapshots.product_id,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_inventory_snapshots.snapshot_date, to: stg_inventory_snapshots.snapshot_date,  kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_inventory_snapshots.qty_on_hand,   to: stg_inventory_snapshots.qty_on_hand,    kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: raw_inventory_snapshots.warehouse,     to: stg_inventory_snapshots.warehouse_code, kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # ----------------------------------------------------------- intermediate
+  # int_shipments_enriched  <- stg_shipments INNER JOIN stg_orders ON order_id
+  - {from: stg_shipments.shipment_id,       to: int_shipments_enriched.shipment_id,       kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_shipments.order_id,          to: int_shipments_enriched.order_id,          kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_shipments.carrier,           to: int_shipments_enriched.carrier,           kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_shipments.shipped_at,        to: int_shipments_enriched.shipped_at,        kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_shipments.delivered_at,      to: int_shipments_enriched.delivered_at,      kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_shipments.delivery_days,     to: int_shipments_enriched.delivery_days,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_shipments.shipping_cost_usd, to: int_shipments_enriched.shipping_cost_usd, kind: IDENTITY,       phase: v0.1, traps: [near_duplicate_names]}
+  - {from: stg_shipments.shipped_at,        to: int_shipments_enriched.days_to_ship,      kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: stg_orders.order_date,           to: int_shipments_enriched.days_to_ship,      kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: stg_shipments.delivery_days,     to: int_shipments_enriched.is_late_delivery,  kind: TRANSFORMATION, phase: v0.1, traps: [case_transformation]}
+
+  # int_order_shipping  <- int_shipments_enriched GROUP BY order_id (CONDITIONAL half of the pair)
+  - {from: int_shipments_enriched.order_id,          to: int_order_shipping.order_id,            kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.shipment_id,       to: int_order_shipping.shipment_count,      kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.shipping_cost_usd, to: int_order_shipping.shipping_cost_total, kind: AGGREGATION, phase: v0.1, traps: [near_duplicate_names]}
+  - {from: int_shipments_enriched.shipped_at,        to: int_order_shipping.first_shipped_at,    kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.delivered_at,      to: int_order_shipping.last_delivered_at,   kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.shipment_id,       to: int_order_shipping.late_shipment_count, kind: AGGREGATION, phase: v0.1, traps: []}
+
+  # int_web_sessions_clean  <- stg_web_sessions WHERE NOT is_bot AND page_views > 0
+  - {from: stg_web_sessions.session_id,         to: int_web_sessions_clean.session_id,         kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_web_sessions.customer_id,        to: int_web_sessions_clean.customer_id,        kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_web_sessions.session_started_at, to: int_web_sessions_clean.session_started_at, kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_web_sessions.channel,            to: int_web_sessions_clean.channel,            kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_web_sessions.utm_campaign,       to: int_web_sessions_clean.utm_campaign,       kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_web_sessions.page_views,         to: int_web_sessions_clean.page_views,         kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_web_sessions.session_started_at, to: int_web_sessions_clean.session_date,       kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # int_campaign_spend_daily  <- stg_marketing_spend GROUP BY spend_date, channel
+  - {from: stg_marketing_spend.spend_date,  to: int_campaign_spend_daily.spend_date,         kind: IDENTITY,    phase: v0.1, traps: [rename_chain]}
+  - {from: stg_marketing_spend.channel,     to: int_campaign_spend_daily.channel,            kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: stg_marketing_spend.spend_usd,   to: int_campaign_spend_daily.spend_usd,          kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_marketing_spend.impressions, to: int_campaign_spend_daily.impressions,        kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_marketing_spend.clicks,      to: int_campaign_spend_daily.clicks,             kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_marketing_spend.clicks,      to: int_campaign_spend_daily.click_through_rate, kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_marketing_spend.impressions, to: int_campaign_spend_daily.click_through_rate, kind: AGGREGATION, phase: v0.1, traps: []}
+
+  # int_sessions_daily  <- int_web_sessions_clean GROUP BY session_date, channel
+  - {from: int_web_sessions_clean.session_date, to: int_sessions_daily.session_date,  kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.channel,      to: int_sessions_daily.channel,       kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.session_id,   to: int_sessions_daily.session_count, kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.customer_id,  to: int_sessions_daily.visitor_count, kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.page_views,   to: int_sessions_daily.page_views,    kind: AGGREGATION, phase: v0.1, traps: []}
+
+  # int_customer_sessions  <- int_web_sessions_clean WHERE customer_id IS NOT NULL GROUP BY customer_id
+  - {from: int_web_sessions_clean.customer_id,        to: int_customer_sessions.customer_id,        kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.session_id,         to: int_customer_sessions.session_count,      kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.session_id,         to: int_customer_sessions.paid_session_count, kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.session_started_at, to: int_customer_sessions.first_session_at,   kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.session_started_at, to: int_customer_sessions.last_session_at,    kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.page_views,         to: int_customer_sessions.total_page_views,   kind: AGGREGATION, phase: v0.1, traps: []}
+
+  # int_order_attribution  <- int_customer_order_history LEFT JOIN int_web_sessions_clean
+  #   ON customer_id AND session_date <= order_date; QUALIFY last touch per order_id
+  - {from: int_customer_order_history.order_id,       to: int_order_attribution.order_id,              kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_customer_order_history.customer_id,    to: int_order_attribution.customer_id,           kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_customer_order_history.order_date,     to: int_order_attribution.order_date,            kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.session_id,         to: int_order_attribution.attributed_session_id, kind: RENAME,         phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.channel,            to: int_order_attribution.attributed_channel,    kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_web_sessions_clean.utm_campaign,       to: int_order_attribution.attributed_campaign,   kind: RENAME,         phase: v0.1, traps: []}
+  - {from: int_customer_order_history.items_subtotal, to: int_order_attribution.attributed_revenue,    kind: TRANSFORMATION, phase: v0.1, traps: [two_revenue_definitions, deep_chain]}
+  - {from: int_customer_order_history.sales_tax,      to: int_order_attribution.attributed_revenue,    kind: TRANSFORMATION, phase: v0.1, traps: [two_revenue_definitions]}
+  - {from: int_web_sessions_clean.session_date,       to: int_order_attribution.days_to_convert,       kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_customer_order_history.order_date,     to: int_order_attribution.days_to_convert,       kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # int_product_costs_current  <- stg_product_costs INNER JOIN stg_suppliers ON supplier_id;
+  #   QUALIFY latest valid_from per product_id
+  - {from: stg_product_costs.product_id,   to: int_product_costs_current.product_id,       kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: stg_product_costs.supplier_id,  to: int_product_costs_current.supplier_id,      kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: stg_product_costs.unit_cost,    to: int_product_costs_current.unit_cost,        kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: stg_product_costs.valid_from,   to: int_product_costs_current.cost_valid_from,  kind: RENAME,   phase: v0.1, traps: []}
+  - {from: stg_suppliers.supplier_name,    to: int_product_costs_current.supplier_name,    kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: stg_suppliers.supplier_country, to: int_product_costs_current.supplier_country, kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: stg_suppliers.lead_time_days,   to: int_product_costs_current.lead_time_days,   kind: IDENTITY, phase: v0.1, traps: []}
+
+  # int_order_item_margins  <- int_order_items_enriched INNER JOIN int_product_costs_current ON product_id
+  - {from: int_order_items_enriched.order_item_id, to: int_order_item_margins.order_item_id, kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.order_id,      to: int_order_item_margins.order_id,      kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.product_id,    to: int_order_item_margins.product_id,    kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.quantity,      to: int_order_item_margins.quantity,      kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.line_amount,   to: int_order_item_margins.line_amount,   kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.is_discounted, to: int_order_item_margins.is_discounted, kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_product_costs_current.unit_cost,    to: int_order_item_margins.unit_cost,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_product_costs_current.supplier_id,  to: int_order_item_margins.supplier_id,   kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.quantity,      to: int_order_item_margins.line_cost,     kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_product_costs_current.unit_cost,    to: int_order_item_margins.line_cost,     kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.line_amount,   to: int_order_item_margins.line_margin,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_items_enriched.quantity,      to: int_order_item_margins.line_margin,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_product_costs_current.unit_cost,    to: int_order_item_margins.line_margin,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # int_order_promotions  <- stg_order_promotions INNER JOIN stg_promotions ON promotion_id
+  #   WHERE promotion_id IN (non-internal promotions) GROUP BY order_id
+  - {from: stg_order_promotions.order_id,     to: int_order_promotions.order_id,         kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: stg_order_promotions.promotion_id, to: int_order_promotions.promotion_count,  kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_order_promotions.discount_usd, to: int_order_promotions.discount_total,   kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_promotions.discount_pct,       to: int_order_promotions.max_discount_pct, kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: stg_promotions.promo_code,         to: int_order_promotions.promo_codes,      kind: AGGREGATION, phase: v0.1, traps: []}
+
+  # int_inventory_daily  <- stg_inventory_snapshots INNER JOIN stg_products ON product_id
+  #   WHERE warehouse_code <> 'WH_TEST'
+  - {from: stg_inventory_snapshots.product_id,     to: int_inventory_daily.product_id,        kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_inventory_snapshots.snapshot_date,  to: int_inventory_daily.snapshot_date,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_inventory_snapshots.warehouse_code, to: int_inventory_daily.warehouse_code,    kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_inventory_snapshots.qty_on_hand,    to: int_inventory_daily.qty_on_hand,       kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: stg_inventory_snapshots.qty_on_hand,    to: int_inventory_daily.inventory_value,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: stg_products.list_price,                to: int_inventory_daily.inventory_value,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: stg_inventory_snapshots.qty_on_hand,    to: int_inventory_daily.prior_qty_on_hand, kind: TRANSFORMATION, phase: v0.1, traps: [window_function]}
+  - {from: stg_inventory_snapshots.qty_on_hand,    to: int_inventory_daily.qty_change,        kind: TRANSFORMATION, phase: v0.1, traps: [window_function]}
+
+  # int_order_adjustments  <- promotions UNION ALL refunds UNION ALL shipments (promotions branch first)
+  - {from: stg_order_promotions.order_promotion_id, to: int_order_adjustments.adjustment_id,         kind: TRANSFORMATION, phase: v0.1, traps: [union_all]}
+  - {from: stg_refunds.refund_id,                   to: int_order_adjustments.adjustment_id,         kind: TRANSFORMATION, phase: v0.1, traps: [union_all]}
+  - {from: stg_shipments.shipment_id,               to: int_order_adjustments.adjustment_id,         kind: TRANSFORMATION, phase: v0.1, traps: [union_all]}
+  - {from: stg_order_promotions.order_id,           to: int_order_adjustments.order_id,              kind: IDENTITY,       phase: v0.1, traps: [union_all]}
+  - {from: stg_refunds.order_id,                    to: int_order_adjustments.order_id,              kind: IDENTITY,       phase: v0.1, traps: [union_all]}
+  - {from: stg_shipments.order_id,                  to: int_order_adjustments.order_id,              kind: IDENTITY,       phase: v0.1, traps: [union_all]}
+  - {from: stg_order_promotions.discount_usd,       to: int_order_adjustments.adjustment_amount_usd, kind: TRANSFORMATION, phase: v0.1, traps: [union_all]}
+  - {from: stg_refunds.refund_amt,                  to: int_order_adjustments.adjustment_amount_usd, kind: TRANSFORMATION, phase: v0.1, traps: [union_all]}
+  - {from: stg_shipments.shipping_cost_usd,         to: int_order_adjustments.adjustment_amount_usd, kind: TRANSFORMATION, phase: v0.1, traps: [union_all]}
+
+  # int_order_profit  <- int_customer_order_history LEFT JOIN item_margins CTE (int_order_item_margins
+  #   GROUP BY order_id) LEFT JOIN int_order_shipping LEFT JOIN int_order_promotions, ON order_id
+  - {from: int_customer_order_history.order_id,       to: int_order_profit.order_id,            kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_customer_order_history.customer_id,    to: int_order_profit.customer_id,         kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_customer_order_history.order_date,     to: int_order_profit.order_date,          kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_customer_order_history.items_subtotal, to: int_order_profit.net_revenue,         kind: TRANSFORMATION, phase: v0.1, traps: [two_revenue_definitions, deep_chain]}
+  - {from: int_customer_order_history.refund_amount,  to: int_order_profit.net_revenue,         kind: TRANSFORMATION, phase: v0.1, traps: [two_revenue_definitions]}
+  - {from: int_order_promotions.discount_total,       to: int_order_profit.net_revenue,         kind: TRANSFORMATION, phase: v0.1, traps: [two_revenue_definitions]}
+  - {from: int_order_item_margins.line_cost,          to: int_order_profit.cogs_total,          kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_order_item_margins.line_margin,        to: int_order_profit.gross_margin,        kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_order_shipping.shipping_cost_total,    to: int_order_profit.shipping_cost_total, kind: TRANSFORMATION, phase: v0.1, traps: [near_duplicate_names]}
+  - {from: int_order_promotions.discount_total,       to: int_order_profit.discount_total,      kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_item_margins.line_margin,        to: int_order_profit.contribution_margin, kind: AGGREGATION,    phase: v0.1, traps: [fan_in_aggregate]}
+  - {from: int_order_shipping.shipping_cost_total,    to: int_order_profit.contribution_margin, kind: TRANSFORMATION, phase: v0.1, traps: [fan_in_aggregate]}
+  - {from: int_order_promotions.discount_total,       to: int_order_profit.contribution_margin, kind: TRANSFORMATION, phase: v0.1, traps: [fan_in_aggregate]}
+  - {from: int_order_item_margins.line_margin,        to: int_order_profit.is_profitable,       kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_order_shipping.shipping_cost_total,    to: int_order_profit.is_profitable,       kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_promotions.discount_total,       to: int_order_profit.is_profitable,       kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # ------------------------------------------------------------------ marts
+  # fct_order_margins  <- SELECT * EXCLUDE (is_profitable), margin_pct FROM int_order_profit
+  - {from: int_order_profit.order_id,            to: fct_order_margins.order_id,            kind: IDENTITY,       phase: v0.1, traps: [select_star]}
+  - {from: int_order_profit.customer_id,         to: fct_order_margins.customer_id,         kind: IDENTITY,       phase: v0.1, traps: [select_star]}
+  - {from: int_order_profit.order_date,          to: fct_order_margins.order_date,          kind: IDENTITY,       phase: v0.1, traps: [select_star]}
+  - {from: int_order_profit.net_revenue,         to: fct_order_margins.net_revenue,         kind: IDENTITY,       phase: v0.1, traps: [select_star, deep_chain]}
+  - {from: int_order_profit.cogs_total,          to: fct_order_margins.cogs_total,          kind: IDENTITY,       phase: v0.1, traps: [select_star]}
+  - {from: int_order_profit.gross_margin,        to: fct_order_margins.gross_margin,        kind: IDENTITY,       phase: v0.1, traps: [select_star]}
+  - {from: int_order_profit.shipping_cost_total, to: fct_order_margins.shipping_cost_total, kind: IDENTITY,       phase: v0.1, traps: [select_star, near_duplicate_names]}
+  - {from: int_order_profit.discount_total,      to: fct_order_margins.discount_total,      kind: IDENTITY,       phase: v0.1, traps: [select_star]}
+  - {from: int_order_profit.contribution_margin, to: fct_order_margins.contribution_margin, kind: IDENTITY,       phase: v0.1, traps: [select_star, stale_doc]}
+  - {from: int_order_profit.contribution_margin, to: fct_order_margins.margin_pct,          kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_profit.net_revenue,         to: fct_order_margins.margin_pct,          kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # dim_customer_rfm  <- dim_customers LEFT JOIN int_customer_sessions ON customer_id;
+  #   as-of date = (SELECT max(order_date) FROM fct_orders); scores in CTEs
+  - {from: dim_customers.customer_id,            to: dim_customer_rfm.customer_id,         kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.recency_days,        kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_orders.order_date,                to: dim_customer_rfm.recency_days,        kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.rfm_recency_score,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_orders.order_date,                to: dim_customer_rfm.rfm_recency_score,   kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: dim_customers.order_count,            to: dim_customer_rfm.rfm_frequency_score, kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: dim_customers.lifetime_value,         to: dim_customer_rfm.rfm_monetary_score,  kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [fan_in_aggregate]}
+  - {from: fct_orders.order_date,                to: dim_customer_rfm.rfm_score,           kind: AGGREGATION,    phase: v0.1, traps: [fan_in_aggregate]}
+  - {from: dim_customers.order_count,            to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [fan_in_aggregate]}
+  - {from: dim_customers.lifetime_value,         to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [deep_chain, deep_chain, fan_in_aggregate]}
+  - {from: int_customer_sessions.session_count,  to: dim_customer_rfm.web_session_count,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # dim_customer_segments  <- dim_customer_rfm
+  - {from: dim_customer_rfm.customer_id,        to: dim_customer_segments.customer_id,      kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: dim_customer_rfm.rfm_score,          to: dim_customer_segments.rfm_score,        kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: dim_customer_rfm.recency_days,       to: dim_customer_segments.recency_days,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: dim_customer_rfm.rfm_score,          to: dim_customer_segments.customer_segment, kind: TRANSFORMATION, phase: v0.1, traps: [deep_chain, deep_chain, case_transformation]}
+  - {from: dim_customer_rfm.rfm_recency_score,  to: dim_customer_segments.customer_segment, kind: TRANSFORMATION, phase: v0.1, traps: [case_transformation]}
+  - {from: dim_customer_rfm.rfm_monetary_score, to: dim_customer_segments.is_high_value,    kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # fct_segment_monthly  <- fct_orders INNER JOIN dim_customer_segments ON customer_id
+  #   GROUP BY customer_segment, month(order_date)
+  - {from: fct_orders.order_date,                  to: fct_segment_monthly.order_month,             kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: dim_customer_segments.customer_segment, to: fct_segment_monthly.customer_segment,        kind: IDENTITY,       phase: v0.1, traps: [deep_chain]}
+  - {from: fct_orders.order_id,                    to: fct_segment_monthly.segment_order_count,     kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_orders.customer_id,                 to: fct_segment_monthly.active_customers,        kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_orders.revenue_finance,             to: fct_segment_monthly.segment_revenue_finance, kind: AGGREGATION,    phase: v0.1, traps: [two_revenue_definitions]}
+
+  # fct_marketing_attribution  <- int_campaign_spend_daily LEFT JOIN int_sessions_daily ON (date, channel)
+  #   LEFT JOIN attributed CTE (int_order_attribution GROUP BY order_date, attributed_channel)
+  - {from: int_campaign_spend_daily.spend_date,      to: fct_marketing_attribution.report_date,        kind: RENAME,         phase: v0.1, traps: [rename_chain]}
+  - {from: int_campaign_spend_daily.channel,         to: fct_marketing_attribution.channel,            kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_campaign_spend_daily.spend_usd,       to: fct_marketing_attribution.spend_usd,          kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_sessions_daily.session_count,         to: fct_marketing_attribution.session_count,      kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_attribution.order_id,           to: fct_marketing_attribution.attributed_orders,  kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_order_attribution.attributed_revenue, to: fct_marketing_attribution.attributed_revenue, kind: AGGREGATION,    phase: v0.1, traps: [deep_chain]}
+  - {from: int_campaign_spend_daily.spend_usd,       to: fct_marketing_attribution.cost_per_order,     kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_order_attribution.order_id,           to: fct_marketing_attribution.cost_per_order,     kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_order_attribution.attributed_revenue, to: fct_marketing_attribution.roas,               kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_campaign_spend_daily.spend_usd,       to: fct_marketing_attribution.roas,               kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # fct_channel_performance_monthly  <- fct_marketing_attribution GROUP BY month(report_date), channel
+  - {from: fct_marketing_attribution.report_date,        to: fct_channel_performance_monthly.report_month,       kind: TRANSFORMATION, phase: v0.1, traps: [rename_chain]}
+  - {from: fct_marketing_attribution.channel,            to: fct_channel_performance_monthly.channel,            kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: fct_marketing_attribution.spend_usd,          to: fct_channel_performance_monthly.spend_usd,          kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_marketing_attribution.attributed_revenue, to: fct_channel_performance_monthly.attributed_revenue, kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_marketing_attribution.attributed_revenue, to: fct_channel_performance_monthly.roas,               kind: AGGREGATION,    phase: v0.1, traps: [deep_chain]}
+  - {from: fct_marketing_attribution.spend_usd,          to: fct_channel_performance_monthly.roas,               kind: AGGREGATION,    phase: v0.1, traps: []}
+
+  # fct_product_performance  <- int_order_item_margins JOIN int_orders_enriched ON order_id JOIN stg_products
+  #   ON product_id WHERE order_status_group = 'complete' GROUP BY product_id, product_name, category
+  - {from: int_order_item_margins.product_id,  to: fct_product_performance.product_id,       kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: stg_products.product_name,          to: fct_product_performance.product_name,     kind: IDENTITY,    phase: v0.1, traps: []}
+  - {from: stg_products.category,              to: fct_product_performance.product_category, kind: RENAME,      phase: v0.1, traps: []}
+  - {from: int_order_item_margins.quantity,    to: fct_product_performance.units_sold,       kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_order_item_margins.quantity,    to: fct_product_performance.discounted_units, kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_order_item_margins.line_amount, to: fct_product_performance.gross_sales,      kind: AGGREGATION, phase: v0.1, traps: []}
+  - {from: int_order_item_margins.line_margin, to: fct_product_performance.gross_margin,     kind: AGGREGATION, phase: v0.1, traps: []}
+
+  # fct_top_products  <- fct_product_performance ORDER BY gross_margin DESC, product_id LIMIT 10
+  - {from: fct_product_performance.product_id,   to: fct_top_products.product_id,   kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: fct_product_performance.product_name, to: fct_top_products.product_name, kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: fct_product_performance.units_sold,   to: fct_top_products.units_sold,   kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: fct_product_performance.gross_margin, to: fct_top_products.gross_margin, kind: IDENTITY, phase: v0.1, traps: []}
+
+  # fct_customer_leaderboard  <- dim_customers JOIN dim_customer_segments ON customer_id
+  #   ORDER BY lifetime_value DESC, customer_id LIMIT 20
+  - {from: dim_customers.customer_id,              to: fct_customer_leaderboard.customer_id,        kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: dim_customers.full_name,                to: fct_customer_leaderboard.full_name,          kind: IDENTITY, phase: v0.1, traps: []}
+  - {from: dim_customers.lifetime_value,           to: fct_customer_leaderboard.lifetime_value_usd, kind: RENAME,   phase: v0.1, traps: []}
+  - {from: dim_customer_segments.customer_segment, to: fct_customer_leaderboard.customer_segment,   kind: IDENTITY, phase: v0.1, traps: [deep_chain]}
+
+  # fct_inventory_status  <- int_inventory_daily QUALIFY latest snapshot per (product_id, warehouse_code)
+  #   LEFT JOIN fct_product_performance ON product_id ORDER BY warehouse_code, product_id
+  - {from: int_inventory_daily.product_id,      to: fct_inventory_status.product_id,      kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_inventory_daily.warehouse_code,  to: fct_inventory_status.warehouse_code,  kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_inventory_daily.snapshot_date,   to: fct_inventory_status.as_of_date,      kind: RENAME,         phase: v0.1, traps: []}
+  - {from: int_inventory_daily.qty_on_hand,     to: fct_inventory_status.qty_on_hand,     kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_inventory_daily.inventory_value, to: fct_inventory_status.inventory_value, kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_inventory_daily.qty_on_hand,     to: fct_inventory_status.days_of_cover,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_product_performance.units_sold,  to: fct_inventory_status.days_of_cover,   kind: TRANSFORMATION, phase: v0.1, traps: []}
+
+  # fct_shipping_performance  <- int_shipments_enriched WHERE shipped_at IS NOT NULL
+  #   GROUP BY carrier, month(shipped_at) (CASE half of the pair)
+  - {from: int_shipments_enriched.carrier,           to: fct_shipping_performance.carrier,             kind: IDENTITY,       phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.shipped_at,        to: fct_shipping_performance.ship_month,          kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.shipment_id,       to: fct_shipping_performance.shipment_count,      kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.is_late_delivery,  to: fct_shipping_performance.late_shipment_count, kind: AGGREGATION,    phase: v0.1, traps: [case_transformation]}
+  - {from: int_shipments_enriched.delivery_days,     to: fct_shipping_performance.avg_delivery_days,   kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.shipping_cost_usd, to: fct_shipping_performance.shipping_costs_usd,  kind: AGGREGATION,    phase: v0.1, traps: [near_duplicate_names]}
+
+  # fct_customer_cohorts  <- fct_orders INNER JOIN dim_customers ON customer_id
+  #   GROUP BY month(signup_at), month(order_date)
+  - {from: dim_customers.signup_at, to: fct_customer_cohorts.cohort_month,        kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_orders.order_date,   to: fct_customer_cohorts.order_month,         kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: dim_customers.signup_at, to: fct_customer_cohorts.months_since_signup, kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_orders.order_date,   to: fct_customer_cohorts.months_since_signup, kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_orders.customer_id,  to: fct_customer_cohorts.cohort_customers,    kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_orders.customer_id,  to: fct_customer_cohorts.repeat_customers,    kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_orders.net_paid_usd, to: fct_customer_cohorts.cohort_net_paid,     kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_orders.net_paid_usd, to: fct_customer_cohorts.cumulative_net_paid, kind: AGGREGATION,    phase: v0.1, traps: []}
+
+  # fct_monthly_finance  <- derived tables per month over fct_daily_revenue, fct_order_margins and
+  #   int_order_adjustments JOIN fct_orders ON order_id; joined ON month
+  - {from: fct_daily_revenue.order_date,                to: fct_monthly_finance.finance_month,              kind: TRANSFORMATION, phase: v0.1, traps: []}
+  - {from: fct_daily_revenue.revenue_finance,           to: fct_monthly_finance.revenue_finance,            kind: AGGREGATION,    phase: v0.1, traps: [two_revenue_definitions]}
+  - {from: fct_daily_revenue.revenue_marketing,         to: fct_monthly_finance.revenue_marketing,          kind: AGGREGATION,    phase: v0.1, traps: [two_revenue_definitions, stale_doc]}
+  - {from: fct_daily_revenue.refunded_amount,           to: fct_monthly_finance.refunded_amount,            kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_order_margins.net_revenue,               to: fct_monthly_finance.net_revenue,                kind: AGGREGATION,    phase: v0.1, traps: [deep_chain]}
+  - {from: fct_order_margins.contribution_margin,       to: fct_monthly_finance.contribution_margin,        kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_order_adjustments.adjustment_amount_usd, to: fct_monthly_finance.adjustments_total,          kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: fct_daily_revenue.revenue_finance,           to: fct_monthly_finance.revenue_finance_mom_change, kind: AGGREGATION,    phase: v0.1, traps: []}
+
+indirect_edges:
+  # ============================== v1 models (frozen SQL; keys read from the v1 SQL files)
+  # int_order_items_enriched  items INNER JOIN products ON product_id (final SELECT)
+  - {from: stg_order_items.product_id, model: int_order_items_enriched, type: JOIN, phase: v0.3, targets: all, traps: []}
+  - {from: stg_products.product_id,    model: int_order_items_enriched, type: JOIN, phase: v0.3, targets: all, traps: [join_key_only]}
+
+  # int_orders_enriched  orders LEFT JOIN item_agg ON order_id; item_agg = items GROUP BY order_id
+  - {from: stg_orders.order_id,               model: int_orders_enriched, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_order_items_enriched.order_id, model: int_orders_enriched, type: JOIN,     phase: v0.3, targets: all, via: item_agg, traps: []}
+  - {from: int_order_items_enriched.order_id, model: int_orders_enriched, type: GROUP_BY, phase: v0.3, targets: [item_count, items_subtotal], via: item_agg, traps: []}
+
+  # int_order_financials  orders LEFT JOIN refunds_per_order LEFT JOIN cash_per_order, both ON order_id;
+  #   each CTE GROUP BY order_id
+  - {from: int_orders_enriched.order_id, model: int_order_financials, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: stg_refunds.order_id,         model: int_order_financials, type: JOIN,     phase: v0.3, targets: all, via: refunds_per_order, traps: []}
+  - {from: int_payment_events.order_id,  model: int_order_financials, type: JOIN,     phase: v0.3, targets: all, via: cash_per_order, traps: []}
+  - {from: stg_refunds.order_id,         model: int_order_financials, type: GROUP_BY, phase: v0.3, targets: [refund_amount], via: refunds_per_order, traps: []}
+  - {from: int_payment_events.order_id,  model: int_order_financials, type: GROUP_BY, phase: v0.3, targets: [net_paid_usd], via: cash_per_order, traps: []}
+
+  # int_customer_order_history  lag(order_date) OVER (PARTITION BY customer_id ORDER BY order_date, order_id).
+  #   order_date is also the lag argument: direct edge wins (D7), so no WINDOW row from it
+  - {from: int_order_financials.customer_id, model: int_customer_order_history, type: WINDOW, phase: v0.3, targets: [previous_order_date], traps: []}
+  - {from: int_order_financials.order_id,    model: int_customer_order_history, type: WINDOW, phase: v0.3, targets: [previous_order_date], traps: []}
+
+  # dim_customers  customers LEFT JOIN order_agg ON customer_id; order_agg = fct_orders GROUP BY customer_id
+  - {from: stg_customers.customer_id, model: dim_customers, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: fct_orders.customer_id,    model: dim_customers, type: JOIN,     phase: v0.3, targets: all, via: order_agg, traps: [join_key_only]}
+  - {from: fct_orders.customer_id,    model: dim_customers, type: GROUP_BY, phase: v0.3, targets: [first_order_date, most_recent_order_date, order_count, lifetime_value], via: order_agg, traps: [join_key_only]}
+
+  # fct_daily_revenue  fct_orders GROUP BY order_date (final SELECT)
+  - {from: fct_orders.order_date, model: fct_daily_revenue, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+
+  # ========================================== new v2 models (DESIGN_v2 §4 and Appendix C)
+  # int_shipments_enriched  stg_shipments INNER JOIN stg_orders ON order_id
+  - {from: stg_shipments.order_id, model: int_shipments_enriched, type: JOIN, phase: v0.3, targets: all, traps: []}
+  - {from: stg_orders.order_id,    model: int_shipments_enriched, type: JOIN, phase: v0.3, targets: all, traps: []}
+
+  # int_order_shipping  GROUP BY order_id; count(shipment_id) FILTER (WHERE is_late_delivery)
+  - {from: int_shipments_enriched.order_id,         model: int_order_shipping, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: int_shipments_enriched.is_late_delivery, model: int_order_shipping, type: CONDITIONAL, phase: v0.3, targets: [late_shipment_count], traps: []}
+
+  # int_web_sessions_clean  WHERE NOT is_bot AND page_views > 0;
+  #   row_number() OVER (PARTITION BY customer_id ORDER BY session_started_at, session_id)
+  - {from: stg_web_sessions.is_bot,             model: int_web_sessions_clean, type: FILTER, phase: v0.3, targets: all, traps: []}
+  - {from: stg_web_sessions.page_views,         model: int_web_sessions_clean, type: FILTER, phase: v0.3, targets: all, traps: []}
+  - {from: stg_web_sessions.customer_id,        model: int_web_sessions_clean, type: WINDOW, phase: v0.3, targets: [session_number], traps: []}
+  - {from: stg_web_sessions.session_started_at, model: int_web_sessions_clean, type: WINDOW, phase: v0.3, targets: [session_number], traps: []}
+  - {from: stg_web_sessions.session_id,         model: int_web_sessions_clean, type: WINDOW, phase: v0.3, targets: [session_number], traps: []}
+
+  # int_campaign_spend_daily  GROUP BY spend_date, channel
+  - {from: stg_marketing_spend.spend_date, model: int_campaign_spend_daily, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+  - {from: stg_marketing_spend.channel,    model: int_campaign_spend_daily, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+
+  # int_sessions_daily  GROUP BY session_date, channel
+  - {from: int_web_sessions_clean.session_date, model: int_sessions_daily, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.channel,      model: int_sessions_daily, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+
+  # int_customer_sessions  WHERE customer_id IS NOT NULL GROUP BY customer_id;
+  #   count(session_id) FILTER (WHERE channel <> 'direct')
+  - {from: int_web_sessions_clean.customer_id, model: int_customer_sessions, type: FILTER,      phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.customer_id, model: int_customer_sessions, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.channel,     model: int_customer_sessions, type: CONDITIONAL, phase: v0.3, targets: [paid_session_count], traps: []}
+
+  # int_order_attribution  LEFT JOIN ON customer_id = customer_id AND session_date <= order_date;
+  #   QUALIFY row_number() OVER (PARTITION BY order_id ORDER BY session_started_at DESC, session_id DESC) = 1
+  - {from: int_customer_order_history.customer_id,    model: int_order_attribution, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.customer_id,        model: int_order_attribution, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.session_date,       model: int_order_attribution, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: int_customer_order_history.order_date,     model: int_order_attribution, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: int_customer_order_history.order_id,       model: int_order_attribution, type: FILTER, phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.session_started_at, model: int_order_attribution, type: FILTER, phase: v0.3, targets: all, traps: []}
+  - {from: int_web_sessions_clean.session_id,         model: int_order_attribution, type: FILTER, phase: v0.3, targets: all, traps: []}
+
+  # int_product_costs_current  INNER JOIN ON supplier_id;
+  #   QUALIFY row_number() OVER (PARTITION BY product_id ORDER BY valid_from DESC) = 1
+  - {from: stg_product_costs.supplier_id, model: int_product_costs_current, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: stg_suppliers.supplier_id,     model: int_product_costs_current, type: JOIN,   phase: v0.3, targets: all, traps: [join_key_only]}
+  - {from: stg_product_costs.product_id,  model: int_product_costs_current, type: FILTER, phase: v0.3, targets: all, traps: []}
+  - {from: stg_product_costs.valid_from,  model: int_product_costs_current, type: FILTER, phase: v0.3, targets: all, traps: []}
+
+  # int_order_item_margins  INNER JOIN ON product_id
+  - {from: int_order_items_enriched.product_id,  model: int_order_item_margins, type: JOIN, phase: v0.3, targets: all, traps: []}
+  - {from: int_product_costs_current.product_id, model: int_order_item_margins, type: JOIN, phase: v0.3, targets: all, traps: []}
+
+  # int_order_promotions  INNER JOIN ON promotion_id WHERE promotion_id IN (SELECT promotion_id FROM stg_promotions
+  #   WHERE promo_channel <> 'internal') GROUP BY order_id; string_agg(promo_code ORDER BY discount_pct DESC)
+  - {from: stg_order_promotions.promotion_id, model: int_order_promotions, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: stg_promotions.promotion_id,       model: int_order_promotions, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: stg_order_promotions.promotion_id, model: int_order_promotions, type: FILTER,   phase: v0.3, targets: all, traps: []}
+  - {from: stg_promotions.promotion_id,       model: int_order_promotions, type: FILTER,   phase: v0.3, targets: all, via: subquery, traps: []}
+  - {from: stg_promotions.promo_channel,      model: int_order_promotions, type: FILTER,   phase: v0.3, targets: all, via: subquery, traps: []}
+  - {from: stg_order_promotions.order_id,     model: int_order_promotions, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+  - {from: stg_promotions.discount_pct,       model: int_order_promotions, type: SORT,     phase: v0.3, targets: [promo_codes], traps: []}
+
+  # int_inventory_daily  INNER JOIN ON product_id WHERE warehouse_code <> 'WH_TEST';
+  #   lag(qty_on_hand) OVER (PARTITION BY product_id, warehouse_code ORDER BY snapshot_date)
+  - {from: stg_inventory_snapshots.product_id,     model: int_inventory_daily, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: stg_products.product_id,                model: int_inventory_daily, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: stg_inventory_snapshots.warehouse_code, model: int_inventory_daily, type: FILTER, phase: v0.3, targets: all, traps: []}
+  - {from: stg_inventory_snapshots.product_id,     model: int_inventory_daily, type: WINDOW, phase: v0.3, targets: [prior_qty_on_hand, qty_change], traps: []}
+  - {from: stg_inventory_snapshots.warehouse_code, model: int_inventory_daily, type: WINDOW, phase: v0.3, targets: [prior_qty_on_hand, qty_change], traps: []}
+  - {from: stg_inventory_snapshots.snapshot_date,  model: int_inventory_daily, type: WINDOW, phase: v0.3, targets: [prior_qty_on_hand, qty_change], traps: []}
+
+  # int_order_profit  history LEFT JOIN item_margins LEFT JOIN int_order_shipping LEFT JOIN int_order_promotions,
+  #   all ON order_id; item_margins = int_order_item_margins GROUP BY order_id
+  - {from: int_customer_order_history.order_id, model: int_order_profit, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_order_item_margins.order_id,     model: int_order_profit, type: JOIN,     phase: v0.3, targets: all, via: item_margins, traps: []}
+  - {from: int_order_shipping.order_id,         model: int_order_profit, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_order_promotions.order_id,       model: int_order_profit, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_order_item_margins.order_id,     model: int_order_profit, type: GROUP_BY, phase: v0.3, targets: [cogs_total, gross_margin, contribution_margin, is_profitable], via: item_margins, traps: []}
+
+  # dim_customer_rfm  rfm_base = dim_customers LEFT JOIN int_customer_sessions ON customer_id; scores in CTEs on
+  #   top of rfm_base, so every output column flows through the join
+  - {from: dim_customers.customer_id,         model: dim_customer_rfm, type: JOIN, phase: v0.3, targets: all, via: rfm_base, traps: []}
+  - {from: int_customer_sessions.customer_id, model: dim_customer_rfm, type: JOIN, phase: v0.3, targets: all, via: rfm_base, traps: []}
+
+  # fct_segment_monthly  INNER JOIN ON customer_id GROUP BY customer_segment, date_trunc('month', order_date)
+  - {from: fct_orders.customer_id,                 model: fct_segment_monthly, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: dim_customer_segments.customer_id,      model: fct_segment_monthly, type: JOIN,     phase: v0.3, targets: all, traps: [join_key_only]}
+  - {from: dim_customer_segments.customer_segment, model: fct_segment_monthly, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+  - {from: fct_orders.order_date,                  model: fct_segment_monthly, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+
+  # fct_marketing_attribution  spend LEFT JOIN int_sessions_daily ON (spend_date = session_date AND channel) LEFT JOIN
+  #   attributed_daily ON (spend_date = order_date AND channel = attributed_channel);
+  #   attributed_daily = int_order_attribution GROUP BY order_date, attributed_channel
+  - {from: int_campaign_spend_daily.spend_date,      model: fct_marketing_attribution, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_campaign_spend_daily.channel,         model: fct_marketing_attribution, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_sessions_daily.session_date,          model: fct_marketing_attribution, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_sessions_daily.channel,               model: fct_marketing_attribution, type: JOIN,     phase: v0.3, targets: all, traps: []}
+  - {from: int_order_attribution.order_date,         model: fct_marketing_attribution, type: JOIN,     phase: v0.3, targets: all, via: attributed_daily, traps: []}
+  - {from: int_order_attribution.attributed_channel, model: fct_marketing_attribution, type: JOIN,     phase: v0.3, targets: all, via: attributed_daily, traps: []}
+  - {from: int_order_attribution.order_date,         model: fct_marketing_attribution, type: GROUP_BY, phase: v0.3, targets: [attributed_orders, attributed_revenue, cost_per_order, roas], via: attributed_daily, traps: []}
+  - {from: int_order_attribution.attributed_channel, model: fct_marketing_attribution, type: GROUP_BY, phase: v0.3, targets: [attributed_orders, attributed_revenue, cost_per_order, roas], via: attributed_daily, traps: []}
+
+  # fct_channel_performance_monthly  GROUP BY date_trunc('month', report_date), channel
+  - {from: fct_marketing_attribution.report_date, model: fct_channel_performance_monthly, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+  - {from: fct_marketing_attribution.channel,     model: fct_channel_performance_monthly, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+
+  # fct_product_performance  JOIN int_orders_enriched ON order_id JOIN stg_products ON product_id
+  #   WHERE order_status_group = 'complete' GROUP BY product_id, product_name, category;
+  #   sum(quantity) FILTER (WHERE is_discounted)
+  - {from: int_order_item_margins.order_id,        model: fct_product_performance, type: JOIN,        phase: v0.3, targets: all, traps: []}
+  - {from: int_orders_enriched.order_id,           model: fct_product_performance, type: JOIN,        phase: v0.3, targets: all, traps: []}
+  - {from: int_order_item_margins.product_id,      model: fct_product_performance, type: JOIN,        phase: v0.3, targets: all, traps: []}
+  - {from: stg_products.product_id,                model: fct_product_performance, type: JOIN,        phase: v0.3, targets: all, traps: []}
+  - {from: int_orders_enriched.order_status_group, model: fct_product_performance, type: FILTER,      phase: v0.3, targets: all, traps: []}
+  - {from: int_order_item_margins.product_id,      model: fct_product_performance, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: stg_products.product_name,              model: fct_product_performance, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: stg_products.category,                  model: fct_product_performance, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: int_order_item_margins.is_discounted,   model: fct_product_performance, type: CONDITIONAL, phase: v0.3, targets: [discounted_units], traps: []}
+
+  # fct_top_products  ORDER BY gross_margin DESC, product_id LIMIT 10 (visible)
+  - {from: fct_product_performance.gross_margin, model: fct_top_products, type: SORT, phase: v0.3, targets: all, traps: []}
+  - {from: fct_product_performance.product_id,   model: fct_top_products, type: SORT, phase: v0.3, targets: all, traps: []}
+
+  # fct_customer_leaderboard  INNER JOIN ON customer_id ORDER BY lifetime_value DESC, customer_id LIMIT 20 (visible)
+  - {from: dim_customers.customer_id,         model: fct_customer_leaderboard, type: JOIN, phase: v0.3, targets: all, traps: []}
+  - {from: dim_customer_segments.customer_id, model: fct_customer_leaderboard, type: JOIN, phase: v0.3, targets: all, traps: []}
+  - {from: dim_customers.lifetime_value,      model: fct_customer_leaderboard, type: SORT, phase: v0.3, targets: all, traps: []}
+  - {from: dim_customers.customer_id,         model: fct_customer_leaderboard, type: SORT, phase: v0.3, targets: all, traps: []}
+
+  # fct_inventory_status  latest_snapshots = int_inventory_daily QUALIFY row_number() OVER (PARTITION BY product_id,
+  #   warehouse_code ORDER BY snapshot_date DESC) = 1; final: latest_snapshots LEFT JOIN
+  #   fct_product_performance ON product_id ORDER BY warehouse_code, product_id (no LIMIT: invisible)
+  - {from: int_inventory_daily.product_id,     model: fct_inventory_status, type: FILTER, phase: v0.3, targets: all, via: latest_snapshots, traps: []}
+  - {from: int_inventory_daily.warehouse_code, model: fct_inventory_status, type: FILTER, phase: v0.3, targets: all, via: latest_snapshots, traps: []}
+  - {from: int_inventory_daily.snapshot_date,  model: fct_inventory_status, type: FILTER, phase: v0.3, targets: all, via: latest_snapshots, traps: []}
+  - {from: int_inventory_daily.product_id,     model: fct_inventory_status, type: JOIN,   phase: v0.3, targets: all, via: latest_snapshots, traps: []}
+  - {from: fct_product_performance.product_id, model: fct_inventory_status, type: JOIN,   phase: v0.3, targets: all, traps: []}
+  - {from: int_inventory_daily.warehouse_code, model: fct_inventory_status, type: SORT,   phase: v0.3, targets: all, via: latest_snapshots, traps: []}
+  - {from: int_inventory_daily.product_id,     model: fct_inventory_status, type: SORT,   phase: v0.3, targets: all, via: latest_snapshots, traps: []}
+
+  # fct_shipping_performance  WHERE shipped_at IS NOT NULL GROUP BY carrier, date_trunc('month', shipped_at);
+  #   late_shipment_count = sum(CASE WHEN is_late_delivery ...): direct, no CONDITIONAL row
+  - {from: int_shipments_enriched.shipped_at, model: fct_shipping_performance, type: FILTER,   phase: v0.3, targets: all, traps: []}
+  - {from: int_shipments_enriched.carrier,    model: fct_shipping_performance, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+  - {from: int_shipments_enriched.shipped_at, model: fct_shipping_performance, type: GROUP_BY, phase: v0.3, targets: all, traps: []}
+
+  # fct_customer_cohorts  INNER JOIN ON customer_id GROUP BY month(signup_at), month(order_date);
+  #   sum(sum(net_paid_usd)) OVER (PARTITION BY cohort_month ORDER BY order_month);
+  #   count(DISTINCT customer_id) FILTER (WHERE previous_order_date IS NOT NULL)
+  - {from: fct_orders.customer_id,         model: fct_customer_cohorts, type: JOIN,        phase: v0.3, targets: all, traps: []}
+  - {from: dim_customers.customer_id,      model: fct_customer_cohorts, type: JOIN,        phase: v0.3, targets: all, traps: []}
+  - {from: dim_customers.signup_at,        model: fct_customer_cohorts, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: fct_orders.order_date,          model: fct_customer_cohorts, type: GROUP_BY,    phase: v0.3, targets: all, traps: []}
+  - {from: dim_customers.signup_at,        model: fct_customer_cohorts, type: WINDOW,      phase: v0.3, targets: [cumulative_net_paid], traps: []}
+  - {from: fct_orders.order_date,          model: fct_customer_cohorts, type: WINDOW,      phase: v0.3, targets: [cumulative_net_paid], traps: []}
+  - {from: fct_orders.previous_order_date, model: fct_customer_cohorts, type: CONDITIONAL, phase: v0.3, targets: [repeat_customers], traps: []}
+
+  # fct_monthly_finance  revenue_monthly (fct_daily_revenue GROUP BY month, with lag(sum(revenue_finance)) OVER
+  #   (ORDER BY month)) JOIN margins_monthly (fct_order_margins GROUP BY month) LEFT JOIN
+  #   adjustments_monthly (int_order_adjustments JOIN fct_orders ON order_id GROUP BY month), ON month
+  - {from: fct_daily_revenue.order_date,   model: fct_monthly_finance, type: GROUP_BY, phase: v0.3, targets: [revenue_finance, revenue_marketing, refunded_amount, revenue_finance_mom_change], via: revenue_monthly, traps: []}
+  - {from: fct_order_margins.order_date,   model: fct_monthly_finance, type: GROUP_BY, phase: v0.3, targets: [net_revenue, contribution_margin], via: margins_monthly, traps: []}
+  - {from: int_order_adjustments.order_id, model: fct_monthly_finance, type: JOIN,     phase: v0.3, targets: [adjustments_total], via: adjustments_monthly, traps: []}
+  - {from: fct_orders.order_id,            model: fct_monthly_finance, type: JOIN,     phase: v0.3, targets: [adjustments_total], via: adjustments_monthly, traps: []}
+  - {from: fct_orders.order_date,          model: fct_monthly_finance, type: GROUP_BY, phase: v0.3, targets: [adjustments_total], via: adjustments_monthly, traps: []}
+  - {from: fct_daily_revenue.order_date,   model: fct_monthly_finance, type: JOIN,     phase: v0.3, targets: all, via: revenue_monthly, traps: []}
+  - {from: fct_order_margins.order_date,   model: fct_monthly_finance, type: JOIN,     phase: v0.3, targets: all, via: margins_monthly, traps: []}
+  - {from: fct_orders.order_date,          model: fct_monthly_finance, type: JOIN,     phase: v0.3, targets: all, via: adjustments_monthly, traps: []}
+  - {from: fct_daily_revenue.order_date,   model: fct_monthly_finance, type: WINDOW,   phase: v0.3, targets: [revenue_finance_mom_change], via: revenue_monthly, traps: []}

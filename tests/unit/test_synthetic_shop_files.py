@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 CORPUS = Path(__file__).parents[2] / "corpora" / "synthetic_shop"
-SPEC = CORPUS / "lineage_spec_v2.yml"
+SPEC = CORPUS / "lineage_spec.yml"
 
 
 def model_sql(model: str) -> str:

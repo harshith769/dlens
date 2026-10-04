@@ -1,0 +1,28 @@
+# Known entity-linker gaps on synthetic_shop v2 (S02b, owner decision). NOT gold: the expectations
+# in tests/integration/test_tools_synthetic.py are right and the linker is behind them. Linker
+# code is untouched until S08 (B2).
+#
+# exact_id_top1: exact column ids that are not top-1 for resolve_entity. The test asserts that its
+#   failures EQUAL this list: a new failure fails, and a fixed one fails until it is removed.
+# fragile: passing today only by luck (not asserted).
+
+exact_id_top1:
+  - {id: dim_customer_segments.customer_segment, observed_rank: 4,
+     outranked_by: [dim_customer_segments, fct_customer_leaderboard.customer_segment,
+                    fct_segment_monthly.customer_segment],
+     note: "the model name scores 1.068; two same-name columns score 1.005; the exact id scores 1.0",
+     target: S08}
+  - {id: fct_customer_cohorts.cohort_customers, observed_rank: 2,
+     outranked_by: [fct_customer_cohorts],
+     note: "the model name scores 1.068; the exact id scores 1.0", target: S08}
+  - {id: fct_monthly_finance.finance_month, observed_rank: 2,
+     outranked_by: [fct_monthly_finance],
+     note: "the model name scores 1.024; the exact id scores 1.0", target: S08}
+
+fragile:
+  - {query: "lifetime value", test: test_abbreviations_and_variants,
+     expected_top1: dim_customers.lifetime_value,
+     tied_with: fct_customer_leaderboard.lifetime_value_usd,
+     note: "both score 0.93; dim_customers wins only on tie-break order. S08 must rank exact token
+       matches above names with extra tokens.",
+     target: S08}
