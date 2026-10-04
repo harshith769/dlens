@@ -6,6 +6,9 @@
 # Tests assert that the observed disagreements EQUAL this file: a new gap fails, and a fixed gap
 # fails until its entry is removed (tests/integration/test_synthetic_shop.py, test_tools_synthetic.py).
 #
+# S04 closed every gap, so all three lists are empty. The file, its schema and the equality tests
+# stay: a future corpus (or a regression here) records its gaps in the same shape.
+#
 # direct_edges.engine: extra (engine has a direct edge the gold lacks), missing (gold direct edge
 #   the engine lacks), wrong_kind (both have it, kinds differ). gold_kind is null for `extra`;
 #   gold_indirect names the indirect type the gold uses for that pair instead.

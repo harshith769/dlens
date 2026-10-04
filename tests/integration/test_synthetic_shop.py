@@ -7,9 +7,10 @@ from pathlib import Path
 import pytest
 import yaml
 
+from dlens.gold_spec import expand_indirect
 from dlens.ingest import IngestResult, ingest
 from dlens.ingest.runner import find_dbt
-from dlens.lineage import ParseQuality, compare, extract_lineage, short_id
+from dlens.lineage import ParseQuality, compare, compare_indirect, extract_lineage, short_id
 
 pytestmark = pytest.mark.integration
 
@@ -153,3 +154,23 @@ def test_every_indirect_edge_cites_lines_that_hold_its_key(
         chunk = "\n".join(lines[e.lines[0] - 1 : e.lines[1]])
         assert _key_is_cited(e.key, chunk), (e.key, e.file, e.lines)
     assert all(not p.citation_gaps for p in result.parse_report.values())
+
+
+def test_indirect_edge_gate(ingested: tuple[Path, IngestResult]) -> None:
+    """Gate (v0.3 plan, A3): indirect-edge F1 >= 0.90 against the expanded gold (ADR 0020)."""
+    project, r = ingested
+    result = extract_lineage(r, project)
+    spec = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())
+    models = {m: list(v["columns"]) for m, v in spec["models"].items()}
+    direct = {(e["from"], e["to"]) for e in spec["edges"]}
+    pairs = expand_indirect(spec["indirect_edges"], models, direct).pairs
+    report = compare_indirect(
+        result.indirect, [(p.from_column, p.to_column, p.type) for p in pairs]
+    )
+    assert report.overall.f1 >= 0.90, (report.overall, report.missing[:10], report.extra[:10])
+
+
+def test_engine_gaps_file_is_empty_but_kept() -> None:
+    """S04 closed every synthetic_shop gap. The file and its schema stay for future corpora."""
+    gaps = yaml.safe_load((CORPUS / "engine_gaps.yml").read_text())
+    assert gaps == {"direct_edges": [], "model_level_citations": [], "indirect_edges": []}
