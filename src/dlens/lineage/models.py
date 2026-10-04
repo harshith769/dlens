@@ -19,6 +19,17 @@ class EdgeKind(StrEnum):
         return list(EdgeKind).index(self)
 
 
+class IndirectKind(StrEnum):
+    """Indirect-edge types (spec §6 DEPENDS_ON_INDIRECT; classification in ADR 0020)."""
+
+    JOIN = "JOIN"
+    FILTER = "FILTER"
+    GROUP_BY = "GROUP_BY"
+    WINDOW = "WINDOW"
+    SORT = "SORT"
+    CONDITIONAL = "CONDITIONAL"
+
+
 class Confidence(StrEnum):
     HIGH = "high"
     LOW = "low"

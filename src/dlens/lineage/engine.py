@@ -19,7 +19,7 @@ from sqlglot.schema import ensure_schema
 from dlens.ingest import IngestResult
 from dlens.ingest.artifacts import Node as DbtNode
 from dlens.ingest.schema import SqlglotSchema, normalize_relation
-from dlens.lineage.classify import column_key, path_kind, window_key_columns
+from dlens.lineage.classify import column_key, key_columns, path_kind, window_key_columns
 from dlens.lineage.models import (
     Confidence,
     DeferredIndirect,
@@ -78,7 +78,9 @@ def _walk(
     scope: exp.Expr | None,
     dropped: list[Node],
 ) -> Iterator[_Path]:
-    """Yield value paths; children used only as window keys are appended to `dropped`."""
+    """Yield value paths. Children used only in function-attached key positions (window keys,
+    aggregate FILTER / ORDER BY) are not value inputs (ADR 0020); those used only as window keys
+    are also appended to `dropped` (the v0.1 ``deferred_indirect`` record)."""
     if not node.downstream:
         yield _Path(steps, node, branch, scope)
         return
@@ -87,11 +89,13 @@ def _walk(
         for i, child in enumerate(node.downstream):
             yield from _walk(child, steps, i if branch is None else branch, scope, dropped)
         return
-    keys = window_key_columns(node.expression)
+    keys = key_columns(node.expression)
+    window_keys = window_key_columns(node.expression)
     for child in node.downstream:
-        if column_key(child.name) in keys:
+        name = column_key(child.name)
+        if name in window_keys:
             dropped.append(child)
-        else:
+        elif name not in keys:
             yield from _walk(child, [*steps, node.expression], branch, node.source, dropped)
 
 

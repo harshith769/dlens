@@ -133,6 +133,30 @@ def test_lineage_trees_share_the_qualified_scope_ast() -> None:
                 assert id(node.expression.parent_select) in selects
 
 
+def test_aggregate_filter_and_order_keys_are_not_direct_inputs() -> None:
+    """ADR 0020: an aggregate's FILTER (WHERE) column is CONDITIONAL and an ORDER BY inside an
+    aggregate is SORT; neither is a direct input. The CASE form of the same logic is direct."""
+    sql = (
+        "select user_id, count(id) filter (where amt > 0) as paid, "
+        "sum(case when amt > 0 then 1 else 0 end) as paid_case, "
+        "string_agg(cast(id as varchar), ',' order by order_date) as ids "
+        "from db.main.orders group by user_id"
+    )
+    raw = lineage_for_sql(sql, _ingest())
+    assert _kinds(sql) == {
+        ("orders.user_id", "m.user_id"): EdgeKind.IDENTITY,
+        ("orders.id", "m.paid"): EdgeKind.AGGREGATION,
+        ("orders.amt", "m.paid_case"): EdgeKind.AGGREGATION,
+        ("orders.id", "m.ids"): EdgeKind.AGGREGATION,
+    }
+    assert raw.deferred == []  # only window keys are deferred
+
+
+def test_a_key_column_also_read_as_a_value_stays_direct() -> None:
+    sql = "select string_agg(cast(amt as varchar), ',' order by amt) as s from db.main.orders"
+    assert _kinds(sql) == {("orders.amt", "m.s"): EdgeKind.AGGREGATION}
+
+
 def test_aggregate_over_window_is_transformation() -> None:
     kinds = _kinds("select sum(amt) over (partition by user_id) as running from db.main.orders")
     assert kinds == {("orders.amt", "m.running"): EdgeKind.TRANSFORMATION}

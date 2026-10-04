@@ -11,23 +11,6 @@
 #   gold_indirect names the indirect type the gold uses for that pair instead.
 
 direct_edges:
-  # Function-attached clauses (DESIGN_v2 §10 D1): FILTER (WHERE ...) on an aggregate is CONDITIONAL,
-  # ORDER BY inside an aggregate is SORT. The engine reads the predicate/sort column as an aggregate input.
-  - {from: int_shipments_enriched.is_late_delivery, to: int_order_shipping.late_shipment_count,
-     gold_kind: null, gold_indirect: CONDITIONAL, engine: extra, engine_kind: AGGREGATION,
-     construct: "count(x) FILTER (WHERE c)", target: S03}
-  - {from: int_web_sessions_clean.channel, to: int_customer_sessions.paid_session_count,
-     gold_kind: null, gold_indirect: CONDITIONAL, engine: extra, engine_kind: AGGREGATION,
-     construct: "count(x) FILTER (WHERE c)", target: S03}
-  - {from: int_order_item_margins.is_discounted, to: fct_product_performance.discounted_units,
-     gold_kind: null, gold_indirect: CONDITIONAL, engine: extra, engine_kind: AGGREGATION,
-     construct: "sum(x) FILTER (WHERE c)", target: S03}
-  - {from: fct_orders.previous_order_date, to: fct_customer_cohorts.repeat_customers,
-     gold_kind: null, gold_indirect: CONDITIONAL, engine: extra, engine_kind: AGGREGATION,
-     construct: "count(DISTINCT x) FILTER (WHERE c)", target: S03}
-  - {from: stg_promotions.discount_pct, to: int_order_promotions.promo_codes,
-     gold_kind: null, gold_indirect: SORT, engine: extra, engine_kind: AGGREGATION,
-     construct: "string_agg(x, ',' ORDER BY y)", target: S03}
   # A scalar subquery's aggregate (max(order_date)) sets the kind for the sibling column in the
   # same expression: most_recent_order_date is only transformed (date_diff).
   - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.recency_days,

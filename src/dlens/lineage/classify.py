@@ -8,7 +8,7 @@ pass-throughs is IDENTITY or RENAME depending on whether the name changed end to
 
 from sqlglot import exp
 
-from dlens.lineage.models import EdgeKind
+from dlens.lineage.models import EdgeKind, IndirectKind
 
 
 def _unwrap(expr: exp.Expr) -> exp.Expr:
@@ -56,15 +56,49 @@ def column_key(name: str) -> str:
     return name.replace('"', "").lower()
 
 
-def window_key_columns(expr: exp.Expr) -> set[str]:
-    """Columns referenced *only* in a window's PARTITION BY / ORDER BY within this step.
+def function_key_kind(node: exp.Expr, root: exp.Expr) -> IndirectKind | None:
+    """Innermost function-attached key position of `node` below `root` (ADR 0020), or None.
 
-    sqlglot's lineage returns them as children, but DESIGN.md says they are not direct edges
-    (they are indirect WINDOW dependencies, phase v0.3).
+    Window PARTITION BY / ORDER BY -> WINDOW; an aggregate's ``FILTER (WHERE ...)`` ->
+    CONDITIONAL; ``ORDER BY`` inside an aggregate (``string_agg(x, ',' ORDER BY y)``) -> SORT.
+    Function arguments (including CASE conditions) are not key positions.
+    """
+    while node is not root and node.parent is not None:
+        parent = node.parent
+        if isinstance(parent, exp.Window) and node.arg_key in ("partition_by", "order"):
+            return IndirectKind.WINDOW
+        if isinstance(parent, exp.Filter) and node.arg_key == "expression":
+            return IndirectKind.CONDITIONAL
+        if (
+            isinstance(parent, exp.Order)
+            and node.arg_key == "expressions"
+            and isinstance(parent.parent, exp.AggFunc)
+        ):
+            return IndirectKind.SORT
+        node = parent
+    return None
+
+
+def key_columns(expr: exp.Expr) -> dict[str, set[IndirectKind]]:
+    """Columns referenced *only* in function-attached key positions within this step, with the
+    kinds of those positions.
+
+    sqlglot's lineage returns them as children, but they are not direct edges (ADR 0020): window
+    keys are WINDOW, aggregate ``FILTER (WHERE)`` columns CONDITIONAL, aggregate ``ORDER BY``
+    columns SORT. A column that is also read as a value stays a direct input.
     """
     value: set[str] = set()
-    keys: set[str] = set()
+    keys: dict[str, set[IndirectKind]] = {}
     for col in expr.find_all(exp.Column):
         key = column_key(col.sql())
-        (keys if _under(col, expr, True) else value).add(key)
-    return keys - value
+        kind = function_key_kind(col, expr)
+        if kind is None:
+            value.add(key)
+        else:
+            keys.setdefault(key, set()).add(kind)
+    return {k: v for k, v in keys.items() if k not in value}
+
+
+def window_key_columns(expr: exp.Expr) -> set[str]:
+    """Key columns used only as window keys: recorded as ``deferred_indirect`` (v0.1 report)."""
+    return {k for k, kinds in key_columns(expr).items() if kinds == {IndirectKind.WINDOW}}
