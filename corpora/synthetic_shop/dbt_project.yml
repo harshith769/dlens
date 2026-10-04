@@ -38,3 +38,13 @@ seeds:
       +column_types: {amt: "decimal(10,2)"}
     raw_refunds:
       +column_types: {refund_amt: "decimal(10,2)"}
+    raw_shipments:
+      +column_types: {shipping_cost_usd: "decimal(10,2)"}
+    raw_marketing_spend:
+      +column_types: {spend_usd: "decimal(10,2)"}
+    raw_promotions:
+      +column_types: {discount_pct: "decimal(10,2)"}
+    raw_order_promotions:
+      +column_types: {discount_usd: "decimal(10,2)"}
+    raw_product_costs:
+      +column_types: {unit_cost: "decimal(10,2)"}

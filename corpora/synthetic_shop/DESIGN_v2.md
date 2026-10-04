@@ -34,8 +34,12 @@ reproduce them from `lineage_spec.yml` (§5).
    descriptions to v1 models is allowed, because it changes no lineage.
 3. **DuckDB** (dbt-duckdb 1.11.0, DuckDB 1.5.6). Seeds only (`ref()`), no `source()`, no custom macros.
 4. **Seeded data.** The generator stays deterministic (fixed seed). v1 CSVs stay byte-identical
-   except where §7.2 needs extra rows (one new order status). New seeds use their own RNG stream,
-   so adding them does not shift v1 values.
+   except where §7.2 needs extra rows. Exactly two v1 CSVs change, by appended rows only (existing
+   rows byte-identical): `raw_orders` gains `cancelled` orders (one new order status, no items,
+   payments, refunds, shipments or promotions) and `raw_products` gains one unsold product
+   (id 16, with cost rows and stock but no order items; S02b owner decision, so that "products
+   never sold in a completed order" holds). New seeds use their own RNG stream, so adding them
+   does not shift v1 values.
 5. **Constraints from the 20 dev questions and the presets:**
 
 | Constraint | Why | How v2 meets it |
@@ -368,7 +372,7 @@ owner runs `git tag corpus-v1` on the commit before S02 starts, so the v1 corpus
 
 | Area | Change |
 |---|---|
-| Files | 8 new seed CSVs; `generate_seeds.py` extended (v1 CSVs unchanged except the added `cancelled` orders, §7.2); 34 new model SQL files; `schema.yml` descriptions; new `models/marts/exposures.yml`; `dbt_project.yml` column types for new money columns; `lineage_spec.yml` v2 (the 115 v1 edges unchanged in content, but their line numbers move; v0.3 indirect edges added); `traps.yml` extended. `DESIGN.md` stays as the v1 record |
+| Files | 8 new seed CSVs; `generate_seeds.py` extended (v1 CSVs unchanged except appended rows in `raw_orders` (`cancelled` orders) and `raw_products` (one unsold product, id 16), §1 item 4 and §7.2); 34 new model SQL files; `schema.yml` descriptions; new `models/marts/exposures.yml`; `dbt_project.yml` column types for new money columns; `lineage_spec.yml` v2 (the 115 v1 edges unchanged in content, but their line numbers move; v0.3 indirect edges added); `traps.yml` extended. `DESIGN.md` stays as the v1 record |
 | Tests asserting counts | `tests/integration/test_synthetic_shop.py:40` (`== 15` spec models → 49); `tests/integration/test_graph_synthetic.py:53` (`== 15` models → 49); `tests/integration/test_report_corpora.py:20` (`FULL: 15` → 49) |
 | Linker tests at risk (`tests/integration/test_tools_synthetic.py`) | See the table below. Realistic columns are not renamed to protect tests (§10 D6) |
 | Tests asserting v1 data values or row counts | **None.** No test reads seed values or row counts of `synthetic_shop`. Closest: `test_dbt_tests_pass` runs `dbt build` with the `unique`/`not_null` schema tests, which the new `cancelled` orders must satisfy; `test_impact_of_tax_usd_reaches_financials_and_marts` asserts reached models and `not r.truncated` (the longest v2 path from `tax_usd` is 9 hops, within the default `max_depth=10`) |

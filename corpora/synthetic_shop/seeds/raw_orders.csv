@@ -199,3 +199,11 @@ id,user_id,order_date,status,tax_usd
 198,25,2025-01-26,completed,21.54
 199,17,2025-09-07,placed,1.96
 200,46,2025-06-24,completed,40.59
+201,26,2025-03-03,cancelled,0.00
+202,38,2025-09-16,cancelled,0.00
+203,8,2025-11-29,cancelled,0.00
+204,46,2025-04-26,cancelled,0.00
+205,43,2025-11-16,cancelled,0.00
+206,44,2025-08-05,cancelled,0.00
+207,37,2025-10-09,cancelled,0.00
+208,34,2025-10-29,cancelled,0.00

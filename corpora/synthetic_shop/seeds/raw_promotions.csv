@@ -1,0 +1,9 @@
+id,code,discount_pct,starts_at,ends_at,channel
+1,spring10,10.00,2025-07-12,2025-12-15,email
+2,Welcome15,15.00,2025-01-08,2025-04-12,social
+3,SEARCH5,5.00,2025-07-18,2025-10-04,paid_search
+4,holiday20,20.00,2025-06-06,2025-11-09,email
+5,staff30,30.00,2025-01-05,2025-03-28,internal
+6,Flash25,25.00,2025-05-01,2025-08-06,social
+7,qa_test50,50.00,2025-06-02,2025-10-19,internal
+8,loyal12,12.00,2025-03-09,2025-05-06,email
