@@ -159,6 +159,8 @@ When part of an answer fails a check, that part is removed and the rest stays. T
 **Partially removed** and lists the dropped claims with the rules they failed. This happens, for example, with a two-part question such as "Where does
 X come from? Can I remove it?", where the second part goes beyond what the lineage tools can show.
 
+![A live answer on Gemini: the lineage claim is verified and cited; the unsupported second part was removed by the validator](https://raw.githubusercontent.com/harshith769/dlens/main/docs/img/partially-removed.png)
+
 ## Local UI
 
 ```bash

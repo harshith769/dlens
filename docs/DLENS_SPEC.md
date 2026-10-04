@@ -31,6 +31,7 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 | 17 | **AI writes all code; the owner reviews, approves and explains** (3 Oct 2026). Core modules ship with `docs/explain/<module>.md` + explain-back questions. The owner still approves the gold spec and every test question | Owner decision: speed over hand-writing. Gold-spec independence and question review stay human to keep the benchmark valid |
 | 18 | **Timeline pulled forward after v0.1 shipped 3 Oct** (v0.2 by 8 Nov, v0.3 by 29 Nov, test-set freeze 7 Dec, v1.0 by 3 Jan 2027; buffer to 7 Feb 2027 kept) | v0.1 finished 15 days before its 18 Oct target, so later milestones move up and the end buffer grows |
 | 19 | **Local model → Qwen3-4B-Instruct-2507** (`qwen3:4b-instruct-2507-q4_K_M`) (3 Oct 2026) | The `qwen3:4b` tag is the thinking-only build; instruct is non-thinking, same size |
+| 20 | **v0.2 "Done when" restated** (4 Oct 2026): public demo with 10 replayable presets (all pass) and live Gemini answers under a 50 calls/day cap; 18/20 dev on local qwen3:4b; agent-on-Gemini smoke 2/2 raw pass. A Gemini run on all 20 dev questions moves to the v0.3 backlog (dev key, ≤160 calls, owner-confirmed) | The demo's cap makes 20 live questions impossible by design: a question can use up to 8 calls, so 20 questions need up to 160 calls against a 50/day app-wide cap. The cap protects the separate demo project, and the dev budget is not spent on a public page |
 
 ---
 
@@ -577,7 +578,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 | Week(s) | Dates | Phase | Hours | Done when |
 |---|---|---|---|---|
 | pre | → 3 Oct | Pre-work + accounts + checks + **v0.1 Lineage CLI (shipped 3 Oct; target was 18 Oct)** | 62 | Direct-edge F1 ≥ 0.95 on the mini spec; `pip install dlens-lineage` works |
-| 0–4 | 5 Oct – 8 Nov | **v0.2 Cited Q&A agent (shipped 4 Oct; target was 8 Nov)** | 40 | Live demo answers 20 dev questions with valid citations |
+| 0–4 | 5 Oct – 8 Nov | **v0.2 Cited Q&A agent (shipped 4 Oct; target was 8 Nov)** | 40 | Public demo live with 10 replayable presets (all pass) and live Gemini answers under a 50 calls/day cap; 18/20 dev on local qwen3:4b; agent-on-Gemini smoke 2/2 raw pass (was: "Live demo answers 20 dev questions with valid citations"; see Section 0, row 20) |
 | 5–7 | 9 Nov – 29 Nov | **v0.3 Hybrid RAG + pilot** | 40 | S1 vs S4 pilot table on 96 dev questions committed; indirect-edge F1 ≥ 0.90 |
 | 8 | 30 Nov – 6 Dec | Buffer A | — | For SIH, exams or slips; otherwise pull v1.0 work forward |
 | 9–12 | 7 Dec – 3 Jan | **v1.0 Benchmarked release** (test-set freeze 7 Dec) | 55 | `make eval` reproduces every number from a clean clone |
@@ -602,10 +603,6 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 - [x] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions (https://dlens-lineage.streamlit.app/; presets are replayed run records, see `docs/explain/deploy.md`)
 - [ ] Tag v0.2.0; add the first GenAI resume line
 
-Done-when status (4 Oct 2026): dev pass 18/20 on local qwen3:4b (`eval/reports/dev_r9.json`); the
-live demo replays 10 of those (all re-validated offline) and answers live questions on Gemini.
-All 20 dev questions on Gemini were not run, to save quota; the capped end-to-end check is
-`scripts/smoke_agent.py --provider gemini` (dev-01, dev-10).
 
 **v0.3 Hybrid RAG + pilot**
 - [ ] [H] Full 40–60 model spec with every trap and ≥40 columns at 6+ hops; SQL generated and reviewed
@@ -617,6 +614,7 @@ All 20 dev questions on Gemini were not run, to save quota; the capped end-to-en
 - [ ] [H] Pilot metrics (dev only); tag v0.3.0
 - [ ] Backlog from the v0.2 demo: a multi-part or out-of-scope question ("…come from? can I remove
   it?") gets an explicit "I can't answer X; try asking Y" instead of a silent validator drop
+- [ ] Backlog: Gemini run on all 20 dev questions (dev key, ≤160 calls, owner-confirmed)
 - [ ] Backlog: a `premise_corrected` answer field (ADR first) so the UI can show a corrected-premise
   badge from a real signal
 
