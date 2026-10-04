@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import pytest
+from sqlglot import exp
+from sqlglot.lineage import lineage
 
 from dlens.ingest import IngestResult
 from dlens.ingest.artifacts import Catalog, Manifest
@@ -111,6 +113,24 @@ def test_window_keys_are_deferred_not_edges() -> None:
     raw = lineage_for_sql(sql, _ingest())
     assert _kinds(sql) == {("orders.order_date", "m.prev"): EdgeKind.TRANSFORMATION}
     assert sorted(short_id(up) for up, _ in raw.deferred) == ["orders.id", "orders.user_id"]
+
+
+def test_lineage_trees_share_the_qualified_scope_ast() -> None:
+    """Direct and indirect edges read one qualified AST: every projection on a lineage tree
+    belongs to a SELECT of the shared scope tree (identity, not a copy)."""
+    sql = (
+        "with x as (select user_id, sum(amt) as total from db.main.orders group by user_id) "
+        "select c.name, x.total from db.main.customers as c join x on c.id = x.user_id"
+    )
+    raw = lineage_for_sql(sql, _ingest())
+    assert raw.scope is not None
+    selects = {id(s.expression) for s in raw.scope.traverse()}
+    trees = lineage(None, raw.scope.expression, scope=raw.scope, schema=SCHEMA, trim_selects=False)
+    assert isinstance(trees, dict)
+    for root in trees.values():
+        for node in root.walk():
+            if not isinstance(node.expression, exp.Table):
+                assert id(node.expression.parent_select) in selects
 
 
 def test_aggregate_over_window_is_transformation() -> None:

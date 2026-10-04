@@ -11,8 +11,10 @@ from dataclasses import dataclass, field
 from graphlib import TopologicalSorter
 from pathlib import Path
 
-from sqlglot import exp
+from sqlglot import exp, maybe_parse
 from sqlglot.lineage import Node, lineage
+from sqlglot.optimizer import Scope, build_scope, qualify
+from sqlglot.schema import ensure_schema
 
 from dlens.ingest import IngestResult
 from dlens.ingest.artifacts import Node as DbtNode
@@ -50,6 +52,7 @@ class _ModelLineage:
     gaps: list[str] = field(default_factory=list)
     deferred: list[tuple[str, str]] = field(default_factory=list)  # (upstream id, output col)
     constants: list[str] = field(default_factory=list)  # outputs with no input column at all
+    scope: Scope | None = None  # root scope of the qualified SELECT (shared with indirect edges)
 
 
 def topological_models(ingest: IngestResult) -> list[DbtNode]:
@@ -148,11 +151,35 @@ def _resolve_leaf(
     return [(i, Confidence.LOW) for i in ids], None
 
 
+def qualified_scope(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> Scope:
+    """Parse and qualify a compiled SELECT once, exactly as ``sqlglot.lineage`` would, and build
+    its scope tree. Direct and indirect edges both read this one qualified AST."""
+    schema = ensure_schema(ingest.schema, dialect=dialect)  # type: ignore[arg-type]
+    expression: exp.Expr = qualify.qualify(
+        maybe_parse(sql, dialect=dialect),
+        dialect=dialect,
+        schema=schema,
+        validate_qualify_columns=False,
+        identify=False,
+    )
+    scope = build_scope(expression)
+    if scope is None:
+        raise ValueError("Cannot build lineage, sql must be SELECT")
+    return scope
+
+
 def lineage_for_sql(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> _ModelLineage:
     """Column lineage of one compiled SELECT. Raises if sqlglot cannot parse or qualify it."""
-    trees = lineage(None, sql, schema=ingest.schema, dialect=dialect)
+    scope = qualified_scope(sql, ingest, dialect)
+    expression = scope.expression
+    schema = ensure_schema(ingest.schema, dialect=dialect)  # type: ignore[arg-type]
+    # trim_selects=False: sqlglot's trimming re-parents each projection onto a copy of its SELECT,
+    # which would break the parent links of the shared AST. Node.source is then the real SELECT.
+    trees = lineage(
+        None, expression, schema=schema, dialect=dialect, scope=scope, trim_selects=False
+    )
     assert isinstance(trees, dict)  # guarded by golden test #0
-    out = _ModelLineage()
+    out = _ModelLineage(scope=scope)
     for output, root in trees.items():
         if output == "*":
             out.gaps.append("unexpanded * in the outer SELECT")
