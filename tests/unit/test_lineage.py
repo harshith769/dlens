@@ -162,6 +162,17 @@ def test_aggregate_over_window_is_transformation() -> None:
     assert kinds == {("orders.amt", "m.running"): EdgeKind.TRANSFORMATION}
 
 
+def test_kind_follows_each_inputs_own_path() -> None:
+    """S04: a windowed aggregate behind FILTER stays TRANSFORMATION; a grouped aggregate inside a
+    window is AGGREGATION; a sibling's aggregate does not raise another input's kind."""
+    filtered = "select count(amt) filter (where id > 0) over () as n from db.main.orders"
+    assert _kinds(filtered) == {("orders.amt", "m.n"): EdgeKind.TRANSFORMATION}
+    sql = "select user_id, user_id + max(amt) as x from db.main.orders group by user_id"
+    kinds = _kinds(sql)
+    assert kinds[("orders.user_id", "m.x")] == EdgeKind.TRANSFORMATION
+    assert kinds[("orders.amt", "m.x")] == EdgeKind.AGGREGATION
+
+
 def test_union_all_one_edge_per_branch_with_own_kind() -> None:
     sql = (
         "select amt as value from db.main.orders union all select -1 * amt as value "

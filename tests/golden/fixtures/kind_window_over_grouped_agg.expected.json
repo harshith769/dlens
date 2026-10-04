@@ -18,6 +18,5 @@
     {"from": "orders.status", "to": "m.user_id", "type": "GROUP_BY"},
     {"from": "orders.status", "to": "m.running_amt", "type": "GROUP_BY"},
     {"from": "orders.status", "to": "m.running_amt", "type": "WINDOW"}
-  ],
-  "xfail": "S04: sum(sum(x)) OVER (...) - the inner grouped aggregate is classified as windowed"
+  ]
 }

@@ -2,8 +2,8 @@
 
 Each non-leaf node on a sqlglot lineage path is one *step*: a projection inside this model
 (a CTE column, then the outer SELECT). A step is either a bare column (pass-through) or an
-operation. The edge kind is the strongest operation on the path; a path of pure
-pass-throughs is IDENTITY or RENAME depending on whether the name changed end to end.
+operation on the input the path reads. The edge kind is the strongest operation on the path; a
+path of pure pass-throughs is IDENTITY or RENAME depending on whether the name changed end to end.
 """
 
 from dataclasses import dataclass
@@ -17,35 +17,75 @@ def _unwrap(expr: exp.Expr) -> exp.Expr:
     return expr.this if isinstance(expr, exp.Alias) else expr
 
 
-def _under(node: exp.Expr, root: exp.Expr, window_spec_only: bool) -> bool:
-    """Is `node` inside a Window below `root`? With `window_spec_only`, only inside its
-    PARTITION BY / ORDER BY (not its function argument)."""
+# Wrappers between a windowed aggregate and its Window: ``count(x) FILTER (WHERE c) OVER (...)``.
+_AGG_WRAPPERS = (exp.Filter, exp.IgnoreNulls, exp.RespectNulls)
+
+
+def _windowed(agg: exp.Expr) -> bool:
+    """Is this aggregate the function of a window (``sum(x) OVER (...)``)? Only then does it keep
+    the row grain. The inner ``sum`` of ``sum(sum(x)) OVER (...)`` is a grouped aggregate."""
+    node = agg
+    while isinstance(node.parent, _AGG_WRAPPERS) and node.arg_key == "this":
+        node = node.parent
+    return isinstance(node.parent, exp.Window) and node.arg_key == "this"
+
+
+def _in_subquery(node: exp.Expr, root: exp.Expr) -> bool:
+    """Is `node` inside a subquery below `root`? A subquery is its own lineage step."""
     while node is not root and node.parent is not None:
-        parent = node.parent
-        if isinstance(parent, exp.Window):
-            if not window_spec_only or node.arg_key in ("partition_by", "order"):
-                return True
-        node = parent
+        node = node.parent
+        if node is not root and isinstance(node, exp.Subquery | exp.Select):
+            return True
     return False
 
 
-def step_kind(expr: exp.Expr) -> EdgeKind | None:
-    """Kind of one step, or None for a bare column (pass-through).
+def _occurrence_kind(col: exp.Expr, root: exp.Expr) -> EdgeKind:
+    """Kind of one column occurrence: AGGREGATION if a grouped aggregate encloses it."""
+    node = col
+    while node is not root and node.parent is not None:
+        node = node.parent
+        if isinstance(node, exp.AggFunc) and not _windowed(node):
+            return EdgeKind.AGGREGATION
+    return EdgeKind.TRANSFORMATION
 
-    An aggregate inside a window (``sum(x) over (...)``) keeps the row grain, so it is a
-    TRANSFORMATION, like any other non-aggregate expression.
+
+def step_kind(expr: exp.Expr, input_column: str | None = None) -> EdgeKind | None:
+    """Kind of one step for one input, or None for a bare column (pass-through).
+
+    The kind is the strongest operation on the input's OWN path through the expression: an
+    aggregate in a sibling subtree (``date_diff(d, (SELECT max(x) ...))``) does not raise ``d``.
+    `input_column` is the lineage child's name (``column_key`` form); its occurrences inside a
+    subquery or in a function-attached key position are not on its path. With no input, or no
+    occurrence (the child is a subquery or a star), any grouped aggregate outside a subquery
+    decides. An aggregate that is a window's function (``sum(x) over (...)``) keeps the row
+    grain, so it is a TRANSFORMATION, like any other non-aggregate expression.
     """
     inner = _unwrap(expr)
     if isinstance(inner, exp.Column):
         return None
-    if any(not _under(agg, inner, False) for agg in inner.find_all(exp.AggFunc)):
+    if input_column is not None:
+        kinds = [
+            _occurrence_kind(col, inner)
+            for col in inner.find_all(exp.Column)
+            if column_key(col.sql()) == input_column
+            and not _in_subquery(col, inner)
+            and function_key(col, inner) is None
+        ]
+        if kinds:
+            return max(kinds, key=lambda k: k.rank)
+    if any(
+        not _windowed(agg) and not _in_subquery(agg, inner) for agg in inner.find_all(exp.AggFunc)
+    ):
         return EdgeKind.AGGREGATION
     return EdgeKind.TRANSFORMATION
 
 
-def path_kind(steps: list[exp.Expr], leaf_column: str, output_column: str) -> EdgeKind:
-    """Strongest kind over the steps; pure pass-through is IDENTITY or RENAME by name."""
-    kinds = [k for k in map(step_kind, steps) if k is not None]
+def path_kind(
+    steps: list[exp.Expr], inputs: list[str], leaf_column: str, output_column: str
+) -> EdgeKind:
+    """Strongest kind over the steps, each judged for the input it passes to (``inputs[i]`` is
+    the child read by ``steps[i]``); pure pass-through is IDENTITY or RENAME by name."""
+    kinds = [k for k in map(step_kind, steps, inputs) if k is not None]
     if kinds:
         return max(kinds, key=lambda k: k.rank)
     if leaf_column.lower() == output_column.lower():

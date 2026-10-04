@@ -49,6 +49,7 @@ class _Path:
     """One root-to-leaf path through a sqlglot lineage tree."""
 
     steps: list[exp.Expr]  # projections inside this model, outermost first
+    inputs: list[str]  # inputs[i]: the child (column_key form) that steps[i] reads on this path
     leaf: Node
     branch: int | None  # UNION branch index, if the path goes through a UNION
     scope: exp.Expr | None  # the SELECT of the last step (where an unresolved leaf was read)
@@ -70,9 +71,9 @@ class _RawIndirect:
 class _ModelLineage:
     """Raw output of one model, before provenance is attached."""
 
-    edges: list[tuple[str, str, list[exp.Expr], Confidence, int | None]] = field(
+    edges: list[tuple[str, str, list[exp.Expr], list[str], Confidence, int | None]] = field(
         default_factory=list
-    )  # (upstream column id, output column, steps, confidence, branch)
+    )  # (upstream column id, output column, steps, step inputs, confidence, branch)
     gaps: list[str] = field(default_factory=list)
     deferred: list[tuple[str, str]] = field(default_factory=list)  # (upstream id, output col)
     constants: list[str] = field(default_factory=list)  # outputs with no input column at all
@@ -99,6 +100,7 @@ def _leaves(node: Node) -> Iterator[Node]:
 def _walk(
     node: Node,
     steps: list[exp.Expr],
+    inputs: list[str],
     branch: int | None,
     scope: exp.Expr | None,
     dropped: list[Node],
@@ -107,12 +109,12 @@ def _walk(
     aggregate FILTER / ORDER BY) are not value inputs (ADR 0020); those used only as window keys
     are also appended to `dropped` (the v0.1 ``deferred_indirect`` record)."""
     if not node.downstream:
-        yield _Path(steps, node, branch, scope)
+        yield _Path(steps, inputs, node, branch, scope)
         return
     if isinstance(node.source, exp.Union):
         # The UNION node's expression is the first branch's; only the branches are real steps.
         for i, child in enumerate(node.downstream):
-            yield from _walk(child, steps, i if branch is None else branch, scope, dropped)
+            yield from _walk(child, steps, inputs, i if branch is None else branch, scope, dropped)
         return
     keys = key_columns(node.expression)
     window_keys = window_key_columns(node.expression)
@@ -121,7 +123,9 @@ def _walk(
         if name in window_keys:
             dropped.append(child)
         elif name not in keys:
-            yield from _walk(child, [*steps, node.expression], branch, node.source, dropped)
+            yield from _walk(
+                child, [*steps, node.expression], [*inputs, name], branch, node.source, dropped
+            )
 
 
 def _table_name(table: exp.Table) -> str:
@@ -215,12 +219,12 @@ def lineage_for_sql(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> 
             continue
         dropped: list[Node] = []
         found = False
-        for path in _walk(root, [], None, None, dropped):
+        for path in _walk(root, [], [], None, None, dropped):
             ids, gap = _resolve_leaf(path, ingest)
             if gap:
                 out.gaps.append(f"{output} <- {gap}")
             for upstream, conf in ids:
-                out.edges.append((upstream, output, path.steps, conf, path.branch))
+                out.edges.append((upstream, output, path.steps, path.inputs, conf, path.branch))
                 found = True
         for key_node in dropped:
             for leaf in _leaves(key_node):
@@ -354,7 +358,7 @@ def _through(
     except Exception:  # sqlglot could not find the column: no edge rather than a guess
         return []
     found: list[tuple[str, Confidence]] = []
-    for path in _walk(node, [], None, None, []):
+    for path in _walk(node, [], [], None, None, []):
         found += _resolve_leaf(path, ingest)[0]
     return found
 
@@ -482,8 +486,8 @@ def _model_edges(
     """Classify and cite each path, then keep one edge per (from, to): the strongest kind."""
     best: dict[tuple[str, str], Edge] = {}
     file = model.original_file_path or ""
-    for upstream, output, steps, conf, branch in raw.edges:
-        kind = path_kind(steps, upstream.split(".")[-1], output)
+    for upstream, output, steps, inputs, conf, branch in raw.edges:
+        kind = path_kind(steps, inputs, upstream.split(".")[-1], output)
         if source is None:
             lines, model_level = (1, 1), True
         else:

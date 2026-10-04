@@ -10,22 +10,7 @@
 #   the engine lacks), wrong_kind (both have it, kinds differ). gold_kind is null for `extra`;
 #   gold_indirect names the indirect type the gold uses for that pair instead.
 
-direct_edges:
-  # A scalar subquery's aggregate (max(order_date)) sets the kind for the sibling column in the
-  # same expression: most_recent_order_date is only transformed (date_diff).
-  - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.recency_days,
-     gold_kind: TRANSFORMATION, engine: wrong_kind, engine_kind: AGGREGATION,
-     construct: "date_diff(d, (SELECT max(x) FROM t)) - scalar-subquery aggregate leaks kind", target: S04}
-  - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.rfm_recency_score,
-     gold_kind: TRANSFORMATION, engine: wrong_kind, engine_kind: AGGREGATION,
-     construct: "same, through the rfm_scores CTE", target: S04}
-  - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.rfm_score,
-     gold_kind: TRANSFORMATION, engine: wrong_kind, engine_kind: AGGREGATION,
-     construct: "same, through the rfm_scores CTE", target: S04}
-  # Window over a grouped aggregate: the inner sum() is an aggregation of net_paid_usd.
-  - {from: fct_orders.net_paid_usd, to: fct_customer_cohorts.cumulative_net_paid,
-     gold_kind: AGGREGATION, engine: wrong_kind, engine_kind: TRANSFORMATION,
-     construct: "sum(sum(x)) OVER (...)", target: S04}
+direct_edges: []  # S04: the 4 kind gaps (scalar-subquery leak, sum(sum(x)) OVER) are fixed
 
 # Edges the engine cites at model level (Edge.model_level_citation) instead of a SQL line.
 # lineage/provenance.py recognises `*` and `t.*` as star items, not `* EXCLUDE (...)`.
