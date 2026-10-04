@@ -82,9 +82,9 @@ direct path to a seed has depth n/a; in v2 that is only `int_web_sessions_clean.
   so nothing the parser does can leak into it.
 - **Numbers in one file.** `spec_v2_expected.yml` holds every expected number with the design
   section it comes from, so a reviewer checks one file against one document.
-- **Compact indirect rows.** One row per key column and clause instead of one per pair. A
-  reviewer reads the clauses the way the SQL is written, and D7 does the fan-out the same way
-  every time.
+- **Compact indirect rows.** 120 rows instead of 621 pairs (63 more pairs are suppressed by D7).
+  A reviewer reads one row per clause, the way the SQL is written, and D7 does the fan-out the
+  same way every time.
 
 ## Alternatives rejected
 - **Indirect pairs written out one by one.** Too long to review, and D7's "minus direct" rule would
@@ -106,6 +106,21 @@ direct path to a seed has depth n/a; in v2 that is only `int_web_sessions_clean.
   `IN (subquery)` predicate).
 - `fct_product_performance` GROUP BY: `int_order_item_margins.product_id`,
   `stg_products.product_name`, `stg_products.category`.
+- `fct_monthly_finance`: each derived table's GROUP BY key targets only that table's columns
+  (`revenue_monthly`, `margins_monthly`, `adjustments_monthly`); the outer month join keys target
+  every column; the `lag` ORDER BY month is a WINDOW edge to `revenue_finance_mom_change` only.
+  `fct_marketing_attribution`: the `attributed_daily` GROUP BY keys target the four columns
+  computed through it; every join key targets every column.
+- **CTE and derived-table names are part of the gold.** `via` names CTEs that do not exist yet:
+  `item_margins` (`int_order_profit`), `rfm_base` (`dim_customer_rfm`: the join lives there and
+  the score CTEs sit on top), `attributed_daily` (`fct_marketing_attribution`),
+  `latest_snapshots` (`fct_inventory_status`: the QUALIFY runs before the join),
+  `revenue_monthly` / `margins_monthly` / `adjustments_monthly` (`fct_monthly_finance`). S02b
+  writes the SQL with these names and this structure. The v1 names (`item_agg`,
+  `refunds_per_order`, `cash_per_order`, `order_agg`) come from the frozen SQL.
+- Rows for clauses attached to a function in the final SELECT (CONDITIONAL, a SELECT-list
+  WINDOW, SORT inside `string_agg`) have an explicit target list but no `via`: there is no CTE or
+  derived table to name.
 
 ## Explain-back questions
 1. `stg_a.k` is a JOIN key in model `m`'s final SELECT, and `m.k` is `stg_a.k` unchanged. Which

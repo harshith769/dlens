@@ -290,13 +290,11 @@ def test_synthetic_shop_v2_spec_passes() -> None:
     checks = cg.run(CORPUS / "lineage_spec_v2.yml", CORPUS / "spec_v2_expected.yml")
     names = {c.name for c in checks}
     assert "v1 direct edges content-identical (115 edges)" in names
-    # Until the indirect edges land, only these gaps remain (they are closed by indirect rows).
-    assert failed(checks) == {
-        "depends_on": [
-            "depends_on(fct_product_performance): int_orders_enriched contributes no edge",
-            "depends_on(fct_monthly_finance): fct_orders contributes no edge",
-        ],
-        "every model column has an incoming edge (D3)": [
-            "int_web_sessions_clean.session_number has no incoming edge"
-        ],
-    }
+    assert failed(checks) == {}
+    report = next(c for c in checks if c.name.startswith("indirect edge counts"))
+    models = {line.split()[0]: line for line in report.details}
+    # DESIGN_v2 §0 / §4: models using each indirect type (v1 + new)
+    for kind, v1, new in [("JOIN", 4, 15), ("FILTER", 0, 9), ("GROUP_BY", 4, 13), ("WINDOW", 1, 4),
+                          ("SORT", 0, 4), ("CONDITIONAL", 0, 4)]:  # fmt: skip
+        counts = [int(x) for x in models[kind].split() if x.isdigit()]
+        assert (counts[2], counts[5]) == (v1, new), models[kind]

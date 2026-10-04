@@ -41,9 +41,12 @@ absent_columns:
   - {column: int_order_item_margins.product_category, why: "dev-14: no second product_category on order items (§1)"}
   - {column: fct_order_margins.is_profitable, why: "SELECT * EXCLUDE (is_profitable) (§3 trap 2)"}
 
-# DESIGN_v2 §1 and §9 (dev-10): checked direct-only and direct + indirect (D7 targets)
+# DESIGN_v2 §1, §3 and §9 (dev-10): checked direct-only and direct + indirect (D7 targets)
 unreachable:
   - {from: raw_payments.amt, to: dim_customers.lifetime_value, modes: [direct, direct+indirect], why: "dev-10 answer is no"}
+  # §3 trap 3 yes/no example "refund_amount -> roas: no" (read as the per-order refund_amount)
+  - {from: int_order_financials.refund_amount, to: fct_marketing_attribution.roas, modes: [direct, direct+indirect], why: "§3 trap 3: ROAS uses marketing revenue"}
+  - {from: int_order_financials.refund_amount, to: fct_channel_performance_monthly.roas, modes: [direct, direct+indirect], why: "§3 trap 3: ROAS uses marketing revenue"}
 
 # DESIGN_v2 Appendix B: all 55 columns at 6+ hops, one longest direct path each
 deep_columns:
