@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `dlens trace ... --include-indirect` and `dlens impact ... --include-indirect` (default off):
+  traversal also follows indirect edges (JOIN, FILTER, GROUP_BY, WINDOW, SORT, CONDITIONAL),
+  and each indirect hop is marked with its type, its clause and the clause's `file:lines`.
+  Without the flag the output is unchanged. `LineageGraph.upstream`/`downstream` honour
+  `include_indirect` (spec §7 defaults). The agent tools, validator, UI and demo stay
+  direct-only.
+- Indirect edges cite their clause's lines in the model's source file (JOIN ON / USING, WHERE,
+  HAVING, QUALIFY, GROUP BY, ORDER BY, OVER, FILTER (WHERE), aggregate ORDER BY), using the same
+  file and line numbering as direct edges. A clause that can't be located falls back to the
+  whole file, and `dlens report` shows why (`citation gap`).
+- Indirect-edge gate: F1 ≥ 0.90 on synthetic_shop (`compare_gold.py --indirect` exits 1 below
+  it). `scripts/measure_indirect_reach.py` measures what indirect traversal does to impact size.
+
+### Changed
+- Graph format v4: adds `citation_gaps` to the parse report and drops `deferred_indirect` (window
+  keys are WINDOW indirect edges). Reads v2–v4, so the demo bundle (v2) loads unchanged, and
+  older caches are rebuilt.
+
+### Fixed
+- Edge kind follows each input's own path: a scalar subquery's aggregate no longer makes a
+  sibling column AGGREGATION, and `sum(sum(x)) OVER (...)` is AGGREGATION.
+- `SELECT * EXCLUDE (...)` / `* REPLACE (...)` / `t.* EXCLUDE (...)` columns cite the star's line
+  instead of the whole model.
+
 ## [0.2.0] - 2026-10-04
 
 The cited Q&A agent, a local UI and a public demo at https://dlens-lineage.streamlit.app/.
