@@ -569,7 +569,7 @@ def test_pipeline_has_the_six_stages_in_order_and_the_loop_as_a_note():
 def test_dev_score_label_and_date(tmp_path: Path):
     real = view.dev_score()
     assert real and real.questions == 20 and real.passed <= real.questions
-    assert real.label == "Dev set: 20 hand-written questions (not the benchmark)"
+    assert real.label == "Dev set: 20 hand-written questions, local qwen3:4b (not the benchmark)"
     assert len(real.date) == 10 and real.date[4] == "-"
     report = tmp_path / "r.json"
     summary = {"questions": 3, "pass": 2, "verdict_ok": 3, "mean_recall": 0.5}
@@ -656,10 +656,24 @@ def test_history_label_has_a_dot_and_one_clipped_escaped_line():
     label = view.history_label(
         "Where   does\n stg_payments.amount_usd come from? " + "x" * 80, "warning"
     )
-    assert label.startswith(":orange[●] ") and "\n" not in label and label.endswith("…")
-    assert "stg\\_payments" in label  # markdown escaped, shows as typed
+    assert label.startswith(":orange[●] ") and "\n" not in label and "…" in label
+    assert "stg\\_pay" in label  # markdown escaped, shows as typed
     assert len(view.clip("y" * 100)) == view.HISTORY_CHARS
     assert view.history_label("ok?", "primary") == ":blue[●] ok?"
+
+
+def test_history_clips_in_the_middle_so_same_prefix_questions_differ():
+    a = "Where does fct_orders.net_paid_usd come from? Can I remove it safely?"
+    b = "Where does fct_orders.net_paid_usd come from? Is it used by dim_customers?"
+    ca, cb = view.clip(a), view.clip(b)
+    assert len(ca) == len(cb) == view.HISTORY_CHARS and ca != cb
+    assert ca.startswith("Where does fct_") and ca.endswith("remove it safely?")
+    assert "…" in ca
+
+
+def test_preset_label_is_a_muted_tag_then_the_escaped_question():
+    label = view.preset_label("yes/no → No", "Does raw_payments.amt affect x?")
+    assert label == ":gray[yes/no → No ·] Does raw\\_payments.amt affect x?"
 
 
 def test_run_cached():

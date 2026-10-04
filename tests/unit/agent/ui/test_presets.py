@@ -56,6 +56,13 @@ def _check_preset(p: demo.Preset) -> None:
 # -- the preset choice ----------------------------------------------------------------------------
 
 
+def test_every_preset_has_a_short_tag():
+    assert set(demo.PRESET_TAGS) == set(demo.PRESET_IDS)
+    assert all(0 < len(t) <= 28 for t in demo.PRESET_TAGS.values())
+    for p in demo.load_presets(demo.presets_dir({})):
+        assert p.tag == demo.PRESET_TAGS[p.id]
+
+
 def test_preset_ids_passed_in_dev_r9_and_cover_every_kind():
     rows = {r["id"]: r for r in json.loads(view.DEV_REPORT.read_text())["rows"]}
     assert len(demo.PRESET_IDS) == 10 and len(set(demo.PRESET_IDS)) == 10
@@ -149,7 +156,7 @@ def test_preset_button_replays_with_zero_llm_calls(preset_app, tmp_path):
     assert not at.exception
     assert any("Precomputed with local qwen3:4b" in c.value for c in at.caption)
     buttons = [b for b in at.button if b.key == "preset-dev-01"]
-    assert buttons
+    assert buttons and buttons[0].label.startswith(":gray[upstream ·] Where does")
     buttons[0].click().run()
     assert not at.exception, at.exception
     assert made == [] and not at.warning and not at.error

@@ -275,7 +275,7 @@ def preset_list(project: str) -> None:
     with st.container(key="presets", gap="small"):
         for p in items:
             st.button(
-                p.question,
+                view.preset_label(p.tag, p.question),
                 key=f"preset-{p.id}",
                 help=PRESET_HELP,
                 on_click=_preset,
@@ -289,7 +289,12 @@ def empty_state(project: str) -> None:
         st.markdown("#### Pick a preset or type a question.")
         with st.container(key="empty", horizontal=True, gap="small"):
             for p in presets()[:4]:
-                st.button(p.question, key=f"empty-{p.id}", on_click=_preset, args=(project, p.id))
+                st.button(
+                    view.preset_label(p.tag, p.question),
+                    key=f"empty-{p.id}",
+                    on_click=_preset,
+                    args=(project, p.id),
+                )
         return
     st.markdown(f"#### {EMPTY}")
     groups = view.examples(project)
@@ -548,7 +553,11 @@ def how_tab() -> None:
 
 def main() -> None:
     st.set_page_config(page_title="DLens", layout="wide")
-    st.html(style.CSS + f"<style>{view.source_css()}</style>")
+    st.html(
+        style.CSS
+        + f"<style>{view.source_css()}</style>"
+        + (style.DEMO_CSS if demo.enabled() else "")
+    )
     project = header()
     if project is None:
         return

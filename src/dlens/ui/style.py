@@ -34,6 +34,10 @@ _TONES: dict[str, str] = {
     "neutral": MUTED,
 }
 
+# Streamlit Cloud draws its toolbar (Fork, GitHub) over the top of the page: in demo mode the
+# header starts below it, so the title and the "x of 50 left today" status stay visible.
+DEMO_CSS = "<style>.block-container { padding-top: 4.25rem; }</style>"
+
 CSS = f"""
 <style>
 .block-container {{ padding-top: 1.6rem; }}

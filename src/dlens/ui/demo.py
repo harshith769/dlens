@@ -159,6 +159,19 @@ PRESET_IDS = (
     "dev-17",
     "dev-19",
 )
+# What each preset demonstrates: a short muted tag next to its button.
+PRESET_TAGS = {
+    "dev-01": "upstream",
+    "dev-05": "upstream · 5 hops",
+    "dev-06": "upstream · 7 hops",
+    "dev-14": "abbreviation",
+    "dev-07": "impact",
+    "dev-10": "yes/no → No",
+    "dev-13": "computed",
+    "dev-16": "ambiguous",
+    "dev-17": "false premise",
+    "dev-19": "unknown column → refused",
+}
 
 
 @dataclass(frozen=True)
@@ -170,6 +183,10 @@ class Preset:
     subtype: str
     question: str
     record: RunRecord
+
+    @property
+    def tag(self) -> str:
+        return PRESET_TAGS.get(self.id, self.subtype)
 
     @property
     def badge(self) -> str:

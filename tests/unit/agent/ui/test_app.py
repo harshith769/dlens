@@ -162,7 +162,7 @@ def test_how_it_works_shows_rules_and_dated_dev_score(start):
     assert not at.exception
     assert any("**R9**" in t for t in texts(at))
     metric = at.metric[0]
-    assert metric.label == "Dev set: 20 hand-written questions (not the benchmark)"
+    assert metric.label == "Dev set: 20 hand-written questions, local qwen3:4b (not the benchmark)"
     assert any("eval/reports/dev_r9.json" in c.value for c in at.caption)
 
 

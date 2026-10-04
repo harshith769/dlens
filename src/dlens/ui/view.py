@@ -204,14 +204,26 @@ def push_history(
 
 
 def clip(text: str, n: int = HISTORY_CHARS) -> str:
+    """One line of at most ``n`` characters, cut in the MIDDLE: questions that share a prefix
+    ("Where does fct_orders...") stay distinguishable by their ends."""
     one = " ".join(text.split())
-    return one if len(one) <= n else one[: n - 1].rstrip() + "…"
+    if len(one) <= n:
+        return one
+    head = (n - 1) // 2
+    tail = n - 1 - head
+    return one[:head].rstrip() + "…" + one[-tail:].lstrip()
 
 
 def history_label(question: str, tone: Tone) -> str:
     """A button label: a dot in the verdict's color, then the question on one line. Markdown
     characters in the question are escaped so it shows as typed."""
     return f":{_TONE_DOTS[tone]}[●] " + _MD_SPECIAL.sub(r"\\\1", clip(question))
+
+
+def preset_label(tag: str, question: str) -> str:
+    """A preset button: the muted tag, then the question, escaped so it shows as typed."""
+    tag, question = (_MD_SPECIAL.sub(r"\\\1", t) for t in (tag, question))
+    return f":gray[{tag} ·] {question}"
 
 
 def run_cached(run: AgentRun | None) -> bool | None:
@@ -832,7 +844,9 @@ class DevScore:
 
     @property
     def label(self) -> str:
-        return f"Dev set: {self.questions} hand-written questions (not the benchmark)"
+        return (
+            f"Dev set: {self.questions} hand-written questions, local qwen3:4b (not the benchmark)"
+        )
 
 
 def _report_date(path: Path) -> str:
