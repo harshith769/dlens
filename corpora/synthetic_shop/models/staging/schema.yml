@@ -2,43 +2,156 @@ version: 2
 
 models:
   - name: stg_customers
+    description: One row per customer, renamed and cleaned from raw_customers.
     columns:
       - name: customer_id
+        description: Customer key.
         tests:
           - unique
           - not_null
 
   - name: stg_orders
+    description: One row per order, renamed from raw_orders.
     columns:
       - name: order_id
+        description: Order key.
         tests:
           - unique
           - not_null
 
   - name: stg_order_items
+    description: One row per order line, renamed from raw_order_items.
     columns:
       - name: order_item_id
+        description: Order line key.
         tests:
           - unique
           - not_null
 
   - name: stg_products
+    description: One row per product in the catalogue.
     columns:
       - name: product_id
+        description: Product key.
         tests:
           - unique
           - not_null
 
   - name: stg_payments
+    description: One row per payment received for an order.
     columns:
       - name: payment_id
+        description: Payment key.
         tests:
           - unique
           - not_null
 
   - name: stg_refunds
+    description: One row per refund issued for an order.
     columns:
       - name: refund_id
+        description: Refund key.
         tests:
           - unique
           - not_null
+
+  - name: stg_shipments
+    description: One row per shipment (an order has zero, one or two), with carrier and delivery timing.
+    columns:
+      - name: shipment_id
+        description: Shipment key.
+        tests:
+          - unique
+          - not_null
+      - name: carrier
+        description: Carrier name, trimmed and lowercased.
+      - name: shipped_at
+        description: When the parcel left the warehouse; null while not yet shipped.
+      - name: shipping_cost_usd
+        description: What the carrier charged for this one shipment, in USD.
+      - name: delivery_days
+        description: Days from shipped_at to delivered_at.
+
+  - name: stg_web_sessions
+    description: One row per website session, including bots and anonymous visitors (not filtered here).
+    columns:
+      - name: session_id
+        description: Session key.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Logged-in customer; null for anonymous visitors.
+      - name: channel
+        description: Acquisition channel of the session, lowercased.
+      - name: is_bot
+        description: True when the session was flagged as bot traffic.
+
+  - name: stg_marketing_spend
+    description: One row per day, channel and campaign of paid marketing spend.
+    columns:
+      - name: spend_date
+        description: The spend day.
+      - name: channel
+        description: Marketing channel, lowercased.
+      - name: spend_usd
+        description: Amount spent in USD.
+
+  - name: stg_promotions
+    description: One row per promotion code.
+    columns:
+      - name: promotion_id
+        description: Promotion key.
+        tests:
+          - unique
+          - not_null
+      - name: promo_code
+        description: Promotion code, uppercased.
+      - name: promo_channel
+        description: Channel the promotion was issued through; 'internal' codes are staff or test codes.
+
+  - name: stg_order_promotions
+    description: Bridge between orders and the promotions applied to them.
+    columns:
+      - name: order_promotion_id
+        description: Bridge row key.
+        tests:
+          - unique
+          - not_null
+      - name: discount_usd
+        description: Discount granted on the order by this promotion, in USD.
+
+  - name: stg_suppliers
+    description: One row per supplier.
+    columns:
+      - name: supplier_id
+        description: Supplier key.
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_product_costs
+    description: Product cost history; a product has one row per cost period.
+    columns:
+      - name: product_cost_id
+        description: Cost row key.
+        tests:
+          - unique
+          - not_null
+      - name: unit_cost
+        description: Purchase cost of one unit from the supplier.
+      - name: valid_from
+        description: First day this cost applies.
+
+  - name: stg_inventory_snapshots
+    description: Stock level per product, warehouse and snapshot day.
+    columns:
+      - name: snapshot_id
+        description: Snapshot key.
+        tests:
+          - unique
+          - not_null
+      - name: warehouse_code
+        description: Warehouse code, uppercased.
+      - name: qty_on_hand
+        description: Units in stock on the snapshot day.
