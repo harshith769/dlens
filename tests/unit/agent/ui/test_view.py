@@ -463,3 +463,34 @@ def test_checks_table_outcomes():
 def test_timeline_html_escapes():
     html = style.timeline([("<b>", "<script>", "m", "code")])
     assert "<script>" not in html and "&lt;b&gt;" in html and 'class="code"' in html
+
+
+def test_column_options_sorted_display_names():
+    opts = view.column_options(make_shop())
+    assert list(opts) == sorted(opts) and opts["fct.total"] == "model.p.fct.total"
+
+
+def test_explore_rows_use_checked_project_relative_citations(shop_root: Path):
+    g = make_shop()
+    edges = view.neighborhood(g, "model.p.fct_star.total", "upstream", 10)
+    rows = view.explore_rows(g, shop_root, edges)
+    assert rows[0] == {
+        "From": "fct.total",
+        "To": "fct_star.total",
+        "Kind": "Identity",
+        "Expression": "total",
+        "Where": "models/star.sql:1",
+    }
+    assert rows[1]["Where"] == "models/fct.sql:3" and rows[1]["Kind"] == "Aggregation"
+    assert all(str(shop_root) not in str(r) for r in rows)
+
+
+def test_edge_models_and_model_source_stay_inside_the_project(shop_root: Path, tmp_path: Path):
+    g = make_shop()
+    edges = view.neighborhood(g, "model.p.fct.total", "upstream", 1)
+    assert view.edge_models(g, edges, "model.p.fct.total") == ["model.p.fct", "model.p.stg"]
+    src = view.model_source(g, shop_root, "model.p.fct")
+    assert src and src.file == "models/fct.sql" and "sum(amount)" in src.text
+    (tmp_path / "secret.sql").write_text("select 1")
+    g._models["model.p.fct"]["file"] = "../secret.sql"
+    assert view.model_source(g, shop_root, "model.p.fct") is None

@@ -16,7 +16,7 @@ from dlens.agent.answer import Answer, marker
 from dlens.agent.llm.ollama import DEFAULT_MODEL as OLLAMA_MODEL
 from dlens.agent.loop import AgentRun
 from dlens.agent.tools import Toolbox
-from dlens.agent.tools.provenance import Citation, edge_id, safe_read
+from dlens.agent.tools.provenance import Citation, Provenance, edge_id, safe_read
 from dlens.cli import trace_summary
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, ParseQuality
@@ -571,6 +571,50 @@ def build_lineage_dot(
     out.append(_legend())
     out.append("}")
     return LineageDot("\n".join(out), len(shown), len(dict.fromkeys(edges)))
+
+
+# -- explore (no LLM) ---------------------------------------------------------------------------
+
+DIRECTIONS = {"Upstream": "upstream", "Downstream": "downstream", "Both": "both"}
+
+
+def column_options(graph: LineageGraph) -> dict[str, str]:
+    """Display name (``model.column``) -> full column id, sorted by display name."""
+    return dict(sorted((graph.display_name(c), c) for c in graph.columns()))
+
+
+def explore_rows(graph: LineageGraph, project: Path, edges: list[Edge]) -> list[dict[str, str]]:
+    """One row per edge, with the checked citation (project-relative ``file:lines``)."""
+    prov = Provenance(graph, project)
+    rows = []
+    for e in edges:
+        cite = prov.edge_citation(e)
+        where = cite.file if cite.level == "model" else f"{cite.file}:{cite.line_start}"
+        if cite.level != "model" and cite.line_end != cite.line_start:
+            where += f"-{cite.line_end}"
+        rows.append(
+            {
+                "From": graph.display_name(e.from_column),
+                "To": graph.display_name(e.to_column),
+                "Kind": KIND_NAMES.get(e.kind.value, e.kind.value),
+                "Expression": " ".join(e.expression.split()),
+                "Where": where,
+            }
+        )
+    return rows
+
+
+def edge_models(graph: LineageGraph, edges: list[Edge], focus: str | None = None) -> list[str]:
+    """Models touched by ``edges`` (and the focus column), in first-seen order."""
+    cols = [*([focus] if focus else []), *(c for e in edges for c in (e.to_column, e.from_column))]
+    return list(dict.fromkeys(graph.model_of(c) for c in cols))
+
+
+def model_source(graph: LineageGraph, project: Path, uid: str) -> Source | None:
+    """The model's file, read through ``safe_read`` (never outside the project)."""
+    file = (graph.model_info(uid) or {}).get("file", "")
+    text = safe_read(project, file)
+    return None if text is None else Source(file, text, 1, 1, "model")
 
 
 # -- steps and checks --------------------------------------------------------------------------

@@ -134,3 +134,19 @@ def test_steps_and_checks_tabs_render(start):
     assert any("dl-timeline" in t and "Tool call" in t and "Validation" in t for t in texts(at))
     frames = at.dataframe
     assert frames and "R2r" in list(frames[0].value["Rule"])
+
+
+def test_explore_is_instant_and_makes_no_llm_call(start):
+    at = start([])
+    at.selectbox(key="explore_col").set_value("fct_star.total").run()
+    at.slider(key="explore_depth").set_value(10).run()
+    assert not at.exception
+    assert at.provider.requests == []
+    specs = [c.proto.spec for c in at.get("graphviz_chart")]
+    assert any(s.count(" -> ") == 3 for s in specs)
+    edges = next(f.value for f in at.dataframe if "Where" in f.value.columns)
+    assert list(edges["Where"]) == ["models/star.sql:1", "models/fct.sql:3", "models/stg.sql:3"]
+    at.selectbox(key="explore_model").set_value("model.p.fct").run()
+    assert any("dl-src" in t and "sum" in t for t in texts(at))
+    at.segmented_control(key="explore_dir").set_value("Downstream").run()
+    assert any("no downstream lineage" in c.value for c in at.caption)

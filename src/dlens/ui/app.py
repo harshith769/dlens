@@ -282,6 +282,48 @@ def ask_tab(project: str) -> None:
         answer_panel(project)
 
 
+def explore_tab(project: str) -> None:
+    """Lineage straight from the graph: no LLM call, no quota."""
+    graph = load_graph(project)
+    options = view.column_options(graph)
+    if not options:
+        st.caption("This project has no columns.")
+        return
+    pick, way, depth_col = st.columns([3, 2, 2], vertical_alignment="bottom")
+    name = pick.selectbox("Column", list(options), key="explore_col")
+    direction = way.segmented_control(
+        "Direction", list(view.DIRECTIONS), default="Upstream", key="explore_dir"
+    )
+    depth = depth_col.slider("Depth", 1, 10, 3, key="explore_depth")
+    focus = options[name]
+    edges = view.neighborhood(graph, focus, view.DIRECTIONS[direction or "Upstream"], depth)
+    d = view.build_lineage_dot(graph, edges, focus)
+    if d.shown == 0:
+        st.caption(f"{name} has no {(direction or 'upstream').lower()} lineage.")
+    else:
+        diagram(d)
+    shown = edges[: d.shown]
+    if shown:
+        st.markdown("**Edges**")
+        st.dataframe(view.explore_rows(graph, view.PROJECTS[project], shown), hide_index=True)
+    models = view.edge_models(graph, shown, focus)
+    uid = st.selectbox(
+        "Model SQL",
+        models,
+        format_func=lambda u: (graph.model_info(u) or {}).get("name", u),
+        key="explore_model",
+    )
+    if uid is None:
+        return
+    src = view.model_source(graph, view.PROJECTS[project], uid)
+    if src is None:
+        st.caption("No source file inside the project for this model.")
+        return
+    st.markdown(f"`{src.file}`")
+    html = view.highlight_sql(src.text, sql=src.file.endswith(".sql"))
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def main() -> None:
     st.set_page_config(page_title="DLens", layout="wide")
     st.markdown(style.CSS, unsafe_allow_html=True)
@@ -292,7 +334,7 @@ def main() -> None:
     with ask:
         ask_tab(project)
     with explore:
-        st.caption("Coming in this release.")
+        explore_tab(project)
     with how:
         st.caption("Coming in this release.")
 
