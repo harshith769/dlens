@@ -15,13 +15,13 @@ from dlens.graph.models import (
     ImpactResult,
     LineagePath,
     PathList,
+    hop_rank,
 )
 from dlens.ingest import IngestResult, ingest
 from dlens.lineage import (
     DeferredIndirect,
     Edge,
     IndirectEdge,
-    IndirectKind,
     LineageResult,
     ModelParse,
     ParseQuality,
@@ -37,12 +37,6 @@ FORMAT_VERSION = 4
 READABLE_VERSIONS = (2, 3, 4)
 DEFAULT_MAX_PATHS = 1000
 SUGGESTIONS = 3
-_KIND_ORDER = {k: i for i, k in enumerate(IndirectKind)}
-
-
-def _hop_rank(hop: Hop) -> int:
-    """Order of preference between hops: a direct edge, then the indirect types in enum order."""
-    return 0 if isinstance(hop, Edge) else 1 + _KIND_ORDER[hop.kind]
 
 
 class LineageGraph:
@@ -84,9 +78,9 @@ class LineageGraph:
         )
         self._indirect_in: dict[str, list[IndirectEdge]] = {}
         self._indirect_out: dict[str, list[IndirectEdge]] = {}
-        for ie in sorted(self._indirect, key=lambda e: (e.from_column, _hop_rank(e))):
+        for ie in sorted(self._indirect, key=lambda e: (e.from_column, hop_rank(e))):
             self._indirect_in.setdefault(ie.to_column, []).append(ie)
-        for ie in sorted(self._indirect, key=lambda e: (e.to_column, _hop_rank(e))):
+        for ie in sorted(self._indirect, key=lambda e: (e.to_column, hop_rank(e))):
             self._indirect_out.setdefault(ie.from_column, []).append(ie)
         self._short_index: dict[str, list[str]] | None = None
 
@@ -309,7 +303,7 @@ class LineageGraph:
                     if succ in seen:
                         continue
                     old = reached.get(succ)
-                    if old is None or _hop_rank(hop) < _hop_rank(old):
+                    if old is None or hop_rank(hop) < hop_rank(old):
                         reached[succ] = hop
             if not reached:
                 frontier = []

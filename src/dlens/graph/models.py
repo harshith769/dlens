@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dlens.lineage import Edge, IndirectEdge
+from dlens.lineage import Edge, IndirectEdge, IndirectKind
 
 Hop = Edge | IndirectEdge
 """One step of a traversal: a DERIVES edge, or (with ``include_indirect``) a DEPENDS_ON_INDIRECT
@@ -12,6 +12,11 @@ edge (ADR 0020)."""
 def hop_label(hop: Hop) -> str:
     """``"direct"`` for a DERIVES edge, else the indirect type (``"JOIN"``, ``"FILTER"``, ...)."""
     return "direct" if isinstance(hop, Edge) else str(hop.kind)
+
+
+def hop_rank(hop: Hop) -> int:
+    """Order of preference between hops: a direct edge, then the indirect types in enum order."""
+    return 0 if isinstance(hop, Edge) else 1 + list(IndirectKind).index(hop.kind)
 
 
 class LineagePath(BaseModel):

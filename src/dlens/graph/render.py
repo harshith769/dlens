@@ -3,9 +3,9 @@
 from dataclasses import dataclass, field
 
 from dlens.graph.graph import LineageGraph
-from dlens.graph.models import Hop, ImpactResult, PathList
+from dlens.graph.models import Hop, ImpactResult, PathList, hop_rank
 from dlens.graph.report import Report
-from dlens.lineage import Confidence
+from dlens.lineage import Confidence, IndirectEdge
 
 EXPR_WIDTH = 60
 
@@ -14,7 +14,8 @@ EXPR_WIDTH = 60
 class _Node:
     column: str
     edge: Hop | None = None
-    children: dict[str, "_Node"] = field(default_factory=dict)
+    # keyed by (column, hop_rank): one column can be reached by several indirect types
+    children: dict[tuple[str, int], "_Node"] = field(default_factory=dict)
 
 
 def _expr(text: str) -> str:
@@ -34,7 +35,9 @@ def _hop(g: LineageGraph, node: _Node) -> str:
     e = node.edge
     assert e is not None
     low = " (low confidence)" if e.confidence == Confidence.LOW else ""
-    return f"{g.display_name(node.column)}  [{e.kind}]{low}  {_expr(e.expression)}  {_cite(e)}"
+    # An indirect hop is marked with its type; its expression is the clause (ADR 0020).
+    tag = f"[indirect {e.kind}]" if isinstance(e, IndirectEdge) else f"[{e.kind}]"
+    return f"{g.display_name(node.column)}  {tag}{low}  {_expr(e.expression)}  {_cite(e)}"
 
 
 def _draw(g: LineageGraph, node: _Node, prefix: str, lines: list[str]) -> None:
@@ -50,7 +53,7 @@ def render_trace(g: LineageGraph, root: str, paths: PathList, max_depth: int) ->
     for p in paths:
         node = tree
         for e in p.edges:
-            node = node.children.setdefault(e.from_column, _Node(e.from_column, e))
+            node = node.children.setdefault((e.from_column, hop_rank(e)), _Node(e.from_column, e))
     lines = [g.display_name(root)]
     _draw(g, tree, "", lines)
     if not paths:
@@ -62,6 +65,9 @@ def render_trace(g: LineageGraph, root: str, paths: PathList, max_depth: int) ->
         lines.append(
             f"{len(paths)} path(s), deepest {deepest} hop(s), {len(ends)} origin column(s)"
         )
+        indirect = sum(isinstance(h, IndirectEdge) for p in paths for h in p.edges)
+        if indirect:
+            lines.append(f"{indirect} indirect hop(s) (join/filter/group/sort/window keys)")
     if paths.depth_limited:
         lines.append(f"note: some paths were cut at --depth {max_depth}; raise it to see more")
     if paths.truncated:
@@ -74,7 +80,7 @@ def render_impact(g: LineageGraph, r: ImpactResult, max_depth: int) -> str:
     for col in r.columns:
         nodes[col] = _Node(col, r.via[col])
     for col in r.columns:
-        nodes[r.via[col].from_column].children[col] = nodes[col]
+        nodes[r.via[col].from_column].children[(col, 0)] = nodes[col]
     lines = [g.display_name(r.root)]
     _draw(g, nodes[r.root], "", lines)
     if not r.columns:
@@ -83,6 +89,9 @@ def render_impact(g: LineageGraph, r: ImpactResult, max_depth: int) -> str:
     lines.append(f"{len(r.columns)} affected column(s), {len(r.models)} model(s)")
     for depth in sorted(r.columns_by_depth):
         lines.append(f"  depth {depth}: {len(r.columns_by_depth[depth])} column(s)")
+    indirect = sum(isinstance(h, IndirectEdge) for h in r.via.values())
+    if indirect:
+        lines.append(f"{indirect} column(s) reached by an indirect hop")
     if r.models:
         lines.append("models: " + ", ".join(m.split(".", 2)[-1] for m in r.models))
     lines.append("exposures: " + (", ".join(r.exposures) if r.exposures else "none"))

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import edge, make_graph
+from conftest import edge, make_graph, with_indirect
 from dlens import __version__
 from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, hop_label
 from dlens.graph.cache import cache_path, is_stale, load_or_build
@@ -270,45 +270,8 @@ def test_model_and_exposure_info_are_copies(tiny_graph: LineageGraph) -> None:
 REPO = Path(__file__).parents[2]
 
 
-def _with_indirect(g: LineageGraph) -> LineageGraph:
-    """The same graph plus indirect edges, built through the public constructor."""
-    from dlens.lineage import IndirectEdge, IndirectKind
-
-    indirect = [
-        IndirectEdge(
-            from_column="seed.p.raw.y",
-            to_column=TOTAL,
-            kind=IndirectKind.JOIN,
-            key="raw.y",
-            expression="on raw.y = stg.x2",
-            file="models/fct.sql",
-            lines=(1, 5),
-        ),
-        IndirectEdge(
-            from_column="seed.p.raw.y",
-            to_column=TOTAL,
-            kind=IndirectKind.GROUP_BY,
-            key="raw.y",
-            expression="group by raw.y",
-            file="models/fct.sql",
-            lines=(1, 5),
-        ),
-    ]
-    return LineageGraph(
-        columns={c: dict(g.nx_graph.nodes[c]) for c in g.columns()},
-        edges=g.edges(),
-        depends_on=g.depends_on(),
-        consumes=g.consumes(),
-        models={m: g.model_info(m) or {} for m in g.model_ids()},
-        exposures={x: g.exposure_info(x) or {} for x, _ in g.consumes()},
-        parse={},
-        deferred=[],
-        indirect=indirect,
-    )
-
-
 def test_indirect_edges_round_trip_in_format_v4(tmp_path: Path, tiny_graph: LineageGraph) -> None:
-    g = _with_indirect(tiny_graph)
+    g = with_indirect(tiny_graph)
     g.save(tmp_path / "g.json")
     raw = json.loads((tmp_path / "g.json").read_text())
     assert raw["version"] == FORMAT_VERSION == 4
@@ -357,7 +320,7 @@ def test_the_committed_v2_demo_graph_loads_unchanged() -> None:
 def test_traversal_without_indirect_is_unchanged(tiny_graph: LineageGraph) -> None:
     """include_indirect=False (what every caller in dlens passes by default) sees direct edges
     only, exactly as before S04."""
-    g = _with_indirect(tiny_graph)
+    g = with_indirect(tiny_graph)
     for col in g.columns():
         assert g.upstream(col, include_indirect=False) == tiny_graph.upstream(
             col, include_indirect=False
@@ -371,7 +334,7 @@ def test_traversal_without_indirect_is_unchanged(tiny_graph: LineageGraph) -> No
 def test_upstream_with_indirect_labels_each_hop(tiny_graph: LineageGraph) -> None:
     """raw.y decides total's rows twice (JOIN and GROUP_BY): one hop, and one path, per type,
     after the direct paths."""
-    g = _with_indirect(tiny_graph)
+    g = with_indirect(tiny_graph)
     paths = g.upstream(TOTAL, include_indirect=True)
     assert [[hop_label(h) for h in p.edges] for p in paths] == [
         ["direct", "direct"],
@@ -382,7 +345,7 @@ def test_upstream_with_indirect_labels_each_hop(tiny_graph: LineageGraph) -> Non
 
 
 def test_downstream_with_indirect_prefers_direct_then_type_order(tiny_graph: LineageGraph) -> None:
-    g = _with_indirect(tiny_graph)
+    g = with_indirect(tiny_graph)
     r = g.downstream("seed.p.raw.y", include_indirect=True)
     assert r.columns_by_depth == {1: ["model.p.fct.flag", TOTAL]}
     assert hop_label(r.via["model.p.fct.flag"]) == "direct"

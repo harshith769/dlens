@@ -5,7 +5,7 @@ import pytest
 
 from dlens.graph import LineageGraph, build_graph
 from dlens.graph.cache import cache_path
-from dlens.lineage import Edge, EdgeKind
+from dlens.lineage import Edge, EdgeKind, IndirectEdge, IndirectKind
 
 SYNTHETIC = Path(__file__).parents[1] / "corpora" / "synthetic_shop"
 
@@ -76,3 +76,41 @@ def synthetic_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="session")
 def synthetic_graph(synthetic_project: Path) -> LineageGraph:
     return LineageGraph.load(cache_path(synthetic_project))
+
+
+def with_indirect(g: LineageGraph) -> LineageGraph:
+    """The same graph plus indirect edges, built through the public constructor: raw.y decides
+    fct.total's rows by a JOIN and a GROUP BY (two types, one pair)."""
+    indirect = [
+        IndirectEdge(
+            from_column="seed.p.raw.y",
+            to_column="model.p.fct.total",
+            kind=IndirectKind.JOIN,
+            key="raw.y",
+            expression="on raw.y = stg.x2",
+            file="models/fct.sql",
+            lines=(4, 5),
+            model_level_citation=False,
+        ),
+        IndirectEdge(
+            from_column="seed.p.raw.y",
+            to_column="model.p.fct.total",
+            kind=IndirectKind.GROUP_BY,
+            key="raw.y",
+            expression="group by raw.y",
+            file="models/fct.sql",
+            lines=(6, 6),
+            model_level_citation=False,
+        ),
+    ]
+    return LineageGraph(
+        columns={c: dict(g.nx_graph.nodes[c]) for c in g.columns()},
+        edges=g.edges(),
+        depends_on=g.depends_on(),
+        consumes=g.consumes(),
+        models={m: g.model_info(m) or {} for m in g.model_ids()},
+        exposures={x: g.exposure_info(x) or {} for x, _ in g.consumes()},
+        parse={},
+        deferred=[],
+        indirect=indirect,
+    )

@@ -58,6 +58,14 @@ def ingest(project_dir: Annotated[Path, typer.Argument(help="Path to a dbt proje
 ProjectOpt = Annotated[Path, typer.Option("--project", "-p", help="dbt project directory.")]
 DepthOpt = Annotated[int, typer.Option("--depth", "-d", min=1, help="Maximum number of hops.")]
 RebuildOpt = Annotated[bool, typer.Option("--rebuild", help="Ignore the cached graph.")]
+IndirectOpt = Annotated[
+    bool,
+    typer.Option(
+        "--include-indirect",
+        help="Also follow indirect edges (join/filter/group/sort/window keys); "
+        "each such hop is marked with its type and clause.",
+    ),
+]
 
 
 def _open_graph(project: Path, column: str, rebuild: bool) -> tuple[LineageGraph, str]:
@@ -80,14 +88,12 @@ def trace(
     project: ProjectOpt = Path("."),
     depth: DepthOpt = 10,
     rebuild: RebuildOpt = False,
+    include_indirect: IndirectOpt = False,
 ) -> None:
     """Show where COLUMN comes from: every upstream path, with expression and file:lines."""
     graph, col = _open_graph(project, column, rebuild)
-    typer.echo(
-        render_trace(
-            graph, col, graph.upstream(col, max_depth=depth, include_indirect=False), depth
-        )
-    )
+    paths = graph.upstream(col, max_depth=depth, include_indirect=include_indirect)
+    typer.echo(render_trace(graph, col, paths, depth))
 
 
 @app.command()
@@ -96,12 +102,12 @@ def impact(
     project: ProjectOpt = Path("."),
     depth: DepthOpt = 10,
     rebuild: RebuildOpt = False,
+    include_indirect: IndirectOpt = False,
 ) -> None:
     """Show what COLUMN feeds: downstream columns, models and exposures."""
     graph, col = _open_graph(project, column, rebuild)
-    typer.echo(
-        render_impact(graph, graph.downstream(col, max_depth=depth, include_indirect=False), depth)
-    )
+    result = graph.downstream(col, max_depth=depth, include_indirect=include_indirect)
+    typer.echo(render_impact(graph, result, depth))
 
 
 @app.command()
