@@ -14,6 +14,7 @@ import streamlit as st
 
 import dlens.agent.llm as llm
 from dlens.agent.answer import render, warning_line
+from dlens.agent.loop import AgentRun
 from dlens.agent.loop import ask as run_agent
 from dlens.agent.runlog import RunLogger, runs_dir
 from dlens.agent.tools import Toolbox
@@ -173,10 +174,7 @@ def details() -> None:
     answer, box = st.session_state.run.answer, st.session_state.box
     selected = st.session_state.get("selected")
     with lineage:
-        if answer.subgraph:
-            st.graphviz_chart(view.subgraph_dot(answer, box, selected), width="stretch")
-        else:
-            st.caption("No edges cited.")
+        lineage_view(st.session_state.run, box, selected)
     with source:
         cite = answer.citations.get(selected) if selected else None
         if cite is None:
@@ -194,6 +192,36 @@ def details() -> None:
         st.dataframe(view.trace_rows(st.session_state.run), hide_index=True)
     with checks:
         st.code(render(answer), language=None)
+
+
+def diagram(d: view.LineageDot) -> None:
+    if d.shown == 0:
+        st.caption("No edges to draw.")
+        return
+    st.graphviz_chart(d.dot, width="stretch")
+    if d.note:
+        st.caption(d.note)
+
+
+def lineage_view(run: AgentRun, box: Toolbox, selected: str | None) -> None:
+    graph = box.graph
+    focus, direction = view.focus_column(run, graph)
+    modes = ["Cited edges", "Full lineage of the column"]
+    mode = st.segmented_control(
+        "Show",
+        modes,
+        default=modes[0],
+        key="lineage_mode",
+        label_visibility="collapsed",
+        disabled=focus is None,
+    )
+    if mode == modes[1] and focus is not None:
+        edges = view.neighborhood(graph, focus, direction, depth=10)
+        st.caption(f"{direction.capitalize()} of {graph.display_name(focus)}")
+    else:
+        edges = view.edges_by_id(graph, run.answer.subgraph)
+    highlight = frozenset([selected]) if selected else frozenset()
+    diagram(view.build_lineage_dot(graph, edges, focus, highlight))
 
 
 def ask_tab(project: str) -> None:

@@ -112,3 +112,15 @@ def test_unknown_project_is_an_error_state(start):
     at = start([], project="nope")
     assert not at.exception
     assert any("Unknown project: nope" in e.value for e in at.error)
+
+
+def test_lineage_toggle_draws_cited_then_full_lineage(start):
+    at = ask(start(_agg_answer()))
+    charts = at.get("graphviz_chart")
+    assert charts and "sum(amount)" in charts[0].proto.spec
+    at.session_state.lineage_mode = "Full lineage of the column"
+    at.run()
+    assert not at.exception
+    spec = at.get("graphviz_chart")[0].proto.spec
+    assert spec.count(" -> ") == 2  # fct.total <- stg.amount <- raw.amt
+    assert any("Upstream of fct.total" in c.value for c in at.caption)

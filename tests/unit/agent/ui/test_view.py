@@ -2,13 +2,15 @@
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from dlens.agent.answer import Answer, Claim
-from dlens.agent.tools import Toolbox
-from dlens.agent.tools.provenance import Citation
+from dlens.agent.tools.provenance import Citation, edge_id
+from dlens.graph import LineageGraph
+from dlens.lineage import EdgeKind
 from dlens.ui import style, view
 
-from ..tools.conftest import make_shop
+from ..tools.conftest import edge, make_shop
 
 
 def _report(ids):
@@ -96,16 +98,148 @@ def test_load_source_and_cited_lines(shop_root: Path):
     )
 
 
-def test_subgraph_dot_labels_edges_with_kind(shop_root: Path):
+def _layered() -> LineageGraph:
+    """raw seed -> staging/stg_orders -> int_orders (by prefix) -> marts/fct_orders."""
+    m = {
+        "seed.p.raw": {"resource_type": "seed", "name": "raw", "file": "seeds/raw.csv"},
+        "model.p.stg_orders": {
+            "resource_type": "model",
+            "name": "stg_orders",
+            "file": "models/staging/stg_orders.sql",
+        },
+        "model.p.int_orders": {
+            "resource_type": "model",
+            "name": "int_orders",
+            "file": "models/int_orders.sql",
+        },
+        "model.p.fct_orders": {
+            "resource_type": "model",
+            "name": "fct_orders",
+            "file": "models/marts/fct_orders.sql",
+        },
+        "model.p.misc": {"resource_type": "model", "name": "misc", "file": "models/misc.sql"},
+    }
+    cols = {f"{uid}.{n}": (uid, n) for uid in m for n in ("a", "b")}
+    k = EdgeKind
+    edges = [
+        edge("seed.p.raw.a", "model.p.stg_orders.a", k.RENAME, "x.sql", (1, 1), "a"),
+        edge("model.p.stg_orders.a", "model.p.int_orders.a", k.IDENTITY, "x.sql", (1, 1), "a"),
+        edge(
+            "model.p.int_orders.a",
+            "model.p.fct_orders.a",
+            k.TRANSFORMATION,
+            "x.sql",
+            (1, 1),
+            'case when "a" > 0 then a * 100 else 0 end',
+        ),
+    ]
+    return LineageGraph(
+        columns={c: {"model": u, "name": n, "type": "int"} for c, (u, n) in cols.items()},
+        edges=edges,
+        depends_on=[],
+        consumes=[],
+        models=m,
+        exposures={},
+        parse={},
+        deferred=[],
+    )
+
+
+def test_layer_of_by_resource_type_folder_then_prefix():
+    g = _layered()
+    got = {u: view.layer_of(g, u) for u in g.model_ids()}
+    assert got == {
+        "seed.p.raw": "Seeds",
+        "model.p.stg_orders": "Staging",
+        "model.p.int_orders": "Intermediate",
+        "model.p.fct_orders": "Marts",
+        "model.p.misc": "Models",
+    }
+
+
+def test_lineage_dot_clusters_ports_kind_colors_and_focus():
     g = make_shop()
-    box = Toolbox(g, shop_root)
-    box.call("trace_upstream", {"column_id": "fct.total"})
-    eids = sorted(box.emitted_ids)
-    ans = Answer(answer_text="x", claims=[Claim(text="t", edge_ids=eids)], subgraph=eids)
-    dot = view.subgraph_dot(ans, box, selected=eids[0])
-    assert dot.startswith("digraph G {") and dot.rstrip().endswith("}")
-    assert 'label="AGGREGATION"' in dot and "->" in dot and "penwidth=3" in dot
-    assert view.subgraph_dot(Answer(answer_text="x"), box).count("->") == 0
+    edges = g.edges()
+    agg = next(e for e in edges if e.kind.value == "AGGREGATION")
+    d = view.build_lineage_dot(
+        g, edges, focus="model.p.fct.total", highlight=frozenset([edge_id(agg)])
+    )
+    dot = d.dot
+    assert dot.startswith("digraph lineage {") and dot.rstrip().endswith("}")
+    assert "rankdir=LR" in dot
+    assert dot.count("subgraph cluster_") == 4  # Seeds, Models, Marts (fct_star), legend
+    assert 'label="Seeds"' in dot and 'label="Marts"' in dot and 'label="Edge kinds"' in dot
+    assert dot.count("<TABLE") == 4 + 1  # four models + the legend
+    assert 'PORT="c' in dot and ":e -> " in dot and ":w [" in dot
+    for kind in ("IDENTITY", "RENAME", "AGGREGATION"):
+        assert style.KIND_COLORS[kind] in dot
+    assert 'label="sum(amount)"' in dot
+    assert 'label="x_id"' not in dot  # identity edges carry no label
+    agg_line = next(line for line in dot.splitlines() if "sum(amount)" in line)
+    assert "penwidth=2.6" in agg_line and dot.count("penwidth") == 1
+    focus_row = next(line for line in dot.splitlines() if 'BORDER="2"' in line)
+    assert "<B>total</B>" in focus_row and "fct" in focus_row
+    assert (d.shown, d.total, d.note) == (6, 6, None)
+
+
+def test_lineage_dot_cap_label_length_and_escaping():
+    g = _layered()
+    d = view.build_lineage_dot(g, g.edges(), cap=2)
+    assert (d.shown, d.total) == (2, 3) and d.note == "Showing the 2 nearest of 3 edges."
+    full = view.build_lineage_dot(g, g.edges()).dot
+    label = next(line for line in full.splitlines() if "case when" in line)
+    assert 'case when \\"a\\" > 0 then a * 10…"' in label
+    assert len(view.short_expression("x" * 80)) == view.LABEL_CHARS
+    assert view.short_expression("a\n   +  b") == "a + b"
+
+
+def test_lineage_dot_escapes_html_in_names():
+    g = make_shop()
+    g.nx_graph.nodes["model.p.fct.total"]["name"] = "<script>x</script>"
+    dot = view.build_lineage_dot(g, g.edges()).dot
+    assert "<script>" not in dot and "&lt;script&gt;" in dot
+
+
+def test_lineage_dot_with_no_edges_still_shows_the_focus():
+    d = view.build_lineage_dot(make_shop(), [], focus="model.p.fct.total")
+    assert d.shown == 0 and 'BORDER="2"' in d.dot
+
+
+def test_neighborhood_nearest_first_and_depth():
+    g = make_shop()
+    star = "model.p.fct_star.total"
+    assert [e.to_column for e in view.neighborhood(g, star, "upstream", 1)] == [star]
+    up = view.neighborhood(g, star, "upstream", 10)
+    assert [e.to_column for e in up] == [star, "model.p.fct.total", "model.p.stg.amount"]
+    down = view.neighborhood(g, "seed.p.raw.amt", "downstream", 10)
+    assert [e.from_column for e in down][0] == "seed.p.raw.amt" and len(down) == 3
+    both = view.neighborhood(g, "model.p.fct.total", "both", 1)
+    assert {(e.from_column, e.to_column) for e in both} == {
+        ("model.p.stg.amount", "model.p.fct.total"),
+        ("model.p.fct.total", "model.p.fct_star.total"),
+    }
+
+
+def test_edges_by_id_keeps_order_and_skips_unknown():
+    g = make_shop()
+    a, b = g.edges()[:2]
+    assert view.edges_by_id(g, [edge_id(b), "r_x", edge_id(a), edge_id(b)]) == [b, a]
+
+
+def _run_with(*results):
+    steps = [SimpleNamespace(results=[SimpleNamespace(tool=t, args=a) for t, a in results])]
+    return SimpleNamespace(record=SimpleNamespace(steps=steps))
+
+
+def test_focus_column_from_the_first_resolvable_tool_call():
+    g = make_shop()
+    run = _run_with(
+        ("resolve_entity", {"query": "total"}),
+        ("trace_upstream", {"column_id": "nope.nothing"}),
+        ("impact_downstream", {"column_id": "stg.amount"}),
+    )
+    assert view.focus_column(run, g) == ("model.p.stg.amount", "downstream")
+    assert view.focus_column(_run_with(), g) == (None, "upstream")
 
 
 def test_chips_skip_graph_checks():

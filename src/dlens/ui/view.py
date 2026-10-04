@@ -7,18 +7,18 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 from typing import Any
 
 from dlens.agent.answer import Answer, marker
 from dlens.agent.llm.ollama import DEFAULT_MODEL as OLLAMA_MODEL
 from dlens.agent.loop import AgentRun
-from dlens.agent.tools import Toolbox
-from dlens.agent.tools.provenance import Citation, safe_read
+from dlens.agent.tools.provenance import Citation, edge_id, safe_read
 from dlens.cli import trace_summary
 from dlens.graph import LineageGraph
-from dlens.lineage import ParseQuality
-from dlens.ui.style import KIND_COLORS
+from dlens.lineage import Edge, ParseQuality
+from dlens.ui.style import BORDER, KIND_COLORS, MUTED, PRIMARY
 
 ROOT = Path(__file__).resolve().parents[3]
 DEV_QUESTIONS = ROOT / "eval" / "questions" / "dev.jsonl"
@@ -234,33 +234,203 @@ def load_source(project: Path, cite: Citation) -> Source | None:
     return Source(cite.file, text, cite.line_start, cite.line_end, cite.level)
 
 
+# -- lineage diagram ---------------------------------------------------------------------------
+
+LAYERS = ("Sources", "Seeds", "Staging", "Intermediate", "Marts", "Models")
+DIAGRAM_EDGE_CAP = 40
+LABEL_CHARS = 30
+KIND_NAMES = {k: k.capitalize() for k in KIND_COLORS}
+_PREFIXES = (
+    ("stg_", "Staging"),
+    ("int_", "Intermediate"),
+    ("fct_", "Marts"),
+    ("dim_", "Marts"),
+    ("mart_", "Marts"),
+    ("raw_", "Sources"),
+    ("src_", "Sources"),
+)
+_FOLDERS = (
+    ("staging", "Staging"),
+    ("intermediate", "Intermediate"),
+    ("marts", "Marts"),
+    ("mart", "Marts"),
+)
+
+
 def _q(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def subgraph_dot(answer: Answer, toolbox: Toolbox, selected: str | None = None) -> str:
-    """DOT for the cited edges, edge label = kind; the selected edge is drawn bold. Columns are
-    shown as ``model.column`` (graph display names)."""
-    g = toolbox.graph
-    lines = ["digraph G {", "  rankdir=LR;", '  node [shape=box, fontsize=10, style="rounded"];']
-    nodes: dict[str, str] = {}
-    for eid in answer.subgraph:
-        rec = toolbox.record(eid)
-        if rec is None or "from" not in rec:
-            continue
-        for end in (str(rec["from"]), str(rec["to"])):
-            nodes.setdefault(end, f"n{len(nodes)}")
-        kind = str(rec["kind"])
-        extra = ", penwidth=3" if eid == selected else ""
-        lines.append(
-            f"  {nodes[str(rec['from'])]} -> {nodes[str(rec['to'])]} "
-            f"[label={_q(kind)}, fontsize=9, color={_q(KIND_COLORS.get(kind, 'gray40'))}{extra}];"
-        )
-    decl = [
-        f"  {n} [label={_q(g.display_name(c) if g.has_column(c) else c)}];"
-        for c, n in nodes.items()
+def _model_name(graph: LineageGraph, uid: str) -> str:
+    return (graph.model_info(uid) or {}).get("name") or uid.rsplit(".", 1)[-1]
+
+
+def layer_of(graph: LineageGraph, uid: str) -> str:
+    """Source/seed by resource type, else staging/intermediate/marts by folder, else by name
+    prefix (``stg_``, ``int_``, ``fct_``/``dim_``), else "Models"."""
+    info = graph.model_info(uid) or {}
+    kind = info.get("resource_type") or uid.split(".", 1)[0]
+    if kind == "source":
+        return "Sources"
+    if kind == "seed":
+        return "Seeds"
+    folders = [p.lower() for p in Path(info.get("file", "")).parts[:-1]]
+    for folder, layer in _FOLDERS:
+        if folder in folders:
+            return layer
+    name = _model_name(graph, uid).lower()
+    return next((layer for prefix, layer in _PREFIXES if name.startswith(prefix)), "Models")
+
+
+def short_expression(expr: str, n: int = LABEL_CHARS) -> str:
+    one = " ".join(expr.split())
+    return one if len(one) <= n else one[: n - 1] + "…"
+
+
+def edges_by_id(graph: LineageGraph, ids: list[str]) -> list[Edge]:
+    """Graph edges for ``e_`` ids, in the given order; other ids are skipped."""
+    index = {edge_id(e): e for e in graph.edges()}
+    return [index[i] for i in dict.fromkeys(ids) if i in index]
+
+
+def neighborhood(graph: LineageGraph, column: str, direction: str, depth: int) -> list[Edge]:
+    """Every edge within ``depth`` hops of ``column`` (``upstream``, ``downstream`` or ``both``),
+    nearest first, so a cap keeps the closest edges."""
+    g = graph.nx_graph
+    ranked: dict[tuple[str, str], tuple[int, Edge]] = {}
+    for up in {"upstream": (True,), "downstream": (False,)}.get(direction, (True, False)):
+        seen, frontier = {column}, [column]
+        for hop in range(1, depth + 1):
+            nxt: list[str] = []
+            for col in frontier:
+                for other in sorted(g.predecessors(col) if up else g.successors(col)):
+                    e = graph.edge(other, col) if up else graph.edge(col, other)
+                    ranked.setdefault((e.from_column, e.to_column), (hop, e))
+                    if other not in seen:
+                        seen.add(other)
+                        nxt.append(other)
+            frontier = nxt
+    return [e for _, e in sorted(ranked.values(), key=lambda he: he[0])]
+
+
+def focus_column(run: AgentRun, graph: LineageGraph) -> tuple[str | None, str]:
+    """The column the question is about and the direction its tools walked: the first
+    ``trace_upstream`` / ``impact_downstream`` / ``reachability`` argument that resolves."""
+    for step in run.record.steps:
+        for r in step.results:
+            col = r.args.get("column_id") or r.args.get("from_column")
+            if not isinstance(col, str):
+                continue
+            try:
+                resolved = graph.resolve(col)
+            except Exception:  # unknown or ambiguous: try the next call
+                continue
+            if r.tool == "impact_downstream":
+                return resolved, "downstream"
+            if r.tool in ("trace_upstream", "reachability"):
+                return resolved, "upstream" if r.tool == "trace_upstream" else "both"
+    return None, "upstream"
+
+
+@dataclass(frozen=True)
+class LineageDot:
+    dot: str
+    shown: int  # edges drawn
+    total: int  # edges given
+
+    @property
+    def note(self) -> str | None:
+        if self.shown == self.total:
+            return None
+        return f"Showing the {self.shown} nearest of {self.total} edges."
+
+
+def _port_table(
+    graph: LineageGraph, uid: str, cols: list[str], ports: dict[str, str], focus: str | None
+) -> str:
+    rows = [
+        f'<TR><TD BGCOLOR="#EEF2F6" ALIGN="LEFT"><B>{escape(_model_name(graph, uid))}</B></TD></TR>'
     ]
-    return "\n".join([*lines[:3], *decl, *lines[3:], "}"])
+    for c in cols:
+        name = escape(str(graph.nx_graph.nodes[c].get("name", c.rsplit(".", 1)[-1])))
+        if c == focus:
+            rows.append(
+                f'<TR><TD PORT="{ports[c]}" ALIGN="LEFT" BORDER="2" COLOR="{PRIMARY}">'
+                f"<B>{name}</B></TD></TR>"
+            )
+        else:
+            rows.append(f'<TR><TD PORT="{ports[c]}" ALIGN="LEFT">{name}</TD></TR>')
+    return (
+        f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="{BORDER}" '
+        f'BGCOLOR="#FFFFFF">{"".join(rows)}</TABLE>>'
+    )
+
+
+def _legend() -> str:
+    rows = "".join(
+        f'<TR><TD ALIGN="LEFT"><FONT COLOR="{KIND_COLORS[k]}">━━ {KIND_NAMES[k]}</FONT></TD></TR>'
+        for k in KIND_COLORS
+    )
+    return (
+        "  subgraph cluster_legend {\n"
+        f'    label="Edge kinds"; color={_q(BORDER)}; fontcolor={_q(MUTED)}; fontsize=9;\n'
+        f'    legend [label=<<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1">{rows}</TABLE>>];\n'
+        "  }"
+    )
+
+
+def build_lineage_dot(
+    graph: LineageGraph,
+    edges: list[Edge],
+    focus: str | None = None,
+    highlight: frozenset[str] = frozenset(),
+    cap: int = DIAGRAM_EDGE_CAP,
+) -> LineageDot:
+    """Graphviz DOT: one cluster per layer, one table node per model listing its relevant columns
+    as ports, column-to-column edges colored by kind and labeled with a short expression
+    (identity edges are unlabeled), ``focus`` drawn with a bold border, edges whose id is in
+    ``highlight`` drawn thick, and a legend of the kinds. At most ``cap`` edges, in the given
+    order."""
+    shown = list(dict.fromkeys(edges))[:cap]
+    cols: set[str] = {c for e in shown for c in (e.from_column, e.to_column)}
+    if focus is not None and graph.has_column(focus):
+        cols.add(focus)
+    by_model: dict[str, list[str]] = {}
+    for c in sorted(cols):
+        by_model.setdefault(graph.model_of(c), []).append(c)
+    node = {uid: f"m{i}" for i, uid in enumerate(sorted(by_model))}
+    ports = {c: f"c{i}" for i, c in enumerate(sorted(cols))}
+
+    out = [
+        "digraph lineage {",
+        "  rankdir=LR; nodesep=0.3; ranksep=1.1; bgcolor=transparent;",
+        f'  graph [fontname="IBM Plex Sans", fontsize=11, fontcolor={_q(MUTED)}];',
+        '  node [shape=plaintext, fontname="IBM Plex Sans", fontsize=10];',
+        '  edge [fontname="IBM Plex Sans", fontsize=9, arrowsize=0.6];',
+    ]
+    layers: dict[str, list[str]] = {}
+    for uid in sorted(by_model):
+        layers.setdefault(layer_of(graph, uid), []).append(uid)
+    for n, layer in enumerate(sorted(layers, key=LAYERS.index)):
+        out.append(f"  subgraph cluster_{n} {{")
+        out.append(f"    label={_q(layer)}; labeljust=l; style=rounded; color={_q(BORDER)};")
+        for uid in layers[layer]:
+            label = _port_table(graph, uid, by_model[uid], ports, focus)
+            out.append(f"    {node[uid]} [label={label}];")
+        out.append("  }")
+    for e in shown:
+        color = KIND_COLORS.get(e.kind.value, MUTED)
+        attrs = [f"color={_q(color)}", f"fontcolor={_q(color)}"]
+        if e.kind.value != "IDENTITY":
+            attrs.append(f"label={_q(short_expression(e.expression))}")
+        if edge_id(e) in highlight:
+            attrs.append("penwidth=2.6")
+        src = f"{node[graph.model_of(e.from_column)]}:{ports[e.from_column]}:e"
+        dst = f"{node[graph.model_of(e.to_column)]}:{ports[e.to_column]}:w"
+        out.append(f"  {src} -> {dst} [{', '.join(attrs)}];")
+    out.append(_legend())
+    out.append("}")
+    return LineageDot("\n".join(out), len(shown), len(dict.fromkeys(edges)))
 
 
 def _tool_label(call: dict[str, Any]) -> str:
