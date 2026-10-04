@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -130,3 +131,29 @@ def test_indirect_edges_follow_d7_and_carry_their_clause(
     citation_gap = "indirect-edge clause citations are model-level"
     assert (citation_gap in listed) == all(e.model_level_citation for e in result.indirect)
     assert listed <= {citation_gap}
+
+
+def _key_is_cited(key: str, chunk: str) -> bool:
+    token = key.replace('"', "").split(".")[-1]
+    return re.search(rf"(?<!\w){re.escape(token)}(?!\w)", chunk, re.IGNORECASE) is not None
+
+
+@pytest.mark.xfail(
+    strict=True, reason="S04: no clause locator yet; indirect citations are model-level"
+)
+def test_every_indirect_edge_cites_lines_that_hold_its_key(
+    ingested: tuple[Path, IngestResult],
+) -> None:
+    """S04: each indirect edge cites its clause in the model's source file (the file and line
+    numbering of direct edges), and the cited lines contain its key as written."""
+    project, r = ingested
+    result = extract_lineage(r, project)
+    files = {e.to_column.rsplit(".", 1)[0]: e.file for e in result.edges}
+    for e in result.indirect:
+        assert not e.model_level_citation, e
+        assert e.file == files[e.to_column.rsplit(".", 1)[0]], e
+        lines = (project / e.file).read_text().splitlines()
+        assert 1 <= e.lines[0] <= e.lines[1] <= len(lines), e
+        chunk = "\n".join(lines[e.lines[0] - 1 : e.lines[1]])
+        assert _key_is_cited(e.key, chunk), (e.key, e.file, e.lines)
+    assert all(not p.citation_gaps for p in result.parse_report.values())

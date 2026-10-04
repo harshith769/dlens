@@ -10,8 +10,10 @@ Never edit an expected file to match output; a deliberate change needs a one-lin
 
 import pytest
 from _harness import (
+    cited_chunk,
     expected_indirect,
     fixture_names,
+    key_is_cited,
     load_expected,
     run_fixture,
 )
@@ -41,6 +43,23 @@ def test_construct(name: str) -> None:
 def test_indirect_edges(name: str) -> None:
     """Indirect edges (ADR 0020), compared as (from, to, type). Every fixture states them."""
     assert run_fixture(name).indirect == expected_indirect(name)
+
+
+def _cite_param(name: str) -> object:
+    marks = []
+    if load_expected(name)["indirect"]:  # a fixture with no indirect edge passes trivially
+        marks = [pytest.mark.xfail(strict=True, reason="S04: no clause locator yet")]
+    return pytest.param(name, id=name, marks=marks)
+
+
+@pytest.mark.parametrize("name", [_cite_param(n) for n in fixture_names()])  # type: ignore[misc]
+def test_indirect_edges_cite_the_clause_that_holds_their_key(name: str) -> None:
+    """S04 rule over every fixture: an indirect edge cites its clause's lines in the source file
+    (never the whole model), and those lines hold the key as written (a column, a position, ALL)."""
+    got = run_fixture(name)
+    for e in got.indirect_edges:
+        assert not e.model_level_citation, e
+        assert key_is_cited(e.key, cited_chunk(e, got.source)), (e.key, e.lines)
 
 
 def test_at_least_fifteen_constructs() -> None:

@@ -1,12 +1,14 @@
 """Golden-test harness: run the engine on one SQL fixture with an inline schema, no dbt."""
 
 import json
+import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from dlens.ingest import IngestResult
 from dlens.ingest.artifacts import Catalog, Manifest
-from dlens.lineage import extract_lineage, short_id
+from dlens.lineage import IndirectEdge, extract_lineage, short_id
 
 FIXTURES = Path(__file__).parent / "fixtures"
 MODEL = "model.p.m"
@@ -38,6 +40,8 @@ class Result:
     constants: list[str]
     deferred: set[tuple[str, str]]
     indirect: set[tuple[str, str, str]]  # (from, to, type) as short ids
+    indirect_edges: list[IndirectEdge]
+    source: str  # the fixture SQL, written as the model's source file models/m.sql
 
 
 def run_sql(sql: str) -> Result:
@@ -56,7 +60,10 @@ def run_sql(sql: str) -> Result:
         relation_map=RELATIONS,
         unmapped=[],
     )
-    result = extract_lineage(ingest, Path("/nonexistent"))
+    with tempfile.TemporaryDirectory() as tmp:  # the fixture is its own source file
+        (Path(tmp) / "models").mkdir()
+        (Path(tmp) / "models" / "m.sql").write_text(sql)
+        result = extract_lineage(ingest, Path(tmp))
     parse = result.parse_report[MODEL]
     return Result(
         edges={(short_id(e.from_column), short_id(e.to_column), str(e.kind)) for e in result.edges},
@@ -69,7 +76,20 @@ def run_sql(sql: str) -> Result:
             (short_id(e.from_column), short_id(e.to_column), str(e.kind))
             for e in getattr(result, "indirect", [])
         },
+        indirect_edges=list(result.indirect),
+        source=sql,
     )
+
+
+def key_is_cited(key: str, chunk: str) -> bool:
+    """The cited clause holds the key as written: its column name (last segment of the qualified
+    key), a GROUP BY / ORDER BY position (``1``) or the ``ALL`` of GROUP BY ALL."""
+    token = key.replace('"', "").split(".")[-1]
+    return re.search(rf"(?<!\w){re.escape(token)}(?!\w)", chunk, re.IGNORECASE) is not None
+
+
+def cited_chunk(e: IndirectEdge, source: str) -> str:
+    return "\n".join(source.splitlines()[e.lines[0] - 1 : e.lines[1]])
 
 
 def fixture_names() -> list[str]:
