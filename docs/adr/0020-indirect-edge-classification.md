@@ -90,3 +90,19 @@ from spec §6 ("same provenance"), and `engine_gaps.yml` tracks it (target S04).
   never sees `WHERE`, `JOIN ON` or `GROUP BY` columns.
 - **Counting indirect edges in hop depth.** Depth measures how values flow. A join key does not
   flow into a value.
+
+## Clarification (S04)
+
+- **"Hop depth" means the gold/question depth metric.** "Indirect edges never count toward hop
+  depth" (Targets) is about the depth used to grade questions and to report multi-hop
+  difficulty, which counts direct edges only. It does not limit traversal. When
+  `upstream`/`downstream` run with `include_indirect=True` (opt-in since S04), their `max_depth`
+  counts every hop, direct or indirect.
+- **Provenance.** The model-level citation above was an interim state. Since S04, indirect edges
+  cite their clause's lines in the model's source file (the same file and numbering as direct
+  edges): `lineage/provenance.py`, `line_map` and `locate_clause`. A clause that can't be located
+  falls back to the whole file, and its reason is recorded in `ModelParse.citation_gaps`. For a
+  positional GROUP BY / ORDER BY item, `key` is the position as written (`"1"`), and for GROUP BY
+  ALL it is `"ALL"`.
+- **Exposure.** Trace and impact follow indirect edges only on request (`--include-indirect`).
+  The tools, validator, UI and demo stay direct-only until S10/S12 (see `docs/explain/graph.md`).

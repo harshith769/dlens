@@ -4,9 +4,12 @@
 `build_graph(project_dir)` runs ingest and `extract_lineage`, then wraps the result in a
 `LineageGraph`. The graph answers two questions:
 - `upstream(col)`: every path from `col` back to the columns it comes from (`list[LineagePath]`,
-  each path a chain of `Edge`s with kind, expression, file and lines).
-- `downstream(col)`: an `ImpactResult` with affected columns by depth, the edge that reached each
+  each path a chain of hops with kind, expression, file and lines).
+- `downstream(col)`: an `ImpactResult` with affected columns by depth, the hop that reached each
   one, affected models, affected exposures (through CONSUMES) and a `truncated` flag.
+
+A hop (`Hop = Edge | IndirectEdge`) is a DERIVES edge, or, with `include_indirect=True`, a
+DEPENDS_ON_INDIRECT edge (S04). `hop_label` names it: `direct`, or the indirect type.
 
 It also does `resolve("fct_orders.revenue_finance")` (short id → full id), `save`/`load` (sorted JSON)
 and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both as trees.
@@ -26,10 +29,24 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
    `via` edge. Models come from the owners of affected columns. Exposures come from those models
    plus the root's own model (changing a column affects what reads its model).
    `truncated` means the frontier still had unseen successors at `max_depth`.
-5. **`include_indirect`** is accepted on both calls and still does nothing. Since S03 the graph
-   stores indirect edges (`indirect_edges()`, a separate list outside the nx graph,
-   `docs/explain/indirect-edges.md`), but no traversal reads them until exposure.
-   `deferred_indirect` is still stored and saved for the parse report.
+5. **`include_indirect`** (S04). Indirect edges live in a separate list outside the nx graph
+   (`indirect_edges()`, indirect-edges.md), indexed once by `to` and by `from`. With the flag on,
+   `_preds`/`_succs` add them after the direct edges:
+   - One hop per indirect type. raw.y → fct.total by JOIN and by GROUP_BY gives two hops, so
+     `upstream` gives two paths.
+   - **`max_depth` counts every hop**, direct or indirect. This is the traversal limit. The "hop
+     depth" of ADR 0020 ("indirect edges never count toward hop depth") is the gold/question
+     depth metric, which stays direct-only (ADR 0020, Clarification S04).
+   - At equal depth, `downstream`'s `via` keeps a direct edge over an indirect one, then the
+     indirect types in `IndirectKind` order (`hop_rank`). The frontier keeps discovery order, as
+     before, so default-off results are unchanged.
+   - **Defaults follow spec §7**: `upstream(include_indirect=False)`,
+     `downstream(include_indirect=True)`. Because a bare `downstream()` would now traverse
+     indirect edges, every caller in dlens passes the flag explicitly. The CLI passes its
+     `--include-indirect` option (default off). The agent loop and the tools pass False (the tools
+     accept and ignore the argument), and so the validator, UI and demo see direct edges only
+     until S10/S12. `tests/unit/test_traversal_calls.py` scans `src/`, `scripts/`, `eval/` and
+     `demo/` and fails on any call without `include_indirect=`.
 6. **`resolve`**: an exact id wins. Otherwise a query with a dot matches ids ending in
    `"." + query`, so `stg_orders.order_id` can't match `xstg_orders.order_id`. Several matches raise
    `AmbiguousColumn` listing the full ids. No match raises `ColumnNotFound` with the 3 closest
@@ -40,14 +57,19 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
 8. **Cache** (`cache.py`): `target/dlens_graph.json` is used unless it is missing, older than
    `target/manifest.json`, or older than any file under `models/`, `seeds/`, `macros/`,
    `snapshots/`, `tests/` or `dbt_project.yml`. `--rebuild` forces a rebuild, which re-runs dbt.
-   Format v3 (S03) adds `indirect`. `load` accepts v2 files (no indirect edges, e.g. the demo
-   bundle), while `load_or_build` rebuilds any cache whose format is not the current one.
+   Format v3 (S03) adds `indirect`. Format v4 (S04) adds `citation_gaps` to the parse report and
+   drops `deferred_indirect`. `load` accepts v2 files (no indirect edges, e.g. the demo bundle)
+   and v3 files, while `load_or_build` rebuilds any cache whose format is not the current one.
    `load` also rejects a file whose `version` (format) or `dlens_version` differs from the running
    code, and `load_or_build` treats that as a miss and rebuilds, so an upgrade never serves a graph
    written by older code.
 9. **Rendering** (`render.py`) merges paths that share a prefix, so each hop prints once. A hop
    shows the column, `[KIND]`, the expression (cut at 60 characters) and `file:lines`.
-   Names are `model.column`, or the full id if two columns share that short form.
+   Names are `model.column`, or the full id if two columns share that short form. An indirect
+   hop shows `[indirect TYPE]` and its clause, cited at the clause's lines. Tree children are
+   keyed by `(column, hop_rank)`, so one column reached by two indirect types prints both hops,
+   and the summaries count the indirect hops. Without the flag, the output is byte-identical to
+   S03.
 
 ## Why this design
 - **NetworkX DiGraph with `Edge` objects as attributes**: traversal is a few lines, the provenance
@@ -82,6 +104,11 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
   `PathList` subclass keeps the type.
 
 ## Known limits
+- Indirect traversal widens results a lot. On synthetic_shop, `stg_products.product_id` (a
+  join-key-only column) impacts 0 columns direct-only and 175 with indirect edges (max 8 hops),
+  and the uncapped impact payload grows from ~125 to ~4,469 tokens, over both the 1,500-token
+  tool cap and the 3K input cap (`scripts/measure_indirect_reach.py`). That is why the tools stay
+  direct-only until S10/S12 decide how to rank or trim indirect results.
 - `upstream` enumerates paths, not a DAG summary. The cap bounds the work, but a capped trace
   shows an arbitrary 1000 of the paths (sorted DFS order), not the "most important" ones.
 - The cache can't see changes outside the listed directories (for example a package update).
@@ -94,12 +121,16 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
 2. `dlens trace` ran fine yesterday. Today you edited `models/marts/fct_orders.sql` and ran it
    again. Which check in `is_stale` makes it rebuild, and what would have happened if the cache
    rule only compared against `manifest.json`? Name one change that still would not trigger it.
-3. `include_indirect=True` is the default for `downstream` but changes nothing in v0.1. Why does
-   the graph still save `deferred_indirect`, and what has to be added in v0.3 so that an indirect
-   (window key) dependency shows up in `impact`?
+3. `downstream`'s spec default is `include_indirect=True`, yet `dlens impact` and the agent's
+   impact tool show direct edges only. What makes that true, and what does
+   `test_traversal_calls.py` catch that the unit tests of `downstream` would not?
 4. You upgrade dlens from 0.1.0 to 0.1.1 and the cache file is newer than every source file. Which
    check rebuilds it, and why isn't the mtime rule enough here? When would you bump
    `FORMAT_VERSION` rather than rely on the package version?
+5. With `--include-indirect`, `raw.y` reaches `fct.total` by a JOIN and a GROUP_BY edge. How many
+   paths does `upstream(fct.total, include_indirect=True)` return for raw.y, which hop does
+   `downstream(raw.y, include_indirect=True).via` keep, and why does a depth limit of 2 cut
+   `a → b (direct) → c (FILTER) → d (direct)` before `d`?
 
 ## Accessors added in v0.2
 `model_info(uid)`, `model_ids()` and `exposure_info(uid)` expose the manifest facts the graph already stored (a node's `file`, `name`, `resource_type`; an exposure's `name`, `type`) so the agent tools never read private attributes. They return copies, or None for an unknown id.

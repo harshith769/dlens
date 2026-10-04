@@ -8,7 +8,9 @@ relation map) into:
   Column ids use the spec §6 format `{unique_id}.{column}`, lowercased.
 - **DEPENDS_ON** pairs, copied from the manifest so a model is never lost.
 - A **parse report**: `ModelParse` per model with FULL / TABLE_ONLY / FAILED, the reason, the
-  gaps, and `deferred_indirect` (window keys, kept for the parse report).
+  gaps, the constant columns and `citation_gaps` (indirect clauses that could only be cited at
+  model level, with the reason; S04). The v0.1 `deferred_indirect` list is retired: window keys
+  are WINDOW indirect edges.
 - **DEPENDS_ON_INDIRECT edges** (`IndirectEdge`, S03, ADR 0020): see `docs/explain/indirect-edges.md`.
 
 `gold.compare` scores edges against a hand-written `lineage_spec.yml`, and
@@ -27,19 +29,29 @@ relation map) into:
    - A node whose `source` is a `Union` is *not* a step. Its expression is just the first branch's
      projection. Its children are the branches, and the branch index is carried down so each branch
      gets its own kind and citation.
-   - Children read **only** inside a window's PARTITION BY / ORDER BY (`classify.window_key_columns`)
-     are cut from the path and recorded in `ModelParse.deferred_indirect` as `WINDOW`.
+   - Children read **only** in a function-attached key position (`classify.key_columns`: a
+     window's PARTITION BY / ORDER BY, an aggregate's FILTER (WHERE) or ORDER BY) are cut from
+     the path. They are indirect edges (WINDOW, CONDITIONAL, SORT; indirect-edges.md).
      `lag(order_date) over (partition by customer_id order by order_date, order_id)` gives one
-     edge (order_date) and two deferred keys (customer_id, order_id). order_date is both value and
-     key, so it's a direct edge only.
+     direct edge (order_date) and two WINDOW keys (customer_id, order_id). order_date is both
+     value and key, so it's a direct edge only.
+   - Each step also records the child it descends into (`_Path.inputs`), so the kind can be judged
+     for that input (step 5).
 4. **Leaf mapping**: a Table leaf's `db.schema.name` is normalised with the same
    `normalize_relation` that built the relation map, and looked up to get a dbt `unique_id`. Misses
    become gaps.
-5. **Kind** (`classify.path_kind`): each step is either a bare column (pass-through) or an
-   operation. An `AggFunc` that is not inside a `Window` is AGGREGATION. Anything else that isn't a
-   bare column is TRANSFORMATION, including CASE, arithmetic, functions and windowed aggregates,
-   which keep the row grain. The path's kind is the strongest step. A pure pass-through path is
-   IDENTITY if the leaf name equals the output name, else RENAME. So
+5. **Kind** (`classify.path_kind`, `step_kind`): each step is either a bare column
+   (pass-through) or an operation **on the input the path reads** (S04). `step_kind(expr, input)`
+   finds that input's occurrences in the step, skipping nested subqueries and key positions. An
+   occurrence enclosed by a *grouped* aggregate is AGGREGATION, otherwise TRANSFORMATION, and the
+   strongest occurrence wins. An aggregate is *windowed* (keeps the row grain) only when it is a
+   window's own function (`sum(x) over (...)`, also behind `FILTER`). So the inner `sum` of
+   `sum(sum(x)) over (...)` is grouped, and the edge is AGGREGATION (fct_customer_cohorts). An
+   aggregate in a sibling subtree does not raise another input:
+   `date_diff('day', d, (select max(x) from t))` is TRANSFORMATION for `d` and AGGREGATION for `x`
+   (dim_customer_rfm). When the child has no occurrence (it is the scalar subquery itself, or a
+   star), any grouped aggregate outside a subquery decides. The path's kind is the strongest step.
+   A pure pass-through path is IDENTITY if the leaf name equals the output name, else RENAME. So
    `coalesce(agg.x, 0) <- sum(line_amount)` is AGGREGATION, and `a AS b` inside a CTE and then
    `b` outside is RENAME.
 6. **Dedup**: one edge per `(from, to)`, keeping the strongest kind (and HIGH over LOW).
@@ -47,8 +59,10 @@ relation map) into:
    depth-aware scanner. The scanner skips strings, comments and `{{ }}`/`{% %}`/`{# #}`, and splits
    every SELECT list into items with line ranges and output names (`as x`, or a bare `t.x`). The
    last item with the column's name is cited, because the final SELECT comes last. The k-th UNION
-   branch gets the k-th match. Star-expanded columns cite the `*`. If nothing matches, the whole file
-   is cited with `model_level_citation=True`.
+   branch gets the k-th match. Star-expanded columns cite the `*`, including DuckDB's
+   `* EXCLUDE (...)`, `* REPLACE (...)` and `t.* EXCLUDE (...)` forms (S04, fct_order_margins). If
+   nothing matches, the whole file is cited with `model_level_citation=True`. Indirect edges cite
+   their clause through `provenance.line_map` / `locate_clause` (indirect-edges.md).
 8. **Ambiguous columns**: sqlglot returns a Placeholder leaf. The engine emits a LOW-confidence
    edge to every table in that SELECT's FROM/JOINs whose schema has the column, or that the schema
    doesn't know.
@@ -62,9 +76,12 @@ relation map) into:
   the `None` form is not the documented default.
 - **Classify from the path, not just the outer SELECT.** dbt models compute in CTEs. Looking only at
   `coalesce(agg.items_subtotal, 0)` would call an aggregate a transformation.
-- **Window keys are filtered by us.** sqlglot treats every column inside the projection as an input,
-  including PARTITION BY / ORDER BY. DESIGN.md says those are indirect dependencies. They're
-  recorded rather than dropped so v0.3 doesn't need to re-derive them.
+- **Key positions are filtered by us.** sqlglot treats every column inside the projection as an
+  input, including PARTITION BY / ORDER BY and an aggregate's FILTER. ADR 0020 says those are
+  indirect dependencies, and the indirect-edge pass emits them.
+- **Kind per input, not per step.** A step is one projection, but it can read several inputs on
+  different operations. Judging the whole step let a scalar subquery's `max()` make its sibling
+  column AGGREGATION, which the gold (and a reader) calls a TRANSFORMATION.
 - **CASE conditions stay direct.** The gold spec counts `unit_price < list_price` as feeding
   `is_discounted`. The condition decides the value, unlike a join key.
 - **Cite the source file.** Users and the validator open the source `.sql`, and compiled line numbers
@@ -80,6 +97,11 @@ relation map) into:
   (CTEs, subqueries, star expansion, UNION). We walk the AST ourselves only for the small things
   sqlglot doesn't model: window-key filtering and aggregate-vs-window detection.
 - **Classifying from the outermost projection only**: misclassifies CTE aggregates (above).
+- **Kind from the whole step expression** (v0.1–S03): an aggregate anywhere in the projection
+  raised every input, and any aggregate under a window counted as windowed. Both were wrong on
+  synthetic_shop (4 entries in `engine_gaps.yml`, fixed in S04).
+- **Treating `* EXCLUDE (...)` as a named item**: the excluded names are the columns that are *not*
+  produced, so a name match there would cite the wrong thing. It is a star.
 - **Citing compiled SQL via sqlglot token positions**: exact, but points at a file users don't edit.
 - **Parsing the source with sqlglot after stripping Jinja**: fragile with loops and macros. The
   scanner only needs item boundaries and names, and falls back honestly.
@@ -147,9 +169,15 @@ constant in only some UNION branches still has edges and is not recorded.
 1. In `int_payment_events`, why would the refund branch's `event_amount_usd` edge be RENAME
    instead of TRANSFORMATION if the UNION node were treated as a step? Where in `_walk` is that
    prevented?
-2. `dim_customers.lifetime_value` is `coalesce(order_agg.lifetime_value, 0)`. Walk through the
-   steps `path_kind` sees for `fct_orders.sales_tax → dim_customers.lifetime_value`, and explain
-   why the result is AGGREGATION. What would change if the CTE used `sum(...) over (partition by
-   customer_id)` instead of `group by`?
-3. A model's parse report says TABLE_ONLY with gap `x <- table db.main.y is not a dbt node`. What
+2. `dim_customer_rfm.recency_days` is `date_diff('day', customers.most_recent_order_date,
+   (select max(order_date) from fct_orders))`. Which upstream columns get an edge, with which
+   kind each, and which list in `_Path` lets `step_kind` tell them apart? What did S03 return
+   for `most_recent_order_date`, and why?
+3. `fct_customer_cohorts.cumulative_net_paid` is `sum(sum(net_paid_usd)) over (...)`. Walk
+   `_occurrence_kind` from the `net_paid_usd` column up to the projection. Which aggregate does
+   `_windowed` accept as windowed, and why is the edge AGGREGATION and not TRANSFORMATION?
+4. `fct_order_margins` is `select * exclude (is_profitable), ... from int_order_profit`. Before
+   S04 nine of its edges cited the whole file. Which regex changed, and why must `exclude (...)`
+   not be read as a named item?
+5. A model's parse report says TABLE_ONLY with gap `x <- table db.main.y is not a dbt node`. What
    edges does the graph still have for that model, and name two causes that would produce this gap.
