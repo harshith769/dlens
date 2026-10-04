@@ -3,6 +3,7 @@
 # Paths below are relative to this file. Never fill these in from dlens output.
 
 v1_spec: lineage_spec.yml  # the 115 v1 edges must stay content-identical (DESIGN_v2 §1.2, §10 D2)
+traps: traps_v2.yml  # every reference must exist (DESIGN_v2 §3)
 
 # DESIGN_v2 §0 Summary and §2 Model inventory
 counts:

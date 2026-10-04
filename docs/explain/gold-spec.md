@@ -67,7 +67,9 @@ a real direct edge); 6+ columns per model; max depth; columns the design says mu
 `stg_orders.ship_date` for dev-19); unreachable pairs, both direct-only and direct + indirect
 (dev-10: `raw_payments.amt` never reaches `dim_customers.lifetime_value`); the v1 direct edges are
 content-identical to `lineage_spec.yml` (from, to, kind, phase, compared as a multiset over the v1
-models); every model, column, edge, path and indirect row named in the traps file exists.
+models); every model, column, edge, path and indirect row named in the traps file exists, and its
+`absent_edges` (no edge at all, e.g. `is_profitable` into `fct_order_margins`) and
+`absent_direct_edges` (join-key-only columns: no direct edge into that model) hold.
 
 Reported, never gated: indirect rows, pairs and models per type, split v1 vs new models; how many
 pairs D7 suppressed; mismatches between edge `traps:` tags and the traps file (the traps file is

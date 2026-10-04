@@ -433,6 +433,7 @@ REF_KEYS = {
     "paths",
     "indirect",
     "absent_edges",
+    "absent_direct_edges",
     "depends_on",
     "column",
 }
@@ -478,13 +479,15 @@ def check_traps(v: View, traps: Mapping[str, Any]) -> list[Check]:
                 ]
             elif key == "indirect" and (x["from"], x["model"], x["type"]) not in rows:
                 p.append(f"{where}.indirect: no {x['type']} row {x['from']} -> {x['model']}")
-            elif key == "absent_edges":
+            elif key in ("absent_edges", "absent_direct_edges"):
+                # no edge (direct or indirect / direct only) from a to column or model b
                 a, b = _arrow(x)
-                hit = [t for f, t in any_pair if f == a and (t == b or table(t) == b)]
+                among = any_pair if key == "absent_edges" else direct
+                hit = sorted(t for f, t in among if f == a and (t == b or table(t) == b))
                 if a not in columns or (b not in columns and b not in tables):
-                    p.append(f"{where}.absent_edges: unknown endpoint in {x}")
+                    p.append(f"{where}.{key}: unknown endpoint in {x}")
                 elif hit:
-                    p.append(f"{where}.absent_edges: {x} exists ({hit})")
+                    p.append(f"{where}.{key}: {x} exists ({hit})")
     return [_check("traps reference spec models/columns/edges", p), trap_tag_report(v, traps)]
 
 

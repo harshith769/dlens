@@ -641,7 +641,7 @@ edges:
   - {from: int_shipments_enriched.carrier,           to: fct_shipping_performance.carrier,             kind: IDENTITY,       phase: v0.1, traps: []}
   - {from: int_shipments_enriched.shipped_at,        to: fct_shipping_performance.ship_month,          kind: TRANSFORMATION, phase: v0.1, traps: []}
   - {from: int_shipments_enriched.shipment_id,       to: fct_shipping_performance.shipment_count,      kind: AGGREGATION,    phase: v0.1, traps: []}
-  - {from: int_shipments_enriched.is_late_delivery,  to: fct_shipping_performance.late_shipment_count, kind: AGGREGATION,    phase: v0.1, traps: []}
+  - {from: int_shipments_enriched.is_late_delivery,  to: fct_shipping_performance.late_shipment_count, kind: AGGREGATION,    phase: v0.1, traps: [case_transformation]}
   - {from: int_shipments_enriched.delivery_days,     to: fct_shipping_performance.avg_delivery_days,   kind: AGGREGATION,    phase: v0.1, traps: []}
   - {from: int_shipments_enriched.shipping_cost_usd, to: fct_shipping_performance.shipping_costs_usd,  kind: AGGREGATION,    phase: v0.1, traps: [near_duplicate_names]}
 

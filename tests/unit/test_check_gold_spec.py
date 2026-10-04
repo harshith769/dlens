@@ -251,6 +251,7 @@ def test_traps_references_and_tag_report() -> None:
                 "paths": [["raw_a.x", "stg_a.x", "int_b.x2"]],
                 "indirect": [{"from": "stg_c.c_id", "model": "int_b", "type": "JOIN"}],
                 "absent_edges": ["stg_a.a_id -> stg_c"],
+                "absent_direct_edges": ["stg_c.c_id -> int_b"],  # JOIN key only
             }
         ],
         "exposures": [{"name": "d", "depends_on": ["int_b"]}],
@@ -263,7 +264,7 @@ def test_traps_references_and_tag_report() -> None:
     bad = copy.deepcopy(traps)
     bad["traps"][0]["edges"] = ["raw_a.x -> int_b.x2"]
     bad["traps"][0]["indirect"][0]["type"] = "FILTER"
-    bad["traps"][0]["absent_edges"] = ["stg_a.a_id -> int_b"]
+    bad["traps"][0]["absent_edges"] = ["stg_c.c_id -> int_b"]  # the JOIN pairs count here
     bad["exposures"][0]["depends_on"] = ["ghost"]
     assert (
         len(failed(cg.check_spec(spec(), traps=bad))["traps reference spec models/columns/edges"])
@@ -290,6 +291,8 @@ def test_synthetic_shop_v2_spec_passes() -> None:
     checks = cg.run(CORPUS / "lineage_spec_v2.yml", CORPUS / "spec_v2_expected.yml")
     names = {c.name for c in checks}
     assert "v1 direct edges content-identical (115 edges)" in names
+    assert "traps reference spec models/columns/edges" in names
+    assert "trap tags vs traps file: 0 mismatches" in names  # informational, but kept clean
     assert failed(checks) == {}
     report = next(c for c in checks if c.name.startswith("indirect edge counts"))
     models = {line.split()[0]: line for line in report.details}
