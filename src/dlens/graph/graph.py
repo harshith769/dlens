@@ -19,6 +19,7 @@ from dlens.ingest import IngestResult, ingest
 from dlens.lineage import (
     DeferredIndirect,
     Edge,
+    IndirectEdge,
     LineageResult,
     ModelParse,
     ParseQuality,
@@ -27,8 +28,10 @@ from dlens.lineage import (
     short_id,
 )
 
-# Cache-format version: bump whenever the JSON shape changes. v2 added ``dlens_version``.
-FORMAT_VERSION = 2
+# Cache-format version: bump whenever the JSON shape changes. v2 added ``dlens_version``; v3 added
+# ``indirect`` (ADR 0020). ``load`` still reads v2 files (no indirect edges), e.g. the demo bundle.
+FORMAT_VERSION = 3
+READABLE_VERSIONS = (2, 3)
 DEFAULT_MAX_PATHS = 1000
 SUGGESTIONS = 3
 
@@ -39,6 +42,8 @@ class LineageGraph:
     Nodes come from the catalog, so a column with no edges still exists. Each edge carries its
     full :class:`Edge` (kind, expression, file, lines, confidence) under the ``edge`` attribute.
     DEPENDS_ON / CONSUMES are plain sorted pair lists; CONTAINS is the ``model`` node attribute.
+    DEPENDS_ON_INDIRECT edges (ADR 0020) are kept in a separate list, outside the nx graph, so
+    traversal, hop depth and every tool see direct edges only until indirect edges are exposed.
     """
 
     def __init__(
@@ -51,6 +56,7 @@ class LineageGraph:
         exposures: dict[str, dict[str, str]],
         parse: dict[str, ModelParse],
         deferred: list[DeferredIndirect],
+        indirect: list[IndirectEdge] | None = None,
     ) -> None:
         self._g: Any = nx.DiGraph()
         for cid in sorted(columns):
@@ -63,6 +69,9 @@ class LineageGraph:
         self._exposures = dict(sorted(exposures.items()))
         self._parse = {k: v.model_copy(update={"deferred_indirect": []}) for k, v in parse.items()}
         self._deferred = sorted(deferred, key=lambda d: (d.to_column, d.from_column, d.kind))
+        self._indirect = sorted(
+            indirect or [], key=lambda e: (e.to_column, e.from_column, str(e.kind))
+        )
         self._short_index: dict[str, list[str]] | None = None
 
     # -- construction ------------------------------------------------------------------------
@@ -102,6 +111,7 @@ class LineageGraph:
             exposures=exposures,
             parse=result.parse_report,
             deferred=deferred,
+            indirect=result.indirect,
         )
 
     # -- inspection --------------------------------------------------------------------------
@@ -124,6 +134,11 @@ class LineageGraph:
     def edges(self) -> list[Edge]:
         """Every DERIVES edge, sorted by (from, to)."""
         return [self.edge(u, v) for u, v in sorted(self._g.edges)]
+
+    def indirect_edges(self) -> list[IndirectEdge]:
+        """Every DEPENDS_ON_INDIRECT edge (ADR 0020), sorted by (to, from, kind). Read-only: no
+        traversal uses them yet. Empty for a graph loaded from a v2 file."""
+        return list(self._indirect)
 
     def depends_on(self) -> list[tuple[str, str]]:
         return list(self._depends_on)
@@ -209,8 +224,9 @@ class LineageGraph:
     ) -> PathList:
         """Every path from ``column_id`` back to a column with no upstream (or ``max_depth``).
 
-        Stops at ``max_paths`` and sets ``truncated``. ``include_indirect`` is a no-op in v0.1:
-        the graph has no indirect edges yet.
+        Stops at ``max_paths`` and sets ``truncated``. ``include_indirect`` is still a no-op: the
+        graph stores indirect edges (``indirect_edges``) but traversal ignores them until the
+        metrics design decides how they are exposed.
         """
         self._require(column_id)
         out = PathList()
@@ -245,7 +261,7 @@ class LineageGraph:
     ) -> ImpactResult:
         """Columns that read ``column_id``, by shortest depth, with affected models/exposures.
 
-        ``include_indirect`` is a no-op in v0.1: the graph has no indirect edges yet.
+        ``include_indirect`` is still a no-op: indirect edges are stored but not traversed yet.
         """
         self._require(column_id)
         seen = {column_id}
@@ -297,6 +313,7 @@ class LineageGraph:
                 for k, v in sorted(self._parse.items())
             },
             "deferred_indirect": [d.model_dump(mode="json") for d in self._deferred],
+            "indirect": [e.model_dump(mode="json") for e in self._indirect],
         }
 
     def save(self, path: Path) -> None:
@@ -307,7 +324,7 @@ class LineageGraph:
     @classmethod
     def load(cls, path: Path) -> "LineageGraph":
         raw = json.loads(path.read_text())
-        if raw.get("version") != FORMAT_VERSION:
+        if raw.get("version") not in READABLE_VERSIONS:
             raise ValueError(f"{path}: unsupported graph version {raw.get('version')!r}")
         if raw.get("dlens_version") != __version__:
             raise ValueError(
@@ -328,6 +345,7 @@ class LineageGraph:
             },
             parse={uid: ModelParse(unique_id=uid, **p) for uid, p in raw["parse_report"].items()},
             deferred=[DeferredIndirect.model_validate(d) for d in raw["deferred_indirect"]],
+            indirect=[IndirectEdge.model_validate(e) for e in raw.get("indirect", [])],
         )
 
     def __eq__(self, other: object) -> bool:

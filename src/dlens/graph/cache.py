@@ -1,8 +1,9 @@
 """Cached graph at ``<project>/target/dlens_graph.json``."""
 
+import json
 from pathlib import Path
 
-from dlens.graph.graph import LineageGraph, build_graph
+from dlens.graph.graph import FORMAT_VERSION, LineageGraph, build_graph
 
 SOURCE_DIRS = ("models", "seeds", "macros", "snapshots", "tests")
 
@@ -40,7 +41,10 @@ def load_or_build(
     cache = cache_path(project_dir)
     if not rebuild and not is_stale(project_dir):
         try:
-            return LineageGraph.load(cache)
+            # LineageGraph.load also reads older formats (the demo bundle); a cache is rebuilt
+            # instead, so it gains what the newer format carries (v3: indirect edges).
+            if json.loads(cache.read_text()).get("version") == FORMAT_VERSION:
+                return LineageGraph.load(cache)
         except (ValueError, KeyError, OSError):
             pass  # unreadable or old-format cache: rebuild
     graph = build_graph(project_dir, dialect)

@@ -108,3 +108,25 @@ def test_data_checks_are_dbt_tests_that_ingest_ignores(ingested: tuple[Path, Ing
     assert {"assert_no_constant_seed_columns", "assert_left_joins_have_unmatched"} <= singular
     assert {n.resource_type for n in r.manifest.nodes.values()} <= {"model", "seed", "source"}
     assert len(r.manifest.models) == 49
+
+
+def test_indirect_edges_follow_d7_and_carry_their_clause(
+    ingested: tuple[Path, IngestResult],
+) -> None:
+    """ADR 0020 invariants on the real corpus (the F1 gate against the gold is S04):
+    no indirect (from, to) pair also has a direct edge, every edge has the clause text that
+    contains its key column, and engine_gaps.yml records the model-level citation gap exactly
+    while it exists."""
+    project, r = ingested
+    result = extract_lineage(r, project)
+    assert result.indirect
+    direct = {(e.from_column, e.to_column) for e in result.edges}
+    assert not {(e.from_column, e.to_column) for e in result.indirect} & direct
+    for e in result.indirect:
+        assert e.expression.strip(), e
+        assert e.key.split(".")[-1].lower() in e.expression.lower(), e
+    gaps = yaml.safe_load((CORPUS / "engine_gaps.yml").read_text())
+    listed = {g["gap"] for g in gaps["indirect_edges"]}
+    citation_gap = "indirect-edge clause citations are model-level"
+    assert (citation_gap in listed) == all(e.model_level_citation for e in result.indirect)
+    assert listed <= {citation_gap}

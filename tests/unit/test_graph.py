@@ -263,3 +263,112 @@ def test_model_and_exposure_info_are_copies(tiny_graph: LineageGraph) -> None:
         "type": "dashboard",
     }
     assert tiny_graph.exposure_info("exposure.p.nope") is None
+
+
+# -- indirect edges (ADR 0020) and format v3 -----------------------------------------------
+
+REPO = Path(__file__).parents[2]
+
+
+def _with_indirect(g: LineageGraph) -> LineageGraph:
+    """The same graph plus indirect edges, built through the public constructor."""
+    from dlens.lineage import IndirectEdge, IndirectKind
+
+    indirect = [
+        IndirectEdge(
+            from_column="seed.p.raw.y",
+            to_column=TOTAL,
+            kind=IndirectKind.JOIN,
+            key="raw.y",
+            expression="on raw.y = stg.x2",
+            file="models/fct.sql",
+            lines=(1, 5),
+        ),
+        IndirectEdge(
+            from_column="seed.p.raw.y",
+            to_column=TOTAL,
+            kind=IndirectKind.GROUP_BY,
+            key="raw.y",
+            expression="group by raw.y",
+            file="models/fct.sql",
+            lines=(1, 5),
+        ),
+    ]
+    return LineageGraph(
+        columns={c: dict(g.nx_graph.nodes[c]) for c in g.columns()},
+        edges=g.edges(),
+        depends_on=g.depends_on(),
+        consumes=g.consumes(),
+        models={m: g.model_info(m) or {} for m in g.model_ids()},
+        exposures={x: g.exposure_info(x) or {} for x, _ in g.consumes()},
+        parse={},
+        deferred=[],
+        indirect=indirect,
+    )
+
+
+def test_indirect_edges_round_trip_in_format_v3(tmp_path: Path, tiny_graph: LineageGraph) -> None:
+    g = _with_indirect(tiny_graph)
+    g.save(tmp_path / "g.json")
+    raw = json.loads((tmp_path / "g.json").read_text())
+    assert raw["version"] == FORMAT_VERSION == 3
+    assert [e["kind"] for e in raw["indirect"]] == ["GROUP_BY", "JOIN"]  # sorted
+    loaded = LineageGraph.load(tmp_path / "g.json")
+    assert loaded == g and loaded.indirect_edges() == g.indirect_edges()
+
+
+def test_a_v2_file_still_loads_with_no_indirect_edges(
+    tmp_path: Path, tiny_graph: LineageGraph
+) -> None:
+    tiny_graph.save(tmp_path / "g.json")
+    raw = json.loads((tmp_path / "g.json").read_text())
+    del raw["indirect"]
+    raw["version"] = 2
+    (tmp_path / "v2.json").write_text(json.dumps(raw))
+    loaded = LineageGraph.load(tmp_path / "v2.json")
+    assert loaded == tiny_graph and loaded.indirect_edges() == []
+
+
+def test_the_committed_v2_demo_graph_loads_unchanged() -> None:
+    """demo/synthetic_shop/graph.json was written by dlens 0.2 (format v2); the demo reads it."""
+    from dlens.ui import demo
+
+    path = REPO / "demo" / demo.PROJECT / demo.GRAPH_FILE
+    before = path.read_bytes()
+    assert json.loads(before)["version"] == 2
+    g = demo.load_graph(path.parent)
+    assert len(g.edges()) == 115 and g.indirect_edges() == []
+    assert path.read_bytes() == before
+
+
+def test_traversal_ignores_indirect_edges(tiny_graph: LineageGraph) -> None:
+    """S03: no user-facing behaviour change. include_indirect is still a no-op."""
+    g = _with_indirect(tiny_graph)
+    for col in g.columns():
+        for flag in (False, True):
+            assert g.upstream(col, include_indirect=flag) == tiny_graph.upstream(col)
+            assert g.downstream(col, include_indirect=flag) == tiny_graph.downstream(col)
+    assert sorted(g.nx_graph.edges) == sorted(tiny_graph.nx_graph.edges)
+
+
+def test_a_v2_cache_is_rebuilt(
+    tmp_path: Path, tiny_graph: LineageGraph, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """LineageGraph.load reads v2, but a v2 *cache* is rebuilt so it gains indirect edges."""
+    p = _project(tmp_path, tiny_graph)
+    raw = json.loads(cache_path(p).read_text())
+    raw["version"] = 2
+    del raw["indirect"]
+    cache_path(p).write_text(json.dumps(raw))
+    os.utime(cache_path(p), (2_000_000_000, 2_000_000_000))
+    assert not is_stale(p)
+    calls: list[Path] = []
+
+    def fake_build(project_dir: Path, dialect: str = "duckdb") -> LineageGraph:
+        calls.append(project_dir)
+        return tiny_graph
+
+    monkeypatch.setattr("dlens.graph.cache.build_graph", fake_build)
+    assert load_or_build(p) == tiny_graph
+    assert calls == [p]
+    assert json.loads(cache_path(p).read_text())["version"] == FORMAT_VERSION
