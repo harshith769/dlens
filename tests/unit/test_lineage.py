@@ -275,6 +275,25 @@ def test_locate_union_branch_and_star_and_fallback() -> None:
     assert fallback.model_level and fallback.lines == (1, 15)
 
 
+@pytest.mark.xfail(strict=True, reason="S04: provenance does not read * EXCLUDE / REPLACE yet")
+@pytest.mark.parametrize(
+    ("source", "lines"),
+    [
+        ("select\n    * exclude (is_profitable),\n    a / b as pct\nfrom t\n", (2, 2)),
+        ("select * replace (qty * 2 as qty) from t\n", (1, 1)),
+        ("select\n    o.* exclude (a, b)\nfrom {{ ref('o') }} as o\n", (2, 2)),
+        ("select\n    * EXCLUDE (\n        a,\n        b\n    )\nfrom t\n", (2, 5)),
+        ("select\n    * exclude (a) replace (b + 1 as b),\n    c as d\nfrom t\n", (2, 2)),
+    ],
+)
+def test_star_with_exclude_or_replace_is_a_star_item(source: str, lines: tuple[int, int]) -> None:
+    """Hand-written from the SQL: the star item's own lines, not a model-level citation."""
+    stars = [it for it in select_items(source) if it.is_star]
+    assert [it.lines for it in stars] == [lines]
+    cite = locate(source, "order_id")  # any column that only arrives through the star
+    assert cite.lines == lines and not cite.model_level
+
+
 def _edge(src: str, dst: str, kind: EdgeKind) -> Edge:
     return Edge(
         from_column=f"model.p.{src}", to_column=f"model.p.{dst}", kind=kind,
