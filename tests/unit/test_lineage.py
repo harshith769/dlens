@@ -367,3 +367,27 @@ def test_unqualified_ambiguous_key_is_low_confidence_to_each_candidate() -> None
     raw = lineage_for_sql(sql, _ingest())
     lows = {(short_id(r.upstream), str(r.confidence)) for r in raw.indirect if r.kind == "FILTER"}
     assert lows == {("orders.id", "low"), ("customers.id", "low")}  # `id` is in both tables
+
+
+def test_compare_indirect_scores_triples_per_type_and_model() -> None:
+    from dlens.lineage import IndirectEdge, IndirectKind, compare_indirect
+
+    def ind(f: str, t: str, k: IndirectKind) -> IndirectEdge:
+        return IndirectEdge(
+            from_column=f"model.p.{f}", to_column=f"model.p.{t}", kind=k, key="k",
+            expression="on k", file="m.sql", lines=(1, 1),
+        )  # fmt: skip
+
+    engine = [
+        ind("a.k", "m.x", IndirectKind.JOIN),
+        ind("a.k", "m.x", IndirectKind.GROUP_BY),  # same pair, second type
+        ind("a.k", "n.y", IndirectKind.FILTER),  # extra
+    ]
+    gold = [("a.k", "m.x", "JOIN"), ("a.k", "m.x", "GROUP_BY"), ("b.k", "m.x", "JOIN")]
+    r = compare_indirect(engine, gold)
+    assert (r.overall.matched, r.overall.engine, r.overall.gold) == (2, 3, 3)
+    assert r.overall.precision == pytest.approx(2 / 3) and r.overall.recall == pytest.approx(2 / 3)
+    assert r.by_type["JOIN"].recall == 0.5 and r.by_type["GROUP_BY"].f1 == 1.0
+    assert r.by_type["FILTER"].precision == 0.0
+    assert r.by_model["m"].precision == 1.0 and r.by_model["n"].matched == 0
+    assert r.missing == [("b.k", "m.x", "JOIN")] and r.extra == [("a.k", "n.y", "FILTER")]

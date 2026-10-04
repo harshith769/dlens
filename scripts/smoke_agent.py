@@ -398,7 +398,9 @@ def smoke_gemini(
 def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--provider", default="ollama", choices=["ollama", "gemini"])
-    ap.add_argument("--max-calls", type=int, help=f"gemini: live calls allowed (1-{GEMINI_HARD_CAP})")
+    ap.add_argument(
+        "--max-calls", type=int, help=f"gemini: live calls allowed (1-{GEMINI_HARD_CAP})"
+    )
     ap.add_argument("--yes-spend-quota", action="store_true", help="gemini: confirm the spend")
     ap.add_argument("--only", help="comma-separated question ids")
     ap.add_argument("--show", action="store_true", help="print each rendered answer")
