@@ -49,3 +49,11 @@
 - Ambiguity handled in code: same-lineage-chain names → answer for the most downstream; unrelated → per-candidate or clarification.
 - Validator R1–R8 + R2r: cites, in-ledger (+ unique 1-edit repair), on-disk, known nodes, kind words, prose refs, relevance (anti-laundering), connectivity (no skipped hops). Regenerate once, then salvage; zero false positives on smoke.
 - Lesson: don't rely on a 4B model for what code can guarantee (ambiguity, refusals, false-premise tracing, citations).
+
+## 2026-10-04 — v0.2 UI v2: redesign of the local Streamlit app
+- Three tabs: Ask (cited answer), Explore lineage (no LLM, no quota) and How it works (pipeline, nine rules, dev score labeled as the 20-question dev set, not the benchmark).
+- The signature element is a column-level lineage diagram: Graphviz DOT, one cluster per layer, a table node per model with column ports, and edges colored by kind with a short expression. A model-level graph can't show which column feeds which.
+- Badges only from real fields: verdict (answered / refused / clarification / chain mode) and verification (verified / repaired / completed / regenerated / partially removed). I deferred "Corrected premise" because the agent has no signal for it; a UI heuristic would be a guess the validator never checked.
+- Streamlit 1.65 has stateful tabs (`key` + `on_change="rerun"`), so a citation chip can open the Source tab from code. The theme font option takes Google Fonts URLs, so no CSS @import is needed.
+- Safety rules for a UI that renders model output: escape everything shown as HTML (tested with `<script>`), read files only through `safe_read` (never outside the project), and export only project-relative paths.
+- Lesson: keep `view.py` free of Streamlit. 46 UI tests (pure helpers plus AppTest smoke tests per tab with a scripted fake LLM) run in about 3 s, with no browser and no Ollama.

@@ -24,6 +24,6 @@ eval-full:
 	@read -p "Type 'yes' to continue: " ans; [ "$$ans" = "yes" ] || { echo "Aborted."; exit 1; }
 	@echo "eval-full: not implemented yet"
 
-# Local three-pane UI on Ollama (needs: uv sync --extra agent --extra ui).
+# Local UI on Ollama: Ask | Explore lineage | How it works (needs: uv sync --extra agent --extra ui).
 ui:
 	uv run --extra agent --extra ui streamlit run src/dlens/ui/app.py

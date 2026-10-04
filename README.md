@@ -132,10 +132,16 @@ Constant columns (no edges): 0
 
 ```bash
 uv sync --extra agent --extra ui
-make ui          # three panes: question | cited answer | source + subgraph (needs Ollama)
+make ui          # Ask | Explore lineage | How it works (needs Ollama for Ask)
 ```
 
-<!-- TODO screenshot: docs/img/ui.png -->
+**Ask** answers a lineage question with a verdict badge, a verification badge, per-claim checks,
+citation chips that open the cited source lines, a column-level lineage diagram, the agent's steps
+and the validator's checks. **Explore lineage** browses the graph directly, with no LLM and no
+quota. **How it works** shows the pipeline, the nine validator rules and the current dev score.
+
+<!-- TODO screenshot: docs/img/ui.png (Ask tab with an answered question and the Lineage tab
+open), added before the deploy release. Not captured yet: no browser in the dev environment. -->
 
 ## Support matrix
 
