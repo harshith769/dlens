@@ -32,8 +32,7 @@ import importlib.util
 import json
 import os
 import sys
-from collections.abc import Callable, Mapping
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
