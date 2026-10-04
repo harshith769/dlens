@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
@@ -22,7 +22,7 @@ from dlens.agent.tools.provenance import Citation, Provenance, edge_id, safe_rea
 from dlens.cli import trace_summary
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, ParseQuality
-from dlens.ui.style import BORDER, KIND_COLORS, MUTED, PRIMARY, Tone
+from dlens.ui.style import BORDER, CLAIM_NOTES, KIND_COLORS, MUTED, PRIMARY, Tone
 
 ROOT = Path(__file__).resolve().parents[3]
 DEV_QUESTIONS = ROOT / "eval" / "questions" / "dev.jsonl"
@@ -169,18 +169,41 @@ def error_hint(reason: str | None, model: str = OLLAMA_MODEL) -> Hint | None:
 PROVIDER_LABELS = {"ollama": "Local model (Ollama)"}
 
 
-def provider_status(
-    provider: str, quota: tuple[int, int] | None = None, cached: bool | None = None
-) -> list[str]:
-    """Header slot: the provider, then "x of N left today" and "cached" only when they apply
-    (a quota-limited provider; a last answer served wholly from the cache)."""
+def provider_status(provider: str, quota: tuple[int, int] | None = None) -> list[str]:
+    """Header slot: the provider, then "x of N left today" only for a quota-limited provider.
+    Whether an answer came from the cache is a per-answer badge (``CACHED``), not header state."""
     parts = [PROVIDER_LABELS.get(provider, provider)]
     if quota is not None:
         left, total = quota
         parts.append(f"{left} of {total} left today")
-    if cached:
-        parts.append("cached")
     return parts
+
+
+HISTORY_MAX = 8
+HISTORY_CHARS = 44
+_TONE_DOTS = {"primary": "blue", "verified": "green", "warning": "orange", "neutral": "gray"}
+_MD_SPECIAL = re.compile(r"([\\`*_\[\]{}<>#|~:$])")
+
+
+def push_history(
+    history: list[dict[str, Any]], entry: dict[str, Any], cap: int = HISTORY_MAX
+) -> list[dict[str, Any]]:
+    """``entry`` first, then the older entries minus any with the same question and project
+    (the latest answer wins), at most ``cap``."""
+    key = (entry["question"].strip(), entry["project"])
+    older = [h for h in history if (h["question"].strip(), h["project"]) != key]
+    return [entry, *older][:cap]
+
+
+def clip(text: str, n: int = HISTORY_CHARS) -> str:
+    one = " ".join(text.split())
+    return one if len(one) <= n else one[: n - 1].rstrip() + "…"
+
+
+def history_label(question: str, tone: Tone) -> str:
+    """A button label: a dot in the verdict's color, then the question on one line. Markdown
+    characters in the question are escaped so it shows as typed."""
+    return f":{_TONE_DOTS[tone]}[●] " + _MD_SPECIAL.sub(r"\\\1", clip(question))
 
 
 def run_cached(run: AgentRun | None) -> bool | None:
@@ -219,6 +242,25 @@ def build_failed(name: str, exc: BaseException) -> Hint:
 class Badge:
     label: str
     tone: Tone
+    help: str = field(default="", compare=False)  # one-sentence tooltip
+
+
+CACHED = Badge("Cached", "neutral", "Every model call for this answer was served from the cache.")
+_BADGE_HELP = {
+    "Verified": "Every claim passed the nine rules as drafted.",
+    "Repaired": "Code corrected a miscopied citation id to the one returned id that fits (R2r).",
+    "Completed": "Code added a connecting edge the tools returned but the claim left out (R8c).",
+    "Regenerated": "The first draft failed a rule, so the answer was written once more and passed.",
+    "Partially removed": "Claims that failed a rule were removed; the claims shown passed.",
+    "Nothing verifiable": "No claim passed the rules, so the answer was withheld.",
+    "Not checked": "Refusals and clarifications make no claims, so there is nothing to check.",
+}
+
+
+def _with_help(label: str, tone: Tone) -> Badge:
+    """``label`` may join parts ("Repaired 1 · Completed 1"): one sentence per part."""
+    parts = [p.rstrip(" 0123456789") for p in label.split(" · ")]
+    return Badge(label, tone, " ".join(_BADGE_HELP[p] for p in parts if p in _BADGE_HELP))
 
 
 def verdict(run: AgentRun) -> Badge:
@@ -236,11 +278,11 @@ def verdict(run: AgentRun) -> Badge:
 def verification(run: AgentRun) -> Badge:
     v = run.record.validation
     if not v or v.get("skipped"):
-        return Badge("Not checked", "neutral")
+        return _with_help("Not checked", "neutral")
     if v.get("warning"):
         if run.answer.refused:
-            return Badge("Nothing verifiable", "warning")
-        return Badge("Partially removed", "warning")
+            return _with_help("Nothing verifiable", "warning")
+        return _with_help("Partially removed", "warning")
     parts = []
     if n := len(v.get("repairs") or []):
         parts.append(f"Repaired {n}")
@@ -248,7 +290,7 @@ def verification(run: AgentRun) -> Badge:
         parts.append(f"Completed {n}")
     if v.get("regenerated"):
         parts.append("Regenerated")
-    return Badge(" · ".join(parts) or "Verified", "verified")
+    return _with_help(" · ".join(parts) or "Verified", "verified")
 
 
 @dataclass(frozen=True)
@@ -692,7 +734,8 @@ def answer_markdown(export: dict[str, Any]) -> str:
                 refs.append(where + (f"-{b}" if cite["level"] != "model" and b != a else ""))
             else:
                 refs.append(f"graph check: {cite['graph_check']}")
-        mark = "✓" if c["status"] == "verified" else f"⚠ {c['status']}"
+        note = CLAIM_NOTES.get(c["status"])
+        mark = "✓" + (f" ({note})" if note else "") if note is not None else f"⚠ {c['status']}"
         lines.append(f"- {mark} {c['text']}" + "".join(f" [{r}]" for r in refs))
     if export["removed_claims"]:
         lines += ["", "## Removed by the validator", ""]

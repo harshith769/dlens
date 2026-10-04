@@ -43,6 +43,33 @@ CSS = f"""
 .dl-muted {{ color: {MUTED}; font-size: 0.9rem; }}
 .dl-stats {{ color: {MUTED}; font-size: 0.9rem; padding-bottom: 0.45rem; }}
 .dl-claim {{ margin: 0.15rem 0 0.1rem 0; }}
+.dl-intro {{ color: {MUTED}; font-size: 0.95rem; margin: -0.6rem 0 0.4rem 0; }}
+.dl-intro a {{ color: {PRIMARY}; }}
+.dl-provider {{ text-align: right; }}
+.dl-group {{ font-size: 0.85rem; font-weight: 600; color: {TEXT}; margin: 0.5rem 0 0.15rem 0; }}
+/* Citation chips: mono, bordered, clickable (st.button inside a keyed container). */
+[class*="st-key-chips"] button {{ font-family: "IBM Plex Mono", monospace; font-size: 0.78rem;
+  border: 1px solid {BORDER}; border-radius: 4px; padding: 0.05rem 0.45rem; min-height: 0;
+  background: #FFFFFF; color: {TEXT}; }}
+[class*="st-key-chips"] button:hover {{ border-color: {PRIMARY}; color: {PRIMARY};
+  background: #EEF4F9; }}
+[class*="st-key-chips"] button p {{ font-family: "IBM Plex Mono", "Source Code Pro", monospace
+  !important; font-size: 0.78rem; }}
+/* Examples and history: left-aligned text, no centered indent. */
+[class*="st-key-examples"] button, .st-key-empty button, .st-key-history button {{
+  min-height: 0; justify-content: flex-start; text-align: left; }}
+[class*="st-key-examples"] button > div, .st-key-empty button > div,
+.st-key-history button > div {{ justify-content: flex-start; max-width: 100%; }}
+[class*="st-key-examples"] button {{ padding: 0.25rem 0.6rem; border-radius: 6px; }}
+[class*="st-key-examples"] button p, .st-key-empty button p {{ font-size: 0.85rem;
+  text-align: left; }}
+/* History: one line per question, clipped with an ellipsis. */
+.st-key-history button {{ padding: 0.1rem 0; }}
+.st-key-history button p {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 0.88rem; }}
+/* Downloads: small secondary buttons at the end of the answer. */
+.st-key-exports button {{ min-height: 0; padding: 0.15rem 0.6rem; }}
+.st-key-exports button p {{ font-size: 0.8rem; }}
 .dl-src {{ border: 1px solid {BORDER}; border-radius: 4px; background: #FFFFFF;
   overflow-x: auto; max-height: 34rem; overflow-y: auto; }}
 .dl-src pre {{ margin: 0; padding: 0.5rem 0; font-size: 0.82rem; line-height: 1.5;
@@ -82,9 +109,10 @@ CSS = f"""
 """
 
 
-def badge(label: str, tone: Tone = "neutral") -> str:
-    """A small outlined label; ``label`` is escaped."""
-    return f'<span class="dl-badge" style="color:{_TONES[tone]}">{escape(label)}</span>'
+def badge(label: str, tone: Tone = "neutral", title: str = "") -> str:
+    """A small outlined label with an optional hover tooltip; both are escaped."""
+    tip = f' title="{escape(title)}"' if title else ""
+    return f'<span class="dl-badge" style="color:{_TONES[tone]}"{tip}>{escape(label)}</span>'
 
 
 def legend_row(kinds: tuple[str, ...] | list[str]) -> str:
@@ -96,20 +124,29 @@ def legend_row(kinds: tuple[str, ...] | list[str]) -> str:
     return f'<div class="dl-legend">{items}</div>'
 
 
+def intro(text: str, link: str, link_text: str) -> str:
+    """The line under the title, then a link (both escaped)."""
+    return (
+        f'<div class="dl-intro">{escape(text)}<br>'
+        f'<a href="{escape(link)}" target="_blank">{escape(link_text)}</a></div>'
+    )
+
+
 def muted(text: str) -> str:
     return f'<span class="dl-muted">{escape(text)}</span>'
 
 
-_STATUS = {
-    "verified": ("✓", VERIFIED, ""),
-    "repaired": ("⚠", WARNING, "repaired id"),
-    "completed": ("⚠", WARNING, "completed citations"),
-}
+# A repaired or completed claim passed every rule after a code fix, so it is verified (✓) with a
+# grey note on what code did. ⚠ is only for anything else (salvaged or removed).
+CLAIM_NOTES = {"verified": "", "repaired": "id auto-corrected", "completed": "missing hop added"}
 
 
 def claim_line(text: str, status: str) -> str:
     """One claim with its check mark; ``text`` is escaped."""
-    mark, color, note = _STATUS.get(status, ("⚠", WARNING, status))
+    if status in CLAIM_NOTES:
+        mark, color, note = "✓", VERIFIED, CLAIM_NOTES[status]
+    else:
+        mark, color, note = "⚠", WARNING, status
     tail = f' <span class="dl-muted">({escape(note)})</span>' if note else ""
     return (
         f'<div class="dl-claim"><span style="color:{color};font-weight:600">{mark}</span> '

@@ -24,8 +24,11 @@ from dlens.graph import LineageGraph, load_or_build
 from dlens.ui import style, view
 
 PROVIDER = "ollama"
-HISTORY = 10
-EMPTY = "Ask where a column comes from or what it affects. Every claim is checked against the code."
+INTRO = (
+    "Ask where a dbt column comes from or what it affects. Every claim is checked against the code."
+)
+REPO = "https://github.com/harshith769/dlens"
+EMPTY = "Pick an example or type a question."
 
 
 @st.cache_resource(show_spinner="Building the lineage graph (first run takes ~10 s)...")
@@ -49,9 +52,8 @@ def _ask(project: str, question: str) -> None:
         st.session_state.update(error=run.answer.refusal_reason, run=None)
         return
     st.session_state.update(error=None, run=run, box=box, project_of_run=project, selected=None)
-    history = st.session_state.setdefault("history", [])
-    history.insert(0, {"question": question, "project": project, "run": run, "box": box})
-    del history[HISTORY:]
+    entry = {"question": question, "project": project, "run": run, "box": box}
+    st.session_state.history = view.push_history(st.session_state.get("history") or [], entry)
 
 
 def _restore(n: int) -> None:
@@ -81,24 +83,25 @@ def show_hint(hint: view.Hint) -> None:
 
 
 def provider_slot(slot: DeltaGenerator) -> None:
-    """Fill the header's provider slot. Called again after the Ask tab, so "cached" describes
-    the answer on screen. Quota is None for Ollama; a cloud provider would pass (left, total)."""
-    status = view.provider_status(PROVIDER, None, view.run_cached(st.session_state.get("run")))
-    slot.markdown(style.muted(" · ".join(status)), unsafe_allow_html=True)
+    """The header's provider, and "x of N left today" for a quota-limited provider (None for
+    Ollama). Whether an answer was cached is shown on the answer itself."""
+    status = " · ".join(view.provider_status(PROVIDER, None))
+    slot.markdown(f'<div class="dl-provider">{style.muted(status)}</div>', unsafe_allow_html=True)
 
 
-def header() -> tuple[str | None, DeltaGenerator]:
-    """Title, project picker, stats and the provider slot. The project is None if it cannot be
-    opened."""
+def header() -> str | None:
+    """Title and intro with the provider on the right, then the project picker and stats. The
+    project is None if it cannot be opened."""
     names = list(view.PROJECTS)
     wanted = st.query_params.get("project")
-    title, pick, stats, provider = st.columns([1.1, 1.4, 3.2, 1.6], vertical_alignment="bottom")
+    title, provider = st.columns([4, 1.4], vertical_alignment="top")
     title.markdown("## DLens")
-    slot = provider.empty()
-    provider_slot(slot)
+    title.markdown(style.intro(INTRO, REPO, "Source on GitHub"), unsafe_allow_html=True)
+    provider_slot(provider.empty())
     if wanted is not None and wanted not in view.PROJECTS:
         show_hint(view.project_problem(wanted) or view.Hint("Unknown project", ""))
-        return None, slot
+        return None
+    pick, stats = st.columns([1.5, 4], vertical_alignment="bottom")
     project = pick.selectbox(
         "Project",
         names,
@@ -108,17 +111,17 @@ def header() -> tuple[str | None, DeltaGenerator]:
     problem = view.project_problem(project)
     if problem is not None:
         show_hint(problem)
-        return None, slot
+        return None
     try:
         graph = load_graph(project)
     except Exception as e:  # dbt or the parser failed: say how to rebuild
         show_hint(view.build_failed(project, e))
-        return None, slot
+        return None
     stats.markdown(
         f'<div class="dl-stats">{escape(view.project_stats(graph).line)}</div>',
         unsafe_allow_html=True,
     )
-    return project, slot
+    return project
 
 
 def question_panel(project: str) -> None:
@@ -140,40 +143,38 @@ def question_panel(project: str) -> None:
     history = st.session_state.get("history") or []
     if history:
         st.markdown("**This session**")
-        for n, h in enumerate(history):
-            v = view.verdict(h["run"]).label
-            st.button(
-                f"{h['question']} · {v}",
-                key=f"hist{n}",
-                on_click=_restore,
-                args=(n,),
-                type="tertiary",
-                width="stretch",
-            )
+        with st.container(key="history", gap=None):
+            for n, h in enumerate(history):
+                v = view.verdict(h["run"])
+                st.button(
+                    view.history_label(h["question"], v.tone),
+                    key=f"hist{n}",
+                    help=f"{h['question']} ({v.label})",
+                    on_click=_restore,
+                    args=(n,),
+                    type="tertiary",
+                    width="stretch",
+                )
     groups = view.examples(project)
     if groups:
         st.markdown("**Examples**")
         for g, group in enumerate(groups):
-            st.markdown(f"{group.label}  \n{style.muted(group.hint)}", unsafe_allow_html=True)
-            for i, q in enumerate(group.questions):
-                st.button(
-                    q,
-                    key=f"ex{g}-{i}",
-                    on_click=_example,
-                    args=(q,),
-                    type="tertiary",
-                    width="stretch",
-                )
+            st.markdown(
+                f'<div class="dl-group" title="{escape(group.hint)}">{escape(group.label)}</div>',
+                unsafe_allow_html=True,
+            )
+            with st.container(key=f"examples{g}", gap="small"):
+                for i, q in enumerate(group.questions):
+                    st.button(q, key=f"ex{g}-{i}", on_click=_example, args=(q,), width="stretch")
 
 
 def empty_state(project: str) -> None:
     st.markdown(f"#### {EMPTY}")
     groups = view.examples(project)
-    cols = st.columns(2)
-    for n, group in enumerate(groups[:4]):
-        cols[n % 2].button(
-            group.questions[0], key=f"empty{n}", on_click=_example, args=(group.questions[0],)
-        )
+    with st.container(key="empty", horizontal=True, gap="small"):
+        for n, group in enumerate(groups[:4]):
+            q = group.questions[0]
+            st.button(q, key=f"empty{n}", on_click=_example, args=(q,))
 
 
 def answer_panel(project: str) -> None:
@@ -186,8 +187,11 @@ def answer_panel(project: str) -> None:
             empty_state(project)
         return
     answer = run.answer
-    v, c = view.verdict(run), view.verification(run)
-    st.markdown(style.badge(v.label, v.tone) + style.badge(c.label, c.tone), unsafe_allow_html=True)
+    badges = [view.verdict(run), view.verification(run)]
+    if view.run_cached(run):
+        badges.append(view.CACHED)
+    html = "".join(style.badge(b.label, b.tone, b.help) for b in badges)
+    st.markdown(html, unsafe_allow_html=True)
     asked_on = st.session_state.get("project_of_run")
     if asked_on and asked_on != project:
         st.caption(f"Asked on {asked_on}.")
@@ -197,8 +201,8 @@ def answer_panel(project: str) -> None:
     if answer.clarification is not None:
         st.markdown("\n".join(f"- {c}" for c in answer.clarification.candidates))
     claims(run)
-    exports(run)
     details()
+    exports(run)
 
 
 def claims(run: AgentRun) -> None:
@@ -207,9 +211,9 @@ def claims(run: AgentRun) -> None:
         st.markdown("**Claims**")
     for n, row in enumerate(rows):
         st.markdown(style.claim_line(row.text, row.status), unsafe_allow_html=True)
-        with st.container(horizontal=True, gap="small"):
+        with st.container(horizontal=True, gap="small", key=f"chips{n}"):
             for cid, label in row.chips:
-                st.button(label, key=f"chip{n}-{cid}", on_click=_pick, args=(cid,), type="tertiary")
+                st.button(label, key=f"chip{n}-{cid}", on_click=_pick, args=(cid,))
     removed = view.removed_claims(run)
     if removed:
         with st.expander(f"Removed by the validator ({len(removed)})"):
@@ -222,7 +226,7 @@ def exports(run: AgentRun) -> None:
     project = st.session_state.get("project_of_run", "")
     data = view.answer_export(run, project, view.run_facts(run, st.session_state.box))
     stem = f"dlens-answer-{run.record.run_id[:8]}"
-    with st.container(horizontal=True, gap="small"):
+    with st.container(horizontal=True, gap="small", key="exports"):
         st.download_button(
             "Download Markdown",
             view.answer_markdown(data),
@@ -416,13 +420,12 @@ def how_tab() -> None:
 def main() -> None:
     st.set_page_config(page_title="DLens", layout="wide")
     st.html(style.CSS + f"<style>{view.source_css()}</style>")
-    project, slot = header()
+    project = header()
     if project is None:
         return
     ask, explore, how = st.tabs(["Ask", "Explore lineage", "How it works"])
     with ask:
         ask_tab(project)
-    provider_slot(slot)  # again, so "cached" describes the answer just shown
     with explore:
         explore_tab(project)
     with how:

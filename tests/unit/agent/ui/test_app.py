@@ -79,6 +79,7 @@ def test_header_stats_and_empty_state(start):
     assert any("3 models · 8 columns · 6 edges" in t for t in texts(at))
     assert any("Local model (Ollama)" in t for t in texts(at))
     assert any("Every claim is checked against the code." in t for t in texts(at))
+    assert any("github.com/harshith769/dlens" in t for t in texts(at))
     assert [t.label for t in at.tabs][:3] == ["Ask", "Explore lineage", "How it works"]
 
 
@@ -172,15 +173,22 @@ def test_history_restores_and_exports_exist(start):
     first = at.session_state.run
     ask(at, "Where does fct.total come from, again?")
     hist = [b for b in at.button if b.key and b.key.startswith("hist")]
-    assert len(hist) == 2 and hist[0].label.startswith("Where does fct.total come from, again?")
+    assert len(hist) == 2 and "Where does fct.total come from, again?" in hist[0].label
+    assert hist[0].label.startswith(":blue[●]")
     hist[1].click().run()
     assert not at.exception and at.session_state.run is first
+    ask(at)  # the first question again: one history entry, now on top
+    hist = [b for b in at.button if b.key and b.key.startswith("hist")]
+    assert len(hist) == 2 and hist[0].label.endswith("Where does fct.total come from?")
 
 
-def test_provider_slot_shows_cached_only_for_a_cached_answer(start):
+def test_cached_is_a_badge_on_the_answer_not_in_the_header(start):
     at = ask(start(_agg_answer()))
     slot = [t for t in texts(at) if "Local model (Ollama)" in t]
-    assert slot and "cached" not in slot[0] and "left today" not in slot[0]
+    assert slot and "cached" not in slot[0].lower() and "left today" not in slot[0]
+    assert not any(">Cached<" in t for t in texts(at))
     ask(at)  # same question: every LLM call is a cache hit
     assert at.session_state.run.record.tokens.get("cached_calls") == 3
-    assert any("Local model (Ollama) · cached" in t for t in texts(at))
+    assert any(">Cached<" in t and "Answered" in t for t in texts(at))
+    slot = [t for t in texts(at) if "Local model (Ollama)" in t]
+    assert "cached" not in slot[0].lower()

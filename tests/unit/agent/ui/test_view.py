@@ -392,8 +392,14 @@ def test_removed_claims_use_the_round_the_loop_kept():
 def test_claim_line_escapes_and_marks_status():
     html = style.claim_line("<script>alert(1)</script>", "repaired")
     assert "<script>" not in html and "&lt;script&gt;" in html
-    assert "⚠" in html and "repaired" in html
-    assert "✓" in style.claim_line("ok", "verified")
+    # A repaired or completed claim passed the rules after a code fix: ✓ with a grey note.
+    assert "✓" in html and "⚠" not in html and "id auto-corrected" in html
+    done = style.claim_line("ok", "completed")
+    assert "✓" in done and "missing hop added" in done
+    assert "✓" in style.claim_line("ok", "verified") and "dl-muted" not in style.claim_line(
+        "ok", "verified"
+    )
+    assert "⚠" in style.claim_line("ok", "salvaged")
 
 
 def test_highlight_sql_numbers_lines_marks_range_and_escapes():
@@ -614,10 +620,46 @@ def test_export_markdown_and_json_are_project_relative(shop_root: Path):
     assert str(shop_root) not in blob and "/home/" not in blob and "abc.json" not in blob
 
 
-def test_provider_status_hides_what_does_not_apply():
+def test_provider_status_is_provider_and_quota_only():
     assert view.provider_status("ollama") == ["Local model (Ollama)"]
-    assert view.provider_status("ollama", None, False) == ["Local model (Ollama)"]
-    assert view.provider_status("x", (37, 400), True) == ["x", "37 of 400 left today", "cached"]
+    assert view.provider_status("x", (37, 400)) == ["x", "37 of 400 left today"]
+    assert view.CACHED.label == "Cached" and view.CACHED.help
+
+
+def test_verification_badges_explain_themselves():
+    a = Answer(answer_text="x")
+    both = view.verification(
+        _run(a, _v(repairs=[{"claim_index": 0}], completions=[{}], regenerated=True))
+    )
+    assert both.help.count(".") == 3
+    assert "R2r" in both.help and "R8c" in both.help and "written once more" in both.help
+    assert view.verification(_run(a, _v())).help.startswith("Every claim passed")
+    html = style.badge("Repaired 1", "verified", 'fixed "id" <x>')
+    assert 'title="fixed &quot;id&quot; &lt;x&gt;"' in html
+    assert "title=" not in style.badge("Answered", "primary")
+
+
+def test_push_history_dedupes_keeps_latest_newest_first_and_caps():
+    h: list[dict] = []
+    for q in ["a", "b", "a ", "c"]:
+        h = view.push_history(h, {"question": q, "project": "p", "run": q})
+    assert [x["question"] for x in h] == ["c", "a ", "b"]  # "a" re-asked: only the latest kept
+    assert h[1]["run"] == "a "
+    other = view.push_history(h, {"question": "b", "project": "q", "run": 0})
+    assert len(other) == 4  # same words on another project is another entry
+    for i in range(20):
+        h = view.push_history(h, {"question": str(i), "project": "p"})
+    assert len(h) == view.HISTORY_MAX and h[0]["question"] == "19"
+
+
+def test_history_label_has_a_dot_and_one_clipped_escaped_line():
+    label = view.history_label(
+        "Where   does\n stg_payments.amount_usd come from? " + "x" * 80, "warning"
+    )
+    assert label.startswith(":orange[●] ") and "\n" not in label and label.endswith("…")
+    assert "stg\\_payments" in label  # markdown escaped, shows as typed
+    assert len(view.clip("y" * 100)) == view.HISTORY_CHARS
+    assert view.history_label("ok?", "primary") == ":blue[●] ok?"
 
 
 def test_run_cached():
@@ -627,3 +669,24 @@ def test_run_cached():
 
     assert view.run_cached(None) is None and view.run_cached(run(0, 0)) is None
     assert view.run_cached(run(3, 3)) is True and view.run_cached(run(3, 2)) is False
+
+
+def test_markdown_export_marks_fixed_claims_verified():
+    claims = [
+        {"text": t, "status": s, "citations": []}
+        for t, s in (("a", "verified"), ("b", "repaired"), ("c", "completed"), ("d", "odd"))
+    ]
+    export = {
+        "question": "q",
+        "project": "p",
+        "verdict": "Answered",
+        "verification": "Repaired 1",
+        "model": "m",
+        "asked_at": "t",
+        "answer": "x",
+        "claims": claims,
+        "removed_claims": [],
+    }
+    md = view.answer_markdown(export)
+    assert "- ✓ a\n" in md and "- ✓ (id auto-corrected) b" in md
+    assert "- ✓ (missing hop added) c" in md and "- ⚠ odd d" in md
