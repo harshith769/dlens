@@ -2,6 +2,7 @@
 
 import getpass
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -94,7 +95,60 @@ def test_app_boots_from_the_bundle_without_target(demo_app):
     assert not at.exception, at.exception
     assert not at.error, [e.value for e in at.error]
     assert any("15 models" in m.value for m in at.markdown)
+    assert os.environ.get("DLENS_DEMO") == "1"  # forced on by the entrypoint
     at.selectbox(key="explore_col").set_value("fct_orders.order_total").run()
     assert not at.exception, at.exception
     htmls = [h.proto.body for h in at.get("html")]
     assert any("dl-src" in h for h in htmls)  # model SQL read from the bundle copy
+
+
+# -- Cloud install -------------------------------------------------------------------------------
+
+HEAVY = ("torch", "sentence-transformers", "lancedb", "bm25s", "dbt-core", "dbt-duckdb")
+
+
+def _pins() -> dict[str, str]:
+    lines = (BUNDLE / "requirements.txt").read_text().splitlines()
+    reqs = [ln.split(";")[0].strip() for ln in lines if ln.strip() and not ln.startswith("#")]
+    return dict(r.split("==") for r in reqs)
+
+
+def test_cloud_requirements_are_light_and_fully_pinned():
+    pins = _pins()
+    assert not [p for p in pins if p in HEAVY or p.startswith("nvidia-")]
+    for needed in ("streamlit", "google-genai", "ollama", "sqlglot", "networkx", "pydantic"):
+        assert needed in pins, needed
+    assert all(v for v in pins.values())
+
+
+def test_source_version_reads_pyproject(tmp_path):
+    from dlens import _source_version
+
+    py = tmp_path / "pyproject.toml"
+    py.write_text('[project]\nname = "x"\nversion = "9.8.7"\n')
+    assert _source_version(py) == "9.8.7"
+    assert _source_version(tmp_path / "missing.toml") == "0+unknown"
+
+
+def test_cloud_entrypoint_boots_in_demo_mode(monkeypatch, tmp_path):
+    import streamlit as st
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    monkeypatch.setenv("DLENS_DEMO", "")  # registers the key: teardown removes what the app sets
+    monkeypatch.delenv("DLENS_DEMO")
+    monkeypatch.delenv("DLENS_DEMO_DIR", raising=False)
+    monkeypatch.setenv("DLENS_RUN_DIR", str(tmp_path / "runs"))
+    at = AppTest.from_file(str(BUNDLE / "streamlit_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception and not at.error
+    assert any("15 models" in m.value for m in at.markdown)
+    assert os.environ.get("DLENS_DEMO") == "1"  # forced on by the entrypoint
+
+
+def test_demo_folder_is_excluded_from_the_package():
+    import tomllib
+
+    hatch = tomllib.loads((demo.ROOT / "pyproject.toml").read_text())["tool"]["hatch"]["build"]
+    assert "demo" in hatch["targets"]["sdist"]["exclude"]
+    assert hatch["targets"]["wheel"]["packages"] == ["src/dlens"]
