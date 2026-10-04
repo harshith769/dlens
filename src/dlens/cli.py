@@ -83,7 +83,11 @@ def trace(
 ) -> None:
     """Show where COLUMN comes from: every upstream path, with expression and file:lines."""
     graph, col = _open_graph(project, column, rebuild)
-    typer.echo(render_trace(graph, col, graph.upstream(col, max_depth=depth), depth))
+    typer.echo(
+        render_trace(
+            graph, col, graph.upstream(col, max_depth=depth, include_indirect=False), depth
+        )
+    )
 
 
 @app.command()
@@ -95,7 +99,9 @@ def impact(
 ) -> None:
     """Show what COLUMN feeds: downstream columns, models and exposures."""
     graph, col = _open_graph(project, column, rebuild)
-    typer.echo(render_impact(graph, graph.downstream(col, max_depth=depth), depth))
+    typer.echo(
+        render_impact(graph, graph.downstream(col, max_depth=depth, include_indirect=False), depth)
+    )
 
 
 @app.command()

@@ -10,7 +10,7 @@ from dlens.agent.tools.budget import MAX_RESULT_TOKENS
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, EdgeKind
 
-from .conftest import STG, make_shop
+from .conftest import GROUP_BY_X_ID, STG, make_shop
 
 TOTAL = "fct_star.total"
 
@@ -416,3 +416,18 @@ def test_sql_unknown_model_with_a_dot_keeps_the_original_error(toolbox: Toolbox)
     r = toolbox.call("get_model_sql", {"model_id": "nope.total"})
     err = r.llm_payload["error"]
     assert err["code"] == "unknown_model" and "'nope.total'" in err["message"]
+
+
+def test_tools_stay_direct_only_on_a_graph_with_indirect_edges(shop_dir: Path) -> None:
+    """S04: indirect traversal is opt-in for the CLI only. The tools accept include_indirect but
+    pass False to the graph, so payloads and side records equal those of a direct-only graph."""
+    plain = Toolbox(make_shop(), shop_dir)
+    mixed = Toolbox(make_shop([GROUP_BY_X_ID]), shop_dir)
+    for tool, col in (("trace_upstream", "fct.total"), ("impact_downstream", "stg.x_id")):
+        for args in ({}, {"include_indirect": True}, {"include_indirect": False}):
+            plain.reset()
+            mixed.reset()
+            a = plain.call(tool, {"column_id": col, **args})
+            b = mixed.call(tool, {"column_id": col, **args})
+            assert not b.is_error
+            assert (a.llm_payload, a.side_records) == (b.llm_payload, b.side_records)

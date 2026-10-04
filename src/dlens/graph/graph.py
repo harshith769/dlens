@@ -11,6 +11,7 @@ from dlens import __version__
 from dlens.graph.models import (
     AmbiguousColumn,
     ColumnNotFound,
+    Hop,
     ImpactResult,
     LineagePath,
     PathList,
@@ -20,6 +21,7 @@ from dlens.lineage import (
     DeferredIndirect,
     Edge,
     IndirectEdge,
+    IndirectKind,
     LineageResult,
     ModelParse,
     ParseQuality,
@@ -35,6 +37,12 @@ FORMAT_VERSION = 4
 READABLE_VERSIONS = (2, 3, 4)
 DEFAULT_MAX_PATHS = 1000
 SUGGESTIONS = 3
+_KIND_ORDER = {k: i for i, k in enumerate(IndirectKind)}
+
+
+def _hop_rank(hop: Hop) -> int:
+    """Order of preference between hops: a direct edge, then the indirect types in enum order."""
+    return 0 if isinstance(hop, Edge) else 1 + _KIND_ORDER[hop.kind]
 
 
 class LineageGraph:
@@ -43,8 +51,9 @@ class LineageGraph:
     Nodes come from the catalog, so a column with no edges still exists. Each edge carries its
     full :class:`Edge` (kind, expression, file, lines, confidence) under the ``edge`` attribute.
     DEPENDS_ON / CONSUMES are plain sorted pair lists; CONTAINS is the ``model`` node attribute.
-    DEPENDS_ON_INDIRECT edges (ADR 0020) are kept in a separate list, outside the nx graph, so
-    traversal, hop depth and every tool see direct edges only until indirect edges are exposed.
+    DEPENDS_ON_INDIRECT edges (ADR 0020) are kept in a separate list, outside the nx graph.
+    ``upstream`` / ``downstream`` traverse them only with ``include_indirect=True``; every caller
+    in dlens passes the flag explicitly (tools, validator, UI and demo pass False until S10/S12).
     """
 
     def __init__(
@@ -73,6 +82,12 @@ class LineageGraph:
         self._indirect = sorted(
             indirect or [], key=lambda e: (e.to_column, e.from_column, str(e.kind))
         )
+        self._indirect_in: dict[str, list[IndirectEdge]] = {}
+        self._indirect_out: dict[str, list[IndirectEdge]] = {}
+        for ie in sorted(self._indirect, key=lambda e: (e.from_column, _hop_rank(e))):
+            self._indirect_in.setdefault(ie.to_column, []).append(ie)
+        for ie in sorted(self._indirect, key=lambda e: (e.to_column, _hop_rank(e))):
+            self._indirect_out.setdefault(ie.from_column, []).append(ie)
         self._short_index: dict[str, list[str]] | None = None
 
     # -- construction ------------------------------------------------------------------------
@@ -137,8 +152,8 @@ class LineageGraph:
         return [self.edge(u, v) for u, v in sorted(self._g.edges)]
 
     def indirect_edges(self) -> list[IndirectEdge]:
-        """Every DEPENDS_ON_INDIRECT edge (ADR 0020), sorted by (to, from, kind). Read-only: no
-        traversal uses them yet. Empty for a graph loaded from a v2 file."""
+        """Every DEPENDS_ON_INDIRECT edge (ADR 0020), sorted by (to, from, kind). Traversed only
+        with ``include_indirect=True``. Empty for a graph loaded from a v2 file."""
         return list(self._indirect)
 
     def depends_on(self) -> list[tuple[str, str]]:
@@ -216,6 +231,20 @@ class LineageGraph:
         if not self._g.has_node(column):
             raise ColumnNotFound(column, [])
 
+    def _preds(self, column: str, include_indirect: bool) -> list[Hop]:
+        """Hops into `column`: direct edges by source column, then indirect edges by source
+        column and type (several types between one pair are one hop each)."""
+        hops: list[Hop] = [self.edge(p, column) for p in sorted(self._g.predecessors(column))]
+        if include_indirect:
+            hops += self._indirect_in.get(column, [])
+        return hops
+
+    def _succs(self, column: str, include_indirect: bool) -> list[Hop]:
+        hops: list[Hop] = [self.edge(column, s) for s in sorted(self._g.successors(column))]
+        if include_indirect:
+            hops += self._indirect_out.get(column, [])
+        return hops
+
     def upstream(
         self,
         column_id: str,
@@ -225,14 +254,14 @@ class LineageGraph:
     ) -> PathList:
         """Every path from ``column_id`` back to a column with no upstream (or ``max_depth``).
 
-        Stops at ``max_paths`` and sets ``truncated``. ``include_indirect`` is still a no-op: the
-        graph stores indirect edges (``indirect_edges``) but traversal ignores them until the
-        metrics design decides how they are exposed.
+        Stops at ``max_paths`` and sets ``truncated``. With ``include_indirect`` the paths also
+        walk DEPENDS_ON_INDIRECT edges; each hop is labelled by ``hop_label`` (direct, or its
+        indirect type) and ``max_depth`` counts every hop, direct or indirect.
         """
         self._require(column_id)
         out = PathList()
 
-        def emit(trail: list[Edge]) -> None:
+        def emit(trail: list[Hop]) -> None:
             if not trail:
                 return
             if len(out) >= max_paths:
@@ -240,17 +269,17 @@ class LineageGraph:
                 return
             out.append(LineagePath(edges=tuple(trail)))
 
-        def walk(col: str, trail: list[Edge]) -> None:
-            preds = sorted(self._g.predecessors(col))
-            if not preds:
+        def walk(col: str, trail: list[Hop]) -> None:
+            hops = self._preds(col, include_indirect)
+            if not hops:
                 emit(trail)
                 return
             if len(trail) >= max_depth:
                 out.depth_limited = True
                 emit(trail)
                 return
-            for p in preds:
-                walk(p, [*trail, self.edge(p, col)])
+            for hop in hops:
+                walk(hop.from_column, [*trail, hop])
                 if out.truncated:
                     return
 
@@ -262,27 +291,36 @@ class LineageGraph:
     ) -> ImpactResult:
         """Columns that read ``column_id``, by shortest depth, with affected models/exposures.
 
-        ``include_indirect`` is still a no-op: indirect edges are stored but not traversed yet.
+        With ``include_indirect`` (the spec §7 default) indirect edges are hops too: a column
+        whose rows a key decides is affected. Every hop counts one toward ``max_depth``. At equal
+        depth ``via`` keeps a direct edge over an indirect one. Callers in dlens pass the flag
+        explicitly; the CLI, tools, validator, UI and demo pass False unless asked.
         """
         self._require(column_id)
         seen = {column_id}
         frontier = [column_id]
         by_depth: dict[int, list[str]] = {}
-        via: dict[str, Edge] = {}
+        via: dict[str, Hop] = {}
         for depth in range(1, max_depth + 1):
-            nxt: list[str] = []
+            reached: dict[str, Hop] = {}
             for col in frontier:
-                for succ in sorted(self._g.successors(col)):
-                    if succ not in seen:
-                        seen.add(succ)
-                        via[succ] = self.edge(col, succ)
-                        nxt.append(succ)
-            if not nxt:
+                for hop in self._succs(col, include_indirect):
+                    succ = hop.to_column
+                    if succ in seen:
+                        continue
+                    old = reached.get(succ)
+                    if old is None or _hop_rank(hop) < _hop_rank(old):
+                        reached[succ] = hop
+            if not reached:
                 frontier = []
                 break
-            by_depth[depth] = sorted(nxt)
-            frontier = nxt
-        truncated = any(s not in seen for col in frontier for s in self._g.successors(col))
+            seen.update(reached)
+            via.update(reached)
+            by_depth[depth] = sorted(reached)
+            frontier = list(reached)  # discovery order, as before: it decides ties in `via`
+        truncated = any(
+            h.to_column not in seen for col in frontier for h in self._succs(col, include_indirect)
+        )
 
         root_model = self.model_of(column_id)
         models = sorted({self.model_of(c) for c in via})

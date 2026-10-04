@@ -6,7 +6,7 @@ import pytest
 
 from dlens.agent.tools import Toolbox
 from dlens.graph import LineageGraph
-from dlens.lineage import Edge, EdgeKind
+from dlens.lineage import Edge, EdgeKind, IndirectEdge, IndirectKind
 
 STG = """select
     id as x_id,
@@ -30,7 +30,20 @@ def edge(src: str, dst: str, kind: EdgeKind, file: str, lines: tuple[int, int], 
     return Edge(from_column=src, to_column=dst, kind=kind, expression=expr, file=file, lines=lines)
 
 
-def make_shop() -> LineageGraph:
+# fct groups by x_id: an indirect GROUP_BY edge from stg.x_id to fct.total (ADR 0020).
+GROUP_BY_X_ID = IndirectEdge(
+    from_column=f"{P}.stg.x_id",
+    to_column=f"{P}.fct.total",
+    kind=IndirectKind.GROUP_BY,
+    key="stg.x_id",
+    expression="group by x_id",
+    file="models/fct.sql",
+    lines=(6, 6),
+    model_level_citation=False,
+)
+
+
+def make_shop(indirect: list[IndirectEdge] | None = None) -> LineageGraph:
     cols = {
         "seed.p.raw.id": ("seed.p.raw", "id"),
         "seed.p.raw.amt": ("seed.p.raw", "amt"),
@@ -74,6 +87,7 @@ def make_shop() -> LineageGraph:
         exposures={"exposure.p.dash": {"name": "dash", "type": "dashboard"}},
         parse={},
         deferred=[],
+        indirect=indirect,
     )
 
 

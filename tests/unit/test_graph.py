@@ -7,7 +7,7 @@ import pytest
 
 from conftest import edge, make_graph
 from dlens import __version__
-from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph
+from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, hop_label
 from dlens.graph.cache import cache_path, is_stale, load_or_build
 from dlens.graph.graph import FORMAT_VERSION
 from dlens.graph.render import render_impact, render_trace
@@ -354,14 +354,86 @@ def test_the_committed_v2_demo_graph_loads_unchanged() -> None:
     assert path.read_bytes() == before
 
 
-def test_traversal_ignores_indirect_edges(tiny_graph: LineageGraph) -> None:
-    """S03: no user-facing behaviour change. include_indirect is still a no-op."""
+def test_traversal_without_indirect_is_unchanged(tiny_graph: LineageGraph) -> None:
+    """include_indirect=False (what every caller in dlens passes by default) sees direct edges
+    only, exactly as before S04."""
     g = _with_indirect(tiny_graph)
     for col in g.columns():
-        for flag in (False, True):
-            assert g.upstream(col, include_indirect=flag) == tiny_graph.upstream(col)
-            assert g.downstream(col, include_indirect=flag) == tiny_graph.downstream(col)
+        assert g.upstream(col, include_indirect=False) == tiny_graph.upstream(
+            col, include_indirect=False
+        )
+        assert g.downstream(col, include_indirect=False) == tiny_graph.downstream(
+            col, include_indirect=False
+        )
     assert sorted(g.nx_graph.edges) == sorted(tiny_graph.nx_graph.edges)
+
+
+def test_upstream_with_indirect_labels_each_hop(tiny_graph: LineageGraph) -> None:
+    """raw.y decides total's rows twice (JOIN and GROUP_BY): one hop, and one path, per type,
+    after the direct paths."""
+    g = _with_indirect(tiny_graph)
+    paths = g.upstream(TOTAL, include_indirect=True)
+    assert [[hop_label(h) for h in p.edges] for p in paths] == [
+        ["direct", "direct"],
+        ["JOIN"],
+        ["GROUP_BY"],
+    ]
+    assert [p.end for p in paths] == [RAW_X, "seed.p.raw.y", "seed.p.raw.y"]
+
+
+def test_downstream_with_indirect_prefers_direct_then_type_order(tiny_graph: LineageGraph) -> None:
+    g = _with_indirect(tiny_graph)
+    r = g.downstream("seed.p.raw.y", include_indirect=True)
+    assert r.columns_by_depth == {1: ["model.p.fct.flag", TOTAL]}
+    assert hop_label(r.via["model.p.fct.flag"]) == "direct"
+    assert hop_label(r.via[TOTAL]) == "JOIN"  # JOIN before GROUP_BY
+    assert g.downstream("seed.p.raw.y", include_indirect=False).columns == ["model.p.fct.flag"]
+
+
+def _chain() -> LineageGraph:
+    """a -> b (direct), b -> c (indirect FILTER), c -> d (direct)."""
+    from dlens.lineage import IndirectEdge, IndirectKind
+
+    ids = [f"model.p.{m}.v" for m in "abcd"]
+    hop = IndirectEdge(
+        from_column=ids[1], to_column=ids[2], kind=IndirectKind.FILTER, key="b.v",
+        expression="where b.v > 0", file="models/c.sql", lines=(3, 3),
+    )  # fmt: skip
+    return LineageGraph(
+        columns={c: {"model": c.rsplit(".", 1)[0], "name": "v", "type": "int"} for c in ids},
+        edges=[edge(ids[0], ids[1]), edge(ids[2], ids[3])],
+        depends_on=[],
+        consumes=[],
+        models={},
+        exposures={},
+        parse={},
+        deferred=[],
+        indirect=[hop],
+    )
+
+
+def test_depth_limit_counts_every_hop_direct_or_indirect() -> None:
+    g = _chain()
+    a, b, c, d = (f"model.p.{m}.v" for m in "abcd")
+    full = g.downstream(a, max_depth=10, include_indirect=True)
+    assert full.columns_by_depth == {1: [b], 2: [c], 3: [d]} and not full.truncated
+    cut = g.downstream(a, max_depth=2, include_indirect=True)
+    assert cut.columns_by_depth == {1: [b], 2: [c]} and cut.truncated
+    assert g.downstream(a, max_depth=10, include_indirect=False).columns == [b]
+
+    (path,) = g.upstream(d, max_depth=10, include_indirect=True)
+    assert [hop_label(h) for h in path.edges] == ["direct", "FILTER", "direct"]
+    short = g.upstream(d, max_depth=2, include_indirect=True)
+    assert [p.depth for p in short] == [2] and short.depth_limited
+
+
+def test_spec_defaults_are_kept() -> None:
+    """Spec §7: upstream defaults to include_indirect=False, downstream to True."""
+    import inspect
+
+    up = inspect.signature(LineageGraph.upstream).parameters["include_indirect"].default
+    down = inspect.signature(LineageGraph.downstream).parameters["include_indirect"].default
+    assert (up, down) == (False, True)
 
 
 def test_a_v2_cache_is_rebuilt(

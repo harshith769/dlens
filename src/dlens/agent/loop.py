@@ -440,7 +440,11 @@ class Agent:
         except Exception:
             return None
         ups = {
-            c: {e.from_column for path in g.upstream(c, max_depth=50) for e in path.edges}
+            c: {
+                e.from_column
+                for path in g.upstream(c, max_depth=50, include_indirect=False)
+                for e in path.edges
+            }
             for c in cols
         }
         for i, a in enumerate(cols):

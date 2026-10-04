@@ -2,17 +2,26 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dlens.lineage import Edge
+from dlens.lineage import Edge, IndirectEdge
+
+Hop = Edge | IndirectEdge
+"""One step of a traversal: a DERIVES edge, or (with ``include_indirect``) a DEPENDS_ON_INDIRECT
+edge (ADR 0020)."""
+
+
+def hop_label(hop: Hop) -> str:
+    """``"direct"`` for a DERIVES edge, else the indirect type (``"JOIN"``, ``"FILTER"``, ...)."""
+    return "direct" if isinstance(hop, Edge) else str(hop.kind)
 
 
 class LineagePath(BaseModel):
-    """A chain of DERIVES edges. For ``upstream`` it starts at the queried column and walks to a
-    source: ``edges[0].to_column`` is the queried column and each edge's ``from_column`` is the
-    next edge's ``to_column``."""
+    """A chain of hops. For ``upstream`` it starts at the queried column and walks to a source:
+    ``edges[0].to_column`` is the queried column and each hop's ``from_column`` is the next
+    hop's ``to_column``. Hops are DERIVES edges, plus indirect edges with ``include_indirect``."""
 
     model_config = ConfigDict(frozen=True)
 
-    edges: tuple[Edge, ...]
+    edges: tuple[Hop, ...]
 
     @property
     def depth(self) -> int:
@@ -39,9 +48,11 @@ class PathList(list[LineagePath]):
 class ImpactResult(BaseModel):
     root: str
     columns_by_depth: dict[int, list[str]] = Field(default_factory=dict)
-    """Affected columns by their shortest distance (in DERIVES hops) from the root."""
-    via: dict[str, Edge] = Field(default_factory=dict)
-    """For each affected column, the edge that first reached it (used to draw the tree)."""
+    """Affected columns by their shortest distance from the root, in hops (DERIVES hops, plus
+    indirect hops with ``include_indirect``: every hop counts one)."""
+    via: dict[str, Hop] = Field(default_factory=dict)
+    """For each affected column, the hop that first reached it (used to draw the tree); at equal
+    depth a direct edge is preferred, then the indirect types in ``IndirectKind`` order."""
     models: list[str] = Field(default_factory=list)
     """unique_ids of models that own an affected column (the root's own model is not included
     unless a column in it is also downstream of the root)."""

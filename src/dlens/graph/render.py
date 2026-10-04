@@ -3,9 +3,9 @@
 from dataclasses import dataclass, field
 
 from dlens.graph.graph import LineageGraph
-from dlens.graph.models import ImpactResult, PathList
+from dlens.graph.models import Hop, ImpactResult, PathList
 from dlens.graph.report import Report
-from dlens.lineage import Confidence, Edge
+from dlens.lineage import Confidence
 
 EXPR_WIDTH = 60
 
@@ -13,7 +13,7 @@ EXPR_WIDTH = 60
 @dataclass
 class _Node:
     column: str
-    edge: Edge | None = None
+    edge: Hop | None = None
     children: dict[str, "_Node"] = field(default_factory=dict)
 
 
@@ -22,7 +22,7 @@ def _expr(text: str) -> str:
     return one if len(one) <= EXPR_WIDTH else one[: EXPR_WIDTH - 1] + "…"
 
 
-def _cite(e: Edge) -> str:
+def _cite(e: Hop) -> str:
     return (
         f"{e.file} (whole model)"
         if e.model_level_citation

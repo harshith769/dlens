@@ -5,7 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from dlens.agent.tools.budget import MAX_RESULT_TOKENS, largest_fit
-from dlens.agent.tools.common import ToolOutput, as_bool, as_int, as_str, resolve_column
+from dlens.agent.tools.common import (
+    ToolOutput,
+    as_bool,
+    as_int,
+    as_str,
+    direct,
+    resolve_column,
+)
 from dlens.agent.tools.provenance import Provenance
 
 
@@ -16,8 +23,9 @@ def trace_upstream(prov: Provenance, args: dict[str, Any]) -> ToolOutput:
     include_indirect = as_bool(args, "include_indirect", False)
     g = prov.graph
     col = resolve_column(g, text)
-    paths = g.upstream(col, max_depth=max_depth, include_indirect=include_indirect)
-    strings = [[prov.edge_string(e) for e in p.edges] for p in paths]
+    # The argument is accepted but not traversed: tools stay direct-only until S10/S12 decide.
+    paths = g.upstream(col, max_depth=max_depth, include_indirect=False)
+    strings = [[prov.edge_string(direct(e)) for e in p.edges] for p in paths]
     notes: list[str] = []
     if include_indirect:
         notes.append("indirect edges are not in the graph yet; only direct edges are returned")
@@ -43,6 +51,6 @@ def trace_upstream(prov: Provenance, args: dict[str, Any]) -> ToolOutput:
     edges = {}
     for p in list(paths)[:kept]:
         for e in p.edges:
-            rec = prov.edge_record(e)
+            rec = prov.edge_record(direct(e))
             edges[str(rec["edge_id"])] = rec
     return ToolOutput(render(kept), {"column": col, "edges": edges})

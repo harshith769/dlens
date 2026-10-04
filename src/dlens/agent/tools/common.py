@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph
+from dlens.graph import AmbiguousColumn, ColumnNotFound, Hop, LineageGraph
+from dlens.lineage import Edge
 
 
 class ToolError(Exception):
@@ -66,3 +67,10 @@ def resolve_column(graph: LineageGraph, text: str) -> str:
         raise ToolError(
             "ambiguous", str(e), candidates=[graph.display_name(c) for c in e.candidates]
         ) from None
+
+
+def direct(hop: Hop) -> Edge:
+    """The tools traverse direct edges only (``include_indirect=False`` until S10/S12)."""
+    if not isinstance(hop, Edge):
+        raise TypeError(f"indirect hop in a direct-only tool: {hop.from_column} -> {hop.to_column}")
+    return hop
