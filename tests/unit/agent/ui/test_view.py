@@ -557,3 +557,18 @@ def test_export_markdown_and_json_are_project_relative(shop_root: Path):
     )
     blob = json.dumps(data) + md
     assert str(shop_root) not in blob and "/home/" not in blob and "abc.json" not in blob
+
+
+def test_provider_status_hides_what_does_not_apply():
+    assert view.provider_status("ollama") == ["Local model (Ollama)"]
+    assert view.provider_status("ollama", None, False) == ["Local model (Ollama)"]
+    assert view.provider_status("x", (37, 400), True) == ["x", "37 of 400 left today", "cached"]
+
+
+def test_run_cached():
+    def run(calls, cached):
+        tokens = {"cached_calls": cached}
+        return SimpleNamespace(record=SimpleNamespace(llm_calls=calls, tokens=tokens))
+
+    assert view.run_cached(None) is None and view.run_cached(run(0, 0)) is None
+    assert view.run_cached(run(3, 3)) is True and view.run_cached(run(3, 2)) is False

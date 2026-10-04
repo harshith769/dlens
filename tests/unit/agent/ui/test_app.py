@@ -171,3 +171,12 @@ def test_history_restores_and_exports_exist(start):
     assert len(hist) == 2 and hist[0].label.startswith("Where does fct.total come from, again?")
     hist[1].click().run()
     assert not at.exception and at.session_state.run is first
+
+
+def test_provider_slot_shows_cached_only_for_a_cached_answer(start):
+    at = ask(start(_agg_answer()))
+    slot = [t for t in texts(at) if "Local model (Ollama)" in t]
+    assert slot and "cached" not in slot[0] and "left today" not in slot[0]
+    ask(at)  # same question: every LLM call is a cache hit
+    assert at.session_state.run.record.tokens.get("cached_calls") == 3
+    assert any("Local model (Ollama) · cached" in t for t in texts(at))

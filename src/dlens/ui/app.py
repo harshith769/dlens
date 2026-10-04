@@ -12,6 +12,7 @@ import json
 from html import escape
 
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 
 import dlens.agent.llm as llm
 from dlens.agent.answer import render, warning_line
@@ -79,36 +80,45 @@ def show_hint(hint: view.Hint) -> None:
         st.code(cmd, language="bash")
 
 
-def header() -> str | None:
-    """Title, project picker and stats. Returns the project, or None if it cannot be opened."""
+def provider_slot(slot: DeltaGenerator) -> None:
+    """Fill the header's provider slot. Called again after the Ask tab, so "cached" describes
+    the answer on screen. Quota is None for Ollama; a cloud provider would pass (left, total)."""
+    status = view.provider_status(PROVIDER, None, view.run_cached(st.session_state.get("run")))
+    slot.markdown(style.muted(" · ".join(status)), unsafe_allow_html=True)
+
+
+def header() -> tuple[str | None, DeltaGenerator]:
+    """Title, project picker, stats and the provider slot. The project is None if it cannot be
+    opened."""
     names = list(view.PROJECTS)
     wanted = st.query_params.get("project")
     title, pick, stats, provider = st.columns([1.1, 1.4, 3.2, 1.6], vertical_alignment="bottom")
     title.markdown("## DLens")
+    slot = provider.empty()
+    provider_slot(slot)
     if wanted is not None and wanted not in view.PROJECTS:
         show_hint(view.project_problem(wanted) or view.Hint("Unknown project", ""))
-        return None
+        return None, slot
     project = pick.selectbox(
         "Project",
         names,
         index=names.index(wanted) if wanted else 0,
         key="project",
     )
-    provider.markdown(style.muted("Local model (Ollama)"), unsafe_allow_html=True)
     problem = view.project_problem(project)
     if problem is not None:
         show_hint(problem)
-        return None
+        return None, slot
     try:
         graph = load_graph(project)
     except Exception as e:  # dbt or the parser failed: say how to rebuild
         show_hint(view.build_failed(project, e))
-        return None
+        return None, slot
     stats.markdown(
         f'<div class="dl-stats">{escape(view.project_stats(graph).line)}</div>',
         unsafe_allow_html=True,
     )
-    return project
+    return project, slot
 
 
 def question_panel(project: str) -> None:
@@ -405,12 +415,13 @@ def how_tab() -> None:
 def main() -> None:
     st.set_page_config(page_title="DLens", layout="wide")
     st.markdown(style.CSS, unsafe_allow_html=True)
-    project = header()
+    project, slot = header()
     if project is None:
         return
     ask, explore, how = st.tabs(["Ask", "Explore lineage", "How it works"])
     with ask:
         ask_tab(project)
+    provider_slot(slot)  # again, so "cached" describes the answer just shown
     with explore:
         explore_tab(project)
     with how:

@@ -166,6 +166,30 @@ def error_hint(reason: str | None, model: str = OLLAMA_MODEL) -> Hint | None:
     )
 
 
+PROVIDER_LABELS = {"ollama": "Local model (Ollama)"}
+
+
+def provider_status(
+    provider: str, quota: tuple[int, int] | None = None, cached: bool | None = None
+) -> list[str]:
+    """Header slot: the provider, then "x of N left today" and "cached" only when they apply
+    (a quota-limited provider; a last answer served wholly from the cache)."""
+    parts = [PROVIDER_LABELS.get(provider, provider)]
+    if quota is not None:
+        left, total = quota
+        parts.append(f"{left} of {total} left today")
+    if cached:
+        parts.append("cached")
+    return parts
+
+
+def run_cached(run: AgentRun | None) -> bool | None:
+    """True when every LLM call of ``run`` came from the cache; None with no run or no calls."""
+    if run is None or not run.record.llm_calls:
+        return None
+    return run.record.tokens.get("cached_calls", 0) >= run.record.llm_calls
+
+
 def project_problem(name: str) -> Hint | None:
     """Why ``name`` cannot be opened (unknown, or its folder is missing), else None."""
     if name not in PROJECTS:
