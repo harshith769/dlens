@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 from collections import defaultdict
@@ -71,3 +72,22 @@ def test_lineage_matches_gold_spec(ingested: tuple[Path, IngestResult]) -> None:
     detail = f"missing={report.missing} extra={report.extra} kinds={report.kind_mismatches}"
     assert report.f1 >= 0.95, detail
     assert report.kind_accuracy >= 0.95, detail
+
+
+def test_spec_depends_on_matches_dbt_ref_graph(ingested: tuple[Path, IngestResult]) -> None:
+    """The gold's models.<m>.depends_on (DESIGN_v2 §2 "Upstream") equals dbt's ref graph."""
+    _, r = ingested
+    spec = yaml.safe_load((CORPUS / "lineage_spec_v2.yml").read_text())["models"]
+    name = {n.unique_id: n.name for n in [*r.manifest.models, *r.manifest.seeds]}
+    dbt = {m.name: sorted(name[u] for u in m.depends_on.nodes) for m in r.manifest.models}
+    assert dbt == {m: sorted(v["depends_on"]) for m, v in spec.items()}
+
+
+def test_data_checks_are_dbt_tests_that_ingest_ignores(ingested: tuple[Path, IngestResult]) -> None:
+    """The §7.2 data checks are singular tests: in dbt's manifest, never in the dlens graph."""
+    project, r = ingested
+    raw = json.loads((project / "target" / "manifest.json").read_text())["nodes"]
+    singular = {n["name"] for n in raw.values() if n["resource_type"] == "test"}
+    assert {"assert_no_constant_seed_columns", "assert_left_joins_have_unmatched"} <= singular
+    assert {n.resource_type for n in r.manifest.nodes.values()} <= {"model", "seed", "source"}
+    assert len(r.manifest.models) == 49
