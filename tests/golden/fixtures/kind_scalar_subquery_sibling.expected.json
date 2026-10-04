@@ -1,0 +1,15 @@
+{
+  "edges": [
+    {"from": "orders.id", "to": "m.id", "kind": "IDENTITY"},
+    {"from": "orders.amt", "to": "m.d", "kind": "TRANSFORMATION"},
+    {"from": "refunds.refund_amt", "to": "m.d", "kind": "AGGREGATION"},
+    {"from": "orders.amt", "to": "m.d2", "kind": "TRANSFORMATION"},
+    {"from": "refunds.refund_amt", "to": "m.d2", "kind": "AGGREGATION"}
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "deferred": [],
+  "notes": "an input's kind is the strongest operation on its own path: the scalar subquery's max() makes refund_amt AGGREGATION, while the sibling amt is only TRANSFORMATION (dim_customer_rfm.recency_days)",
+  "indirect": [],
+  "xfail": "S04: a scalar subquery's aggregate leaks its kind to a sibling column"
+}

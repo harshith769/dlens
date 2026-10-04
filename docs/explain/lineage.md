@@ -119,6 +119,8 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `indirect_where_exists` | yes | every column in the correlated EXISTS subquery is FILTER (the outer WHERE decides); c.id -> m.id stays direct only |
 | `indirect_window_lag_suppressed` | yes | amt is the lag argument and the ORDER BY key: direct only (suppressed); user_id is WINDOW |
 | `join_aliases` | yes | join keys o.user_id / c.id are JOIN edges to every output column, never direct |
+| `kind_scalar_subquery_sibling` | no | S04: a scalar subquery's aggregate leaks its kind to a sibling column |
+| `kind_window_over_grouped_agg` | no | S04: sum(sum(x)) OVER (...) - the inner grouped aggregate is classified as windowed |
 | `literal_column` | yes | constants have no edges and are recorded in ModelParse.constants, not gaps |
 | `nested_case` | yes | CASE conditions are direct (they decide the value) |
 | `qualify_row_number` | yes | QUALIFY keys are FILTER, also inside its OVER (the clause decides first); user_id -> user_id stays direct only |

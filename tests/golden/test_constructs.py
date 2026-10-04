@@ -2,7 +2,8 @@
 
 Each ``fixtures/<name>.expected.json`` is written by reasoning from the SQL and the strongest-kind
 rule (DESIGN.md) BEFORE the engine runs on it. If the engine disagrees, decide who is wrong: fix
-the engine, or mark the fixture unsupported with a top-level ``"xfail": "<reason>"`` key (strict).
+the engine, or mark the fixture unsupported with a top-level ``"xfail": "<reason>"`` key (strict;
+``"xfail_indirect"`` marks only the indirect-edge test).
 Never edit an expected file to match output; a deliberate change needs a one-line
 ``"justification"`` in the file, which this test requires to be non-empty when present.
 """
@@ -16,8 +17,9 @@ from _harness import (
 )
 
 
-def _param(name: str) -> object:
-    reason = load_expected(name).get("xfail")
+def _param(name: str, key: str = "xfail") -> object:
+    """``"xfail"`` marks the direct-edge test, ``"xfail_indirect"`` the indirect-edge test."""
+    reason = load_expected(name).get(key)
     marks = [pytest.mark.xfail(strict=True, reason=str(reason))] if reason else []
     return pytest.param(name, id=name, marks=marks)
 
@@ -35,7 +37,7 @@ def test_construct(name: str) -> None:
     assert got.deferred == {tuple(d) for d in exp["deferred"]}  # type: ignore[attr-defined]
 
 
-@pytest.mark.parametrize("name", [_param(n) for n in fixture_names()])  # type: ignore[misc]
+@pytest.mark.parametrize("name", [_param(n, "xfail_indirect") for n in fixture_names()])  # type: ignore[misc]
 def test_indirect_edges(name: str) -> None:
     """Indirect edges (ADR 0020), compared as (from, to, type). Every fixture states them."""
     assert run_fixture(name).indirect == expected_indirect(name)
