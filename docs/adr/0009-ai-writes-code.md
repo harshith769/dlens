@@ -1,6 +1,6 @@
 # 0009. AI writes all code; owner reviews, approves and explains
 
-- Status: Accepted
+- Status: Superseded by 0010
 - Date: 2026-10-03
 - Source: docs/DLENS_SPEC.md, Section 0, row 17
 

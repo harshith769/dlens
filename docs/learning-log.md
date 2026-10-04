@@ -16,14 +16,6 @@
 - Lesson: accepted_values would NOT catch NULLs hidden by `else 'loyal'`; tests only catch what they check.
 - Full notes: ~/scratch/prework/task2_dbt/NOTES.md
 
-## Pre-work Task 2: dbt fundamentals, 3 Oct 2026
-- Built customer_segments (table) + 4 tests + an exposure on jaffle_shop; broke a test on purpose.
-- Key facts for DLens: ref() compiles to a 3-part relation name; manifest.json relation_name maps it back
-  to the node id; catalog.json gives column types (needed for sqlglot schema / SELECT * expansion);
-  parse target/compiled, never source or target/run; manifest includes test nodes, so filter them.
-- Lesson: accepted_values would NOT catch NULLs hidden by `else 'loyal'`; tests only catch what they check.
-- Full notes: ~/scratch/prework/task2_dbt/NOTES.md
-
 ## Pre-work Tasks 3-6: artifacts, sqlglot, NetworkX, tool calling, 3 Oct 2026 (fast mode)
 - Task 3: manifest = depends_on + compiled SQL + relation_name; catalog = columns + types. Seen renames (user_id -> customer_id) and cents -> dollars.
 - Task 4: SQL -> AST; lineage(None) on compiled orders.sql gave per-column sources. No schema -> UNKNOWN(amount); with schema -> payments.amount. sqlglot stops at the model boundary (DLens stitches models) and misses join keys (DLens adds indirect edges in v0.3).
@@ -68,3 +60,9 @@
 - dev-11 failed recall twice when re-recorded fresh, after passing in dev_r9: a 4B model is not deterministic across runs. I swapped in dev-13 (also "computed") instead of relaxing the pass rule.
 - Live check: the title and the "x of 50 left today" status sat under Cloud's toolbar. They were invisible in AppTest and only showed up in a real browser screenshot, so demo mode now adds top padding.
 - Seen live on Gemini: a two-part question ("…come from? can i remove it?") came back Answered + Partially removed. The validator did its job, but the user should hear "I can't answer that part". That is v0.3 backlog, together with a `premise_corrected` field (ADR).
+
+## 2026-10-04 — v0.3 plan adopted (spec v1.6)
+- Ownership model v2 (ADR 0010): Claude Code writes all code; I own design, gold data, acceptance and an explain gate before each tag. Why: the "hand-written zones" never matched how v0.1–v0.2 were built; what matters is that I can defend every module.
+- Benchmark honesty (ADRs 0016–0018): S4 reported raw / validated / augmented, yes/no scored on verdict, a perturbation oracle as a third source of truth, and the S4 system frozen with the test set on 7 Dec. Why: code now does a lot of the work (repair, completion, coverage), and one AI wrote both the parser and the corpus, so the numbers must show who did what and that the gold is independent.
+- Two tracks (ADRs 0013, 0019): artifact-only, multi-dialect ingest and a local UI on any project, then MCP server (v1.1) and PR bot (v1.2) after v1.0. Why: build speed is far above plan, and real users are on Snowflake/BigQuery/Postgres with artifacts already; product work must never block a research gate.
+- Plan by gates, not hours: the limits are my review time, Gemini quota days and Claude Code usage.

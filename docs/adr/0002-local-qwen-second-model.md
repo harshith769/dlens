@@ -1,6 +1,7 @@
 # 0002. Local Qwen model as second full-run model; Groq demoted
 
 - Status: Accepted
+- Refined by 0011 (exact build: qwen3:4b-instruct-2507-q4_K_M)
 - Date: 2026-10-03
 - Source: docs/DLENS_SPEC.md, Section 0, row 2
 

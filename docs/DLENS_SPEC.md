@@ -1,6 +1,6 @@
-# DLens — Final Spec and Build Plan (v1.5)
+# DLens — Final Spec and Build Plan (v1.6)
 
-**Version:** 1.5, 3 Oct 2026 (v1.4 plus timeline pulled forward after v0.1 shipped; change-log row 18). Supersedes the 30 Sep 2026 handoff report (v1.0).
+**Version:** 1.6, 4 Oct 2026 (v1.5 plus the v0.3 plan, ownership model v2, and the product track; change-log rows 21–30). Plan: `docs/plans/v0.3-plan.md`; product direction: `docs/plans/product-north-star.md`. Supersedes the 30 Sep 2026 handoff report (v1.0).
 **Owner:** Harshith. **Builder tools:** Claude Code (code), Claude app (mentor, review, docs).
 **Save as:** `docs/DLENS_SPEC.md` in the repo. This file is the single source of truth. Where any older draft (including the MetricTrace drafts) disagrees, this file wins.
 
@@ -8,7 +8,7 @@
 
 ## 0. What changed from v1.0, and why
 
-Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become ADRs 0001–0008 in week 2 (Section 14).
+Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come from the v0.3 plan (4 Oct 2026). Rows 1–8 became ADRs 0001–0008 and row 17 became ADR 0009 (superseded by 0010). Rows 19 and 21–30 are recorded in ADRs 0010–0019; each ADR names its row.
 
 | # | Change | Reason |
 |---|---|---|
@@ -32,6 +32,16 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 | 18 | **Timeline pulled forward after v0.1 shipped 3 Oct** (v0.2 by 8 Nov, v0.3 by 29 Nov, test-set freeze 7 Dec, v1.0 by 3 Jan 2027; buffer to 7 Feb 2027 kept) | v0.1 finished 15 days before its 18 Oct target, so later milestones move up and the end buffer grows |
 | 19 | **Local model → Qwen3-4B-Instruct-2507** (`qwen3:4b-instruct-2507-q4_K_M`) (3 Oct 2026) | The `qwen3:4b` tag is the thinking-only build; instruct is non-thinking, same size |
 | 20 | **v0.2 "Done when" restated** (4 Oct 2026): public demo with 10 replayable presets (all pass) and live Gemini answers under a 50 calls/day cap; 18/20 dev on local qwen3:4b; agent-on-Gemini smoke 2/2 raw pass. A Gemini run on all 20 dev questions moves to the v0.3 backlog (dev key, ≤160 calls, owner-confirmed) | The demo's cap makes 20 live questions impossible by design: a question can use up to 8 calls, so 20 questions need up to 160 calls against a 50/day app-wide cap. The cap protects the separate demo project, and the dev budget is not spent on a public page |
+| 21 | **Ownership model v2** (3 Oct 2026): Claude Code writes all code; the owner owns design, gold data, acceptance and an **explain gate** before each tag. Replaces the "hand-written" zones; core modules become owner-gated (Section 17) | Matches how v0.1–v0.2 were actually built |
+| 22 | **OpenAI-compatible adapter replaces the Groq-specific SDK**; Groq is one configuration of it | One adapter covers Groq, OpenRouter, LM Studio, vLLM, OpenAI and real users' own keys |
+| 23 | **Artifact-only ingest for any sqlglot dialect**, plus a catalog-less fallback | Real users are on Snowflake/BigQuery/Postgres/Databricks and already have artifacts; also needed for set E |
+| 24 | **Dense retrieval uses numpy exact search, not LanceDB; embeddings on CPU** | ≤ 20k chunks is milliseconds in numpy; Ollama holds the GPU; fewer deps |
+| 25 | **Answer schema: additive `premise_corrected` and per-claim `origin`** (`model`, `repaired`, `completed`, `augmented`) | Needed for honest three-way S4 reporting and the UI badge |
+| 26 | **S4 reported three ways: raw, validated, augmented** (coverage completion) | Separates what the LLM did from what code added |
+| 27 | **Yes/no questions scored on verdict accuracy** | A correct "No" has nothing to cite |
+| 28 | **Perturbation oracle** added as a third, dynamic source of truth on the synthetic corpus | Spec and parser are both AI-written; independence must be shown |
+| 29 | **System freeze together with the test freeze** (prompts, validator version, model IDs, tool code hashed) | Rules changed often in dev; test numbers must come from a fixed system |
+| 30 | **Two-track roadmap:** research (to v1.0) + product (v1.1 MCP server, v1.2 PR impact bot) | Build velocity is higher than planned; product work uses the surplus without blocking research gates |
 
 ---
 
@@ -39,7 +49,7 @@ Each change below was decided on 3 Oct 2026 after research. Rows 1–8 become AD
 
 **DLens (D for Data) is an open-source Python tool for dbt projects.** It answers "where does this number come from, and what breaks if I change it?" It builds a column-level lineage graph from compiled SQL. An LLM agent then answers plain-English questions by calling deterministic graph tools, and cites a file and line for every step. The headline deliverable is a reproducible benchmark showing how much graph grounding beats vector-only RAG, broken down by hop depth.
 
-**Status on 3 Oct 2026:** v0.1 shipped 3 Oct 2026; current phase is v0.2 Cited Q&A agent (due 8 Nov 2026).
+**Status on 4 Oct 2026:** v0.1.0 (3 Oct) and v0.2.0 (4 Oct) shipped on PyPI as `dlens-lineage`; current phase is v0.3 Benchmark-ready + works on your own project (due 29 Nov 2026).
 
 **Constraints:** ₹0 spend on the project itself. One developer at 12–15 h/week. Python. Resume-ready releases at about weeks 0, 4, 7 and 12.
 
@@ -56,22 +66,22 @@ Changing any line below needs an ADR, because several of them invalidate benchma
 | Name | **DLens.** Repo `dlens`, CLI `dlens`, PyPI package `dlens-lineage` (claimed at v0.1) |
 | Pitch | "GPS for your data: trace any dbt column to its source, see what breaks before you change it, with proof for every step" |
 | Research question | For lineage QA over dbt projects, how much does grounding an LLM in a deterministic column graph improve answer correctness over vector retrieval, and how does the gain vary with hop depth? |
-| Scope | dbt projects only: SQL models, sources, seeds, YAML docs, exposures |
+| Scope | dbt projects only: SQL models, sources, seeds, YAML docs, exposures. Ingest also works from existing dbt artifacts for any sqlglot-supported dialect; dbt-duckdb remains the build runtime for our own corpora |
 | v1.0 features | Trace, Impact, Ask, and refusal on unknown columns. **Diff is v1.x** |
 | Runtime | Python 3.12, `uv`, dbt-core 1.12.x + dbt-duckdb 1.11.x, DuckDB (verified in Week 0) |
 | SQL parsing | sqlglot (exact version pinned) on compiled SQL, always with a schema from `catalog.json`; `lineage(None, …)` per model |
 | Graph | NetworkX in memory, persisted as a JSON edge list (diffable in git) |
-| Retrieval | BM25 (`bm25s`) + dense (LanceDB), fused with reciprocal rank fusion; no reranker in v1 |
+| Retrieval | BM25 (`bm25s`) + dense (`bge-small-en-v1.5` on CPU, numpy exact search), fused with RRF; no reranker in v1 (v0.3 target; ADR 0014) |
 | LLM: primary | **Gemini 3.5 Flash-Lite**, free tier: 15 RPM, 250K TPM, 500 RPD (measured in Week 0). Config uses the **versioned** model ID, never the `-latest` alias; daily budget 400 |
 | LLM: local | **Qwen3-4B-Instruct-2507 via Ollama (`qwen3:4b-instruct-2507-q4_K_M`)** for development and for the second full benchmark run: `qwen3:4b-instruct-2507-q4_K_M` at `num_ctx` 8192: 3.9 GB, 100% GPU; ~62 tok/s generation, ~165 tok/s prompt eval (speeds measured at `num_ctx` 4096, 3 Oct 2026). Thinking off. Qwen3-8B was rejected because it spills to the CPU even at `num_ctx` 4096 |
-| LLM: cross-check and judge | **Groq `openai/gpt-oss-120b`**, free tier; used for the 60-question cross-model subset and as the Ask-rubric judge |
+| LLM: cross-check and judge | OpenAI-compatible adapter; **Groq `openai/gpt-oss-120b`** if its free tier still allows, else another free OpenAI-compatible endpoint; decided before v1.0 judge calibration. Used for the 60-question cross-model subset and as the Ask-rubric judge (v0.3 target; ADR 0012) |
 | Embeddings | `BAAI/bge-small-en-v1.5`, local; ablation model `all-MiniLM-L6-v2` |
 | Training | None. All models are pretrained and used as-is |
 | Agent | Plain Python loop over native tool calling; max 8 steps; about 3K input tokens per call; no agent framework |
 | Grounding rule | The LLM may only narrate edges and chunks that tools returned; a code validator enforces this |
 | Corpora | jaffle_shop_duckdb (dev/CI), `synthetic_shop` with 40–60 models (primary benchmark), one public DuckDB project with ≤150 models (external validity) |
 | Benchmark | 320 questions, split 96 dev / 224 test by column, frozen and hashed; plus external set E (60 questions); systems S0–S4 and C1; bootstrap confidence intervals |
-| UI and hosting | Streamlit on Community Cloud (separate AI Studio project, cached answers by default) plus a static results page on GitHub Pages |
+| UI and hosting | Streamlit on Community Cloud (separate AI Studio project, cached answers by default) plus a static results page on GitHub Pages, plus a local UI on any ingested project (`dlens ui --project`) |
 | Budget | ₹0; the response cache, quota counter and token cap are mandatory |
 | Licence | Apache-2.0 |
 | Timeline | 18 weeks, 5 Oct 2026 – 7 Feb 2027; target v1.0 on 3 Jan 2027 |
@@ -149,11 +159,19 @@ Changing any line below needs an ADR, because several of them invalidate benchma
 - [ ] Hybrid retrieval over model chunks, column cards and docs
 - [ ] Entity linker with its own metric
 - [ ] Tool-calling agent with structured answers and a citation validator
-- [ ] Three LLM adapters (Gemini, Ollama, Groq) behind one `LLMClient`, with cache, rate limiter, quota counter and token cap
+- [ ] LLM adapters: Gemini, Ollama, OpenAI-compatible (v0.3 target; ADR 0012) behind one `LLMClient`, with cache, rate limiter, quota counter and token cap
+- [ ] Artifact-only, multi-dialect ingest with catalog-less fallback
+- [ ] Perturbation oracle (synthetic corpus only)
+- [ ] Local UI on any project
 - [ ] Synthetic trap corpus with a design-authored gold spec
 - [ ] Benchmark harness (S0–S4, C1), metrics, confidence intervals, run manifests
 - [ ] Streamlit UI, live demo, static results page
 - [ ] Tests, CI smoke gate, Docker Compose, ADRs, README, write-up
+
+**Product track (after v1.0, never blocks research gates)**
+- MCP server with `verify_answer` (v1.1)
+- PR impact bot (v1.2)
+- Scale + Diff (v1.3+)
 
 **Avoid**
 
@@ -172,6 +190,7 @@ Changing any line below needs an ADR, because several of them invalidate benchma
 | Tuning on the test split | Invalidates the benchmark |
 | Extra Google projects to multiply quota | Against the spirit of the terms; the demo project exists for isolation only |
 | Stretch features before the week-12 freeze | Scope creep is the main schedule risk |
+| Hosted service that receives user code; telemetry | DLens is local-first; user code stays on the user's machine |
 
 ---
 
@@ -187,7 +206,7 @@ flowchart LR
     A --> L["Lineage engine: sqlglot + schema"]
     L --> G[("Lineage graph: NetworkX + edge list")]
     A --> K[Chunker]
-    K --> I[("Hybrid index: BM25 + LanceDB")]
+    K --> I[("Hybrid index: BM25 + dense")]
   end
   subgraph Answer["Answer: per question"]
     Q[Question] --> E[Entity linker]
@@ -223,7 +242,7 @@ flowchart LR
 
 ## 7. Lineage engine
 
-**Parse compiled SQL only, and always pass a schema. This module is hand-written by you (Section 17).**
+**Parse compiled SQL only, and always pass a schema. Owner-gated module: changes only when an approved plan names it, with an explain doc (Section 17).**
 
 **Per model, in topological order:**
 1. Run `dbt build --empty --exclude resource_type:test` then `dbt docs generate` with dbt-duckdb (catalog identical to a full build; tested on jaffle_shop). `docs generate` must recompile: under `--empty`, every `ref` compiles to `(select * from x where false limit 0)`. This produces `manifest.json`, `catalog.json` and `target/compiled/**.sql`.
@@ -298,6 +317,8 @@ Report top-1 and top-3 accuracy.
 
 **Answer schema (Pydantic):** `answer_text`, `claims: list[{text, edge_ids, chunk_ids}]`, `subgraph`, `confidence`, `refused`.
 
+*v0.3 note (additive, ADR 0015):* `Answer` gains `premise_corrected: bool` (the question's premise was wrong and the answer says so), and each claim gains `origin`: `model` (drafted by the LLM), `repaired` (R2r), `completed` (R8c) or `augmented` (coverage completion). `confidence` is unused and kept only for compatibility.
+
 *v0.2 note (additive, no existing field changed):* `Answer` also carries `refusal_reason`, `clarification: {question, candidates} | None`, `partial_evidence` (the answer prompt was trimmed to fit) and `citations` (id → file/lines, attached by code from the tool ledger, never typed by the LLM). The LLM drafts each claim with one `ids` list; code splits it into `edge_ids` (`e_`) and `chunk_ids` (`s_` excerpts and anything else). `subgraph` is computed by code. `confidence` is the model's self-report and is never used by the validator or scoring. **Ambiguity** (tied `resolve_entity` candidates the question does not disambiguate), decided in code: all candidates on one lineage chain → answer for the most downstream (code traces it if needed) and name each layer; otherwise ≤3 candidates → answer per candidate; >3 → clarification with no answer call. See `docs/explain/agent.md`.
 
 **Validator, enforced in code:**
@@ -354,6 +375,24 @@ verifiable claims". Refused and clarification answers are not validated.
 **completed**. The run record keeps the untouched pre-validation
 draft, the regenerated draft and both validation rounds.
 
+**Coverage completion (v0.3, G1).** For "where does X come from / how is X computed" questions, if
+the trace tool returned N direct inputs and the answer cites fewer, code appends the missing inputs
+as claims with `origin: augmented`, each citing its trace edge. Augmented claims are counted only in
+the S4-augmented view.
+
+**S4 reporting views (v0.3, ADR 0016).** Separate from the per-answer validator outcome labels
+above (raw / repaired / completed / regenerated / salvaged), which the code emits and which stay:
+- **S4 raw:** the agent's draft before the validator runs.
+- **S4 validated:** after the full validator pipeline (R1–R9, R2r, R8c, regenerate-once, salvage).
+  R8c-completed claims count here.
+- **S4 augmented:** S4 validated plus the coverage-completion claims (`origin: augmented`).
+
+The reporting view "S4 raw" is not the validator outcome "raw" (a draft that passed unchanged).
+
+**Multi-part and out-of-scope questions (v0.3, G2).** When a question has a second intent the tools
+don't cover ("Where does X come from? Can I remove it?"), the agent answers the covered part, names
+the uncovered part plainly, and suggests the exact question to ask. It is never dropped silently.
+
 **Log the pre-validation draft for every S4 answer.** This powers the no-validator ablation at no extra cost.
 
 **Loop limits:**
@@ -368,12 +407,12 @@ draft, the regenerated draft and both validation rounds.
 |---|---|---|
 | Primary agent | Gemini Flash-Lite (ID pinned in week 0) | Native tool calling; budget set to 80% of the RPD AI Studio shows |
 | Local agent (dev + second full run) | `qwen3:4b-instruct-2507-q4_K_M` (Qwen3-4B-Instruct-2507, non-thinking build), `num_ctx` 8192 | Unlimited; `qwen3:4b-instruct-2507-q4_K_M` at `num_ctx` 8192: 3.9 GB, 100% GPU; ~62 tok/s generation, ~165 tok/s prompt eval (speeds measured at `num_ctx` 4096, 3 Oct 2026). `qwen3:8b` spilled to CPU at 8192 (36/64) and 4096 (30/70), ~16 tok/s, so it was rejected |
-| Cross-check + judge | Groq `openai/gpt-oss-120b` | About 200K tokens/day; used for the 60-question subset and the Ask judge. A different model family from the agent, which reduces self-judging bias |
+| Cross-check + judge | Via the OpenAI-compatible adapter (v0.3 target; ADR 0012): Groq `openai/gpt-oss-120b`, or another free endpoint if Groq's free tier no longer allows | Groq: about 200K tokens/day; used for the 60-question subset and the Ask judge. A different model family from the agent, which reduces self-judging bias |
 | Embeddings | `BAAI/bge-small-en-v1.5` | Local; ablation `all-MiniLM-L6-v2` |
 | Reranker | None in v1 | Add only if linker errors demand it |
 | Paraphrases | Local Qwen3, then human review | Saves cloud quota |
 
-**Hand-coded "ML" (normal code, no training):** BM25 fusion, the linker scorer (fuzzy score + embedding similarity, weights tuned on dev only), and all metrics.
+**Rule-based "ML" (normal code, no training):** BM25 fusion, the linker scorer (fuzzy score + embedding similarity, weights tuned on dev only), and all metrics.
 
 **Optional after v1.0:** a logistic-regression linker scorer trained on dev features, compared against the hand-tuned weights. Runs on CPU in about two days.
 
@@ -384,7 +423,7 @@ draft, the regenerated draft and both validation rounds.
 | Corpus | Role | Size |
 |---|---|---|
 | [jaffle_shop_duckdb](https://github.com/dbt-labs/jaffle_shop_duckdb) | Dev, smoke tests, CI | 5 models |
-| `corpora/synthetic_shop` (you build it) | Primary benchmark | 40–60 models, about 400 columns; gold spec `lineage_spec.yml`; seeded Python data generator |
+| `corpora/synthetic_shop` v2 | Primary benchmark | 40–60 models, about 400 columns; **every v1 model and column name is kept**; design doc `corpora/synthetic_shop/DESIGN_v2.md`; gold spec `lineage_spec.yml`; seeded Python data generator |
 | One public DuckDB project from [awesome-public-dbt-projects](https://github.com/InfuseAI/awesome-public-dbt-projects) | External validity (set E) | **≤150 models**, so S2 has a chance to fit; pinned submodule; check its licence; 2-day time-box |
 
 **Traps (tagged in `traps.yml`):**
@@ -399,6 +438,13 @@ draft, the regenerated draft and both validation rounds.
 - Exposures (two dashboards on different marts)
 
 **Depth requirement:** the corpus must provide at least 40 columns that are 6+ hops from their source.
+
+**Perturbation oracle (`eval/oracle/perturb.py`, synthetic corpus only).** For each source column,
+perturb its values in DuckDB, re-run the compiled models, and record which output columns change.
+Compare with the gold downstream sets. A changed column missing from gold means a spec bug or SQL
+drift, and the spec is fixed, never the parser. Gold edges whose column did not change are expected
+for some FILTER/JOIN cases; they are listed, not failed. Every disagreement and its decision goes in
+`corpora/synthetic_shop/ORACLE_REPORT.md`.
 
 **Gold spec format**
 ```yaml
@@ -421,8 +467,8 @@ edges:
 
 **Design the benchmark before the agent. Freeze the test split at the start of v1.0 (7 Dec 2026, week 9) and never tune on it.**
 
-### 11.1 Two sources of truth
-- **Synthetic corpus:** scored against the design-authored gold spec.
+### 11.1 Two sources of truth, plus a dynamic check
+- **Synthetic corpus:** scored against the design-authored gold spec, which the perturbation oracle (Section 10) checks independently.
 - **Public corpus (set E):** scored against parser output, with a hand audit of 100–150 edges (stratified by kind) for precision and 15–20 fully hand-traced columns for recall. Results are reported as "agreement with a parser of measured precision X".
 
 ### 11.2 Question set: 320 questions, split by column
@@ -438,6 +484,7 @@ edges:
 | Unanswerable | Non-existent columns | Refusal + closest matches | 9 | 21 | 30 |
 | **Total** | | | **96** | **224** | **320** |
 
+- The 20 dev questions written in v0.2 are part of the 96 dev questions, re-tagged.
 - Paraphrase each template 2–3 times with the local model, and hand-review every test question.
 - Tag each question with hop depth, trap and wording type (identifier vs description).
 - **Smoke subset:** 30 dev questions, answered from the cache in CI.
@@ -453,7 +500,7 @@ edges:
 | S1 | Vector RAG (hybrid BM25 + dense, top-k in context) | Baseline to beat |
 | S2 | Long-context stuffing (all compiled SQL in the prompt) | "Why not paste everything?" Synthetic corpus only, plus set E if it fits |
 | S3 | Agent with graph tools only | Ablation |
-| S4 | DLens full hybrid with validator | The claim |
+| S4 | DLens full hybrid with validator; reported as **S4-raw / S4-validated / S4-augmented** (Section 8) | The claim |
 | C1 | Your engine vs dbt-colibri on the gold spec | Engine quality |
 
 ### 11.4 Metrics and statistics
@@ -461,10 +508,12 @@ edges:
   - Node-set precision, recall and F1; path exact match
   - Hallucinated-node rate; citation validity
   - Linker top-1 and top-3; refusal accuracy
-  - Ask rubric score (Groq judge, calibrated on 30 of your labels with Cohen's kappa ≥ 0.6, or else Ask is scored by hand)
+  - Verdict accuracy for yes/no questions (a correct "No" has nothing to cite)
+  - Ask rubric score (judge = a model behind the OpenAI-compatible adapter, Groq if still free; calibrated on 30 of your labels with Cohen's kappa ≥ 0.6, or else Ask is scored by hand)
   - p50/p95 latency; tokens per question
 - **Statistics:** 95% bootstrap confidence intervals (1,000 resamples). Paired bootstrap on per-question F1 and McNemar's test on exact match, for S1 vs S4.
 - **Headline chart:** F1 against hop depth, one line per system, one panel per model (Gemini, Qwen3).
+- Metrics are defined in `docs/plans/metrics-design.md` (owner-approved) before `eval/metrics.py` is written.
 
 ### 11.5 Ablations: all near zero quota
 
@@ -503,6 +552,12 @@ Assumes Flash-Lite at about 500 RPD, a planned budget of **400 calls/day**, and 
 - Gemini and Groq runs proceed in parallel on different days.
 - If AI Studio shows a lower RPD than 500: halve the variance runs, then cut set E to 40 questions, then drop S3 to the 60-question subset, in that order. Report whatever was cut.
 
+### 11.7 System freeze
+
+On 7 Dec 2026, together with the test and set-E question hashes, the S4 system is frozen: prompts,
+validator version, model IDs and tool code are hashed into the run manifest. Every test-set number
+must come from that frozen system. Any change after 7 Dec means re-running every system.
+
 ---
 
 ## 12. Tech stack and repository
@@ -513,11 +568,11 @@ Assumes Flash-Lite at about 500 RPD, a planned budget of **400 calls/day**, and 
 | dbt | `dbt-core==1.12.5`, `dbt-duckdb==1.11.0` (verified in Week 0: jaffle_shop `dbt build` PASS=28, ERROR=0) |
 | SQL | `sqlglot==30.21.0` (verified: `lineage(None, …)` returns a dict) |
 | Graph | NetworkX; JSON edge list |
-| Vectors / lexical | LanceDB / `bm25s` |
+| Vectors / lexical | numpy exact search (`.npy` on disk) / `bm25s`; embeddings on CPU (v0.3 target; ADR 0014) |
 | Embeddings | sentence-transformers with `BAAI/bge-small-en-v1.5` |
-| LLM SDKs | `google-genai`, `ollama`, `groq` behind `LLMClient` |
+| LLM SDKs | `google-genai`, `ollama`, OpenAI-compatible client (replaces `groq`; v0.3 target; ADR 0012) behind `LLMClient` |
 | Config / schemas | pydantic, pydantic-settings, `.env` |
-| CLI / API / UI | Typer / FastAPI (v1.0) / Streamlit + `streamlit-agraph` |
+| CLI / API / UI | Typer / FastAPI (v1.0) / Streamlit (pinned 1.65.x; Graphviz for graphs) |
 | Eval | pandas, numpy, scipy, matplotlib |
 | Quality | pytest, hypothesis, ruff, mypy (strict on `graph/` and `agent/`), pre-commit, gitleaks |
 | Logs | `structlog` (JSON) |
@@ -531,22 +586,24 @@ dlens/
 ├── .claude/ {skills/, agents/, settings.json}
 ├── src/dlens/
 │   ├── ingest/      # artifacts, compile runner, schema builder
-│   ├── lineage/     # [HAND-WRITTEN] sqlglot wrapper, indirect edges, classifier, provenance
+│   ├── lineage/     # [OWNER-GATED] sqlglot wrapper, indirect edges, classifier, provenance
 │   ├── graph/       # LineageGraph, persistence, traversal
-│   ├── retrieval/   # chunker, bm25, dense, fusion, entity linker (scorer hand-written)
-│   ├── agent/       # llm/ (gemini, ollama, groq, cache, quota), tools, loop, validator (rules hand-written), prompts
+│   ├── retrieval/   # chunker, bm25, dense, fusion, entity linker (scorer owner-gated)
+│   ├── agent/       # llm/ (gemini, ollama, groq, cache, quota), tools, loop, validator (rules owner-gated), prompts
 │   ├── cli.py
 │   └── api/         # v1.0
 ├── ui/app.py
+├── demo/            # public-demo bundle: streamlit_app.py, synthetic_shop/, presets/
 ├── corpora/ {synthetic_shop/ (dbt project, lineage_spec.yml, traps.yml), fetch_public.sh}
 ├── eval/
 │   ├── questions/   # dev.jsonl, test.jsonl, test.sha256, external.jsonl, external.sha256
 │   ├── systems/     # s0..s4, c1
-│   ├── metrics.py   # [HAND-WRITTEN]
+│   ├── metrics.py   # [OWNER-GATED]
+│   ├── oracle/      # perturbation oracle (synthetic corpus)
 │   ├── cache/       # git-ignored
 │   └── reports/
 ├── tests/ {unit/, golden/, property/, integration/}
-└── docs/ {DLENS_SPEC.md, adr/, learning-log.md}
+└── docs/ {DLENS_SPEC.md, adr/, plans/, explain/, learning-log.md}
 ```
 
 ---
@@ -573,15 +630,82 @@ dlens/
 
 ## 14. Releases, dates and checklists
 
-Each item is one Claude Code session. **[H]** means you write it by hand. Weeks start Monday.
+Each item is one Claude Code session. In v0.1–v0.2, **[H]** meant you write it by hand. From v0.3 (ownership model v2, Section 17), Claude Code writes all code and each item names its **owner gate**: what the owner must decide or review before it is accepted. Weeks start Monday.
 
 | Week(s) | Dates | Phase | Hours | Done when |
 |---|---|---|---|---|
 | pre | → 3 Oct | Pre-work + accounts + checks + **v0.1 Lineage CLI (shipped 3 Oct; target was 18 Oct)** | 62 | Direct-edge F1 ≥ 0.95 on the mini spec; `pip install dlens-lineage` works |
 | 0–4 | 5 Oct – 8 Nov | **v0.2 Cited Q&A agent (shipped 4 Oct; target was 8 Nov)** | 40 | Public demo live with 10 replayable presets (all pass) and live Gemini answers under a 50 calls/day cap; 18/20 dev on local qwen3:4b; agent-on-Gemini smoke 2/2 raw pass (was: "Live demo answers 20 dev questions with valid citations"; see Section 0, row 20) |
-| 5–7 | 9 Nov – 29 Nov | **v0.3 Hybrid RAG + pilot** | 40 | S1 vs S4 pilot table on 96 dev questions committed; indirect-edge F1 ≥ 0.90 |
+| 5–7 | 9 Nov – 29 Nov | **v0.3 Benchmark-ready + works on your own project** (work starts 5 Oct, see `docs/plans/v0.3-plan.md`) | 40 | The 8 conditions below |
 | 8 | 30 Nov – 6 Dec | Buffer A | — | For SIH, exams or slips; otherwise pull v1.0 work forward |
 | 9–12 | 7 Dec – 3 Jan | **v1.0 Benchmarked release** (test-set freeze 7 Dec) | 55 | `make eval` reproduces every number from a clean clone |
+| 13–17 | 4 Jan – 7 Feb | Buffer B | — | Spill-over quota runs, polish; hard deadline 7 Feb 2027 |
+
+**v0.1 Lineage CLI**
+- [x] Repo bootstrap (Prompt B, Section 21)
+- [x] ADRs 0001–0008 from Section 0
+- [x] [H] 15-model mini spec (`lineage_spec.yml`, phase v0.1 edges only); SQL generated from it, reviewed by you
+- [x] Ingest: manifest, catalog, sqlglot schema
+- [x] [H] Lineage engine core: `lineage(None)` calls, leaf mapping, classifier, provenance
+- [x] `LineageGraph` + `dlens ingest | trace | impact`
+- [x] Golden tests (≥10 constructs, including #0); parse-quality report
+- [x] README quickstart on jaffle_shop; CONTRIBUTING; CHANGELOG
+- [x] TestPyPI → PyPI `dlens-lineage` 0.1.0 via Trusted Publishing; tag v0.1.0
+
+**v0.2 Cited Q&A agent**
+- [x] `LLMClient` interface + Ollama adapter (dev default) + Gemini adapter; cache, rate limiter, quota counter, token cap
+- [x] Tools: `resolve_entity` (fuzzy v1), `trace_upstream`, `impact_downstream`, `get_model_sql`
+- [x] Agent loop with structured answers; logs pre-validation drafts
+- [x] [H] Validator rules + adversarial tests (written by Claude at the owner's request, Decision 17; owner-reviewed)
+- [x] Streamlit three-pane UI; deploy with the demo AI Studio project, a 50/day live cap, and cached answers for 10 preset questions (https://dlens-lineage.streamlit.app/; presets are replayed run records, see `docs/explain/deploy.md`)
+- [ ] Tag v0.2.0; add the first GenAI resume line
+
+
+**v0.3 Benchmark-ready + works on your own project** (items from `docs/plans/v0.3-plan.md` Section 3; M = must, S = should, C = could)
+
+*Track A: corpus and gold truth*
+- [ ] A1 (M) Corpus v2 design `corpora/synthetic_shop/DESIGN_v2.md`, keeping every v1 model and column name. Gate: owner approves the design before any SQL
+- [ ] A2 (M) Gold spec v2 + SQL generation + data generator + spec checker; gold written from the design, never from parser output. Gate: owner reviews every model's SQL against the design
+- [ ] A3 (M) Indirect edges (JOIN, FILTER, GROUP_BY, WINDOW, SORT, CONDITIONAL); golden tests; F1 ≥ 0.90. Gate: owner approves the classification rules; reads `docs/explain/indirect-edges.md`
+- [ ] A4 (M) Perturbation oracle (Section 10). Gate: owner reads the oracle report and decides each disagreement
+
+*Track B: retrieval and entity linking*
+- [ ] B1 (M) Chunker + hybrid search (BM25 + dense on CPU, numpy exact search, RRF) + `search_docs`, in the `retrieval` extra. Gate: owner approves the chunk design
+- [ ] B2 (M) Entity linker v2 + top-1/top-3 metric; weights tuned on dev only. Gate: owner approves scorer features and weights; reads the explain doc
+
+*Track G: agent upgrades*
+- [ ] G1 (M) Coverage completion (`origin: augmented`), reported separately (Section 8). Gate: owner approves
+- [ ] G2 (S) Multi-part / out-of-scope questions. Gate: none
+- [ ] G3 (M) `premise_corrected` + claim `origin` (ADR 0015). Gate: owner approves the ADR
+- [ ] G4 (M) `search_docs` wired into S4 for Ask questions and the stale-doc trap; YAML text is data, never instructions. Gate: none
+
+*Track D: baselines, metrics, pilot*
+- [ ] D1 (S) OpenAI-compatible adapter behind `LLMClient`; Groq is one configuration. Gate: none
+- [ ] D2 (M) S0 graph oracle + S1 vector RAG. Gate: none
+- [ ] D3 (M) `docs/plans/metrics-design.md` first, then `eval/metrics.py` implements exactly that doc. Gate: owner decides every definition
+- [ ] D4 (M) Pilot S0, S1, S4 on 96 dev: local qwen first, then Gemini over 2–3 quota days (includes the old backlog item "Gemini run on all 20 dev questions"). Gate: owner confirms the quota plan before any Gemini call
+- [ ] D5a (M) 96 dev questions; the 20 existing ones included and re-tagged; yes/no gold = verdict. Gate: owner reviews all 96
+- [ ] D5b (M) Drafts of 224 test + 60 set-E questions. Gate: owner reviews all 284 in Buffer A
+
+*Track E: product foundation*
+- [ ] E1 (M) Artifact-only ingest (`dlens ingest --artifacts`), any sqlglot dialect, catalog-less fallback; CI core install on macOS and Windows. Gate: none
+- [ ] E2 (M) `dlens ui --project <dir>` on any ingested project. Gate: visual check (screenshots)
+- [ ] E3 (C) `dlens report --anonymized`. Gate: none
+- [ ] E4a (M) Set-E public project picked, pinned, ingested. Gate: owner approves the pick
+- [ ] E4b (S) 3–5 public projects; `docs/real-world-coverage.md`. Gate: none
+- [ ] E5 (C) 2–3 design partners (owner task). Gate: owner reaches out
+
+**v0.3.0 is done when all of these are true:**
+1. `synthetic_shop` v2 has 40–60 models, all 9 traps, and ≥ 40 columns at 6+ hops; `dbt build` passes; the gold spec checker passes.
+2. Direct-edge F1 ≥ 0.95 and **indirect-edge F1 ≥ 0.90** against the gold spec.
+3. The perturbation oracle agrees with the gold spec (every value-level dependent it finds is in the gold downstream set), or every disagreement is explained in `corpora/synthetic_shop/ORACLE_REPORT.md`.
+4. 96 dev questions exist, every one reviewed by the owner; the old 20 dev questions are included and re-tagged.
+5. A committed pilot table: **S0, S1, S4** on the 96 dev questions, on **local qwen3:4b** and on **Gemini Flash-Lite**, with 95% bootstrap CIs and hop-depth breakdown, losses included.
+6. `dlens ingest --artifacts <target/>` works for DuckDB, Snowflake, BigQuery and Postgres dialects (tested with transpiled corpora), and `dlens ui --project` works on any ingested project.
+7. Drafts of the 224 test questions and the 60 set-E questions exist for owner review in Buffer A.
+8. Explain gate passed (Section 17). README, CHANGELOG, demo rebuilt on corpus v2. Tag v0.3.0.
+
+**v1.0 Benchmarked release** (test-set freeze 7 Dec) | 55 | `make eval` reproduces every number from a clean clone |
 | 13–17 | 4 Jan – 7 Feb | Buffer B | — | Spill-over quota runs, polish; hard deadline 7 Feb 2027 |
 
 **v0.1 Lineage CLI**
@@ -619,6 +743,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
   badge from a real signal
 
 **v1.0 Benchmarked release**
+- [ ] Freeze the S4 system with the test set (11.7)
 - [ ] [H] Review and freeze test (224) and set E (60); commit hashes (week 9, first day, 7 Dec)
 - [ ] S0, S2, S3 runners; C1 vs dbt-colibri
 - [ ] Public corpus ingest; [H] parser audit of 100–150 edges
@@ -627,7 +752,7 @@ Each item is one Claude Code session. **[H]** means you write it by hand. Weeks 
 - [ ] FastAPI, Docker Compose, CI smoke gate, GitHub Pages results page
 - [ ] [H] Write-up, README results, 2-minute demo video; tag v1.0.0
 
-**v1.x (optional, about 30 h, pick one):** Diff + its 15-question eval; MCP server over the tools; GitHub PR impact bot.
+**v1.x (product track, Section 5):** v1.1 MCP server + `verify_answer` (target 7 Feb 2027, only if v1.0 runs are done); v1.2 PR impact bot; v1.3+ scale and Diff (with its 15-question eval).
 
 ---
 
@@ -713,28 +838,30 @@ Keep the repo inside the WSL filesystem (`~/code/dlens`), not under `/mnt/c`. Fi
 
 ## 17. Who does what
 
-**Rule (v1.4): AI writes the code; the owner must be able to explain every core module, using docs/explain/. The owner still approves the gold spec and test questions.**
+**Ownership model v2 (row 21, ADR 0010).** Claude Code writes the code. The owner owns:
+1. **Design:** every plan, ADR and design doc is approved by the owner before code.
+2. **Gold data:** the corpus design, every generated model's review, every question's review, the freeze. No AI tool edits frozen files, ever.
+3. **Acceptance:** the owner approves each plan and each tag.
+4. **Understanding (explain gate):** before every tag, the owner answers the explain-back questions in each changed `docs/explain/*.md` without notes. Any module the owner cannot explain is rewritten more simply or re-explained before release.
 
-| Work item | You, by hand | Claude app (chat) | Claude Code |
-|---|---|---|---|
-| Pre-work tasks | **All** | Explain when stuck | — |
-| Lineage engine | **Core logic** | Review; sqlglot internals | Tests, fixtures, refactors afterwards |
-| Gold spec + traps | **All** | Critique | — |
-| Synthetic SQL models | Review every model | — | Generate from your spec; `dbt build` must pass |
-| Graph traversal | Traversal | Review | Persistence, CLI |
-| Retrieval | Fusion function | Explain RRF | Index plumbing, chunker |
-| Entity linker | **Scorer** | Review | Test harness |
-| Agent + validator | **Validator rules** | Review prompts | LLM adapters, cache, quota, loop scaffolding |
-| Metrics + statistics | **All** | Check your statistics | Runners, report generation |
-| Test questions | **Review every one** | — | Template generator |
-| UI, API, Docker, CI | Review | — | **Build** |
-| ADRs, README, write-up | **Decide + conclusions** | Edit; interview prep | Keep commands accurate |
-| Weekly progress, resume, LinkedIn post | Final wording | Weekly summary from your notes; drafts from results files | — |
+**Owner-gated modules:** `src/dlens/lineage/`, `eval/metrics.py`, the entity-linker scorer and the validator rules change only when an approved plan names them, and every change updates the module's explain doc.
+
+| Who | Does |
+|---|---|
+| Owner | Design, gold data, acceptance, explain gate; final wording of the write-up and resume |
+| Claude Code | All code, tests, explain docs, ADR drafts, release mechanics |
+| Claude app (chat) | Planning, plan review, mentoring, interview prep |
+
+**Integrity guards** (one AI wrote both the parser and the corpus):
+- The gold spec is written from the design doc before the parser is run on the new models.
+- The perturbation oracle (Section 10) is an independent dynamic check.
+- System C1 (DLens engine vs dbt-colibri on the gold spec) in v1.0 is an external check.
+- Test questions are generated from the gold spec, never from parser output.
 
 **Anti-patterns:**
-- Asking Claude Code to "build DLens" in one go.
-- Accepting code in `lineage/` or `metrics.py` that you can't explain.
-- Any AI tool touching `test.jsonl` or `external.jsonl` after the freeze.
+- Accepting code you can't explain after reading its explain doc.
+- Any AI tool touching frozen files.
+- Asking Claude Code to build a whole release in one session.
 
 ---
 
@@ -780,7 +907,7 @@ See the [Claude Code docs](https://code.claude.com/docs/en/features-overview.md)
 |---|---|---|
 | Week 0 | Public repo, licence, README stub | — |
 | v0.1 (3 Oct) | Quickstart in under 5 minutes; CONTRIBUTING; templates; CHANGELOG; **PyPI 0.1.0** | Built DLens, an open-source column-level lineage extractor for dbt in Python (sqlglot AST analysis, schema-aware `SELECT *` expansion, golden-file tests); published on PyPI as `dlens-lineage` |
-| v0.2 (8 Nov) | Live demo link; 3–5 `good first issue` items; CoC; SECURITY | Built an LLM agent that answers data-lineage questions by calling deterministic graph tools, with every claim cited to file and line and checked by a code validator; deployed live |
+| v0.2 (shipped 4 Oct) | PyPI `dlens-lineage` 0.2.0; live demo (https://dlens-lineage.streamlit.app/); citation validator | Built an LLM agent that answers data-lineage questions by calling deterministic graph tools, with every claim cited to file and line and checked by a code validator; deployed live |
 | v0.3 (29 Nov) | Publish pilot results, including losses | Hybrid graph + retrieval reached [X] node-set F1 vs [Y] for vector-only RAG on a 96-question pilot |
 | v1.0 (3 Jan) | Docs site, write-up, one post in the dbt community | Designed a 320-question benchmark with design-authored gold labels. DLens reached [X] F1 vs [Y] for vector RAG across two LLMs, cut hallucinated nodes from [A]% to [B]%, and the gap widened from [p] to [q] points between 1-hop and 6+-hop questions |
 
@@ -799,7 +926,7 @@ See the [Claude Code docs](https://code.claude.com/docs/en/features-overview.md)
 | Why no fine-tuning? | The question is about grounding; ₹0 |
 | Does the result depend on one LLM? | Two full runs (Gemini, local Qwen3) plus a Groq cross-check |
 | Hardest bug? | From your learning log, with the golden test that now guards it |
-| What did you write vs AI? | Section 17's hand-written zones |
+| What did you write vs AI? | "I designed DLens and its evaluation, authored and reviewed the gold data, and directed an AI coding agent to implement it under tests and code review. I can walk you through any module." |
 
 ---
 
@@ -817,7 +944,14 @@ See the [Claude Code docs](https://code.claude.com/docs/en/features-overview.md)
 | colibri beats your parser | Report it in C1 | Learn from it; the QA layer remains the contribution |
 | SIH, exams or a busy semester | Buffer weeks A and B; each release is resume-ready on its own | Stop at the last shipped version with an honest README |
 | Scope creep | Section 5; no stretch work before the freeze | Ship v1.0 without stretch |
-| Over-reliance on AI code | Hand-written zones; code-reviewer subagent | Rewrite any core file you can't explain |
+| Over-reliance on AI code | Explain gate before each tag; owner-gated modules; code-reviewer subagent | Rewrite any core file you can't explain |
+| Owner review time (exams, hackathons, coursework) | Gates are batched; Buffer A holds the big review | Release v0.3 on 6 Dec; freeze stays 7 Dec |
+| 3K token cap breaks on 6+ hop traces in a 50-model corpus | Compact edge strings; code-initiated chain trace; `truncated` flag; path compression in the trace payload | Raise per-tool cap only for trace, measured |
+| 4B local model degrades on the bigger corpus | Coverage completion and code-initiated steps carry correctness | Report it honestly; Gemini is the headline model |
+| Retrieval install heavy (torch) | CPU wheel; `retrieval` extra only | Dense-only via a small ONNX model (ADR) |
+| Spec/SQL drift in corpus v2 | Spec checker + perturbation oracle | Fix the spec, never the parser, to match |
+| Scope creep from the product track | Product items never block research gates | Move E4b to v1.1; ship E2 minimal |
+| Claude Code usage limits | 2–3 sessions/week; `claude --continue` after a cut-off | Shift a session to the next day |
 | dbt 2.0 changes artifacts | Pin to 1.12.x | Stay on 1.12 through v1.0 |
 
 ---
@@ -825,13 +959,8 @@ See the [Claude Code docs](https://code.claude.com/docs/en/features-overview.md)
 ## 21. Handoff prompts
 
 **Prompt A: Claude app chat (mentor and reviewer)**
-```text
-I'm building DLens. The attached DLENS_SPEC.md (v1.1) is the locked spec; Section 2 is binding
-unless I ask to change it. Your role: mentor and reviewer. I hand-write the lineage engine, gold
-spec, linker scorer, validator rules and eval metrics (Section 17): for those, explain, question
-and review, but don't write the solution unless I ask.
-Status: [version, last checklist item]. Today's goal: [one task].
-```
+
+Start a new Claude app chat by attaching the latest HANDOFF.md (kept outside the repo, in the handoff bundle), `v0.3-plan.md` and `product-north-star.md`, and paste the starter message from HANDOFF.md.
 
 **Prompt B: first Claude Code session (week 2, repo bootstrap)**
 ```text
