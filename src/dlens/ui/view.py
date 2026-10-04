@@ -174,7 +174,7 @@ def error_hint(reason: str | None, model: str = OLLAMA_MODEL) -> Hint | None:
     )
 
 
-PROVIDER_LABELS = {"ollama": "Local model (Ollama)"}
+PROVIDER_LABELS = {"ollama": "Local model (Ollama)", "gemini": "Gemini Flash-Lite (demo)"}
 
 
 def provider_status(provider: str, quota: tuple[int, int] | None = None) -> list[str]:

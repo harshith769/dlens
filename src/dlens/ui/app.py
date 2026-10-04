@@ -3,12 +3,14 @@ agent, validator and renderer are reused unchanged, and every helper in ``dlens.
 
     make ui        # uv run streamlit run src/dlens/ui/app.py
 
-Ollama only: the provider is fixed and shown read-only.
+Locally the provider is Ollama, fixed and shown read-only. In demo mode (``DLENS_DEMO=1``, see
+``dlens.ui.demo`` and docs/deploy.md) it is Gemini Flash-Lite behind the demo caps.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from html import escape
 
 import streamlit as st
@@ -29,6 +31,7 @@ INTRO = (
 )
 REPO = "https://github.com/harshith769/dlens"
 EMPTY = "Pick an example or type a question."
+_SLOT: DeltaGenerator | None = None  # the header's provider placeholder, set on every run
 
 
 @st.cache_resource(show_spinner="Building the lineage graph (first run takes ~10 s)...")
@@ -41,14 +44,50 @@ def load_graph(project: str) -> LineageGraph:
 # -- state changes (callbacks) ------------------------------------------------------------------
 
 
-def _ask(project: str, question: str) -> None:
+def _secrets() -> dict[str, str]:
+    """The demo's key and model ID from Streamlit secrets; {} when there is no secrets file.
+    Values are never printed or logged."""
     try:
-        client = llm.make_client(PROVIDER)
+        return {k: str(st.secrets[k]) for k in demo.SECRET_KEYS if k in st.secrets}
+    except Exception:  # no secrets.toml (local runs)
+        return {}
+
+
+def _demo_env() -> dict[str, str]:
+    return demo.client_env(os.environ, _secrets())
+
+
+def _limit(limit: demo.Limit) -> None:
+    st.session_state.update(limit=limit, error=None, run=None)
+
+
+def _ask(project: str, question: str) -> None:
+    st.session_state.limit = None
+    env: dict[str, str] | None = None
+    if demo.enabled():
+        env = _demo_env()
+        asked = st.session_state.get("live_asked", 0)
+        blocked = demo.gate(question, asked, demo.calls_left(env), demo.has_key(env))
+        if blocked is not None:
+            _limit(blocked)
+            return
+        st.session_state.live_asked = asked + 1
+    try:
+        client = llm.make_client(demo.PROVIDER, env) if env else llm.make_client(PROVIDER)
         box = Toolbox(load_graph(project), view.projects()[project])
-        run = run_agent(question, client, box, RunLogger(runs_dir()), project=project)
+        logs = RunLogger(runs_dir(env))
+        run = run_agent(question, client, box, logs, project=project)
     except Exception as e:  # the agent already turns provider errors into refusals
-        st.session_state.update(error=f"{type(e).__name__}: {e}", run=None)
+        reason = f"{type(e).__name__}: {e}"
+        if env is not None and (failed := demo.failure(reason)) is not None:
+            _limit(failed)
+        else:
+            st.session_state.update(error=reason, run=None)
         return
+    if env is not None and run.answer.refused:
+        if (failed := demo.failure(run.answer.refusal_reason)) is not None:
+            _limit(failed)
+            return
     hint = view.error_hint(run.answer.refusal_reason) if run.answer.refused else None
     if hint is not None:  # a provider failure is an error state, not a refusal
         st.session_state.update(error=run.answer.refusal_reason, run=None)
@@ -87,7 +126,15 @@ def show_hint(hint: view.Hint) -> None:
 def provider_slot(slot: DeltaGenerator) -> None:
     """The header's provider, and "x of N left today" for a quota-limited provider (None for
     Ollama). Whether an answer was cached is shown on the answer itself."""
-    status = " · ".join(view.provider_status(PROVIDER, None))
+    if demo.enabled():
+        env = _demo_env()
+        quota = (demo.calls_left(env), demo.DAILY_CALLS) if demo.has_key(env) else None
+        parts = view.provider_status(demo.PROVIDER, quota)
+        if not demo.has_key(env):
+            parts.append("live questions off")
+    else:
+        parts = view.provider_status(PROVIDER, None)
+    status = " · ".join(parts)
     slot.markdown(f'<div class="dl-provider">{style.muted(status)}</div>', unsafe_allow_html=True)
 
 
@@ -99,7 +146,9 @@ def header() -> str | None:
     title, provider = st.columns([4, 1.4], vertical_alignment="top")
     title.markdown("## DLens")
     title.markdown(style.intro(INTRO, REPO, "Source on GitHub"), unsafe_allow_html=True)
-    provider_slot(provider.empty())
+    global _SLOT
+    _SLOT = provider.empty()
+    provider_slot(_SLOT)
     if wanted is not None and wanted not in view.projects():
         show_hint(view.project_problem(wanted) or view.Hint("Unknown project", ""))
         return None
@@ -132,6 +181,7 @@ def question_panel(project: str) -> None:
         key="question",
         height=110,
         placeholder="e.g. Where does fct_orders.revenue come from?",
+        max_chars=demo.MAX_QUESTION_CHARS if demo.enabled() else None,
     )
     asked = st.button(
         "Ask",
@@ -140,8 +190,11 @@ def question_panel(project: str) -> None:
         disabled=not st.session_state.get("question", "").strip(),
     )
     if asked or st.session_state.pop("pending", False):
-        with st.spinner("Asking the local model..."):
+        model = "Gemini Flash-Lite" if demo.enabled() else "the local model"
+        with st.spinner(f"Asking {model}..."):
             _ask(project, st.session_state.question.strip())
+        if demo.enabled() and _SLOT is not None:
+            provider_slot(_SLOT)  # the header rendered before this call spent quota
     history = st.session_state.get("history") or []
     if history:
         st.markdown("**This session**")
@@ -180,12 +233,16 @@ def empty_state(project: str) -> None:
 
 
 def answer_panel(project: str) -> None:
+    limit = st.session_state.get("limit")
+    if limit:
+        title, body = limit
+        st.warning(f"**{title}**  \n{body}")
     error = st.session_state.get("error")
     if error:
         show_hint(view.error_hint(error) or view.Hint("The question could not be answered", error))
     run = st.session_state.get("run")
     if run is None:
-        if not error:
+        if not error and not limit:
             empty_state(project)
         return
     answer = run.answer

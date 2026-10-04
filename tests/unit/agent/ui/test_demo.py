@@ -152,3 +152,15 @@ def test_demo_folder_is_excluded_from_the_package():
     hatch = tomllib.loads((demo.ROOT / "pyproject.toml").read_text())["tool"]["hatch"]["build"]
     assert "demo" in hatch["targets"]["sdist"]["exclude"]
     assert hatch["targets"]["wheel"]["packages"] == ["src/dlens"]
+
+
+@pytest.mark.parametrize("path", [".streamlit/secrets.toml", "demo/.streamlit/secrets.toml"])
+def test_streamlit_secrets_are_gitignored(path):
+    import subprocess
+
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+    hit = subprocess.run(
+        ["git", "check-ignore", "--no-index", "-q", path], cwd=demo.ROOT, check=False
+    )
+    assert hit.returncode == 0, f"{path} is not ignored"
