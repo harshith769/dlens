@@ -1,0 +1,2615 @@
+{
+  "consumes": [],
+  "deferred_indirect": [
+    {
+      "from_column": "model.synthetic_shop.int_order_financials.customer_id",
+      "kind": "WINDOW",
+      "to_column": "model.synthetic_shop.int_customer_order_history.previous_order_date"
+    },
+    {
+      "from_column": "model.synthetic_shop.int_order_financials.order_id",
+      "kind": "WINDOW",
+      "to_column": "model.synthetic_shop.int_customer_order_history.previous_order_date"
+    }
+  ],
+  "depends_on": [
+    [
+      "model.synthetic_shop.dim_customers",
+      "model.synthetic_shop.fct_orders"
+    ],
+    [
+      "model.synthetic_shop.dim_customers",
+      "model.synthetic_shop.stg_customers"
+    ],
+    [
+      "model.synthetic_shop.fct_daily_revenue",
+      "model.synthetic_shop.fct_orders"
+    ],
+    [
+      "model.synthetic_shop.fct_orders",
+      "model.synthetic_shop.int_customer_order_history"
+    ],
+    [
+      "model.synthetic_shop.fct_payment_events",
+      "model.synthetic_shop.int_payment_events"
+    ],
+    [
+      "model.synthetic_shop.int_customer_order_history",
+      "model.synthetic_shop.int_order_financials"
+    ],
+    [
+      "model.synthetic_shop.int_order_financials",
+      "model.synthetic_shop.int_orders_enriched"
+    ],
+    [
+      "model.synthetic_shop.int_order_financials",
+      "model.synthetic_shop.int_payment_events"
+    ],
+    [
+      "model.synthetic_shop.int_order_financials",
+      "model.synthetic_shop.stg_refunds"
+    ],
+    [
+      "model.synthetic_shop.int_order_items_enriched",
+      "model.synthetic_shop.stg_order_items"
+    ],
+    [
+      "model.synthetic_shop.int_order_items_enriched",
+      "model.synthetic_shop.stg_products"
+    ],
+    [
+      "model.synthetic_shop.int_orders_enriched",
+      "model.synthetic_shop.int_order_items_enriched"
+    ],
+    [
+      "model.synthetic_shop.int_orders_enriched",
+      "model.synthetic_shop.stg_orders"
+    ],
+    [
+      "model.synthetic_shop.int_payment_events",
+      "model.synthetic_shop.stg_payments"
+    ],
+    [
+      "model.synthetic_shop.int_payment_events",
+      "model.synthetic_shop.stg_refunds"
+    ],
+    [
+      "model.synthetic_shop.stg_customers",
+      "seed.synthetic_shop.raw_customers"
+    ],
+    [
+      "model.synthetic_shop.stg_order_items",
+      "seed.synthetic_shop.raw_order_items"
+    ],
+    [
+      "model.synthetic_shop.stg_orders",
+      "seed.synthetic_shop.raw_orders"
+    ],
+    [
+      "model.synthetic_shop.stg_payments",
+      "seed.synthetic_shop.raw_payments"
+    ],
+    [
+      "model.synthetic_shop.stg_products",
+      "seed.synthetic_shop.raw_products"
+    ],
+    [
+      "model.synthetic_shop.stg_refunds",
+      "seed.synthetic_shop.raw_refunds"
+    ]
+  ],
+  "derives": [
+    {
+      "confidence": "high",
+      "expression": "COALESCE(order_agg.lifetime_value, 0) AS lifetime_value <- SUM(fct_orders.items_subtotal + fct_orders.sales_tax - fct_orders.refunded_amount) AS lifetime_value",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.fct_orders.items_subtotal",
+      "kind": "AGGREGATION",
+      "lines": [
+        21,
+        21
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.lifetime_value"
+    },
+    {
+      "confidence": "high",
+      "expression": "order_agg.first_order_date AS first_order_date <- MIN(fct_orders.order_date) AS first_order_date",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.fct_orders.order_date",
+      "kind": "AGGREGATION",
+      "lines": [
+        18,
+        18
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.first_order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "order_agg.most_recent_order_date AS most_recent_order_date <- MAX(fct_orders.order_date) AS most_recent_order_date",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.fct_orders.order_date",
+      "kind": "AGGREGATION",
+      "lines": [
+        19,
+        19
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.most_recent_order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "fct_orders.order_date AS order_date",
+      "file": "models/marts/fct_daily_revenue.sql",
+      "from_column": "model.synthetic_shop.fct_orders.order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_daily_revenue.order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(order_agg.order_count, 0) AS order_count <- COUNT(fct_orders.order_id) AS order_count",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.fct_orders.order_id",
+      "kind": "AGGREGATION",
+      "lines": [
+        20,
+        20
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.order_count"
+    },
+    {
+      "confidence": "high",
+      "expression": "COUNT(fct_orders.order_id) AS order_count",
+      "file": "models/marts/fct_daily_revenue.sql",
+      "from_column": "model.synthetic_shop.fct_orders.order_id",
+      "kind": "AGGREGATION",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_daily_revenue.order_count"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(order_agg.lifetime_value, 0) AS lifetime_value <- SUM(fct_orders.items_subtotal + fct_orders.sales_tax - fct_orders.refunded_amount) AS lifetime_value",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.fct_orders.refunded_amount",
+      "kind": "AGGREGATION",
+      "lines": [
+        21,
+        21
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.lifetime_value"
+    },
+    {
+      "confidence": "high",
+      "expression": "SUM(fct_orders.refunded_amount) AS refunded_amount",
+      "file": "models/marts/fct_daily_revenue.sql",
+      "from_column": "model.synthetic_shop.fct_orders.refunded_amount",
+      "kind": "AGGREGATION",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_daily_revenue.refunded_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "SUM(fct_orders.revenue_finance) AS revenue_finance",
+      "file": "models/marts/fct_daily_revenue.sql",
+      "from_column": "model.synthetic_shop.fct_orders.revenue_finance",
+      "kind": "AGGREGATION",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_daily_revenue.revenue_finance"
+    },
+    {
+      "confidence": "high",
+      "expression": "SUM(fct_orders.revenue_marketing) AS revenue_marketing",
+      "file": "models/marts/fct_daily_revenue.sql",
+      "from_column": "model.synthetic_shop.fct_orders.revenue_marketing",
+      "kind": "AGGREGATION",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_daily_revenue.revenue_marketing"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(order_agg.lifetime_value, 0) AS lifetime_value <- SUM(fct_orders.items_subtotal + fct_orders.sales_tax - fct_orders.refunded_amount) AS lifetime_value",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.fct_orders.sales_tax",
+      "kind": "AGGREGATION",
+      "lines": [
+        21,
+        21
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.lifetime_value"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.customer_id AS customer_id",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.customer_id",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.item_count AS item_count",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.item_count",
+      "kind": "IDENTITY",
+      "lines": [
+        7,
+        7
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.item_count"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.items_subtotal AS items_subtotal",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.items_subtotal",
+      "kind": "IDENTITY",
+      "lines": [
+        8,
+        8
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.items_subtotal"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.items_subtotal - int_customer_order_history.refund_amount AS revenue_finance",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.items_subtotal",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        13,
+        13
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.revenue_finance"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.items_subtotal + int_customer_order_history.sales_tax AS revenue_marketing",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.items_subtotal",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        14,
+        14
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.revenue_marketing"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.net_paid_usd AS net_paid_usd",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.net_paid_usd",
+      "kind": "IDENTITY",
+      "lines": [
+        12,
+        12
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.net_paid_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.order_date - int_customer_order_history.previous_order_date AS days_since_previous_order",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.order_date",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        15,
+        15
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.days_since_previous_order"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.order_date AS order_date",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.order_id AS order_id",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.order_status_group AS order_status_group",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.order_status_group",
+      "kind": "IDENTITY",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.order_status_group"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.order_total AS order_total",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.order_total",
+      "kind": "IDENTITY",
+      "lines": [
+        10,
+        10
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.order_total"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.order_date - int_customer_order_history.previous_order_date AS days_since_previous_order",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.previous_order_date",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        15,
+        15
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.days_since_previous_order"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.previous_order_date AS previous_order_date",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.previous_order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.previous_order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.refund_amount AS refunded_amount",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.refund_amount",
+      "kind": "RENAME",
+      "lines": [
+        11,
+        11
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.refunded_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.items_subtotal - int_customer_order_history.refund_amount AS revenue_finance",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.refund_amount",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        13,
+        13
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.revenue_finance"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.items_subtotal + int_customer_order_history.sales_tax AS revenue_marketing",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.sales_tax",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        14,
+        14
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.revenue_marketing"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_customer_order_history.sales_tax AS sales_tax",
+      "file": "models/marts/fct_orders.sql",
+      "from_column": "model.synthetic_shop.int_customer_order_history.sales_tax",
+      "kind": "IDENTITY",
+      "lines": [
+        9,
+        9
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_orders.sales_tax"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.customer_id AS customer_id",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.customer_id",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.item_count AS item_count",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.item_count",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.item_count"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.items_subtotal AS items_subtotal",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.items_subtotal",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.items_subtotal"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.net_paid_usd AS net_paid_usd",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.net_paid_usd",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.net_paid_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.order_date AS order_date",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "LAG(int_order_financials.order_date) OVER (PARTITION BY int_order_financials.customer_id ORDER BY int_order_financials.order_date, int_order_financials.order_id) AS previous_order_date",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.order_date",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        3,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.previous_order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.order_id AS order_id",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.order_status_group AS order_status_group",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.order_status_group",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.order_status_group"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.order_total AS order_total",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.order_total",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.order_total"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.refund_amount AS refund_amount",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.refund_amount",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.refund_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_order_financials.sales_tax AS sales_tax",
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "from_column": "model.synthetic_shop.int_order_financials.sales_tax",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_customer_order_history.sales_tax"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- SUM(int_order_items_enriched.line_amount) AS items_subtotal",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.int_order_items_enriched.line_amount",
+      "kind": "AGGREGATION",
+      "lines": [
+        24,
+        24
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.items_subtotal"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(item_agg.item_count, 0) AS item_count <- SUM(int_order_items_enriched.quantity) AS item_count",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.int_order_items_enriched.quantity",
+      "kind": "AGGREGATION",
+      "lines": [
+        23,
+        23
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.item_count"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.customer_id AS customer_id",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.customer_id",
+      "kind": "IDENTITY",
+      "lines": [
+        19,
+        19
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.item_count AS item_count",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.item_count",
+      "kind": "IDENTITY",
+      "lines": [
+        22,
+        22
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.item_count"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.items_subtotal AS items_subtotal",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.items_subtotal",
+      "kind": "IDENTITY",
+      "lines": [
+        23,
+        23
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.items_subtotal"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.items_subtotal + orders.order_tax AS order_total",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.items_subtotal",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        25,
+        25
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.order_total"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.order_date AS order_date",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        20,
+        20
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.order_id AS order_id",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        18,
+        18
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.order_status_group AS order_status_group",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.order_status_group",
+      "kind": "IDENTITY",
+      "lines": [
+        21,
+        21
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.order_status_group"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.items_subtotal + orders.order_tax AS order_total",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.order_tax",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        25,
+        25
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.order_total"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.order_tax AS sales_tax",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_orders_enriched.order_tax",
+      "kind": "RENAME",
+      "lines": [
+        24,
+        24
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.sales_tax"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_payment_events.event_amount_usd AS event_amount_usd",
+      "file": "models/marts/fct_payment_events.sql",
+      "from_column": "model.synthetic_shop.int_payment_events.event_amount_usd",
+      "kind": "IDENTITY",
+      "lines": [
+        1,
+        1
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_payment_events.event_amount_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(cash_per_order.net_paid_usd, 0) AS net_paid_usd <- SUM(int_payment_events.event_amount_usd) AS net_paid_usd",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.int_payment_events.event_amount_usd",
+      "kind": "AGGREGATION",
+      "lines": [
+        27,
+        27
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.net_paid_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_payment_events.event_at AS event_at",
+      "file": "models/marts/fct_payment_events.sql",
+      "from_column": "model.synthetic_shop.int_payment_events.event_at",
+      "kind": "IDENTITY",
+      "lines": [
+        1,
+        1
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_payment_events.event_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_payment_events.event_id AS event_id",
+      "file": "models/marts/fct_payment_events.sql",
+      "from_column": "model.synthetic_shop.int_payment_events.event_id",
+      "kind": "IDENTITY",
+      "lines": [
+        1,
+        1
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_payment_events.event_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "int_payment_events.order_id AS order_id",
+      "file": "models/marts/fct_payment_events.sql",
+      "from_column": "model.synthetic_shop.int_payment_events.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        1,
+        1
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.fct_payment_events.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "customers.country_code AS country_code",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.stg_customers.country_code",
+      "kind": "IDENTITY",
+      "lines": [
+        16,
+        16
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.country_code"
+    },
+    {
+      "confidence": "high",
+      "expression": "customers.customer_id AS customer_id",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.stg_customers.customer_id",
+      "kind": "IDENTITY",
+      "lines": [
+        13,
+        13
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "customers.email AS email",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.stg_customers.email",
+      "kind": "IDENTITY",
+      "lines": [
+        15,
+        15
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.email"
+    },
+    {
+      "confidence": "high",
+      "expression": "customers.first_name || ' ' || customers.last_name AS full_name",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.stg_customers.first_name",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        14,
+        14
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.full_name"
+    },
+    {
+      "confidence": "high",
+      "expression": "customers.first_name || ' ' || customers.last_name AS full_name",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.stg_customers.last_name",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        14,
+        14
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.full_name"
+    },
+    {
+      "confidence": "high",
+      "expression": "customers.signup_at AS signup_at",
+      "file": "models/marts/dim_customers.sql",
+      "from_column": "model.synthetic_shop.stg_customers.signup_at",
+      "kind": "IDENTITY",
+      "lines": [
+        17,
+        17
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.dim_customers.signup_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.order_id AS order_id",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.order_item_id AS order_item_id",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.order_item_id",
+      "kind": "IDENTITY",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.order_item_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.product_id AS product_id",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.product_id",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.product_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.quantity * items.unit_price AS line_amount",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.quantity",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        8,
+        8
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.line_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.quantity AS quantity",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.quantity",
+      "kind": "IDENTITY",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.quantity"
+    },
+    {
+      "confidence": "high",
+      "expression": "CASE WHEN items.unit_price < products.list_price THEN TRUE ELSE FALSE END AS is_discounted",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.unit_price",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        9,
+        9
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.is_discounted"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.quantity * items.unit_price AS line_amount",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.unit_price",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        8,
+        8
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.line_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "items.unit_price AS unit_price",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_order_items.unit_price",
+      "kind": "IDENTITY",
+      "lines": [
+        7,
+        7
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.unit_price"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.customer_id AS customer_id",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_orders.customer_id",
+      "kind": "IDENTITY",
+      "lines": [
+        12,
+        12
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.order_date AS order_date",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_orders.order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        13,
+        13
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.order_id AS order_id",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_orders.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        11,
+        11
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "CASE orders.status WHEN 'completed' THEN 'complete' WHEN 'placed' THEN 'open' WHEN 'shipped' THEN 'open' WHEN 'return_pending' THEN 'returned' WHEN 'returned' THEN 'returned' ELSE 'other' END AS order_status_group",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_orders.status",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        14,
+        21
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.order_status_group"
+    },
+    {
+      "confidence": "high",
+      "expression": "orders.tax_amount AS order_tax",
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_orders.tax_amount",
+      "kind": "RENAME",
+      "lines": [
+        22,
+        22
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_orders_enriched.order_tax"
+    },
+    {
+      "confidence": "high",
+      "expression": "stg_payments.amount_usd AS event_amount_usd",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_payments.amount_usd",
+      "kind": "RENAME",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.event_amount_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "stg_payments.order_id AS order_id",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_payments.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "stg_payments.paid_at AS event_at",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_payments.paid_at",
+      "kind": "RENAME",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.event_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "'pay_' || stg_payments.payment_id AS event_id",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_payments.payment_id",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.event_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "products.category AS product_category",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_products.category",
+      "kind": "RENAME",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.product_category"
+    },
+    {
+      "confidence": "high",
+      "expression": "CASE WHEN items.unit_price < products.list_price THEN TRUE ELSE FALSE END AS is_discounted",
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "from_column": "model.synthetic_shop.stg_products.list_price",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        9,
+        9
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_items_enriched.is_discounted"
+    },
+    {
+      "confidence": "high",
+      "expression": "stg_refunds.order_id AS order_id",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_refunds.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        12,
+        12
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "COALESCE(refunds_per_order.refund_amount, 0) AS refund_amount <- SUM(stg_refunds.refund_amt) AS refund_amount",
+      "file": "models/intermediate/int_order_financials.sql",
+      "from_column": "model.synthetic_shop.stg_refunds.refund_amt",
+      "kind": "AGGREGATION",
+      "lines": [
+        26,
+        26
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_order_financials.refund_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "-1 * stg_refunds.refund_amt AS event_amount_usd",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_refunds.refund_amt",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        13,
+        13
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.event_amount_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "'ref_' || stg_refunds.refund_id AS event_id",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_refunds.refund_id",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        11,
+        11
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.event_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "stg_refunds.refunded_at AS event_at",
+      "file": "models/intermediate/int_payment_events.sql",
+      "from_column": "model.synthetic_shop.stg_refunds.refunded_at",
+      "kind": "RENAME",
+      "lines": [
+        14,
+        14
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.int_payment_events.event_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "UPPER(raw_customers.country) AS country_code",
+      "file": "models/staging/stg_customers.sql",
+      "from_column": "seed.synthetic_shop.raw_customers.country",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_customers.country_code"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_customers.created_at AS signup_at",
+      "file": "models/staging/stg_customers.sql",
+      "from_column": "seed.synthetic_shop.raw_customers.created_at",
+      "kind": "RENAME",
+      "lines": [
+        7,
+        7
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_customers.signup_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "LOWER(TRIM(raw_customers.email)) AS email",
+      "file": "models/staging/stg_customers.sql",
+      "from_column": "seed.synthetic_shop.raw_customers.email",
+      "kind": "TRANSFORMATION",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_customers.email"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_customers.first_name AS first_name",
+      "file": "models/staging/stg_customers.sql",
+      "from_column": "seed.synthetic_shop.raw_customers.first_name",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_customers.first_name"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_customers.id AS customer_id",
+      "file": "models/staging/stg_customers.sql",
+      "from_column": "seed.synthetic_shop.raw_customers.id",
+      "kind": "RENAME",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_customers.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_customers.last_name AS last_name",
+      "file": "models/staging/stg_customers.sql",
+      "from_column": "seed.synthetic_shop.raw_customers.last_name",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_customers.last_name"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_order_items.id AS order_item_id",
+      "file": "models/staging/stg_order_items.sql",
+      "from_column": "seed.synthetic_shop.raw_order_items.id",
+      "kind": "RENAME",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_order_items.order_item_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_order_items.order_id AS order_id",
+      "file": "models/staging/stg_order_items.sql",
+      "from_column": "seed.synthetic_shop.raw_order_items.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_order_items.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_order_items.product_id AS product_id",
+      "file": "models/staging/stg_order_items.sql",
+      "from_column": "seed.synthetic_shop.raw_order_items.product_id",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_order_items.product_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_order_items.quantity AS quantity",
+      "file": "models/staging/stg_order_items.sql",
+      "from_column": "seed.synthetic_shop.raw_order_items.quantity",
+      "kind": "IDENTITY",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_order_items.quantity"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_order_items.unit_price AS unit_price",
+      "file": "models/staging/stg_order_items.sql",
+      "from_column": "seed.synthetic_shop.raw_order_items.unit_price",
+      "kind": "IDENTITY",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_order_items.unit_price"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_orders.id AS order_id",
+      "file": "models/staging/stg_orders.sql",
+      "from_column": "seed.synthetic_shop.raw_orders.id",
+      "kind": "RENAME",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_orders.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_orders.order_date AS order_date",
+      "file": "models/staging/stg_orders.sql",
+      "from_column": "seed.synthetic_shop.raw_orders.order_date",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_orders.order_date"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_orders.status AS status",
+      "file": "models/staging/stg_orders.sql",
+      "from_column": "seed.synthetic_shop.raw_orders.status",
+      "kind": "IDENTITY",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_orders.status"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_orders.tax_usd AS tax_amount",
+      "file": "models/staging/stg_orders.sql",
+      "from_column": "seed.synthetic_shop.raw_orders.tax_usd",
+      "kind": "RENAME",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_orders.tax_amount"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_orders.user_id AS customer_id",
+      "file": "models/staging/stg_orders.sql",
+      "from_column": "seed.synthetic_shop.raw_orders.user_id",
+      "kind": "RENAME",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_orders.customer_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_payments.amt AS amount_usd",
+      "file": "models/staging/stg_payments.sql",
+      "from_column": "seed.synthetic_shop.raw_payments.amt",
+      "kind": "RENAME",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_payments.amount_usd"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_payments.created_at AS paid_at",
+      "file": "models/staging/stg_payments.sql",
+      "from_column": "seed.synthetic_shop.raw_payments.created_at",
+      "kind": "RENAME",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_payments.paid_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_payments.id AS payment_id",
+      "file": "models/staging/stg_payments.sql",
+      "from_column": "seed.synthetic_shop.raw_payments.id",
+      "kind": "RENAME",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_payments.payment_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_payments.method AS payment_method",
+      "file": "models/staging/stg_payments.sql",
+      "from_column": "seed.synthetic_shop.raw_payments.method",
+      "kind": "RENAME",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_payments.payment_method"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_payments.order_id AS order_id",
+      "file": "models/staging/stg_payments.sql",
+      "from_column": "seed.synthetic_shop.raw_payments.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_payments.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_products.category AS category",
+      "file": "models/staging/stg_products.sql",
+      "from_column": "seed.synthetic_shop.raw_products.category",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_products.category"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_products.id AS product_id",
+      "file": "models/staging/stg_products.sql",
+      "from_column": "seed.synthetic_shop.raw_products.id",
+      "kind": "RENAME",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_products.product_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_products.list_price AS list_price",
+      "file": "models/staging/stg_products.sql",
+      "from_column": "seed.synthetic_shop.raw_products.list_price",
+      "kind": "IDENTITY",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_products.list_price"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_products.name AS product_name",
+      "file": "models/staging/stg_products.sql",
+      "from_column": "seed.synthetic_shop.raw_products.name",
+      "kind": "RENAME",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_products.product_name"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_refunds.created_at AS refunded_at",
+      "file": "models/staging/stg_refunds.sql",
+      "from_column": "seed.synthetic_shop.raw_refunds.created_at",
+      "kind": "RENAME",
+      "lines": [
+        6,
+        6
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_refunds.refunded_at"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_refunds.id AS refund_id",
+      "file": "models/staging/stg_refunds.sql",
+      "from_column": "seed.synthetic_shop.raw_refunds.id",
+      "kind": "RENAME",
+      "lines": [
+        2,
+        2
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_refunds.refund_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_refunds.order_id AS order_id",
+      "file": "models/staging/stg_refunds.sql",
+      "from_column": "seed.synthetic_shop.raw_refunds.order_id",
+      "kind": "IDENTITY",
+      "lines": [
+        3,
+        3
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_refunds.order_id"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_refunds.reason AS refund_reason",
+      "file": "models/staging/stg_refunds.sql",
+      "from_column": "seed.synthetic_shop.raw_refunds.reason",
+      "kind": "RENAME",
+      "lines": [
+        5,
+        5
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_refunds.refund_reason"
+    },
+    {
+      "confidence": "high",
+      "expression": "raw_refunds.refund_amt AS refund_amt",
+      "file": "models/staging/stg_refunds.sql",
+      "from_column": "seed.synthetic_shop.raw_refunds.refund_amt",
+      "kind": "IDENTITY",
+      "lines": [
+        4,
+        4
+      ],
+      "model_level_citation": false,
+      "to_column": "model.synthetic_shop.stg_refunds.refund_amt"
+    }
+  ],
+  "dlens_version": "0.1.0",
+  "exposures": [],
+  "models": [
+    {
+      "file": "models/marts/dim_customers.sql",
+      "name": "dim_customers",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.dim_customers"
+    },
+    {
+      "file": "models/marts/fct_daily_revenue.sql",
+      "name": "fct_daily_revenue",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.fct_daily_revenue"
+    },
+    {
+      "file": "models/marts/fct_orders.sql",
+      "name": "fct_orders",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.fct_orders"
+    },
+    {
+      "file": "models/marts/fct_payment_events.sql",
+      "name": "fct_payment_events",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.fct_payment_events"
+    },
+    {
+      "file": "models/intermediate/int_customer_order_history.sql",
+      "name": "int_customer_order_history",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.int_customer_order_history"
+    },
+    {
+      "file": "models/intermediate/int_order_financials.sql",
+      "name": "int_order_financials",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.int_order_financials"
+    },
+    {
+      "file": "models/intermediate/int_order_items_enriched.sql",
+      "name": "int_order_items_enriched",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.int_order_items_enriched"
+    },
+    {
+      "file": "models/intermediate/int_orders_enriched.sql",
+      "name": "int_orders_enriched",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.int_orders_enriched"
+    },
+    {
+      "file": "models/intermediate/int_payment_events.sql",
+      "name": "int_payment_events",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.int_payment_events"
+    },
+    {
+      "file": "models/staging/stg_customers.sql",
+      "name": "stg_customers",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.stg_customers"
+    },
+    {
+      "file": "models/staging/stg_order_items.sql",
+      "name": "stg_order_items",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.stg_order_items"
+    },
+    {
+      "file": "models/staging/stg_orders.sql",
+      "name": "stg_orders",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.stg_orders"
+    },
+    {
+      "file": "models/staging/stg_payments.sql",
+      "name": "stg_payments",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.stg_payments"
+    },
+    {
+      "file": "models/staging/stg_products.sql",
+      "name": "stg_products",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.stg_products"
+    },
+    {
+      "file": "models/staging/stg_refunds.sql",
+      "name": "stg_refunds",
+      "resource_type": "model",
+      "unique_id": "model.synthetic_shop.stg_refunds"
+    },
+    {
+      "file": "seeds/raw_customers.csv",
+      "name": "raw_customers",
+      "resource_type": "seed",
+      "unique_id": "seed.synthetic_shop.raw_customers"
+    },
+    {
+      "file": "seeds/raw_order_items.csv",
+      "name": "raw_order_items",
+      "resource_type": "seed",
+      "unique_id": "seed.synthetic_shop.raw_order_items"
+    },
+    {
+      "file": "seeds/raw_orders.csv",
+      "name": "raw_orders",
+      "resource_type": "seed",
+      "unique_id": "seed.synthetic_shop.raw_orders"
+    },
+    {
+      "file": "seeds/raw_payments.csv",
+      "name": "raw_payments",
+      "resource_type": "seed",
+      "unique_id": "seed.synthetic_shop.raw_payments"
+    },
+    {
+      "file": "seeds/raw_products.csv",
+      "name": "raw_products",
+      "resource_type": "seed",
+      "unique_id": "seed.synthetic_shop.raw_products"
+    },
+    {
+      "file": "seeds/raw_refunds.csv",
+      "name": "raw_refunds",
+      "resource_type": "seed",
+      "unique_id": "seed.synthetic_shop.raw_refunds"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "model.synthetic_shop.dim_customers.country_code",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "country_code",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.customer_id",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.email",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "email",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.first_order_date",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "first_order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.full_name",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "full_name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.lifetime_value",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "lifetime_value",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.most_recent_order_date",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "most_recent_order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.order_count",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "order_count",
+      "type": "BIGINT"
+    },
+    {
+      "id": "model.synthetic_shop.dim_customers.signup_at",
+      "model": "model.synthetic_shop.dim_customers",
+      "name": "signup_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "model.synthetic_shop.fct_daily_revenue.order_count",
+      "model": "model.synthetic_shop.fct_daily_revenue",
+      "name": "order_count",
+      "type": "BIGINT"
+    },
+    {
+      "id": "model.synthetic_shop.fct_daily_revenue.order_date",
+      "model": "model.synthetic_shop.fct_daily_revenue",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.fct_daily_revenue.refunded_amount",
+      "model": "model.synthetic_shop.fct_daily_revenue",
+      "name": "refunded_amount",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_daily_revenue.revenue_finance",
+      "model": "model.synthetic_shop.fct_daily_revenue",
+      "name": "revenue_finance",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_daily_revenue.revenue_marketing",
+      "model": "model.synthetic_shop.fct_daily_revenue",
+      "name": "revenue_marketing",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.customer_id",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.days_since_previous_order",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "days_since_previous_order",
+      "type": "BIGINT"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.item_count",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "item_count",
+      "type": "HUGEINT"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.items_subtotal",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "items_subtotal",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.net_paid_usd",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "net_paid_usd",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.order_date",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.order_id",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.order_status_group",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "order_status_group",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.order_total",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "order_total",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.previous_order_date",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "previous_order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.refunded_amount",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "refunded_amount",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.revenue_finance",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "revenue_finance",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.revenue_marketing",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "revenue_marketing",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_orders.sales_tax",
+      "model": "model.synthetic_shop.fct_orders",
+      "name": "sales_tax",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_payment_events.event_amount_usd",
+      "model": "model.synthetic_shop.fct_payment_events",
+      "name": "event_amount_usd",
+      "type": "DECIMAL(18,2)"
+    },
+    {
+      "id": "model.synthetic_shop.fct_payment_events.event_at",
+      "model": "model.synthetic_shop.fct_payment_events",
+      "name": "event_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "model.synthetic_shop.fct_payment_events.event_id",
+      "model": "model.synthetic_shop.fct_payment_events",
+      "name": "event_id",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.fct_payment_events.order_id",
+      "model": "model.synthetic_shop.fct_payment_events",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.customer_id",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.item_count",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "item_count",
+      "type": "HUGEINT"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.items_subtotal",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "items_subtotal",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.net_paid_usd",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "net_paid_usd",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.order_date",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.order_id",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.order_status_group",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "order_status_group",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.order_total",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "order_total",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.previous_order_date",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "previous_order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.refund_amount",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "refund_amount",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_customer_order_history.sales_tax",
+      "model": "model.synthetic_shop.int_customer_order_history",
+      "name": "sales_tax",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.customer_id",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.item_count",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "item_count",
+      "type": "HUGEINT"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.items_subtotal",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "items_subtotal",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.net_paid_usd",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "net_paid_usd",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.order_date",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.order_id",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.order_status_group",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "order_status_group",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.order_total",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "order_total",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.refund_amount",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "refund_amount",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_financials.sales_tax",
+      "model": "model.synthetic_shop.int_order_financials",
+      "name": "sales_tax",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.is_discounted",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "is_discounted",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.line_amount",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "line_amount",
+      "type": "DECIMAL(18,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.order_id",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.order_item_id",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "order_item_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.product_category",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "product_category",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.product_id",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "product_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.quantity",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "quantity",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_order_items_enriched.unit_price",
+      "model": "model.synthetic_shop.int_order_items_enriched",
+      "name": "unit_price",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.customer_id",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.item_count",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "item_count",
+      "type": "HUGEINT"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.items_subtotal",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "items_subtotal",
+      "type": "DECIMAL(38,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.order_date",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.order_id",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.order_status_group",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "order_status_group",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.int_orders_enriched.order_tax",
+      "model": "model.synthetic_shop.int_orders_enriched",
+      "name": "order_tax",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_payment_events.event_amount_usd",
+      "model": "model.synthetic_shop.int_payment_events",
+      "name": "event_amount_usd",
+      "type": "DECIMAL(18,2)"
+    },
+    {
+      "id": "model.synthetic_shop.int_payment_events.event_at",
+      "model": "model.synthetic_shop.int_payment_events",
+      "name": "event_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "model.synthetic_shop.int_payment_events.event_id",
+      "model": "model.synthetic_shop.int_payment_events",
+      "name": "event_id",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.int_payment_events.order_id",
+      "model": "model.synthetic_shop.int_payment_events",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_customers.country_code",
+      "model": "model.synthetic_shop.stg_customers",
+      "name": "country_code",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_customers.customer_id",
+      "model": "model.synthetic_shop.stg_customers",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_customers.email",
+      "model": "model.synthetic_shop.stg_customers",
+      "name": "email",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_customers.first_name",
+      "model": "model.synthetic_shop.stg_customers",
+      "name": "first_name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_customers.last_name",
+      "model": "model.synthetic_shop.stg_customers",
+      "name": "last_name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_customers.signup_at",
+      "model": "model.synthetic_shop.stg_customers",
+      "name": "signup_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "model.synthetic_shop.stg_order_items.order_id",
+      "model": "model.synthetic_shop.stg_order_items",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_order_items.order_item_id",
+      "model": "model.synthetic_shop.stg_order_items",
+      "name": "order_item_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_order_items.product_id",
+      "model": "model.synthetic_shop.stg_order_items",
+      "name": "product_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_order_items.quantity",
+      "model": "model.synthetic_shop.stg_order_items",
+      "name": "quantity",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_order_items.unit_price",
+      "model": "model.synthetic_shop.stg_order_items",
+      "name": "unit_price",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.stg_orders.customer_id",
+      "model": "model.synthetic_shop.stg_orders",
+      "name": "customer_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_orders.order_date",
+      "model": "model.synthetic_shop.stg_orders",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "model.synthetic_shop.stg_orders.order_id",
+      "model": "model.synthetic_shop.stg_orders",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_orders.status",
+      "model": "model.synthetic_shop.stg_orders",
+      "name": "status",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_orders.tax_amount",
+      "model": "model.synthetic_shop.stg_orders",
+      "name": "tax_amount",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.stg_payments.amount_usd",
+      "model": "model.synthetic_shop.stg_payments",
+      "name": "amount_usd",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.stg_payments.order_id",
+      "model": "model.synthetic_shop.stg_payments",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_payments.paid_at",
+      "model": "model.synthetic_shop.stg_payments",
+      "name": "paid_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "model.synthetic_shop.stg_payments.payment_id",
+      "model": "model.synthetic_shop.stg_payments",
+      "name": "payment_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_payments.payment_method",
+      "model": "model.synthetic_shop.stg_payments",
+      "name": "payment_method",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_products.category",
+      "model": "model.synthetic_shop.stg_products",
+      "name": "category",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_products.list_price",
+      "model": "model.synthetic_shop.stg_products",
+      "name": "list_price",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.stg_products.product_id",
+      "model": "model.synthetic_shop.stg_products",
+      "name": "product_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_products.product_name",
+      "model": "model.synthetic_shop.stg_products",
+      "name": "product_name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_refunds.order_id",
+      "model": "model.synthetic_shop.stg_refunds",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_refunds.refund_amt",
+      "model": "model.synthetic_shop.stg_refunds",
+      "name": "refund_amt",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "model.synthetic_shop.stg_refunds.refund_id",
+      "model": "model.synthetic_shop.stg_refunds",
+      "name": "refund_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "model.synthetic_shop.stg_refunds.refund_reason",
+      "model": "model.synthetic_shop.stg_refunds",
+      "name": "refund_reason",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "model.synthetic_shop.stg_refunds.refunded_at",
+      "model": "model.synthetic_shop.stg_refunds",
+      "name": "refunded_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_customers.country",
+      "model": "seed.synthetic_shop.raw_customers",
+      "name": "country",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_customers.created_at",
+      "model": "seed.synthetic_shop.raw_customers",
+      "name": "created_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_customers.email",
+      "model": "seed.synthetic_shop.raw_customers",
+      "name": "email",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_customers.first_name",
+      "model": "seed.synthetic_shop.raw_customers",
+      "name": "first_name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_customers.id",
+      "model": "seed.synthetic_shop.raw_customers",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_customers.last_name",
+      "model": "seed.synthetic_shop.raw_customers",
+      "name": "last_name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_order_items.id",
+      "model": "seed.synthetic_shop.raw_order_items",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_order_items.order_id",
+      "model": "seed.synthetic_shop.raw_order_items",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_order_items.product_id",
+      "model": "seed.synthetic_shop.raw_order_items",
+      "name": "product_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_order_items.quantity",
+      "model": "seed.synthetic_shop.raw_order_items",
+      "name": "quantity",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_order_items.unit_price",
+      "model": "seed.synthetic_shop.raw_order_items",
+      "name": "unit_price",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_orders.id",
+      "model": "seed.synthetic_shop.raw_orders",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_orders.order_date",
+      "model": "seed.synthetic_shop.raw_orders",
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_orders.status",
+      "model": "seed.synthetic_shop.raw_orders",
+      "name": "status",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_orders.tax_usd",
+      "model": "seed.synthetic_shop.raw_orders",
+      "name": "tax_usd",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_orders.user_id",
+      "model": "seed.synthetic_shop.raw_orders",
+      "name": "user_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_payments.amt",
+      "model": "seed.synthetic_shop.raw_payments",
+      "name": "amt",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_payments.created_at",
+      "model": "seed.synthetic_shop.raw_payments",
+      "name": "created_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_payments.id",
+      "model": "seed.synthetic_shop.raw_payments",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_payments.method",
+      "model": "seed.synthetic_shop.raw_payments",
+      "name": "method",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_payments.order_id",
+      "model": "seed.synthetic_shop.raw_payments",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_products.category",
+      "model": "seed.synthetic_shop.raw_products",
+      "name": "category",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_products.id",
+      "model": "seed.synthetic_shop.raw_products",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_products.list_price",
+      "model": "seed.synthetic_shop.raw_products",
+      "name": "list_price",
+      "type": "DECIMAL(10,2)"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_products.name",
+      "model": "seed.synthetic_shop.raw_products",
+      "name": "name",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_refunds.created_at",
+      "model": "seed.synthetic_shop.raw_refunds",
+      "name": "created_at",
+      "type": "TIMESTAMP"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_refunds.id",
+      "model": "seed.synthetic_shop.raw_refunds",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_refunds.order_id",
+      "model": "seed.synthetic_shop.raw_refunds",
+      "name": "order_id",
+      "type": "INTEGER"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_refunds.reason",
+      "model": "seed.synthetic_shop.raw_refunds",
+      "name": "reason",
+      "type": "VARCHAR"
+    },
+    {
+      "id": "seed.synthetic_shop.raw_refunds.refund_amt",
+      "model": "seed.synthetic_shop.raw_refunds",
+      "name": "refund_amt",
+      "type": "DECIMAL(10,2)"
+    }
+  ],
+  "parse_report": {
+    "model.synthetic_shop.dim_customers": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.fct_daily_revenue": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.fct_orders": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.fct_payment_events": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.int_customer_order_history": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.int_order_financials": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.int_order_items_enriched": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.int_orders_enriched": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.int_payment_events": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.stg_customers": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.stg_order_items": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.stg_orders": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.stg_payments": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.stg_products": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    },
+    "model.synthetic_shop.stg_refunds": {
+      "constants": [],
+      "gaps": [],
+      "quality": "FULL",
+      "reason": null
+    }
+  },
+  "version": 2
+}

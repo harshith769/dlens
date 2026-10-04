@@ -22,6 +22,7 @@ from dlens.agent.tools.provenance import Citation, Provenance, edge_id, safe_rea
 from dlens.cli import trace_summary
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, ParseQuality
+from dlens.ui import demo
 from dlens.ui.style import BORDER, CLAIM_NOTES, KIND_COLORS, MUTED, PRIMARY, Tone
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -32,6 +33,13 @@ PROJECTS = {
     "jaffle_shop": ROOT / "corpora" / "jaffle_shop",
 }
 EXAMPLES_PER_GROUP = 2
+
+
+def projects() -> dict[str, Path]:
+    """The projects the app offers: the prebuilt bundle in demo mode, else the corpora."""
+    return demo.projects() if demo.enabled() else PROJECTS
+
+
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 
 
@@ -215,10 +223,10 @@ def run_cached(run: AgentRun | None) -> bool | None:
 
 def project_problem(name: str) -> Hint | None:
     """Why ``name`` cannot be opened (unknown, or its folder is missing), else None."""
-    if name not in PROJECTS:
-        known = ", ".join(PROJECTS)
-        return Hint(f"Unknown project: {name}", f"Pick one of: {known}.")
-    if not PROJECTS[name].is_dir():
+    known = projects()
+    if name not in known:
+        return Hint(f"Unknown project: {name}", f"Pick one of: {', '.join(known)}.")
+    if not known[name].is_dir():
         return Hint(
             f"Project folder missing: corpora/{name}",
             "Restore the corpus, then build its lineage graph.",

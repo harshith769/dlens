@@ -21,7 +21,7 @@ from dlens.agent.loop import ask as run_agent
 from dlens.agent.runlog import RunLogger, runs_dir
 from dlens.agent.tools import Toolbox
 from dlens.graph import LineageGraph, load_or_build
-from dlens.ui import style, view
+from dlens.ui import demo, style, view
 
 PROVIDER = "ollama"
 INTRO = (
@@ -33,7 +33,9 @@ EMPTY = "Pick an example or type a question."
 
 @st.cache_resource(show_spinner="Building the lineage graph (first run takes ~10 s)...")
 def load_graph(project: str) -> LineageGraph:
-    return load_or_build(view.PROJECTS[project])
+    if demo.enabled():  # prebuilt bundle: no dbt, no target/
+        return demo.load_graph(view.projects()[project])
+    return load_or_build(view.projects()[project])
 
 
 # -- state changes (callbacks) ------------------------------------------------------------------
@@ -42,7 +44,7 @@ def load_graph(project: str) -> LineageGraph:
 def _ask(project: str, question: str) -> None:
     try:
         client = llm.make_client(PROVIDER)
-        box = Toolbox(load_graph(project), view.PROJECTS[project])
+        box = Toolbox(load_graph(project), view.projects()[project])
         run = run_agent(question, client, box, RunLogger(runs_dir()), project=project)
     except Exception as e:  # the agent already turns provider errors into refusals
         st.session_state.update(error=f"{type(e).__name__}: {e}", run=None)
@@ -92,13 +94,13 @@ def provider_slot(slot: DeltaGenerator) -> None:
 def header() -> str | None:
     """Title and intro with the provider on the right, then the project picker and stats. The
     project is None if it cannot be opened."""
-    names = list(view.PROJECTS)
+    names = list(view.projects())
     wanted = st.query_params.get("project")
     title, provider = st.columns([4, 1.4], vertical_alignment="top")
     title.markdown("## DLens")
     title.markdown(style.intro(INTRO, REPO, "Source on GitHub"), unsafe_allow_html=True)
     provider_slot(provider.empty())
-    if wanted is not None and wanted not in view.PROJECTS:
+    if wanted is not None and wanted not in view.projects():
         show_hint(view.project_problem(wanted) or view.Hint("Unknown project", ""))
         return None
     pick, stats = st.columns([1.5, 4], vertical_alignment="bottom")
@@ -370,7 +372,7 @@ def explore_tab(project: str) -> None:
     shown = edges[: d.shown]
     if shown:
         st.markdown("**Edges**")
-        st.dataframe(view.explore_rows(graph, view.PROJECTS[project], shown), hide_index=True)
+        st.dataframe(view.explore_rows(graph, view.projects()[project], shown), hide_index=True)
     models = view.edge_models(graph, shown, focus)
     uid = st.selectbox(
         "Model SQL",
@@ -380,7 +382,7 @@ def explore_tab(project: str) -> None:
     )
     if uid is None:
         return
-    src = view.model_source(graph, view.PROJECTS[project], uid)
+    src = view.model_source(graph, view.projects()[project], uid)
     if src is None:
         st.caption("No source file inside the project for this model.")
         return
