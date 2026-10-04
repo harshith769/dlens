@@ -57,8 +57,8 @@ and S03's engine-vs-gold comparison all use the same rule.
 
 ### Checks
 Structural (always): schema; endpoints exist in the inventory; no duplicate direct `(from, to)` or
-indirect `(from, to, type)`; no explicit indirect target that is also direct; every edge's source
-model is in the target model's `depends_on`, and every `depends_on` parent contributes at least one
+indirect `(from, to, type)`; no trap tag repeated within one row's `traps` list (direct or
+indirect); no explicit indirect target that is also direct; every edge's source model is in the target model's `depends_on`, and every `depends_on` parent contributes at least one
 edge, direct or indirect (`int_orders_enriched` feeds `fct_product_performance` only through a JOIN
 key and a FILTER); every model column has an incoming edge (D3).
 

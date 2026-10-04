@@ -121,6 +121,19 @@ def test_duplicate_indirect_pair_same_type_but_not_other_type() -> None:
     assert "no duplicate edges" in run(s)
 
 
+def test_duplicate_trap_tag_within_one_edge_fails() -> None:
+    s = spec()
+    s["edges"][0]["traps"] = ["deep_chain", "deep_chain"]
+    s["indirect_edges"][0]["traps"] = ["join_key_only", "join_key_only", "x"]
+    assert run(s)["no duplicate trap tags within an edge"] == [
+        "direct raw_a.id -> stg_a.a_id: deep_chain",
+        "indirect stg_a.a_id -> int_b: join_key_only",
+    ]
+    s["edges"][0]["traps"] = ["deep_chain", "rename_chain"]
+    s["indirect_edges"][0]["traps"] = ["join_key_only"]
+    assert run(s) == {}
+
+
 def test_explicit_target_that_is_direct_fails() -> None:
     s = spec()
     s["indirect_edges"].append(ind("stg_a.x", "int_b", "FILTER", ["x2"]))

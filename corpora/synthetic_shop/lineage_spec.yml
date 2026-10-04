@@ -562,14 +562,14 @@ edges:
   - {from: dim_customers.most_recent_order_date, to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [fan_in_aggregate]}
   - {from: fct_orders.order_date,                to: dim_customer_rfm.rfm_score,           kind: AGGREGATION,    phase: v0.1, traps: [fan_in_aggregate]}
   - {from: dim_customers.order_count,            to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [fan_in_aggregate]}
-  - {from: dim_customers.lifetime_value,         to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [deep_chain, deep_chain, fan_in_aggregate]}
+  - {from: dim_customers.lifetime_value,         to: dim_customer_rfm.rfm_score,           kind: TRANSFORMATION, phase: v0.1, traps: [deep_chain, fan_in_aggregate]}
   - {from: int_customer_sessions.session_count,  to: dim_customer_rfm.web_session_count,   kind: TRANSFORMATION, phase: v0.1, traps: []}
 
   # dim_customer_segments  <- dim_customer_rfm
   - {from: dim_customer_rfm.customer_id,        to: dim_customer_segments.customer_id,      kind: IDENTITY,       phase: v0.1, traps: []}
   - {from: dim_customer_rfm.rfm_score,          to: dim_customer_segments.rfm_score,        kind: IDENTITY,       phase: v0.1, traps: []}
   - {from: dim_customer_rfm.recency_days,       to: dim_customer_segments.recency_days,     kind: IDENTITY,       phase: v0.1, traps: []}
-  - {from: dim_customer_rfm.rfm_score,          to: dim_customer_segments.customer_segment, kind: TRANSFORMATION, phase: v0.1, traps: [deep_chain, deep_chain, case_transformation]}
+  - {from: dim_customer_rfm.rfm_score,          to: dim_customer_segments.customer_segment, kind: TRANSFORMATION, phase: v0.1, traps: [deep_chain, case_transformation]}
   - {from: dim_customer_rfm.rfm_recency_score,  to: dim_customer_segments.customer_segment, kind: TRANSFORMATION, phase: v0.1, traps: [case_transformation]}
   - {from: dim_customer_rfm.rfm_monetary_score, to: dim_customer_segments.is_high_value,    kind: TRANSFORMATION, phase: v0.1, traps: []}
 

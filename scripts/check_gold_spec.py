@@ -229,6 +229,23 @@ def check_duplicates(v: View) -> Check:
     return _check("no duplicate edges", p)
 
 
+def check_trap_tags_unique(v: View) -> Check:
+    """A trap tag appears at most once in one row's `traps` list (direct and indirect rows)."""
+    p = []
+    for label, rows in (("direct", v.direct), ("indirect", v.indirect_rows)):
+        for r in rows:
+            tags = r.get("traps") or []
+            dups = (
+                sorted(t for t, n in Counter(tags).items() if n > 1)
+                if isinstance(tags, list)
+                else []
+            )
+            if dups:
+                end = r.get("to") if label == "direct" else r.get("model")
+                p.append(f"{label} {r.get('from')} -> {end}: {', '.join(map(str, dups))}")
+    return _check("no duplicate trap tags within an edge", p)
+
+
 def _dups(keys: Iterable[tuple[str, ...]]) -> list[tuple[tuple[str, ...], int]]:
     return sorted((k, n) for k, n in Counter(keys).items() if n > 1)
 
@@ -553,6 +570,7 @@ def check_spec(
         schema,
         check_endpoints(v),
         check_duplicates(v),
+        check_trap_tags_unique(v),
         check_overlap(v),
         check_depends_on(v),
         check_incoming(v),
