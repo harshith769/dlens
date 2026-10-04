@@ -8,7 +8,8 @@ relation map) into:
   Column ids use the spec §6 format `{unique_id}.{column}`, lowercased.
 - **DEPENDS_ON** pairs, copied from the manifest so a model is never lost.
 - A **parse report**: `ModelParse` per model with FULL / TABLE_ONLY / FAILED, the reason, the
-  gaps, and `deferred_indirect` (window keys kept for v0.3).
+  gaps, and `deferred_indirect` (window keys, kept for the parse report).
+- **DEPENDS_ON_INDIRECT edges** (`IndirectEdge`, S03, ADR 0020): see `docs/explain/indirect-edges.md`.
 
 `gold.compare` scores edges against a hand-written `lineage_spec.yml`, and
 `scripts/compare_gold.py` runs the whole pipeline on a corpus.

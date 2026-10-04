@@ -26,8 +26,10 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
    `via` edge. Models come from the owners of affected columns. Exposures come from those models
    plus the root's own model (changing a column affects what reads its model).
    `truncated` means the frontier still had unseen successors at `max_depth`.
-5. **`include_indirect`** is accepted on both calls and does nothing in v0.1: there are no
-   indirect edges yet. `deferred_indirect` is only stored and saved, so v0.3 can promote it.
+5. **`include_indirect`** is accepted on both calls and still does nothing. Since S03 the graph
+   stores indirect edges (`indirect_edges()`, a separate list outside the nx graph,
+   `docs/explain/indirect-edges.md`), but no traversal reads them until exposure.
+   `deferred_indirect` is still stored and saved for the parse report.
 6. **`resolve`**: an exact id wins. Otherwise a query with a dot matches ids ending in
    `"." + query`, so `stg_orders.order_id` can't match `xstg_orders.order_id`. Several matches raise
    `AmbiguousColumn` listing the full ids. No match raises `ColumnNotFound` with the 3 closest
@@ -38,6 +40,8 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
 8. **Cache** (`cache.py`): `target/dlens_graph.json` is used unless it is missing, older than
    `target/manifest.json`, or older than any file under `models/`, `seeds/`, `macros/`,
    `snapshots/`, `tests/` or `dbt_project.yml`. `--rebuild` forces a rebuild, which re-runs dbt.
+   Format v3 (S03) adds `indirect`. `load` accepts v2 files (no indirect edges, e.g. the demo
+   bundle), while `load_or_build` rebuilds any cache whose format is not the current one.
    `load` also rejects a file whose `version` (format) or `dlens_version` differs from the running
    code, and `load_or_build` treats that as a miss and rebuilds, so an upgrade never serves a graph
    written by older code.
