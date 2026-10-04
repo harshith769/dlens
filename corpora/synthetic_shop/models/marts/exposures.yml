@@ -1,0 +1,26 @@
+version: 2
+
+exposures:
+  - name: finance_dashboard
+    label: Finance dashboard
+    type: dashboard
+    maturity: high
+    description: Monthly and daily revenue for the finance team.
+    owner:
+      name: Finance Analytics (placeholder)
+      email: finance-analytics@example.com
+    depends_on:
+      - ref('fct_monthly_finance')
+      - ref('fct_daily_revenue')
+
+  - name: marketing_dashboard
+    label: Marketing dashboard
+    type: dashboard
+    maturity: medium
+    description: Spend, attribution and return on ad spend by channel.
+    owner:
+      name: Marketing Analytics (placeholder)
+      email: marketing-analytics@example.com
+    depends_on:
+      - ref('fct_marketing_attribution')
+      - ref('fct_channel_performance_monthly')

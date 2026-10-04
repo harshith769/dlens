@@ -2,29 +2,178 @@ version: 2
 
 models:
   - name: fct_orders
+    description: One row per order - the finance and marketing revenue definitions side by side.
     columns:
       - name: order_id
+        description: Order key.
         tests:
           - unique
           - not_null
+      - name: revenue_finance
+        description: Finance revenue - items subtotal minus refunds, excluding tax.
+      - name: revenue_marketing
+        description: Marketing revenue - items subtotal plus sales tax, refunds not deducted.
 
   - name: dim_customers
+    description: One row per customer with contact details and order totals.
     columns:
       - name: customer_id
+        description: Customer key.
         tests:
           - unique
           - not_null
+      - name: lifetime_value
+        description: Items subtotal plus tax minus refunds, summed over the customer's orders.
 
   - name: fct_daily_revenue
+    description: Revenue per order day under both revenue definitions.
     columns:
       - name: order_date
+        description: The order day.
         tests:
           - unique
           - not_null
 
   - name: fct_payment_events
+    description: The cash ledger of payments and refunds, exposed for BI.
     columns:
       - name: event_id
+        description: Event key.
         tests:
           - unique
           - not_null
+
+  - name: fct_order_margins
+    description: Order profitability for BI - every int_order_profit column except the profitability flag, plus margin percentage.
+    columns:
+      - name: order_id
+        description: Order key.
+        tests:
+          - unique
+          - not_null
+      - name: contribution_margin
+        description: "Gross margin minus shipping cost."
+      - name: margin_pct
+        description: Contribution margin as a share of net revenue.
+
+  - name: dim_customer_rfm
+    description: Recency, frequency and monetary scores (1 to 3) per customer, as of the latest order date.
+    columns:
+      - name: customer_id
+        description: Customer key.
+        tests:
+          - unique
+          - not_null
+      - name: recency_days
+        description: Days between the customer's latest order and the latest order date in the shop.
+      - name: rfm_score
+        description: Three-digit score - recency, frequency and monetary score digits.
+
+  - name: dim_customer_segments
+    description: Named customer segments derived from the RFM scores.
+    columns:
+      - name: customer_id
+        description: Customer key.
+        tests:
+          - unique
+          - not_null
+      - name: customer_segment
+        description: One of champion, loyal, at_risk or hibernating.
+      - name: is_high_value
+        description: True when the monetary score is the top level.
+
+  - name: fct_segment_monthly
+    description: Orders and finance revenue per customer segment and month.
+    columns:
+      - name: segment_order_count
+        description: Orders in the month from customers of the segment.
+      - name: segment_revenue_finance
+        description: Finance revenue in the month from customers of the segment.
+
+  - name: fct_marketing_attribution
+    description: Spend, traffic and last-touch attributed orders per day and channel.
+    columns:
+      - name: report_date
+        description: The spend day.
+      - name: roas
+        description: Attributed marketing revenue divided by spend.
+
+  - name: fct_channel_performance_monthly
+    description: Monthly return on ad spend per channel.
+    columns:
+      - name: report_month
+        description: First day of the month.
+      - name: roas
+        description: Attributed marketing revenue divided by spend for the month.
+
+  - name: fct_product_performance
+    description: Units, sales and margin per product on completed orders.
+    columns:
+      - name: product_id
+        description: Product key.
+        tests:
+          - unique
+          - not_null
+      - name: discounted_units
+        description: Units sold below list price.
+      - name: gross_margin
+        description: Sum of line margins on completed orders.
+
+  - name: fct_top_products
+    description: The 10 products with the highest gross margin.
+    columns:
+      - name: product_id
+        description: Product key.
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_customer_leaderboard
+    description: The 20 customers with the highest lifetime value, with their segment.
+    columns:
+      - name: customer_id
+        description: Customer key.
+        tests:
+          - unique
+          - not_null
+      - name: lifetime_value_usd
+        description: The customer's lifetime value in USD.
+
+  - name: fct_inventory_status
+    description: Latest stock per product and warehouse, with days of cover at the current sales rate.
+    columns:
+      - name: as_of_date
+        description: Day of the latest snapshot.
+      - name: days_of_cover
+        description: Days the stock lasts at the yearly units-sold rate; null for products with no completed sales.
+
+  - name: fct_shipping_performance
+    description: Delivery KPIs per carrier and ship month.
+    columns:
+      - name: late_shipment_count
+        description: Shipments delivered in more than 5 days.
+      - name: shipping_costs_usd
+        description: Carrier charges for the carrier and month, in USD.
+
+  - name: fct_customer_cohorts
+    description: Retention and cash per signup-month cohort and order month.
+    columns:
+      - name: cohort_month
+        description: Month the customers signed up.
+      - name: repeat_customers
+        description: Cohort customers with an order in the month that was not their first.
+      - name: cumulative_net_paid
+        description: Net cash paid by the cohort up to and including the order month.
+
+  - name: fct_monthly_finance
+    description: Monthly finance summary - revenue, margins and order adjustments.
+    columns:
+      - name: finance_month
+        description: First day of the month.
+        tests:
+          - unique
+          - not_null
+      - name: revenue_marketing
+        description: "Monthly revenue net of refunds, excluding tax."
+      - name: revenue_finance_mom_change
+        description: Change in finance revenue from the previous month.
