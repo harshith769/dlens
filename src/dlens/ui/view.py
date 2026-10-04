@@ -573,28 +573,138 @@ def build_lineage_dot(
     return LineageDot("\n".join(out), len(shown), len(dict.fromkeys(edges)))
 
 
+# -- steps and checks --------------------------------------------------------------------------
+
+# (rule, plain-English meaning). R2r and R8c are code steps reported with their rule.
+RULES: tuple[tuple[str, str], ...] = (
+    ("R1", "Every claim cites at least one id."),
+    ("R2", "Every cited id was returned by a tool for this question."),
+    ("R2r", "A miscopied id is fixed only when exactly one returned id fits."),
+    ("R3", "Each citation still holds on disk: the file lines contain the evidence."),
+    ("R4", "Every model or column named in the text exists and came from this question's tools."),
+    ("R5", "Kind words (renamed, aggregated, computed) match the kinds of the cited edges."),
+    ("R6", "File paths and line numbers in the text match a citation."),
+    ("R7", "Each claim's citations touch what the claim names."),
+    ("R8", "A claim linking two columns is connected by its cited edges, with no skipped hop."),
+    ("R8c", "A missing connecting edge that the tools did return is added by code."),
+    ("R9", "A yes/no answer agrees with the graph's reachability check."),
+)
+NINE_RULES = tuple((r, m) for r, m in RULES if r not in ("R2r", "R8c"))
+_PHASES = {
+    "tool": "Tool call",
+    "code": "Code step",
+    "answer": "Answer draft",
+    "repair": "Repair",
+    "regenerate": "Regenerate",
+}
+
+
 def _tool_label(call: dict[str, Any]) -> str:
     args = ", ".join(f"{k}={v}" for k, v in (call.get("arguments") or {}).items())
     return f"{call.get('name')}({args})"
 
 
-def _result_tools(step: Any) -> str:
-    return ", ".join(r.tool for r in step.results)
+def _result_label(r: Any) -> str:
+    args = ", ".join(f"{k}={v}" for k, v in (r.args or {}).items())
+    return f"{r.tool}({args})" + (" (duplicate, skipped)" if r.deduped else "")
 
 
-def trace_rows(run: AgentRun) -> list[dict[str, Any]]:
-    """One row per step of the run record for the trace expander."""
-    return [
-        {
-            "step": s.index,
-            "phase": s.phase,
-            "tools": ", ".join(map(_tool_label, s.tool_calls)) or _result_tools(s),
-            "in_tokens": s.input_tokens or s.est_input_tokens,
-            "out_tokens": s.output_tokens,
-            "cached": s.cached,
-        }
-        for s in run.record.steps
-    ]
+@dataclass(frozen=True)
+class TimelineItem:
+    title: str
+    detail: str
+    meta: str
+    kind: str  # css class: "" (LLM), "code", "check", "warn"
+
+
+def timeline(run: AgentRun) -> list[TimelineItem]:
+    """One item per recorded step, then the validation outcome."""
+    items = []
+    for s in run.record.steps:
+        if s.phase == "code":
+            detail = ", ".join(map(_result_label, s.results))
+            meta = "by code, no LLM call"
+        else:
+            detail = ", ".join(map(_tool_label, s.tool_calls)) or ", ".join(
+                map(_result_label, s.results)
+            )
+            tokens = s.input_tokens or s.est_input_tokens
+            meta = f"{tokens:,} in / {s.output_tokens:,} out tokens · {s.latency_ms:,.0f} ms"
+            if s.cached:
+                meta += " · cached"
+        if s.error:
+            detail = f"{detail} — error: {s.error}".lstrip(" —")
+        kind = "warn" if s.error else ("code" if s.phase == "code" else "")
+        items.append(TimelineItem(_PHASES.get(s.phase, s.phase), detail, meta, kind))
+    badge = verification(run)
+    items.append(
+        TimelineItem(
+            "Validation",
+            badge.label,
+            f"{len(run.answer.claims)} claims kept",
+            "warn" if badge.tone == "warning" else "check",
+        )
+    )
+    return items
+
+
+@dataclass(frozen=True)
+class CheckRow:
+    rule: str
+    meaning: str
+    outcome: str
+    failures: str  # "" | "2" | "2 → 0" (first draft → regenerated draft)
+
+
+def _by_rule(summary: dict[str, Any] | None) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for f in (summary or {}).get("failures") or []:
+        rule = str(f.get("rule", "?")).split(".")[0]
+        out[rule] = out.get(rule, 0) + 1
+    return out
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def checks_table(run: AgentRun) -> list[CheckRow]:
+    """R1-R9 plus R2r/R8c for this answer: what each checks and how it went."""
+    v = run.record.validation
+    if not v or v.get("skipped"):
+        why = "Not checked (refusal or clarification)" if v else "Not checked"
+        return [CheckRow(r, m, why, "") for r, m in RULES]
+    first, second = _by_rule(v.get("first")), _by_rule(v.get("second"))
+    has_second = v.get("second") is not None
+    yes_no = any(r.tool == "reachability" for s in run.record.steps for r in s.results)
+    rows = []
+    for rule, meaning in RULES:
+        if rule == "R2r":
+            n = len(v.get("repairs") or [])
+            rows.append(
+                CheckRow(rule, meaning, f"Repaired {_plural(n, 'id')}" if n else "Not needed", "")
+            )
+            continue
+        if rule == "R8c":
+            n = len(v.get("completions") or [])
+            outcome = f"Completed {_plural(n, 'claim')}" if n else "Not needed"
+            rows.append(CheckRow(rule, meaning, outcome, ""))
+            continue
+        if rule == "R9" and not yes_no:
+            rows.append(CheckRow(rule, meaning, "Not a yes/no question", ""))
+            continue
+        a, b = first.get(rule, 0), second.get(rule, 0)
+        if not a and not b:
+            rows.append(CheckRow(rule, meaning, "Passed", ""))
+            continue
+        if has_second:
+            count = f"{a} → {b}"
+            outcome = "Fixed by regenerating" if not b else "Still failing; claims removed"
+        else:
+            count = str(a)
+            outcome = "Failed; claims removed"
+        rows.append(CheckRow(rule, meaning, outcome, count))
+    return rows
 
 
 def trace_info(run: AgentRun) -> dict[str, object]:

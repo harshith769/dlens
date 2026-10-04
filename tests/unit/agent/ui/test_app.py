@@ -127,3 +127,10 @@ def test_lineage_toggle_draws_cited_then_full_lineage(start):
     spec = at.get("graphviz_chart")[0].proto.spec
     assert spec.count(" -> ") == 2  # fct.total <- stg.amount <- raw.amt
     assert any("Upstream of fct.total" in c.value for c in at.caption)
+
+
+def test_steps_and_checks_tabs_render(start):
+    at = ask(start(_agg_answer()))
+    assert any("dl-timeline" in t and "Tool call" in t and "Validation" in t for t in texts(at))
+    frames = at.dataframe
+    assert frames and "R2r" in list(frames[0].value["Rule"])

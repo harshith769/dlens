@@ -384,3 +384,82 @@ def test_fact_statement_for_graph_checks(shop_root: Path):
     rid = next(i for i in box.emitted_ids if i.startswith("r_"))
     assert view.fact_statement(box, rid) == "raw.amt reaches fct.total in 2 hops (graph check)"
     assert view.fact_statement(box, "r_missing") is None
+
+
+def _step(index, phase, **kw):
+    base = {
+        "tool_calls": [],
+        "results": [],
+        "input_tokens": 0,
+        "est_input_tokens": 0,
+        "output_tokens": 0,
+        "cached": False,
+        "latency_ms": 0.0,
+        "error": None,
+    }
+    return SimpleNamespace(index=index, phase=phase, **{**base, **kw})
+
+
+def _res(tool, deduped=False, **args):
+    return SimpleNamespace(tool=tool, args=args, deduped=deduped)
+
+
+def test_timeline_lists_steps_then_validation():
+    steps = [
+        _step(
+            0,
+            "tool",
+            tool_calls=[{"name": "trace_upstream", "arguments": {"column_id": "a.b"}}],
+            input_tokens=1200,
+            output_tokens=30,
+            latency_ms=812.4,
+            cached=True,
+        ),
+        _step(1, "code", results=[_res("reachability", from_column="a", to_column="b")]),
+        _step(2, "answer", est_input_tokens=900, error="bad json"),
+    ]
+    run = _run(Answer(answer_text="x"), _v(), steps=steps)
+    items = view.timeline(run)
+    assert [i.title for i in items] == ["Tool call", "Code step", "Answer draft", "Validation"]
+    assert items[0].detail == "trace_upstream(column_id=a.b)"
+    assert items[0].meta == "1,200 in / 30 out tokens · 812 ms · cached"
+    assert items[1].kind == "code" and "reachability(from_column=a, to_column=b)" in items[1].detail
+    assert items[2].kind == "warn" and "error: bad json" in items[2].detail
+    assert items[3].detail == "Verified" and items[3].kind == "check"
+
+
+def test_checks_table_outcomes():
+    first = {
+        "failures": [
+            {"claim_index": 0, "rule": "R4.hallucinated"},
+            {"claim_index": 1, "rule": "R4.unsupported"},
+            {"claim_index": 1, "rule": "R8"},
+        ]
+    }
+    second = {"failures": [{"claim_index": 0, "rule": "R8"}]}
+    v = _v(
+        passed=False,
+        warning=True,
+        regenerated=True,
+        first=first,
+        second=second,
+        repairs=[{"claim_index": 0}],
+    )
+    steps = [_step(0, "code", results=[_res("reachability")])]
+    rows = {r.rule: r for r in view.checks_table(_run(Answer(answer_text="x"), v, steps=steps))}
+    assert [r for r, _ in view.RULES] == list(rows)
+    assert (rows["R4"].outcome, rows["R4"].failures) == ("Fixed by regenerating", "2 → 0")
+    assert (rows["R8"].outcome, rows["R8"].failures) == ("Still failing; claims removed", "1 → 1")
+    assert rows["R1"].outcome == "Passed" and rows["R9"].outcome == "Passed"
+    assert rows["R2r"].outcome == "Repaired 1 id" and rows["R8c"].outcome == "Not needed"
+    once = view.checks_table(_run(Answer(answer_text="x"), _v(first=first)))
+    assert {r.rule: r.outcome for r in once}["R9"] == "Not a yes/no question"
+    assert {r.rule: (r.outcome, r.failures) for r in once}["R8"] == ("Failed; claims removed", "1")
+    skipped = view.checks_table(_run(Answer.refusal("no"), _v(skipped=True)))
+    assert all(r.outcome.startswith("Not checked") for r in skipped)
+    assert len(view.NINE_RULES) == 9
+
+
+def test_timeline_html_escapes():
+    html = style.timeline([("<b>", "<script>", "m", "code")])
+    assert "<script>" not in html and "&lt;b&gt;" in html and 'class="code"' in html

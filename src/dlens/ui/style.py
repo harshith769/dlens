@@ -87,3 +87,14 @@ def claim_line(text: str, status: str) -> str:
         f'<div class="dl-claim"><span style="color:{color};font-weight:600">{mark}</span> '
         f"{escape(text)}{tail}</div>"
     )
+
+
+def timeline(items: list[tuple[str, str, str, str]]) -> str:
+    """A vertical list of steps: (title, detail, meta, css kind); all text is escaped."""
+    rows = "".join(
+        f'<li class="{escape(kind)}"><b>{escape(title)}</b>'
+        + (f"<br>{escape(detail)}" if detail else "")
+        + f'<br><span class="meta">{escape(meta)}</span></li>'
+        for title, detail, meta, kind in items
+    )
+    return f'<ul class="dl-timeline">{rows}</ul>'

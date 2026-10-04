@@ -190,11 +190,32 @@ def details() -> None:
     with source:
         source_view(st.session_state.run, box, selected)
     with steps:
-        t = view.trace_info(st.session_state.run)
-        st.write(f"{t['llm_calls']} LLM calls · validator: {t['validator']}")
-        st.dataframe(view.trace_rows(st.session_state.run), hide_index=True)
+        run = st.session_state.run
+        t = view.trace_info(run)
+        st.caption(
+            f"{t['llm_calls']} LLM calls · {t['tool_calls']} tool calls "
+            f"({t['deduped']} duplicates skipped, {t['code_calls']} by code) · "
+            f"cached {t['cached_calls']}/{t['llm_calls']}"
+        )
+        items = [(i.title, i.detail, i.meta, i.kind) for i in view.timeline(run)]
+        st.markdown(style.timeline(items), unsafe_allow_html=True)
     with checks:
-        st.code(render(answer), language=None)
+        rows = view.checks_table(st.session_state.run)
+        st.dataframe(
+            [
+                {
+                    "Rule": r.rule,
+                    "What it checks": r.meaning,
+                    "Outcome": r.outcome,
+                    "Failures": r.failures,
+                }
+                for r in rows
+            ],
+            hide_index=True,
+            column_config={"What it checks": st.column_config.TextColumn(width="large")},
+        )
+        with st.expander("Plain-text answer (as the CLI prints it)"):
+            st.code(render(answer), language=None)
 
 
 def diagram(d: view.LineageDot) -> None:
