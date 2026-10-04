@@ -280,3 +280,23 @@ def test_indirect_report_splits_v1_and_new_models(v1_models: set, label: str) ->
     assert ("2 rows" in v1_part) == (label == "v1")
     assert ("2 rows" in new_part) == (label == "new")
     assert "pairs suppressed by D7 (direct edge wins): 1" in lines  # stg_a.a_id -> int_b.a_id
+
+
+# ------------------------------------------------------------------- the real v2 gold spec
+CORPUS = ROOT / "corpora" / "synthetic_shop"
+
+
+def test_synthetic_shop_v2_spec_passes() -> None:
+    checks = cg.run(CORPUS / "lineage_spec_v2.yml", CORPUS / "spec_v2_expected.yml")
+    names = {c.name for c in checks}
+    assert "v1 direct edges content-identical (115 edges)" in names
+    # Until the indirect edges land, only these gaps remain (they are closed by indirect rows).
+    assert failed(checks) == {
+        "depends_on": [
+            "depends_on(fct_product_performance): int_orders_enriched contributes no edge",
+            "depends_on(fct_monthly_finance): fct_orders contributes no edge",
+        ],
+        "every model column has an incoming edge (D3)": [
+            "int_web_sessions_clean.session_number has no incoming edge"
+        ],
+    }

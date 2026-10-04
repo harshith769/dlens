@@ -1,0 +1,214 @@
+# Expected numbers for lineage_spec_v2.yml, every one taken from corpora/synthetic_shop/DESIGN_v2.md.
+# Used by scripts/check_gold_spec.py --expected and by tests/unit/test_check_gold_spec.py.
+# Paths below are relative to this file. Never fill these in from dlens output.
+
+v1_spec: lineage_spec.yml  # the 115 v1 edges must stay content-identical (DESIGN_v2 §1.2, §10 D2)
+
+# DESIGN_v2 §0 Summary and §2 Model inventory
+counts:
+  seeds: 14
+  seed_columns: 73
+  models: {stg: 14, int: 18, mart: 17}            # 49
+  model_columns: {stg: 74, int: 130, mart: 114}    # 318
+  direct_edges: 363
+  direct_kinds: {IDENTITY: 160, RENAME: 42, TRANSFORMATION: 88, AGGREGATION: 73}
+
+# DESIGN_v2 §5 histogram (v2 row) and §10 D3; depth = longest direct-edge path from a seed
+depth_histogram: {1: 74, 2: 69, 3: 64, 4: 28, 5: 27, 6: 28, 7: 12, 8: 10, 9: 3, 10: 2, n/a: 1}
+depth_na: [int_web_sessions_clean.session_number]
+max_depth: 10  # §5 "Margin": fct_segment_monthly / fct_customer_leaderboard .customer_segment
+
+# DESIGN_v2 §5 "6+ columns by model" (total 55)
+six_plus_by_model:
+  fct_orders: 5
+  dim_customers: 4
+  fct_daily_revenue: 4
+  fct_monthly_finance: 7
+  fct_customer_cohorts: 6
+  dim_customer_rfm: 5
+  fct_order_margins: 5
+  fct_segment_monthly: 5
+  dim_customer_segments: 4
+  fct_marketing_attribution: 4
+  fct_channel_performance_monthly: 2
+  fct_customer_leaderboard: 2
+  int_order_attribution: 1
+  int_order_profit: 1
+
+# DESIGN_v2 §1 constraints and §3 trap 2: columns that must not exist
+absent_columns:
+  - {column: stg_orders.ship_date, why: "dev-19 expects a refusal (§1)"}
+  - {column: int_order_item_margins.product_category, why: "dev-14: no second product_category on order items (§1)"}
+  - {column: fct_order_margins.is_profitable, why: "SELECT * EXCLUDE (is_profitable) (§3 trap 2)"}
+
+# DESIGN_v2 §1 and §9 (dev-10): checked direct-only and direct + indirect (D7 targets)
+unreachable:
+  - {from: raw_payments.amt, to: dim_customers.lifetime_value, modes: [direct, direct+indirect], why: "dev-10 answer is no"}
+
+# DESIGN_v2 Appendix B: all 55 columns at 6+ hops, one longest direct path each
+deep_columns:
+  - column: dim_customer_rfm.recency_days
+    hops: 7
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, dim_customers.most_recent_order_date, dim_customer_rfm.recency_days]
+  - column: dim_customer_rfm.rfm_frequency_score
+    hops: 7
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, fct_orders.order_id, dim_customers.order_count, dim_customer_rfm.rfm_frequency_score]
+  - column: dim_customer_rfm.rfm_monetary_score
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_monetary_score]
+  - column: dim_customer_rfm.rfm_recency_score
+    hops: 7
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, dim_customers.most_recent_order_date, dim_customer_rfm.rfm_recency_score]
+  - column: dim_customer_rfm.rfm_score
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_score]
+  - column: dim_customer_segments.customer_segment
+    hops: 9
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_score, dim_customer_segments.customer_segment]
+  - column: dim_customer_segments.is_high_value
+    hops: 9
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_monetary_score, dim_customer_segments.is_high_value]
+  - column: dim_customer_segments.recency_days
+    hops: 8
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, dim_customers.most_recent_order_date, dim_customer_rfm.recency_days, dim_customer_segments.recency_days]
+  - column: dim_customer_segments.rfm_score
+    hops: 9
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_score, dim_customer_segments.rfm_score]
+  - column: dim_customers.first_order_date
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, dim_customers.first_order_date]
+  - column: dim_customers.lifetime_value
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value]
+  - column: dim_customers.most_recent_order_date
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, dim_customers.most_recent_order_date]
+  - column: dim_customers.order_count
+    hops: 6
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, fct_orders.order_id, dim_customers.order_count]
+  - column: fct_channel_performance_monthly.attributed_revenue
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_attribution.attributed_revenue, fct_marketing_attribution.attributed_revenue, fct_channel_performance_monthly.attributed_revenue]
+  - column: fct_channel_performance_monthly.roas
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_attribution.attributed_revenue, fct_marketing_attribution.attributed_revenue, fct_channel_performance_monthly.roas]
+  - column: fct_customer_cohorts.cohort_customers
+    hops: 6
+    path: [raw_orders.user_id, stg_orders.customer_id, int_orders_enriched.customer_id, int_order_financials.customer_id, int_customer_order_history.customer_id, fct_orders.customer_id, fct_customer_cohorts.cohort_customers]
+  - column: fct_customer_cohorts.cohort_net_paid
+    hops: 6
+    path: [raw_refunds.refund_amt, stg_refunds.refund_amt, int_payment_events.event_amount_usd, int_order_financials.net_paid_usd, int_customer_order_history.net_paid_usd, fct_orders.net_paid_usd, fct_customer_cohorts.cohort_net_paid]
+  - column: fct_customer_cohorts.cumulative_net_paid
+    hops: 6
+    path: [raw_refunds.refund_amt, stg_refunds.refund_amt, int_payment_events.event_amount_usd, int_order_financials.net_paid_usd, int_customer_order_history.net_paid_usd, fct_orders.net_paid_usd, fct_customer_cohorts.cumulative_net_paid]
+  - column: fct_customer_cohorts.months_since_signup
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, fct_customer_cohorts.months_since_signup]
+  - column: fct_customer_cohorts.order_month
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, fct_customer_cohorts.order_month]
+  - column: fct_customer_cohorts.repeat_customers
+    hops: 6
+    path: [raw_orders.user_id, stg_orders.customer_id, int_orders_enriched.customer_id, int_order_financials.customer_id, int_customer_order_history.customer_id, fct_orders.customer_id, fct_customer_cohorts.repeat_customers]
+  - column: fct_customer_leaderboard.customer_segment
+    hops: 10
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_score, dim_customer_segments.customer_segment, fct_customer_leaderboard.customer_segment]
+  - column: fct_customer_leaderboard.lifetime_value_usd
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, fct_customer_leaderboard.lifetime_value_usd]
+  - column: fct_daily_revenue.order_count
+    hops: 6
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, fct_orders.order_id, fct_daily_revenue.order_count]
+  - column: fct_daily_revenue.order_date
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, fct_daily_revenue.order_date]
+  - column: fct_daily_revenue.revenue_finance
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_finance, fct_daily_revenue.revenue_finance]
+  - column: fct_daily_revenue.revenue_marketing
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_marketing, fct_daily_revenue.revenue_marketing]
+  - column: fct_marketing_attribution.attributed_orders
+    hops: 6
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, int_order_attribution.order_id, fct_marketing_attribution.attributed_orders]
+  - column: fct_marketing_attribution.attributed_revenue
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_attribution.attributed_revenue, fct_marketing_attribution.attributed_revenue]
+  - column: fct_marketing_attribution.cost_per_order
+    hops: 6
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, int_order_attribution.order_id, fct_marketing_attribution.cost_per_order]
+  - column: fct_marketing_attribution.roas
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_attribution.attributed_revenue, fct_marketing_attribution.roas]
+  - column: fct_monthly_finance.contribution_margin
+    hops: 6
+    path: [raw_shipments.shipping_cost_usd, stg_shipments.shipping_cost_usd, int_shipments_enriched.shipping_cost_usd, int_order_shipping.shipping_cost_total, int_order_profit.contribution_margin, fct_order_margins.contribution_margin, fct_monthly_finance.contribution_margin]
+  - column: fct_monthly_finance.finance_month
+    hops: 7
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, fct_daily_revenue.order_date, fct_monthly_finance.finance_month]
+  - column: fct_monthly_finance.net_revenue
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_profit.net_revenue, fct_order_margins.net_revenue, fct_monthly_finance.net_revenue]
+  - column: fct_monthly_finance.refunded_amount
+    hops: 6
+    path: [raw_refunds.refund_amt, stg_refunds.refund_amt, int_order_financials.refund_amount, int_customer_order_history.refund_amount, fct_orders.refunded_amount, fct_daily_revenue.refunded_amount, fct_monthly_finance.refunded_amount]
+  - column: fct_monthly_finance.revenue_finance
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_finance, fct_daily_revenue.revenue_finance, fct_monthly_finance.revenue_finance]
+  - column: fct_monthly_finance.revenue_finance_mom_change
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_finance, fct_daily_revenue.revenue_finance, fct_monthly_finance.revenue_finance_mom_change]
+  - column: fct_monthly_finance.revenue_marketing
+    hops: 8
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_marketing, fct_daily_revenue.revenue_marketing, fct_monthly_finance.revenue_marketing]
+  - column: fct_order_margins.customer_id
+    hops: 6
+    path: [raw_orders.user_id, stg_orders.customer_id, int_orders_enriched.customer_id, int_order_financials.customer_id, int_customer_order_history.customer_id, int_order_profit.customer_id, fct_order_margins.customer_id]
+  - column: fct_order_margins.margin_pct
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_profit.net_revenue, fct_order_margins.margin_pct]
+  - column: fct_order_margins.net_revenue
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_profit.net_revenue, fct_order_margins.net_revenue]
+  - column: fct_order_margins.order_date
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, int_order_profit.order_date, fct_order_margins.order_date]
+  - column: fct_order_margins.order_id
+    hops: 6
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, int_order_profit.order_id, fct_order_margins.order_id]
+  - column: fct_orders.item_count
+    hops: 6
+    path: [raw_order_items.quantity, stg_order_items.quantity, int_order_items_enriched.quantity, int_orders_enriched.item_count, int_order_financials.item_count, int_customer_order_history.item_count, fct_orders.item_count]
+  - column: fct_orders.items_subtotal
+    hops: 6
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal]
+  - column: fct_orders.order_total
+    hops: 6
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.order_total, int_customer_order_history.order_total, fct_orders.order_total]
+  - column: fct_orders.revenue_finance
+    hops: 6
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_finance]
+  - column: fct_orders.revenue_marketing
+    hops: 6
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_marketing]
+  - column: fct_segment_monthly.active_customers
+    hops: 6
+    path: [raw_orders.user_id, stg_orders.customer_id, int_orders_enriched.customer_id, int_order_financials.customer_id, int_customer_order_history.customer_id, fct_orders.customer_id, fct_segment_monthly.active_customers]
+  - column: fct_segment_monthly.customer_segment
+    hops: 10
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.items_subtotal, dim_customers.lifetime_value, dim_customer_rfm.rfm_score, dim_customer_segments.customer_segment, fct_segment_monthly.customer_segment]
+  - column: fct_segment_monthly.order_month
+    hops: 6
+    path: [raw_orders.order_date, stg_orders.order_date, int_orders_enriched.order_date, int_order_financials.order_date, int_customer_order_history.order_date, fct_orders.order_date, fct_segment_monthly.order_month]
+  - column: fct_segment_monthly.segment_order_count
+    hops: 6
+    path: [raw_orders.id, stg_orders.order_id, int_orders_enriched.order_id, int_order_financials.order_id, int_customer_order_history.order_id, fct_orders.order_id, fct_segment_monthly.segment_order_count]
+  - column: fct_segment_monthly.segment_revenue_finance
+    hops: 7
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, fct_orders.revenue_finance, fct_segment_monthly.segment_revenue_finance]
+  - column: int_order_attribution.attributed_revenue
+    hops: 6
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_attribution.attributed_revenue]
+  - column: int_order_profit.net_revenue
+    hops: 6
+    path: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.line_amount, int_orders_enriched.items_subtotal, int_order_financials.items_subtotal, int_customer_order_history.items_subtotal, int_order_profit.net_revenue]
