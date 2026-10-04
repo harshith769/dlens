@@ -1,0 +1,51 @@
+{
+ "id": "dev-19",
+ "record": {
+  "ambiguity": null,
+  "clarification": null,
+  "compactions": [],
+  "draft": null,
+  "draft_raw": null,
+  "error": "stg_orders has no column ship_date (closest: order_date, status, customer_id)",
+  "evidence": {},
+  "final_answer": {
+   "answer_text": "I can't answer this: stg_orders has no column ship_date (closest: order_date, status, customer_id)",
+   "citations": {},
+   "claims": [],
+   "clarification": null,
+   "confidence": "low",
+   "partial_evidence": false,
+   "refusal_reason": "stg_orders has no column ship_date (closest: order_date, status, customer_id)",
+   "refused": true,
+   "subgraph": [],
+   "validation_warning": false
+  },
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "params": {
+   "num_ctx": 8192,
+   "temperature": 0,
+   "think": false
+  },
+  "project": "synthetic_shop",
+  "provider": "ollama",
+  "question": "What is affected if stg_orders.ship_date changes?",
+  "regenerate_draft_raw": null,
+  "run_id": "38aa1335fef4490caec3d0395103c6df",
+  "schema_version": 1,
+  "started_at": "2026-10-04T06:23:05+00:00",
+  "steps": [],
+  "stop_reason": "unknown_column",
+  "timings": {
+   "total_ms": 0.2
+  },
+  "tokens": {
+   "cached_calls": 0,
+   "llm_calls": 0,
+   "max_est_input": 0,
+   "sum_input": 0,
+   "sum_output": 0
+  },
+  "validation": null
+ },
+ "subtype": "nonexistent_column"
+}

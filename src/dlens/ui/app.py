@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 from html import escape
+from pathlib import Path
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
@@ -39,6 +40,18 @@ def load_graph(project: str) -> LineageGraph:
     if demo.enabled():  # prebuilt bundle: no dbt, no target/
         return demo.load_graph(view.projects()[project])
     return load_or_build(view.projects()[project])
+
+
+@st.cache_resource(show_spinner=False)
+def load_presets(directory: str) -> dict[str, demo.Preset]:
+    return {p.id: p for p in demo.load_presets(Path(directory))}
+
+
+def presets() -> list[demo.Preset]:
+    return list(load_presets(str(demo.presets_dir())).values()) if demo.enabled() else []
+
+
+PRESET_HELP = "Recorded earlier with the local model and replayed here: no model call, no quota."
 
 
 # -- state changes (callbacks) ------------------------------------------------------------------
@@ -92,7 +105,9 @@ def _ask(project: str, question: str) -> None:
     if hint is not None:  # a provider failure is an error state, not a refusal
         st.session_state.update(error=run.answer.refusal_reason, run=None)
         return
-    st.session_state.update(error=None, run=run, box=box, project_of_run=project, selected=None)
+    st.session_state.update(
+        error=None, run=run, box=box, project_of_run=project, selected=None, preset=None
+    )
     entry = {"question": question, "project": project, "run": run, "box": box}
     st.session_state.history = view.push_history(st.session_state.get("history") or [], entry)
 
@@ -100,8 +115,33 @@ def _ask(project: str, question: str) -> None:
 def _restore(n: int) -> None:
     h = st.session_state.history[n]
     st.session_state.update(
-        error=None, run=h["run"], box=h["box"], project_of_run=h["project"], selected=None
+        error=None,
+        limit=None,
+        run=h["run"],
+        box=h["box"],
+        project_of_run=h["project"],
+        selected=None,
+        preset=h.get("preset"),
     )
+
+
+def _preset(project: str, pid: str) -> None:
+    """Replay a precomputed answer: the tool calls re-run on the graph, no LLM call."""
+    p = load_presets(str(demo.presets_dir()))[pid]
+    run, box = demo.replay(p, load_graph(project), view.projects()[project])
+    st.session_state.update(
+        error=None,
+        limit=None,
+        run=run,
+        box=box,
+        project_of_run=project,
+        selected=None,
+        preset=p.badge,
+        question=p.question,
+    )
+    entry = {"question": p.question, "project": project, "run": run, "box": box}
+    entry["preset"] = p.badge
+    st.session_state.history = view.push_history(st.session_state.get("history") or [], entry)
 
 
 def _example(text: str) -> None:
@@ -210,6 +250,9 @@ def question_panel(project: str) -> None:
                     type="tertiary",
                     width="stretch",
                 )
+    if demo.enabled():
+        preset_list(project)
+        return
     groups = view.examples(project)
     if groups:
         st.markdown("**Examples**")
@@ -223,7 +266,31 @@ def question_panel(project: str) -> None:
                     st.button(q, key=f"ex{g}-{i}", on_click=_example, args=(q,), width="stretch")
 
 
+def preset_list(project: str) -> None:
+    items = presets()
+    if not items:
+        return
+    st.markdown("**Presets**")
+    st.caption(f"{items[0].badge} · instant, no quota")
+    with st.container(key="presets", gap="small"):
+        for p in items:
+            st.button(
+                p.question,
+                key=f"preset-{p.id}",
+                help=PRESET_HELP,
+                on_click=_preset,
+                args=(project, p.id),
+                width="stretch",
+            )
+
+
 def empty_state(project: str) -> None:
+    if demo.enabled():
+        st.markdown("#### Pick a preset or type a question.")
+        with st.container(key="empty", horizontal=True, gap="small"):
+            for p in presets()[:4]:
+                st.button(p.question, key=f"empty-{p.id}", on_click=_preset, args=(project, p.id))
+        return
     st.markdown(f"#### {EMPTY}")
     groups = view.examples(project)
     with st.container(key="empty", horizontal=True, gap="small"):
@@ -247,7 +314,10 @@ def answer_panel(project: str) -> None:
         return
     answer = run.answer
     badges = [view.verdict(run), view.verification(run)]
-    if view.run_cached(run):
+    preset = st.session_state.get("preset")
+    if preset:
+        badges.append(view.Badge(preset, "neutral", PRESET_HELP))
+    elif view.run_cached(run):
         badges.append(view.CACHED)
     html = "".join(style.badge(b.label, b.tone, b.help) for b in badges)
     st.markdown(html, unsafe_allow_html=True)

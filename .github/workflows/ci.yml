@@ -27,3 +27,23 @@ jobs:
           uv sync
           uv run dlens --version
           uv run pytest -q -m "not integration" --ignore=tests/unit/agent
+
+  # The Streamlit Cloud install: ONLY demo/requirements.txt (no dbt, no torch). Boots the demo
+  # entrypoint and replays a preset, so a stray heavy import fails here, not on the live app.
+  demo-install:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+      - name: demo/requirements.txt matches uv.lock
+        run: |
+          make demo-requirements
+          git diff --exit-code demo/requirements.txt
+      - name: clean venv from demo/requirements.txt only
+        run: |
+          uv venv --python 3.12 /tmp/demo
+          uv pip install --python /tmp/demo/bin/python -r demo/requirements.txt
+      - name: boot the demo and click a preset
+        run: /tmp/demo/bin/python scripts/demo_install_check.py

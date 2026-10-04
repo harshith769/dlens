@@ -1,0 +1,548 @@
+{
+ "id": "dev-06",
+ "record": {
+  "ambiguity": null,
+  "clarification": null,
+  "compactions": [],
+  "draft": {
+   "answer_text": "fct_daily_revenue.revenue_marketing comes from the aggregation of fct_orders.revenue_marketing, which is derived from int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax. These values are formed by combining items_subtotal and sales_tax from the order history data. The items_subtotal originates from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price. The final revenue_marketing value is aggregated across orders in fct_orders and then summed in fct_daily_revenue.",
+   "claims": [
+    {
+     "ids": [
+      "e_f8e81a3a"
+     ],
+     "text": "fct_daily_revenue.revenue_marketing is derived from the aggregation of fct_orders.revenue_marketing."
+    },
+    {
+     "ids": [
+      "e_1a11f0cc",
+      "e_e31b889d"
+     ],
+     "text": "fct_orders.revenue_marketing is formed by combining int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax."
+    },
+    {
+     "ids": [
+      "e_c3f_1f72",
+      "e_40fc66b2",
+      "e_9fa09a73"
+     ],
+     "text": "int_customer_order_history.items_subtotal comes from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price."
+    }
+   ],
+   "confidence": "high",
+   "refusal_reason": null,
+   "refused": false
+  },
+  "draft_raw": "{\n  \"answer_text\": \"fct_daily_revenue.revenue_marketing comes from the aggregation of fct_orders.revenue_marketing, which is derived from int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax. These values are formed by combining items_subtotal and sales_tax from the order history data. The items_subtotal originates from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price. The final revenue_marketing value is aggregated across orders in fct_orders and then summed in fct_daily_revenue.\",\n  \"claims\": [\n    {\n      \"ids\": [\n        \"e_f8e81a3a\"\n      ],\n      \"text\": \"fct_daily_revenue.revenue_marketing is derived from the aggregation of fct_orders.revenue_marketing.\"\n    },\n    {\n      \"ids\": [\n        \"e_1a11f0cc\",\n        \"e_e31b889d\"\n      ],\n      \"text\": \"fct_orders.revenue_marketing is formed by combining int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax.\"\n    },\n    {\n      \"ids\": [\n        \"e_c3f_1f72\",\n        \"e_40fc66b2\",\n        \"e_9fa09a73\"\n      ],\n      \"text\": \"int_customer_order_history.items_subtotal comes from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price.\"\n    }\n  ],\n  \"confidence\": \"high\",\n  \"refused\": false\n}",
+  "error": null,
+  "evidence": {
+   "dropped_ids": [],
+   "ids": [
+    "e_f8e81a3a",
+    "e_1a11f0cc",
+    "e_4be1cdaa",
+    "e_6d23179d",
+    "e_c3f01f72",
+    "e_40fc66b2",
+    "e_7eb3df0a",
+    "e_9fa09a73",
+    "e_4feff8c4",
+    "e_e31b889d",
+    "e_b190b3f8",
+    "e_4b23403a",
+    "e_2bd2a64c",
+    "e_63af580c"
+   ],
+   "partial_evidence": false
+  },
+  "final_answer": {
+   "answer_text": "fct_daily_revenue.revenue_marketing comes from the aggregation of fct_orders.revenue_marketing, which is derived from int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax. These values are formed by combining items_subtotal and sales_tax from the order history data. The items_subtotal originates from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price. The final revenue_marketing value is aggregated across orders in fct_orders and then summed in fct_daily_revenue.",
+   "citations": {
+    "e_1a11f0cc": {
+     "file": "models/marts/fct_orders.sql",
+     "level": "line",
+     "line_end": 14,
+     "line_start": 14
+    },
+    "e_40fc66b2": {
+     "file": "models/intermediate/int_order_items_enriched.sql",
+     "level": "line",
+     "line_end": 8,
+     "line_start": 8
+    },
+    "e_4be1cdaa": {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "level": "star",
+     "line_end": 2,
+     "line_start": 2
+    },
+    "e_4feff8c4": {
+     "file": "models/staging/stg_order_items.sql",
+     "level": "line",
+     "line_end": 6,
+     "line_start": 6
+    },
+    "e_6d23179d": {
+     "file": "models/intermediate/int_order_financials.sql",
+     "level": "line",
+     "line_end": 23,
+     "line_start": 23
+    },
+    "e_7eb3df0a": {
+     "file": "models/staging/stg_order_items.sql",
+     "level": "line",
+     "line_end": 5,
+     "line_start": 5
+    },
+    "e_9fa09a73": {
+     "file": "models/intermediate/int_order_items_enriched.sql",
+     "level": "line",
+     "line_end": 8,
+     "line_start": 8
+    },
+    "e_c3f01f72": {
+     "file": "models/intermediate/int_orders_enriched.sql",
+     "level": "line",
+     "line_end": 24,
+     "line_start": 24
+    },
+    "e_e31b889d": {
+     "file": "models/marts/fct_orders.sql",
+     "level": "line",
+     "line_end": 14,
+     "line_start": 14
+    },
+    "e_f8e81a3a": {
+     "file": "models/marts/fct_daily_revenue.sql",
+     "level": "line",
+     "line_end": 5,
+     "line_start": 5
+    }
+   },
+   "claims": [
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_f8e81a3a"
+     ],
+     "text": "fct_daily_revenue.revenue_marketing is derived from the aggregation of fct_orders.revenue_marketing."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_1a11f0cc",
+      "e_e31b889d"
+     ],
+     "text": "fct_orders.revenue_marketing is formed by combining int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_c3f01f72",
+      "e_40fc66b2",
+      "e_9fa09a73",
+      "e_6d23179d",
+      "e_4be1cdaa",
+      "e_7eb3df0a",
+      "e_4feff8c4"
+     ],
+     "text": "int_customer_order_history.items_subtotal comes from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price."
+    }
+   ],
+   "clarification": null,
+   "confidence": "high",
+   "partial_evidence": false,
+   "refusal_reason": null,
+   "refused": false,
+   "subgraph": [
+    "e_f8e81a3a",
+    "e_1a11f0cc",
+    "e_e31b889d",
+    "e_c3f01f72",
+    "e_40fc66b2",
+    "e_9fa09a73",
+    "e_6d23179d",
+    "e_4be1cdaa",
+    "e_7eb3df0a",
+    "e_4feff8c4"
+   ],
+   "validation_warning": false
+  },
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "params": {
+   "num_ctx": 8192,
+   "temperature": 0,
+   "think": false
+  },
+  "project": "synthetic_shop",
+  "provider": "ollama",
+  "question": "Where does fct_daily_revenue.revenue_marketing come from?",
+  "regenerate_draft_raw": null,
+  "run_id": "4540cd4f5190421ca143ceaec831a364",
+  "schema_version": 1,
+  "started_at": "2026-10-04T06:22:07+00:00",
+  "steps": [
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 769,
+    "index": 0,
+    "input_tokens": 654,
+    "latency_ms": 699.5,
+    "output_tokens": 30,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "column_id": "fct_daily_revenue.revenue_marketing"
+      },
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "column": "fct_daily_revenue.revenue_marketing",
+       "depth_limited": false,
+       "dropped": {
+        "paths": 0
+       },
+       "n_paths": 3,
+       "paths": [
+        [
+         "e_f8e81a3a: fct_orders.revenue_marketing -> fct_daily_revenue.revenue_marketing [AGGREGATION: SUM(fct_orders.revenue_marketing) AS revenue_marketing]",
+         "e_1a11f0cc: int_customer_order_history.items_subtotal -> fct_orders.revenue_marketing [TRANSFORMATION: int_customer_order_history.items_subtotal + int_customer_or…]",
+         "e_4be1cdaa: int_order_financials.items_subtotal -> int_customer_order_history.items_subtotal [IDENTITY]",
+         "e_6d23179d: int_orders_enriched.items_subtotal -> int_order_financials.items_subtotal [IDENTITY]",
+         "e_c3f01f72: int_order_items_enriched.line_amount -> int_orders_enriched.items_subtotal [AGGREGATION: COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- S…]",
+         "e_40fc66b2: stg_order_items.quantity -> int_order_items_enriched.line_amount [TRANSFORMATION: items.quantity * items.unit_price AS line_amount]",
+         "e_7eb3df0a: raw_order_items.quantity -> stg_order_items.quantity [IDENTITY]"
+        ],
+        [
+         "e_f8e81a3a: fct_orders.revenue_marketing -> fct_daily_revenue.revenue_marketing [AGGREGATION: SUM(fct_orders.revenue_marketing) AS revenue_marketing]",
+         "e_1a11f0cc: int_customer_order_history.items_subtotal -> fct_orders.revenue_marketing [TRANSFORMATION: int_customer_order_history.items_subtotal + int_customer_or…]",
+         "e_4be1cdaa: int_order_financials.items_subtotal -> int_customer_order_history.items_subtotal [IDENTITY]",
+         "e_6d23179d: int_orders_enriched.items_subtotal -> int_order_financials.items_subtotal [IDENTITY]",
+         "e_c3f01f72: int_order_items_enriched.line_amount -> int_orders_enriched.items_subtotal [AGGREGATION: COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- S…]",
+         "e_9fa09a73: stg_order_items.unit_price -> int_order_items_enriched.line_amount [TRANSFORMATION: items.quantity * items.unit_price AS line_amount]",
+         "e_4feff8c4: raw_order_items.unit_price -> stg_order_items.unit_price [IDENTITY]"
+        ],
+        [
+         "e_f8e81a3a: fct_orders.revenue_marketing -> fct_daily_revenue.revenue_marketing [AGGREGATION: SUM(fct_orders.revenue_marketing) AS revenue_marketing]",
+         "e_e31b889d: int_customer_order_history.sales_tax -> fct_orders.revenue_marketing [TRANSFORMATION: int_customer_order_history.items_subtotal + int_customer_or…]",
+         "e_b190b3f8: int_order_financials.sales_tax -> int_customer_order_history.sales_tax [IDENTITY]",
+         "e_4b23403a: int_orders_enriched.order_tax -> int_order_financials.sales_tax [RENAME]",
+         "e_2bd2a64c: stg_orders.tax_amount -> int_orders_enriched.order_tax [RENAME]",
+         "e_63af580c: raw_orders.tax_usd -> stg_orders.tax_amount [RENAME]"
+        ]
+       ],
+       "truncated": false
+      },
+      "side_records": {
+       "column": "model.synthetic_shop.fct_daily_revenue.revenue_marketing",
+       "edges": {
+        "e_1a11f0cc": {
+         "citation": {
+          "file": "models/marts/fct_orders.sql",
+          "level": "line",
+          "line_end": 14,
+          "line_start": 14
+         },
+         "confidence": "high",
+         "edge_id": "e_1a11f0cc",
+         "expression": "int_customer_order_history.items_subtotal + int_customer_order_history.sales_tax AS revenue_marketing",
+         "from": "model.synthetic_shop.int_customer_order_history.items_subtotal",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.fct_orders.revenue_marketing"
+        },
+        "e_2bd2a64c": {
+         "citation": {
+          "file": "models/intermediate/int_orders_enriched.sql",
+          "level": "line",
+          "line_end": 22,
+          "line_start": 22
+         },
+         "confidence": "high",
+         "edge_id": "e_2bd2a64c",
+         "expression": "orders.tax_amount AS order_tax",
+         "from": "model.synthetic_shop.stg_orders.tax_amount",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.int_orders_enriched.order_tax"
+        },
+        "e_40fc66b2": {
+         "citation": {
+          "file": "models/intermediate/int_order_items_enriched.sql",
+          "level": "line",
+          "line_end": 8,
+          "line_start": 8
+         },
+         "confidence": "high",
+         "edge_id": "e_40fc66b2",
+         "expression": "items.quantity * items.unit_price AS line_amount",
+         "from": "model.synthetic_shop.stg_order_items.quantity",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_items_enriched.line_amount"
+        },
+        "e_4b23403a": {
+         "citation": {
+          "file": "models/intermediate/int_order_financials.sql",
+          "level": "line",
+          "line_end": 24,
+          "line_start": 24
+         },
+         "confidence": "high",
+         "edge_id": "e_4b23403a",
+         "expression": "orders.order_tax AS sales_tax",
+         "from": "model.synthetic_shop.int_orders_enriched.order_tax",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.int_order_financials.sales_tax"
+        },
+        "e_4be1cdaa": {
+         "citation": {
+          "file": "models/intermediate/int_customer_order_history.sql",
+          "level": "star",
+          "line_end": 2,
+          "line_start": 2
+         },
+         "confidence": "high",
+         "edge_id": "e_4be1cdaa",
+         "expression": "int_order_financials.items_subtotal AS items_subtotal",
+         "from": "model.synthetic_shop.int_order_financials.items_subtotal",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.int_customer_order_history.items_subtotal"
+        },
+        "e_4feff8c4": {
+         "citation": {
+          "file": "models/staging/stg_order_items.sql",
+          "level": "line",
+          "line_end": 6,
+          "line_start": 6
+         },
+         "confidence": "high",
+         "edge_id": "e_4feff8c4",
+         "expression": "raw_order_items.unit_price AS unit_price",
+         "from": "seed.synthetic_shop.raw_order_items.unit_price",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.stg_order_items.unit_price"
+        },
+        "e_63af580c": {
+         "citation": {
+          "file": "models/staging/stg_orders.sql",
+          "level": "line",
+          "line_end": 6,
+          "line_start": 6
+         },
+         "confidence": "high",
+         "edge_id": "e_63af580c",
+         "expression": "raw_orders.tax_usd AS tax_amount",
+         "from": "seed.synthetic_shop.raw_orders.tax_usd",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.stg_orders.tax_amount"
+        },
+        "e_6d23179d": {
+         "citation": {
+          "file": "models/intermediate/int_order_financials.sql",
+          "level": "line",
+          "line_end": 23,
+          "line_start": 23
+         },
+         "confidence": "high",
+         "edge_id": "e_6d23179d",
+         "expression": "orders.items_subtotal AS items_subtotal",
+         "from": "model.synthetic_shop.int_orders_enriched.items_subtotal",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.int_order_financials.items_subtotal"
+        },
+        "e_7eb3df0a": {
+         "citation": {
+          "file": "models/staging/stg_order_items.sql",
+          "level": "line",
+          "line_end": 5,
+          "line_start": 5
+         },
+         "confidence": "high",
+         "edge_id": "e_7eb3df0a",
+         "expression": "raw_order_items.quantity AS quantity",
+         "from": "seed.synthetic_shop.raw_order_items.quantity",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.stg_order_items.quantity"
+        },
+        "e_9fa09a73": {
+         "citation": {
+          "file": "models/intermediate/int_order_items_enriched.sql",
+          "level": "line",
+          "line_end": 8,
+          "line_start": 8
+         },
+         "confidence": "high",
+         "edge_id": "e_9fa09a73",
+         "expression": "items.quantity * items.unit_price AS line_amount",
+         "from": "model.synthetic_shop.stg_order_items.unit_price",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_items_enriched.line_amount"
+        },
+        "e_b190b3f8": {
+         "citation": {
+          "file": "models/intermediate/int_customer_order_history.sql",
+          "level": "star",
+          "line_end": 2,
+          "line_start": 2
+         },
+         "confidence": "high",
+         "edge_id": "e_b190b3f8",
+         "expression": "int_order_financials.sales_tax AS sales_tax",
+         "from": "model.synthetic_shop.int_order_financials.sales_tax",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.int_customer_order_history.sales_tax"
+        },
+        "e_c3f01f72": {
+         "citation": {
+          "file": "models/intermediate/int_orders_enriched.sql",
+          "level": "line",
+          "line_end": 24,
+          "line_start": 24
+         },
+         "confidence": "high",
+         "edge_id": "e_c3f01f72",
+         "expression": "COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- SUM(int_order_items_enriched.line_amount) AS items_subtotal",
+         "from": "model.synthetic_shop.int_order_items_enriched.line_amount",
+         "kind": "AGGREGATION",
+         "to": "model.synthetic_shop.int_orders_enriched.items_subtotal"
+        },
+        "e_e31b889d": {
+         "citation": {
+          "file": "models/marts/fct_orders.sql",
+          "level": "line",
+          "line_end": 14,
+          "line_start": 14
+         },
+         "confidence": "high",
+         "edge_id": "e_e31b889d",
+         "expression": "int_customer_order_history.items_subtotal + int_customer_order_history.sales_tax AS revenue_marketing",
+         "from": "model.synthetic_shop.int_customer_order_history.sales_tax",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.fct_orders.revenue_marketing"
+        },
+        "e_f8e81a3a": {
+         "citation": {
+          "file": "models/marts/fct_daily_revenue.sql",
+          "level": "line",
+          "line_end": 5,
+          "line_start": 5
+         },
+         "confidence": "high",
+         "edge_id": "e_f8e81a3a",
+         "expression": "SUM(fct_orders.revenue_marketing) AS revenue_marketing",
+         "from": "model.synthetic_shop.fct_orders.revenue_marketing",
+         "kind": "AGGREGATION",
+         "to": "model.synthetic_shop.fct_daily_revenue.revenue_marketing"
+        }
+       }
+      },
+      "tool": "trace_upstream"
+     }
+    ],
+    "text": "",
+    "tool_calls": [
+     {
+      "arguments": {
+       "column_id": "fct_daily_revenue.revenue_marketing"
+      },
+      "id": "call_0",
+      "name": "trace_upstream",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 1767,
+    "index": 1,
+    "input_tokens": 1485,
+    "latency_ms": 1838.0,
+    "output_tokens": 91,
+    "phase": "tool",
+    "results": [],
+    "text": "The column `fct_daily_revenue.revenue_marketing` comes from `fct_orders.revenue_marketing`, which is derived from `int_customer_order_history.items_subtotal` through a transformation involving `int_order_items_enriched.line_amount`. Ultimately, `int_order_items_enriched.line_amount` is computed from `stg_order_items.quantity` and `stg_order_items.unit_price`, which originate from `raw_order_items`.",
+    "tool_calls": []
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 984,
+    "index": 2,
+    "input_tokens": 626,
+    "latency_ms": 6380.3,
+    "output_tokens": 348,
+    "phase": "answer",
+    "results": [],
+    "text": "{\n  \"answer_text\": \"fct_daily_revenue.revenue_marketing comes from the aggregation of fct_orders.revenue_marketing, which is derived from int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax. These values are formed by combining items_subtotal and sales_tax from the order history data. The items_subtotal originates from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price. The final revenue_marketing value is aggregated across orders in fct_orders and then summed in fct_daily_revenue.\",\n  \"claims\": [\n    {\n      \"ids\": [\n        \"e_f8e81a3a\"\n      ],\n      \"text\": \"fct_daily_revenue.revenue_marketing is derived from the aggregation of fct_orders.revenue_marketing.\"\n    },\n    {\n      \"ids\": [\n        \"e_1a11f0cc\",\n        \"e_e31b889d\"\n      ],\n      \"text\": \"fct_orders.revenue_marketing is formed by combining int_customer_order_history.items_subtotal and int_customer_order_history.sales_tax.\"\n    },\n    {\n      \"ids\": [\n        \"e_c3f_1f72\",\n        \"e_40fc66b2\",\n        \"e_9fa09a73\"\n      ],\n      \"text\": \"int_customer_order_history.items_subtotal comes from int_order_items_enriched.line_amount, which is computed from raw_order_items.quantity and raw_order_items.unit_price.\"\n    }\n  ],\n  \"confidence\": \"high\",\n  \"refused\": false\n}",
+    "tool_calls": []
+   }
+  ],
+  "stop_reason": "model_done",
+  "timings": {
+   "answer_ms": 6383.9,
+   "tool_ms": 2540.2,
+   "total_ms": 8924.1
+  },
+  "tokens": {
+   "cached_calls": 0,
+   "llm_calls": 3,
+   "max_est_input": 1767,
+   "sum_input": 2765,
+   "sum_output": 469
+  },
+  "validation": {
+   "completions": [
+    {
+     "added": [
+      "e_6d23179d",
+      "e_4be1cdaa",
+      "e_7eb3df0a",
+      "e_4feff8c4"
+     ],
+     "claim_index": 2
+    }
+   ],
+   "counts": {},
+   "dropped_claims": [],
+   "first": {
+    "claims": 3,
+    "completions": [
+     {
+      "added": [
+       "e_6d23179d",
+       "e_4be1cdaa",
+       "e_7eb3df0a",
+       "e_4feff8c4"
+      ],
+      "claim_index": 2
+     }
+    ],
+    "counts": {},
+    "dropped_claims": [],
+    "failures": [],
+    "passed": true,
+    "repairs": [
+     {
+      "claim_index": 2,
+      "from": "e_c3f_1f72",
+      "to": "e_c3f01f72"
+     }
+    ]
+   },
+   "passed": true,
+   "regenerated": false,
+   "repairs": [
+    {
+     "claim_index": 2,
+     "from": "e_c3f_1f72",
+     "to": "e_c3f01f72"
+    }
+   ],
+   "second": null,
+   "skipped": false,
+   "warning": false
+  }
+ },
+ "subtype": "upstream"
+}

@@ -1,0 +1,485 @@
+{
+ "id": "dev-13",
+ "record": {
+  "ambiguity": null,
+  "clarification": null,
+  "compactions": [],
+  "draft": {
+   "answer_text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.",
+   "claims": [
+    {
+     "ids": [
+      "e_aeb8467a",
+      "e_0b3cfacd"
+     ],
+     "text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax."
+    },
+    {
+     "ids": [
+      "e_c3f01f72",
+      "e_40fc66b2",
+      "e_9fa09a73"
+     ],
+     "text": "int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price."
+    },
+    {
+     "ids": [
+      "e_2bd2a64c",
+      "e_63af580c"
+     ],
+     "text": "int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd."
+    }
+   ],
+   "confidence": "high",
+   "refusal_reason": null,
+   "refused": false
+  },
+  "draft_raw": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\", \"claims\": [{\"ids\": [\"e_aeb8467a\", \"e_0b3cfacd\"], \"text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax.\"}, {\"ids\": [\"e_c3f01f72\", \"e_40fc66b2\", \"e_9fa09a73\"], \"text\": \"int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price.\"}, {\"ids\": [\"e_2bd2a64c\", \"e_63af580c\"], \"text\": \"int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\"}], \"confidence\": \"high\", \"refused\": false}",
+  "error": null,
+  "evidence": {
+   "dropped_ids": [],
+   "ids": [
+    "e_aeb8467a",
+    "e_c3f01f72",
+    "e_40fc66b2",
+    "e_7eb3df0a",
+    "e_9fa09a73",
+    "e_4feff8c4",
+    "e_0b3cfacd",
+    "e_2bd2a64c",
+    "e_63af580c"
+   ],
+   "partial_evidence": false
+  },
+  "final_answer": {
+   "answer_text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.",
+   "citations": {
+    "e_0b3cfacd": {
+     "file": "models/intermediate/int_order_financials.sql",
+     "level": "line",
+     "line_end": 25,
+     "line_start": 25
+    },
+    "e_2bd2a64c": {
+     "file": "models/intermediate/int_orders_enriched.sql",
+     "level": "line",
+     "line_end": 22,
+     "line_start": 22
+    },
+    "e_40fc66b2": {
+     "file": "models/intermediate/int_order_items_enriched.sql",
+     "level": "line",
+     "line_end": 8,
+     "line_start": 8
+    },
+    "e_63af580c": {
+     "file": "models/staging/stg_orders.sql",
+     "level": "line",
+     "line_end": 6,
+     "line_start": 6
+    },
+    "e_9fa09a73": {
+     "file": "models/intermediate/int_order_items_enriched.sql",
+     "level": "line",
+     "line_end": 8,
+     "line_start": 8
+    },
+    "e_aeb8467a": {
+     "file": "models/intermediate/int_order_financials.sql",
+     "level": "line",
+     "line_end": 25,
+     "line_start": 25
+    },
+    "e_c3f01f72": {
+     "file": "models/intermediate/int_orders_enriched.sql",
+     "level": "line",
+     "line_end": 24,
+     "line_start": 24
+    }
+   },
+   "claims": [
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_aeb8467a",
+      "e_0b3cfacd"
+     ],
+     "text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_c3f01f72",
+      "e_40fc66b2",
+      "e_9fa09a73"
+     ],
+     "text": "int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_2bd2a64c",
+      "e_63af580c"
+     ],
+     "text": "int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd."
+    }
+   ],
+   "clarification": null,
+   "confidence": "high",
+   "partial_evidence": false,
+   "refusal_reason": null,
+   "refused": false,
+   "subgraph": [
+    "e_aeb8467a",
+    "e_0b3cfacd",
+    "e_c3f01f72",
+    "e_40fc66b2",
+    "e_9fa09a73",
+    "e_2bd2a64c",
+    "e_63af580c"
+   ],
+   "validation_warning": false
+  },
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "params": {
+   "num_ctx": 8192,
+   "temperature": 0,
+   "think": false
+  },
+  "project": "synthetic_shop",
+  "provider": "ollama",
+  "question": "How is int_order_financials.order_total computed?",
+  "regenerate_draft_raw": null,
+  "run_id": "8802e662333249ca970594a8900f0cd4",
+  "schema_version": 1,
+  "started_at": "2026-10-04T06:24:55+00:00",
+  "steps": [
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 767,
+    "index": 0,
+    "input_tokens": 651,
+    "latency_ms": 1117.8,
+    "output_tokens": 26,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "text": "int_order_financials.order_total"
+      },
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "ambiguous": false,
+       "candidates": [
+        {
+         "id": "int_order_financials.order_total",
+         "kind": "column",
+         "match": "exact",
+         "score": 1.0
+        },
+        {
+         "id": "int_order_financials",
+         "kind": "model",
+         "match": "fuzzy",
+         "score": 0.801
+        },
+        {
+         "id": "fct_orders.order_total",
+         "kind": "column",
+         "match": "fuzzy",
+         "score": 0.778
+        },
+        {
+         "id": "int_customer_order_history.order_total",
+         "kind": "column",
+         "match": "fuzzy",
+         "score": 0.778
+        },
+        {
+         "id": "fct_orders",
+         "kind": "model",
+         "match": "fuzzy",
+         "score": 0.641
+        }
+       ],
+       "query": "int_order_financials.order_total"
+      },
+      "side_records": {
+       "scores": {
+        "fct_orders": 0.641,
+        "fct_orders.order_total": 0.778,
+        "int_customer_order_history.order_total": 0.778,
+        "int_order_financials": 0.801,
+        "int_order_financials.order_total": 1.0
+       }
+      },
+      "tool": "resolve_entity"
+     }
+    ],
+    "text": "",
+    "tool_calls": [
+     {
+      "arguments": {
+       "text": "int_order_financials.order_total"
+      },
+      "id": "call_0",
+      "name": "resolve_entity",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 1057,
+    "index": 1,
+    "input_tokens": 830,
+    "latency_ms": 1711.9,
+    "output_tokens": 61,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "column_id": "int_order_financials.order_total"
+      },
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "column": "int_order_financials.order_total",
+       "depth_limited": false,
+       "dropped": {
+        "paths": 0
+       },
+       "n_paths": 3,
+       "paths": [
+        [
+         "e_aeb8467a: int_orders_enriched.items_subtotal -> int_order_financials.order_total [TRANSFORMATION: orders.items_subtotal + orders.order_tax AS order_total]",
+         "e_c3f01f72: int_order_items_enriched.line_amount -> int_orders_enriched.items_subtotal [AGGREGATION: COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- S…]",
+         "e_40fc66b2: stg_order_items.quantity -> int_order_items_enriched.line_amount [TRANSFORMATION: items.quantity * items.unit_price AS line_amount]",
+         "e_7eb3df0a: raw_order_items.quantity -> stg_order_items.quantity [IDENTITY]"
+        ],
+        [
+         "e_aeb8467a: int_orders_enriched.items_subtotal -> int_order_financials.order_total [TRANSFORMATION: orders.items_subtotal + orders.order_tax AS order_total]",
+         "e_c3f01f72: int_order_items_enriched.line_amount -> int_orders_enriched.items_subtotal [AGGREGATION: COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- S…]",
+         "e_9fa09a73: stg_order_items.unit_price -> int_order_items_enriched.line_amount [TRANSFORMATION: items.quantity * items.unit_price AS line_amount]",
+         "e_4feff8c4: raw_order_items.unit_price -> stg_order_items.unit_price [IDENTITY]"
+        ],
+        [
+         "e_0b3cfacd: int_orders_enriched.order_tax -> int_order_financials.order_total [TRANSFORMATION: orders.items_subtotal + orders.order_tax AS order_total]",
+         "e_2bd2a64c: stg_orders.tax_amount -> int_orders_enriched.order_tax [RENAME]",
+         "e_63af580c: raw_orders.tax_usd -> stg_orders.tax_amount [RENAME]"
+        ]
+       ],
+       "truncated": false
+      },
+      "side_records": {
+       "column": "model.synthetic_shop.int_order_financials.order_total",
+       "edges": {
+        "e_0b3cfacd": {
+         "citation": {
+          "file": "models/intermediate/int_order_financials.sql",
+          "level": "line",
+          "line_end": 25,
+          "line_start": 25
+         },
+         "confidence": "high",
+         "edge_id": "e_0b3cfacd",
+         "expression": "orders.items_subtotal + orders.order_tax AS order_total",
+         "from": "model.synthetic_shop.int_orders_enriched.order_tax",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_financials.order_total"
+        },
+        "e_2bd2a64c": {
+         "citation": {
+          "file": "models/intermediate/int_orders_enriched.sql",
+          "level": "line",
+          "line_end": 22,
+          "line_start": 22
+         },
+         "confidence": "high",
+         "edge_id": "e_2bd2a64c",
+         "expression": "orders.tax_amount AS order_tax",
+         "from": "model.synthetic_shop.stg_orders.tax_amount",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.int_orders_enriched.order_tax"
+        },
+        "e_40fc66b2": {
+         "citation": {
+          "file": "models/intermediate/int_order_items_enriched.sql",
+          "level": "line",
+          "line_end": 8,
+          "line_start": 8
+         },
+         "confidence": "high",
+         "edge_id": "e_40fc66b2",
+         "expression": "items.quantity * items.unit_price AS line_amount",
+         "from": "model.synthetic_shop.stg_order_items.quantity",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_items_enriched.line_amount"
+        },
+        "e_4feff8c4": {
+         "citation": {
+          "file": "models/staging/stg_order_items.sql",
+          "level": "line",
+          "line_end": 6,
+          "line_start": 6
+         },
+         "confidence": "high",
+         "edge_id": "e_4feff8c4",
+         "expression": "raw_order_items.unit_price AS unit_price",
+         "from": "seed.synthetic_shop.raw_order_items.unit_price",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.stg_order_items.unit_price"
+        },
+        "e_63af580c": {
+         "citation": {
+          "file": "models/staging/stg_orders.sql",
+          "level": "line",
+          "line_end": 6,
+          "line_start": 6
+         },
+         "confidence": "high",
+         "edge_id": "e_63af580c",
+         "expression": "raw_orders.tax_usd AS tax_amount",
+         "from": "seed.synthetic_shop.raw_orders.tax_usd",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.stg_orders.tax_amount"
+        },
+        "e_7eb3df0a": {
+         "citation": {
+          "file": "models/staging/stg_order_items.sql",
+          "level": "line",
+          "line_end": 5,
+          "line_start": 5
+         },
+         "confidence": "high",
+         "edge_id": "e_7eb3df0a",
+         "expression": "raw_order_items.quantity AS quantity",
+         "from": "seed.synthetic_shop.raw_order_items.quantity",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.stg_order_items.quantity"
+        },
+        "e_9fa09a73": {
+         "citation": {
+          "file": "models/intermediate/int_order_items_enriched.sql",
+          "level": "line",
+          "line_end": 8,
+          "line_start": 8
+         },
+         "confidence": "high",
+         "edge_id": "e_9fa09a73",
+         "expression": "items.quantity * items.unit_price AS line_amount",
+         "from": "model.synthetic_shop.stg_order_items.unit_price",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_items_enriched.line_amount"
+        },
+        "e_aeb8467a": {
+         "citation": {
+          "file": "models/intermediate/int_order_financials.sql",
+          "level": "line",
+          "line_end": 25,
+          "line_start": 25
+         },
+         "confidence": "high",
+         "edge_id": "e_aeb8467a",
+         "expression": "orders.items_subtotal + orders.order_tax AS order_total",
+         "from": "model.synthetic_shop.int_orders_enriched.items_subtotal",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_financials.order_total"
+        },
+        "e_c3f01f72": {
+         "citation": {
+          "file": "models/intermediate/int_orders_enriched.sql",
+          "level": "line",
+          "line_end": 24,
+          "line_start": 24
+         },
+         "confidence": "high",
+         "edge_id": "e_c3f01f72",
+         "expression": "COALESCE(item_agg.items_subtotal, 0) AS items_subtotal <- SUM(int_order_items_enriched.line_amount) AS items_subtotal",
+         "from": "model.synthetic_shop.int_order_items_enriched.line_amount",
+         "kind": "AGGREGATION",
+         "to": "model.synthetic_shop.int_orders_enriched.items_subtotal"
+        }
+       }
+      },
+      "tool": "trace_upstream"
+     }
+    ],
+    "text": "The column `int_order_financials.order_total` is exactly matched in the dataset. I will now trace how it is computed by examining its upstream sources.",
+    "tool_calls": [
+     {
+      "arguments": {
+       "column_id": "int_order_financials.order_total"
+      },
+      "id": "call_0",
+      "name": "trace_upstream",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 1739,
+    "index": 2,
+    "input_tokens": 1355,
+    "latency_ms": 5353.1,
+    "output_tokens": 213,
+    "phase": "tool",
+    "results": [],
+    "text": "The column `int_order_financials.order_total` is computed through the following transformations:\n\n1. `int_orders_enriched.items_subtotal` is derived from `int_order_items_enriched.line_amount` via aggregation (`COALESCE(item_agg.items_subtotal, 0) AS items_subtotal`).\n2. `int_order_items_enriched.line_amount` is computed from `stg_order_items.quantity` and `stg_order_items.unit_price` via transformation (`items.quantity * items.unit_price AS line_amount`).\n3. `stg_order_items.quantity` and `stg_order_items.unit_price` are directly sourced from `raw_order_items.quantity` and `raw_order_items.unit_price` via identity transformations.\n\nAdditionally, an alternative path involves:\n- `int_orders_enriched.order_tax` being derived from `stg_orders.tax_amount`, which originates from `raw_orders.tax_usd`.\n\nThe final value of `int_order_financials.order_total` is computed as `orders.items_subtotal + orders.order_tax`.",
+    "tool_calls": []
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 798,
+    "index": 3,
+    "input_tokens": 454,
+    "latency_ms": 7984.7,
+    "output_tokens": 323,
+    "phase": "answer",
+    "results": [],
+    "text": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\", \"claims\": [{\"ids\": [\"e_aeb8467a\", \"e_0b3cfacd\"], \"text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax.\"}, {\"ids\": [\"e_c3f01f72\", \"e_40fc66b2\", \"e_9fa09a73\"], \"text\": \"int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price.\"}, {\"ids\": [\"e_2bd2a64c\", \"e_63af580c\"], \"text\": \"int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\"}], \"confidence\": \"high\", \"refused\": false}",
+    "tool_calls": []
+   }
+  ],
+  "stop_reason": "model_done",
+  "timings": {
+   "answer_ms": 7986.8,
+   "tool_ms": 8210.9,
+   "total_ms": 16197.8
+  },
+  "tokens": {
+   "cached_calls": 0,
+   "llm_calls": 4,
+   "max_est_input": 1739,
+   "sum_input": 3290,
+   "sum_output": 623
+  },
+  "validation": {
+   "completions": [],
+   "counts": {},
+   "dropped_claims": [],
+   "first": {
+    "claims": 3,
+    "completions": [],
+    "counts": {},
+    "dropped_claims": [],
+    "failures": [],
+    "passed": true,
+    "repairs": []
+   },
+   "passed": true,
+   "regenerated": false,
+   "repairs": [],
+   "second": null,
+   "skipped": false,
+   "warning": false
+  }
+ },
+ "subtype": "computed"
+}

@@ -13,13 +13,18 @@ No Streamlit import here, so it is unit-tested directly.
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 
+from dlens.agent.answer import Answer
 from dlens.agent.llm.config import quota_path
 from dlens.agent.llm.quota import QuotaCounter
-from dlens.agent.loop import MAX_LLM_CALLS
+from dlens.agent.loop import MAX_LLM_CALLS, AgentRun
+from dlens.agent.runlog import RunRecord
+from dlens.agent.tools import Toolbox
 from dlens.graph import LineageGraph
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -135,3 +140,70 @@ def failure(reason: str | None) -> Limit | None:
             "preset question.",
         )
     return None
+
+
+# -- presets ---------------------------------------------------------------------------------------
+
+# Dev questions that passed in eval/reports/dev_r9.json, one or more per kind: upstream (1 hop and
+# multi-hop), abbreviation, downstream impact, a yes/no reachability check (answer "No"),
+# computed, ambiguity, false premise and an unknown-column refusal.
+PRESET_IDS = (
+    "dev-01",
+    "dev-05",
+    "dev-06",
+    "dev-14",
+    "dev-07",
+    "dev-10",
+    "dev-13",
+    "dev-16",
+    "dev-17",
+    "dev-19",
+)
+
+
+@dataclass(frozen=True)
+class Preset:
+    """A full run recorded with the local model (scripts/record_presets.py), replayed with no
+    model call."""
+
+    id: str
+    subtype: str
+    question: str
+    record: RunRecord
+
+    @property
+    def badge(self) -> str:
+        return f"Precomputed with local {self.record.model.split('-')[0]}"
+
+
+def presets_dir(env: Mapping[str, str] | None = None) -> Path:
+    return bundle_dir(env) / "presets"
+
+
+def preset_json(qid: str, subtype: str, record: RunRecord) -> str:
+    body = {"id": qid, "subtype": subtype, "record": record.model_dump(mode="json")}
+    return json.dumps(body, indent=1, ensure_ascii=False, sort_keys=True) + "\n"
+
+
+def load_presets(directory: Path) -> list[Preset]:
+    """The presets on disk, in ``PRESET_IDS`` order; missing files are skipped."""
+    out = []
+    for qid in PRESET_IDS:
+        path = directory / f"{qid}.json"
+        if path.is_file():
+            raw = json.loads(path.read_text())
+            record = RunRecord.model_validate(raw["record"])
+            out.append(Preset(raw["id"], raw["subtype"], record.question, record))
+    return out
+
+
+def replay(preset: Preset, graph: LineageGraph, project_dir: Path) -> tuple[AgentRun, Toolbox]:
+    """Rebuild the run and its ledger: the recorded tool calls are re-run on the graph (pure
+    code, deterministic); the model's turns come from the record. No LLM call."""
+    box = Toolbox(graph, project_dir)
+    for step in preset.record.steps:
+        for r in step.results:
+            if not r.deduped:
+                box.call(r.tool, r.args, code=step.phase == "code")
+    answer = Answer.model_validate(preset.record.final_answer)
+    return AgentRun(answer=answer, record=preset.record), box

@@ -1,0 +1,296 @@
+{
+ "id": "dev-07",
+ "record": {
+  "ambiguity": null,
+  "clarification": null,
+  "compactions": [],
+  "draft": {
+   "answer_text": "If stg_products.list_price changes, it affects the int_order_items_enriched model because it is used in a transformation to determine whether an item is discounted.",
+   "claims": [
+    {
+     "ids": [
+      "e_911c1a04"
+     ],
+     "text": "stg_products.list_price is used in a transformation to determine if an item is discounted in int_order_items_enriched."
+    }
+   ],
+   "confidence": "high",
+   "refusal_reason": null,
+   "refused": false
+  },
+  "draft_raw": "{\"answer_text\": \"If stg_products.list_price changes, it affects the int_order_items_enriched model because it is used in a transformation to determine whether an item is discounted.\", \"claims\": [{\"ids\": [\"e_911c1a04\"], \"text\": \"stg_products.list_price is used in a transformation to determine if an item is discounted in int_order_items_enriched.\"}], \"confidence\": \"high\", \"refused\": false}",
+  "error": null,
+  "evidence": {
+   "dropped_ids": [],
+   "ids": [
+    "e_911c1a04"
+   ],
+   "partial_evidence": false
+  },
+  "final_answer": {
+   "answer_text": "If stg_products.list_price changes, it affects the int_order_items_enriched model because it is used in a transformation to determine whether an item is discounted.",
+   "citations": {
+    "e_911c1a04": {
+     "file": "models/intermediate/int_order_items_enriched.sql",
+     "level": "line",
+     "line_end": 9,
+     "line_start": 9
+    }
+   },
+   "claims": [
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_911c1a04"
+     ],
+     "text": "stg_products.list_price is used in a transformation to determine if an item is discounted in int_order_items_enriched."
+    }
+   ],
+   "clarification": null,
+   "confidence": "high",
+   "partial_evidence": false,
+   "refusal_reason": null,
+   "refused": false,
+   "subgraph": [
+    "e_911c1a04"
+   ],
+   "validation_warning": false
+  },
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "params": {
+   "num_ctx": 8192,
+   "temperature": 0,
+   "think": false
+  },
+  "project": "synthetic_shop",
+  "provider": "ollama",
+  "question": "What is affected if stg_products.list_price changes?",
+  "regenerate_draft_raw": null,
+  "run_id": "ef0238486c824be3ba3ce7fe2b2db143",
+  "schema_version": 1,
+  "started_at": "2026-10-04T06:22:22+00:00",
+  "steps": [
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 768,
+    "index": 0,
+    "input_tokens": 651,
+    "latency_ms": 808.2,
+    "output_tokens": 24,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "text": "stg_products.list_price"
+      },
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "ambiguous": false,
+       "candidates": [
+        {
+         "id": "stg_products.list_price",
+         "kind": "column",
+         "match": "exact",
+         "score": 1.0
+        },
+        {
+         "id": "raw_products.list_price",
+         "kind": "column",
+         "match": "fuzzy",
+         "score": 0.751
+        },
+        {
+         "id": "int_order_items_enriched.product_id",
+         "kind": "column",
+         "match": "fuzzy",
+         "score": 0.421
+        },
+        {
+         "id": "int_order_items_enriched.unit_price",
+         "kind": "column",
+         "match": "fuzzy",
+         "score": 0.421
+        },
+        {
+         "id": "stg_order_items.product_id",
+         "kind": "column",
+         "match": "fuzzy",
+         "score": 0.421
+        }
+       ],
+       "query": "stg_products.list_price"
+      },
+      "side_records": {
+       "scores": {
+        "int_order_items_enriched.product_id": 0.421,
+        "int_order_items_enriched.unit_price": 0.421,
+        "raw_products.list_price": 0.751,
+        "stg_order_items.product_id": 0.421,
+        "stg_products.list_price": 1.0
+       }
+      },
+      "tool": "resolve_entity"
+     }
+    ],
+    "text": "",
+    "tool_calls": [
+     {
+      "arguments": {
+       "text": "stg_products.list_price"
+      },
+      "id": "call_0",
+      "name": "resolve_entity",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 1059,
+    "index": 1,
+    "input_tokens": 831,
+    "latency_ms": 856.5,
+    "output_tokens": 26,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "column_id": "stg_products.list_price"
+      },
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "column": "stg_products.list_price",
+       "columns_by_depth": {
+        "1": [
+         {
+          "id": "int_order_items_enriched.is_discounted",
+          "via": "e_911c1a04"
+         }
+        ]
+       },
+       "depth_limited": false,
+       "dropped": {
+        "columns": 0,
+        "models": 0
+       },
+       "exposures": [],
+       "models": [
+        "int_order_items_enriched"
+       ],
+       "notes": [
+        "indirect edges (join/filter/group keys) are not in the graph yet"
+       ],
+       "truncated": false
+      },
+      "side_records": {
+       "column": "model.synthetic_shop.stg_products.list_price",
+       "columns": {
+        "int_order_items_enriched.is_discounted": {
+         "citation": {
+          "file": "models/intermediate/int_order_items_enriched.sql",
+          "level": "line",
+          "line_end": 9,
+          "line_start": 9
+         },
+         "id": "model.synthetic_shop.int_order_items_enriched.is_discounted"
+        }
+       },
+       "edges": {
+        "e_911c1a04": {
+         "citation": {
+          "file": "models/intermediate/int_order_items_enriched.sql",
+          "level": "line",
+          "line_end": 9,
+          "line_start": 9
+         },
+         "confidence": "high",
+         "edge_id": "e_911c1a04",
+         "expression": "CASE WHEN items.unit_price < products.list_price THEN TRUE ELSE FALSE END AS is_discounted",
+         "from": "model.synthetic_shop.stg_products.list_price",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_order_items_enriched.is_discounted"
+        }
+       }
+      },
+      "tool": "impact_downstream"
+     }
+    ],
+    "text": "",
+    "tool_calls": [
+     {
+      "arguments": {
+       "column_id": "stg_products.list_price"
+      },
+      "id": "call_0",
+      "name": "impact_downstream",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 1289,
+    "index": 2,
+    "input_tokens": 965,
+    "latency_ms": 792.6,
+    "output_tokens": 26,
+    "phase": "tool",
+    "results": [],
+    "text": "If stg_products.list_price changes, it affects the is_discounted column in the int_order_items_enriched model.",
+    "tool_calls": []
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 524,
+    "index": 3,
+    "input_tokens": 208,
+    "latency_ms": 2821.3,
+    "output_tokens": 100,
+    "phase": "answer",
+    "results": [],
+    "text": "{\"answer_text\": \"If stg_products.list_price changes, it affects the int_order_items_enriched model because it is used in a transformation to determine whether an item is discounted.\", \"claims\": [{\"ids\": [\"e_911c1a04\"], \"text\": \"stg_products.list_price is used in a transformation to determine if an item is discounted in int_order_items_enriched.\"}], \"confidence\": \"high\", \"refused\": false}",
+    "tool_calls": []
+   }
+  ],
+  "stop_reason": "model_done",
+  "timings": {
+   "answer_ms": 2822.4,
+   "tool_ms": 2477.5,
+   "total_ms": 5299.9
+  },
+  "tokens": {
+   "cached_calls": 0,
+   "llm_calls": 4,
+   "max_est_input": 1289,
+   "sum_input": 2655,
+   "sum_output": 176
+  },
+  "validation": {
+   "completions": [],
+   "counts": {},
+   "dropped_claims": [],
+   "first": {
+    "claims": 1,
+    "completions": [],
+    "counts": {},
+    "dropped_claims": [],
+    "failures": [],
+    "passed": true,
+    "repairs": []
+   },
+   "passed": true,
+   "regenerated": false,
+   "repairs": [],
+   "second": null,
+   "skipped": false,
+   "warning": false
+  }
+ },
+ "subtype": "downstream"
+}

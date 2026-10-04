@@ -1,0 +1,392 @@
+{
+ "id": "dev-05",
+ "record": {
+  "ambiguity": null,
+  "clarification": null,
+  "compactions": [],
+  "draft": {
+   "answer_text": "fct_orders.net_paid_usd comes from int_customer_order_history.net_paid_usd through an identity mapping. int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd via an identity mapping. int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd using COALESCE. int_payment_events.event_amount_usd originates from stg_payments.amount_usd through a rename operation, which itself comes from raw_payments.amt via a rename operation. The data flow traces back to raw_payments.amt as the original source.",
+   "claims": [
+    {
+     "ids": [
+      "e_a46fb93b"
+     ],
+     "text": "fct_orders.net_paid_usd is directly derived from int_customer_order_history.net_paid_usd."
+    },
+    {
+     "ids": [
+      "e_83c3f7211"
+     ],
+     "text": "int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd."
+    },
+    {
+     "ids": [
+      "e_67db594e"
+     ],
+     "text": "int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd."
+    },
+    {
+     "ids": [
+      "e_f1f7f18a"
+     ],
+     "text": "int_payment_events.event_amount_usd is derived from stg_payments.amount_usd via a rename operation."
+    },
+    {
+     "ids": [
+      "e_77097642"
+     ],
+     "text": "stg_payments.amount_usd is derived from raw_payments.amt via a rename operation."
+    }
+   ],
+   "confidence": "high",
+   "refusal_reason": null,
+   "refused": false
+  },
+  "draft_raw": "{\n  \"answer_text\": \"fct_orders.net_paid_usd comes from int_customer_order_history.net_paid_usd through an identity mapping. int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd via an identity mapping. int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd using COALESCE. int_payment_events.event_amount_usd originates from stg_payments.amount_usd through a rename operation, which itself comes from raw_payments.amt via a rename operation. The data flow traces back to raw_payments.amt as the original source.\",\n  \"claims\": [\n    {\n      \"ids\": [\n        \"e_a46fb93b\"\n      ],\n      \"text\": \"fct_orders.net_paid_usd is directly derived from int_customer_order_history.net_paid_usd.\"\n    },\n    {\n      \"ids\": [\n        \"e_83c3f7211\"\n      ],\n      \"text\": \"int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd.\"\n    },\n    {\n      \"ids\": [\n        \"e_67db594e\"\n      ],\n      \"text\": \"int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd.\"\n    },\n    {\n      \"ids\": [\n        \"e_f1f7f18a\"\n      ],\n      \"text\": \"int_payment_events.event_amount_usd is derived from stg_payments.amount_usd via a rename operation.\"\n    },\n    {\n      \"ids\": [\n        \"e_77097642\"\n      ],\n      \"text\": \"stg_payments.amount_usd is derived from raw_payments.amt via a rename operation.\"\n    }\n  ],\n  \"confidence\": \"high\",\n  \"refused\": false\n}",
+  "error": null,
+  "evidence": {
+   "dropped_ids": [],
+   "ids": [
+    "e_a46fb93b",
+    "e_83c3f211",
+    "e_67db594e",
+    "e_f1f7f18a",
+    "e_77097642",
+    "e_17c76ecf",
+    "e_7716f122"
+   ],
+   "partial_evidence": false
+  },
+  "final_answer": {
+   "answer_text": "fct_orders.net_paid_usd comes from int_customer_order_history.net_paid_usd through an identity mapping. int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd via an identity mapping. int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd using COALESCE. int_payment_events.event_amount_usd originates from stg_payments.amount_usd through a rename operation, which itself comes from raw_payments.amt via a rename operation. The data flow traces back to raw_payments.amt as the original source.",
+   "citations": {
+    "e_67db594e": {
+     "file": "models/intermediate/int_order_financials.sql",
+     "level": "line",
+     "line_end": 27,
+     "line_start": 27
+    },
+    "e_77097642": {
+     "file": "models/staging/stg_payments.sql",
+     "level": "line",
+     "line_end": 5,
+     "line_start": 5
+    },
+    "e_83c3f211": {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "level": "star",
+     "line_end": 2,
+     "line_start": 2
+    },
+    "e_a46fb93b": {
+     "file": "models/marts/fct_orders.sql",
+     "level": "line",
+     "line_end": 12,
+     "line_start": 12
+    },
+    "e_f1f7f18a": {
+     "file": "models/intermediate/int_payment_events.sql",
+     "level": "line",
+     "line_end": 4,
+     "line_start": 4
+    }
+   },
+   "claims": [
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_a46fb93b"
+     ],
+     "text": "fct_orders.net_paid_usd is directly derived from int_customer_order_history.net_paid_usd."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_83c3f211"
+     ],
+     "text": "int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_67db594e"
+     ],
+     "text": "int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_f1f7f18a"
+     ],
+     "text": "int_payment_events.event_amount_usd is derived from stg_payments.amount_usd via a rename operation."
+    },
+    {
+     "chunk_ids": [],
+     "edge_ids": [
+      "e_77097642"
+     ],
+     "text": "stg_payments.amount_usd is derived from raw_payments.amt via a rename operation."
+    }
+   ],
+   "clarification": null,
+   "confidence": "high",
+   "partial_evidence": false,
+   "refusal_reason": null,
+   "refused": false,
+   "subgraph": [
+    "e_a46fb93b",
+    "e_83c3f211",
+    "e_67db594e",
+    "e_f1f7f18a",
+    "e_77097642"
+   ],
+   "validation_warning": false
+  },
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "params": {
+   "num_ctx": 8192,
+   "temperature": 0,
+   "think": false
+  },
+  "project": "synthetic_shop",
+  "provider": "ollama",
+  "question": "Where does fct_orders.net_paid_usd come from?",
+  "regenerate_draft_raw": null,
+  "run_id": "c29a722f641c497aa367be5bc899efd8",
+  "schema_version": 1,
+  "started_at": "2026-10-04T06:21:57+00:00",
+  "steps": [
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 765,
+    "index": 0,
+    "input_tokens": 652,
+    "latency_ms": 586.7,
+    "output_tokens": 28,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "column_id": "fct_orders.net_paid_usd"
+      },
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "column": "fct_orders.net_paid_usd",
+       "depth_limited": false,
+       "dropped": {
+        "paths": 0
+       },
+       "n_paths": 2,
+       "paths": [
+        [
+         "e_a46fb93b: int_customer_order_history.net_paid_usd -> fct_orders.net_paid_usd [IDENTITY]",
+         "e_83c3f211: int_order_financials.net_paid_usd -> int_customer_order_history.net_paid_usd [IDENTITY]",
+         "e_67db594e: int_payment_events.event_amount_usd -> int_order_financials.net_paid_usd [AGGREGATION: COALESCE(cash_per_order.net_paid_usd, 0) AS net_paid_usd <-…]",
+         "e_f1f7f18a: stg_payments.amount_usd -> int_payment_events.event_amount_usd [RENAME]",
+         "e_77097642: raw_payments.amt -> stg_payments.amount_usd [RENAME]"
+        ],
+        [
+         "e_a46fb93b: int_customer_order_history.net_paid_usd -> fct_orders.net_paid_usd [IDENTITY]",
+         "e_83c3f211: int_order_financials.net_paid_usd -> int_customer_order_history.net_paid_usd [IDENTITY]",
+         "e_67db594e: int_payment_events.event_amount_usd -> int_order_financials.net_paid_usd [AGGREGATION: COALESCE(cash_per_order.net_paid_usd, 0) AS net_paid_usd <-…]",
+         "e_17c76ecf: stg_refunds.refund_amt -> int_payment_events.event_amount_usd [TRANSFORMATION: -1 * stg_refunds.refund_amt AS event_amount_usd]",
+         "e_7716f122: raw_refunds.refund_amt -> stg_refunds.refund_amt [IDENTITY]"
+        ]
+       ],
+       "truncated": false
+      },
+      "side_records": {
+       "column": "model.synthetic_shop.fct_orders.net_paid_usd",
+       "edges": {
+        "e_17c76ecf": {
+         "citation": {
+          "file": "models/intermediate/int_payment_events.sql",
+          "level": "line",
+          "line_end": 13,
+          "line_start": 13
+         },
+         "confidence": "high",
+         "edge_id": "e_17c76ecf",
+         "expression": "-1 * stg_refunds.refund_amt AS event_amount_usd",
+         "from": "model.synthetic_shop.stg_refunds.refund_amt",
+         "kind": "TRANSFORMATION",
+         "to": "model.synthetic_shop.int_payment_events.event_amount_usd"
+        },
+        "e_67db594e": {
+         "citation": {
+          "file": "models/intermediate/int_order_financials.sql",
+          "level": "line",
+          "line_end": 27,
+          "line_start": 27
+         },
+         "confidence": "high",
+         "edge_id": "e_67db594e",
+         "expression": "COALESCE(cash_per_order.net_paid_usd, 0) AS net_paid_usd <- SUM(int_payment_events.event_amount_usd) AS net_paid_usd",
+         "from": "model.synthetic_shop.int_payment_events.event_amount_usd",
+         "kind": "AGGREGATION",
+         "to": "model.synthetic_shop.int_order_financials.net_paid_usd"
+        },
+        "e_77097642": {
+         "citation": {
+          "file": "models/staging/stg_payments.sql",
+          "level": "line",
+          "line_end": 5,
+          "line_start": 5
+         },
+         "confidence": "high",
+         "edge_id": "e_77097642",
+         "expression": "raw_payments.amt AS amount_usd",
+         "from": "seed.synthetic_shop.raw_payments.amt",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.stg_payments.amount_usd"
+        },
+        "e_7716f122": {
+         "citation": {
+          "file": "models/staging/stg_refunds.sql",
+          "level": "line",
+          "line_end": 4,
+          "line_start": 4
+         },
+         "confidence": "high",
+         "edge_id": "e_7716f122",
+         "expression": "raw_refunds.refund_amt AS refund_amt",
+         "from": "seed.synthetic_shop.raw_refunds.refund_amt",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.stg_refunds.refund_amt"
+        },
+        "e_83c3f211": {
+         "citation": {
+          "file": "models/intermediate/int_customer_order_history.sql",
+          "level": "star",
+          "line_end": 2,
+          "line_start": 2
+         },
+         "confidence": "high",
+         "edge_id": "e_83c3f211",
+         "expression": "int_order_financials.net_paid_usd AS net_paid_usd",
+         "from": "model.synthetic_shop.int_order_financials.net_paid_usd",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.int_customer_order_history.net_paid_usd"
+        },
+        "e_a46fb93b": {
+         "citation": {
+          "file": "models/marts/fct_orders.sql",
+          "level": "line",
+          "line_end": 12,
+          "line_start": 12
+         },
+         "confidence": "high",
+         "edge_id": "e_a46fb93b",
+         "expression": "int_customer_order_history.net_paid_usd AS net_paid_usd",
+         "from": "model.synthetic_shop.int_customer_order_history.net_paid_usd",
+         "kind": "IDENTITY",
+         "to": "model.synthetic_shop.fct_orders.net_paid_usd"
+        },
+        "e_f1f7f18a": {
+         "citation": {
+          "file": "models/intermediate/int_payment_events.sql",
+          "level": "line",
+          "line_end": 4,
+          "line_start": 4
+         },
+         "confidence": "high",
+         "edge_id": "e_f1f7f18a",
+         "expression": "stg_payments.amount_usd AS event_amount_usd",
+         "from": "model.synthetic_shop.stg_payments.amount_usd",
+         "kind": "RENAME",
+         "to": "model.synthetic_shop.int_payment_events.event_amount_usd"
+        }
+       }
+      },
+      "tool": "trace_upstream"
+     }
+    ],
+    "text": "",
+    "tool_calls": [
+     {
+      "arguments": {
+       "column_id": "fct_orders.net_paid_usd"
+      },
+      "id": "call_0",
+      "name": "trace_upstream",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 1284,
+    "index": 1,
+    "input_tokens": 1104,
+    "latency_ms": 2340.2,
+    "output_tokens": 129,
+    "phase": "tool",
+    "results": [],
+    "text": "The column `fct_orders.net_paid_usd` comes from `int_customer_order_history.net_paid_usd` via an identity transformation, which itself is derived from `int_order_financials.net_paid_usd` through an aggregation operation. This aggregation combines `int_payment_events.event_amount_usd`, which originates from both `stg_payments.amount_usd` (via a rename) and `stg_refunds.refund_amt` (via a transformation that negates the refund amount). Thus, `fct_orders.net_paid_usd` ultimately comes from `raw_payments.amt` and `raw_refunds.refund_amt`.",
+    "tool_calls": []
+   },
+   {
+    "cached": false,
+    "error": null,
+    "est_input_tokens": 680,
+    "index": 2,
+    "input_tokens": 391,
+    "latency_ms": 6908.3,
+    "output_tokens": 396,
+    "phase": "answer",
+    "results": [],
+    "text": "{\n  \"answer_text\": \"fct_orders.net_paid_usd comes from int_customer_order_history.net_paid_usd through an identity mapping. int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd via an identity mapping. int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd using COALESCE. int_payment_events.event_amount_usd originates from stg_payments.amount_usd through a rename operation, which itself comes from raw_payments.amt via a rename operation. The data flow traces back to raw_payments.amt as the original source.\",\n  \"claims\": [\n    {\n      \"ids\": [\n        \"e_a46fb93b\"\n      ],\n      \"text\": \"fct_orders.net_paid_usd is directly derived from int_customer_order_history.net_paid_usd.\"\n    },\n    {\n      \"ids\": [\n        \"e_83c3f7211\"\n      ],\n      \"text\": \"int_customer_order_history.net_paid_usd is derived from int_order_financials.net_paid_usd.\"\n    },\n    {\n      \"ids\": [\n        \"e_67db594e\"\n      ],\n      \"text\": \"int_order_financials.net_paid_usd is aggregated from int_payment_events.event_amount_usd.\"\n    },\n    {\n      \"ids\": [\n        \"e_f1f7f18a\"\n      ],\n      \"text\": \"int_payment_events.event_amount_usd is derived from stg_payments.amount_usd via a rename operation.\"\n    },\n    {\n      \"ids\": [\n        \"e_77097642\"\n      ],\n      \"text\": \"stg_payments.amount_usd is derived from raw_payments.amt via a rename operation.\"\n    }\n  ],\n  \"confidence\": \"high\",\n  \"refused\": false\n}",
+    "tool_calls": []
+   }
+  ],
+  "stop_reason": "model_done",
+  "timings": {
+   "answer_ms": 6910.8,
+   "tool_ms": 2929.1,
+   "total_ms": 9839.9
+  },
+  "tokens": {
+   "cached_calls": 0,
+   "llm_calls": 3,
+   "max_est_input": 1284,
+   "sum_input": 2147,
+   "sum_output": 553
+  },
+  "validation": {
+   "completions": [],
+   "counts": {},
+   "dropped_claims": [],
+   "first": {
+    "claims": 5,
+    "completions": [],
+    "counts": {},
+    "dropped_claims": [],
+    "failures": [],
+    "passed": true,
+    "repairs": [
+     {
+      "claim_index": 1,
+      "from": "e_83c3f7211",
+      "to": "e_83c3f211"
+     }
+    ]
+   },
+   "passed": true,
+   "regenerated": false,
+   "repairs": [
+    {
+     "claim_index": 1,
+     "from": "e_83c3f7211",
+     "to": "e_83c3f211"
+    }
+   ],
+   "second": null,
+   "skipped": false,
+   "warning": false
+  }
+ },
+ "subtype": "upstream"
+}
