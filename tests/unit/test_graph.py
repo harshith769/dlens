@@ -370,7 +370,6 @@ def _chain() -> LineageGraph:
         models={},
         exposures={},
         parse={},
-        deferred=[],
         indirect=[hop],
     )
 

@@ -143,7 +143,6 @@ def _layered() -> LineageGraph:
         models=m,
         exposures={},
         parse={},
-        deferred=[],
     )
 
 

@@ -38,7 +38,6 @@ class Result:
     edges: set[tuple[str, str, str]]  # (from, to, kind) as short ids
     quality: str
     constants: list[str]
-    deferred: set[tuple[str, str]]
     indirect: set[tuple[str, str, str]]  # (from, to, type) as short ids
     indirect_edges: list[IndirectEdge]
     source: str  # the fixture SQL, written as the model's source file models/m.sql
@@ -69,9 +68,6 @@ def run_sql(sql: str) -> Result:
         edges={(short_id(e.from_column), short_id(e.to_column), str(e.kind)) for e in result.edges},
         quality=str(parse.quality),
         constants=parse.constants,
-        deferred={
-            (short_id(d.from_column), short_id(d.to_column)) for d in parse.deferred_indirect
-        },
         indirect={
             (short_id(e.from_column), short_id(e.to_column), str(e.kind))
             for e in getattr(result, "indirect", [])
@@ -129,7 +125,7 @@ def support_matrix_md() -> str:
     """Markdown table generated from the fixtures (plus UNTESTED).
 
     no = strict xfail, partial = a fixture that documents what it does not capture (``partial``
-    key), else yes. Deferred window keys are also WINDOW indirect edges since S03 (ADR 0020)."""
+    key), else yes. Window keys are WINDOW indirect edges (ADR 0020)."""
     rows = ["| Construct | Supported | Note |", "|---|---|---|"]
     for name in fixture_names():
         exp = load_expected(name)

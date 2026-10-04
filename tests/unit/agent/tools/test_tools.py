@@ -134,7 +134,7 @@ def wide_graph(n: int, tmp_path: Path) -> LineageGraph:
         )
     return LineageGraph(
         columns=cols, edges=edges, depends_on=[], consumes=[], models=models,
-        exposures={}, parse={}, deferred=[],
+        exposures={}, parse={},
     )  # fmt: skip
 
 
@@ -188,7 +188,7 @@ def make_fan_in(n: int, tmp_path: Path) -> LineageGraph:
         )  # fmt: skip
     return LineageGraph(
         columns=cols, edges=edges, depends_on=[], consumes=[], models=models,
-        exposures={}, parse={}, deferred=[],
+        exposures={}, parse={},
     )  # fmt: skip
 
 
@@ -240,7 +240,7 @@ def test_sql_truncates_long_files(tmp_path: Path) -> None:
         columns={"model.p.big.last": {"model": "model.p.big", "name": "last", "type": "int"}},
         edges=[], depends_on=[], consumes=[],
         models={"model.p.big": {"resource_type": "model", "name": "big", "file": "models/big.sql"}},
-        exposures={}, parse={}, deferred=[],
+        exposures={}, parse={},
     )  # fmt: skip
     r = Toolbox(g, tmp_path).call("get_model_sql", {"model_id": "big"})
     p = r.llm_payload
@@ -293,7 +293,7 @@ def _aliased_box(tmp_path: Path, sql: str = ALIASED) -> Toolbox:
         },
         edges=[], depends_on=[], consumes=[],
         models={"model.p.agg": {"resource_type": "model", "name": "agg", "file": "models/agg.sql"}},
-        exposures={}, parse={}, deferred=[],
+        exposures={}, parse={},
     )  # fmt: skip
     return Toolbox(g, tmp_path)
 

@@ -38,7 +38,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "notes": "tables share no column names; ON keys are JOIN to every column except their own pass-through",
   "indirect": [
     {
@@ -102,5 +101,5 @@
       "type": "JOIN"
     }
   ],
-  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets); S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

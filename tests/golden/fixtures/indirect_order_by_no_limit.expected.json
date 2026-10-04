@@ -13,7 +13,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "indirect": [
     {
       "from": "orders.order_date",
@@ -26,5 +25,6 @@
       "type": "SORT"
     }
   ],
-  "notes": "top-level ORDER BY without LIMIT is still SORT to every column"
+  "notes": "top-level ORDER BY without LIMIT is still SORT to every column",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

@@ -18,7 +18,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "indirect": [
     {
       "from": "orders.user_id",
@@ -51,5 +50,6 @@
       "type": "JOIN"
     }
   ],
-  "notes": "GROUP BY inside a CTE targets only the columns computed through it (n_orders), not c.id / c.name"
+  "notes": "GROUP BY inside a CTE targets only the columns computed through it (n_orders), not c.id / c.name",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

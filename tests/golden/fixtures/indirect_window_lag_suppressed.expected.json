@@ -13,12 +13,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [
-    [
-      "orders.user_id",
-      "m.prev_amt"
-    ]
-  ],
   "indirect": [
     {
       "from": "orders.user_id",
@@ -26,5 +20,6 @@
       "type": "WINDOW"
     }
   ],
-  "notes": "amt is the lag argument and the ORDER BY key: direct only (suppressed); user_id is WINDOW"
+  "notes": "amt is the lag argument and the ORDER BY key: direct only (suppressed); user_id is WINDOW",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

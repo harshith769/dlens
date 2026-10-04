@@ -86,7 +86,6 @@ def make_shop(indirect: list[IndirectEdge] | None = None) -> LineageGraph:
         models=models,
         exposures={"exposure.p.dash": {"name": "dash", "type": "dashboard"}},
         parse={},
-        deferred=[],
         indirect=indirect,
     )
 

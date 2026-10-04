@@ -13,7 +13,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "indirect": [
     {
       "from": "orders.status",
@@ -31,5 +30,6 @@
       "type": "FILTER"
     }
   ],
-  "notes": "WHERE columns are FILTER to every output; amt -> amt stays direct only"
+  "notes": "WHERE columns are FILTER to every output; amt -> amt stays direct only",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

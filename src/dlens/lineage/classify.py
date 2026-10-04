@@ -197,8 +197,3 @@ def key_columns(expr: exp.Expr) -> dict[str, set[IndirectKind]]:
         else:
             keys.setdefault(key, set()).add(kind)
     return {k: v for k, v in keys.items() if k not in value}
-
-
-def window_key_columns(expr: exp.Expr) -> set[str]:
-    """Key columns used only as window keys: recorded as ``deferred_indirect`` (v0.1 report)."""
-    return {k for k, kinds in key_columns(expr).items() if kinds == {IndirectKind.WINDOW}}

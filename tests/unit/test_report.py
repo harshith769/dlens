@@ -46,7 +46,6 @@ def _graph() -> LineageGraph:
                 unique_id="model.p.bad", quality=ParseQuality.FAILED, reason="ParseError: boom"
             ),
         },
-        deferred=[],
     )
 
 

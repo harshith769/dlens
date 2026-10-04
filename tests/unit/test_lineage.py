@@ -105,14 +105,17 @@ def test_rename_inside_cte_then_passthrough_is_rename() -> None:
     assert _kinds(sql) == {("orders.amt", "m.amount"): EdgeKind.RENAME}
 
 
-def test_window_keys_are_deferred_not_edges() -> None:
+def test_window_keys_are_window_indirect_edges_not_direct_edges() -> None:
+    """Window keys were the v0.1 ``deferred_indirect`` record; since S04 they are only WINDOW
+    indirect edges. order_date is both value and key: the direct edge wins (D7)."""
     sql = (
         "select lag(order_date) over (partition by user_id order by order_date, id) as prev "
         "from db.main.orders"
     )
     raw = lineage_for_sql(sql, _ingest())
     assert _kinds(sql) == {("orders.order_date", "m.prev"): EdgeKind.TRANSFORMATION}
-    assert sorted(short_id(up) for up, _ in raw.deferred) == ["orders.id", "orders.user_id"]
+    window = {short_id(r.upstream) for r in raw.indirect if r.kind == "WINDOW"}
+    assert window == {"orders.id", "orders.user_id", "orders.order_date"}
 
 
 def test_lineage_trees_share_the_qualified_scope_ast() -> None:
@@ -149,7 +152,8 @@ def test_aggregate_filter_and_order_keys_are_not_direct_inputs() -> None:
         ("orders.amt", "m.paid_case"): EdgeKind.AGGREGATION,
         ("orders.id", "m.ids"): EdgeKind.AGGREGATION,
     }
-    assert raw.deferred == []  # only window keys are deferred
+    keys = {(short_id(r.upstream), r.output, str(r.kind)) for r in raw.indirect}
+    assert {("orders.amt", "paid", "CONDITIONAL"), ("orders.order_date", "ids", "SORT")} <= keys
 
 
 def test_a_key_column_also_read_as_a_value_stays_direct() -> None:

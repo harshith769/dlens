@@ -24,6 +24,8 @@ class Totals(BaseModel):
     indirect_model_level_citations: int = 0
     low_confidence_edges: int
     deferred_indirect: int
+    """Window keys: distinct (from, to) pairs of WINDOW indirect edges. The v0.1 name and line
+    are kept so the report reads the same; ModelParse.deferred_indirect is retired (S04)."""
     constants: int
 
 
@@ -60,7 +62,9 @@ def build_report(graph: LineageGraph) -> Report:
                 e.model_level_citation for e in graph.indirect_edges()
             ),
             low_confidence_edges=sum(e.confidence == Confidence.LOW for e in edges),
-            deferred_indirect=sum(len(p.deferred_indirect) for p in graph.parse_details().values()),
+            deferred_indirect=len(
+                {(e.from_column, e.to_column) for e in graph.indirect_edges() if e.kind == "WINDOW"}
+            ),
             constants=sum(len(m.constants) for m in models),
         ),
     )

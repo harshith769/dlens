@@ -8,7 +8,7 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "notes": "an input's kind is the strongest operation on its own path: the scalar subquery's max() makes refund_amt AGGREGATION, while the sibling amt is only TRANSFORMATION (dim_customer_rfm.recency_days)",
-  "indirect": []
+  "indirect": [],
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

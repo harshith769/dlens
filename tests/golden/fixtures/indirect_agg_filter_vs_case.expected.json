@@ -18,7 +18,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "indirect": [
     {
       "from": "orders.status",
@@ -36,5 +35,6 @@
       "type": "GROUP_BY"
     }
   ],
-  "notes": "same logic, two classes: FILTER (WHERE) is CONDITIONAL; the CASE condition is a direct AGGREGATION input"
+  "notes": "same logic, two classes: FILTER (WHERE) is CONDITIONAL; the CASE condition is a direct AGGREGATION input",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

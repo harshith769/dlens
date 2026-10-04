@@ -1,7 +1,6 @@
 """Data types produced by the lineage engine (spec §6 graph schema)."""
 
 from enum import StrEnum
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -81,15 +80,6 @@ class IndirectEdge(_Frozen):
     confidence: Confidence = Confidence.HIGH
 
 
-class DeferredIndirect(_Frozen):
-    """A column used only as a key (e.g. window PARTITION BY / ORDER BY). Not an edge in v0.1;
-    kept so v0.3 can turn it into a DEPENDS_ON_INDIRECT edge without re-deriving it."""
-
-    from_column: str
-    to_column: str
-    kind: Literal["WINDOW"]
-
-
 class ModelParse(BaseModel):
     unique_id: str
     quality: ParseQuality
@@ -97,7 +87,6 @@ class ModelParse(BaseModel):
     gaps: list[str] = Field(default_factory=list)
     constants: list[str] = Field(default_factory=list)
     """Output columns that read no input column (literals, ``current_timestamp``). Not gaps."""
-    deferred_indirect: list[DeferredIndirect] = Field(default_factory=list)
     citation_gaps: list[str] = Field(default_factory=list)
     """Indirect-edge clauses cited at model level, each ``"<TYPE> <clause>: <reason>"`` (S04)."""
 

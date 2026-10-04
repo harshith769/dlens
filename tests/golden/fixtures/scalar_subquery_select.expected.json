@@ -13,7 +13,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "notes": "correlation keys c.id and o.user_id select rows in the subquery: FILTER to cust_name only, no direct edge",
   "indirect": [
     {
@@ -27,5 +26,5 @@
       "type": "FILTER"
     }
   ],
-  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets); S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

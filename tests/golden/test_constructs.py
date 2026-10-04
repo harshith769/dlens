@@ -36,7 +36,6 @@ def test_construct(name: str) -> None:
     assert got.edges == want
     assert got.quality == exp["quality"]
     assert got.constants == sorted(exp["constants"])  # type: ignore[arg-type]
-    assert got.deferred == {tuple(d) for d in exp["deferred"]}  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize("name", [_param(n, "xfail_indirect") for n in fixture_names()])  # type: ignore[misc]

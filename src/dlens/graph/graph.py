@@ -19,7 +19,6 @@ from dlens.graph.models import (
 )
 from dlens.ingest import IngestResult, ingest
 from dlens.lineage import (
-    DeferredIndirect,
     Edge,
     IndirectEdge,
     LineageResult,
@@ -31,8 +30,9 @@ from dlens.lineage import (
 )
 
 # Cache-format version: bump whenever the JSON shape changes. v2 added ``dlens_version``; v3 added
-# ``indirect`` (ADR 0020); v4 added ``citation_gaps`` to the parse report (S04 clause citations).
-# ``load`` still reads v2 files (no indirect edges, e.g. the demo bundle) and v3 files.
+# ``indirect`` (ADR 0020); v4 added ``citation_gaps`` to the parse report and dropped
+# ``deferred_indirect`` (window keys are WINDOW indirect edges) (S04). ``load`` still reads v2
+# files (no indirect edges, e.g. the demo bundle) and v3 files; their deferred list is ignored.
 FORMAT_VERSION = 4
 READABLE_VERSIONS = (2, 3, 4)
 DEFAULT_MAX_PATHS = 1000
@@ -59,7 +59,6 @@ class LineageGraph:
         models: dict[str, dict[str, str]],
         exposures: dict[str, dict[str, str]],
         parse: dict[str, ModelParse],
-        deferred: list[DeferredIndirect],
         indirect: list[IndirectEdge] | None = None,
     ) -> None:
         self._g: Any = nx.DiGraph()
@@ -71,8 +70,7 @@ class LineageGraph:
         self._consumes = sorted(set(consumes))
         self._models = dict(sorted(models.items()))
         self._exposures = dict(sorted(exposures.items()))
-        self._parse = {k: v.model_copy(update={"deferred_indirect": []}) for k, v in parse.items()}
-        self._deferred = sorted(deferred, key=lambda d: (d.to_column, d.from_column, d.kind))
+        self._parse = dict(parse)
         self._indirect = sorted(
             indirect or [], key=lambda e: (e.to_column, e.from_column, str(e.kind))
         )
@@ -111,7 +109,6 @@ class LineageGraph:
             for x in ingested.manifest.exposures.values()
             for dep in x.depends_on.nodes
         ]
-        deferred = [d for p in result.parse_report.values() for d in p.deferred_indirect]
         return cls(
             columns=columns,
             edges=result.edges,
@@ -120,7 +117,6 @@ class LineageGraph:
             models=models,
             exposures=exposures,
             parse=result.parse_report,
-            deferred=deferred,
             indirect=result.indirect,
         )
 
@@ -179,15 +175,8 @@ class LineageGraph:
         return {uid: p.quality for uid, p in sorted(self._parse.items())}
 
     def parse_details(self) -> dict[str, ModelParse]:
-        """Full per-model parse info, with ``deferred_indirect`` reattached to its model."""
-        by_model: dict[str, list[DeferredIndirect]] = {}
-        for d in self._deferred:
-            if self._g.has_node(d.to_column):
-                by_model.setdefault(self.model_of(d.to_column), []).append(d)
-        return {
-            uid: p.model_copy(update={"deferred_indirect": by_model.get(uid, [])})
-            for uid, p in sorted(self._parse.items())
-        }
+        """Full per-model parse info (gaps, constants, citation gaps), sorted by model."""
+        return dict(sorted(self._parse.items()))
 
     # -- lookup ------------------------------------------------------------------------------
 
@@ -342,10 +331,9 @@ class LineageGraph:
             "models": [{"unique_id": k, **v} for k, v in self._models.items()],
             "exposures": [{"unique_id": k, **v} for k, v in self._exposures.items()],
             "parse_report": {
-                k: v.model_dump(mode="json", exclude={"unique_id", "deferred_indirect"})
+                k: v.model_dump(mode="json", exclude={"unique_id"})
                 for k, v in sorted(self._parse.items())
             },
-            "deferred_indirect": [d.model_dump(mode="json") for d in self._deferred],
             "indirect": [e.model_dump(mode="json") for e in self._indirect],
         }
 
@@ -377,7 +365,6 @@ class LineageGraph:
                 for x in raw["exposures"]
             },
             parse={uid: ModelParse(unique_id=uid, **p) for uid, p in raw["parse_report"].items()},
-            deferred=[DeferredIndirect.model_validate(d) for d in raw["deferred_indirect"]],
             indirect=[IndirectEdge.model_validate(e) for e in raw.get("indirect", [])],
         )
 

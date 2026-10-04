@@ -6,10 +6,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [
-    ["orders.status", "m.running_amt"],
-    ["orders.user_id", "m.running_amt"]
-  ],
   "notes": "the inner sum() is a grouped aggregate (AGGREGATION); only the outer sum() is windowed. GROUP BY keys are GROUP_BY to every other output, window keys WINDOW to running_amt (fct_customer_cohorts.cumulative_net_paid)",
   "indirect": [
     {"from": "orders.user_id", "to": "m.status", "type": "GROUP_BY"},
@@ -18,5 +14,6 @@
     {"from": "orders.status", "to": "m.user_id", "type": "GROUP_BY"},
     {"from": "orders.status", "to": "m.running_amt", "type": "GROUP_BY"},
     {"from": "orders.status", "to": "m.running_amt", "type": "WINDOW"}
-  ]
+  ],
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

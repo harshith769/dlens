@@ -18,7 +18,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "notes": "both ON columns are JOIN keys; employees.id -> m.id stays direct only",
   "indirect": [
     {
@@ -47,5 +46,5 @@
       "type": "JOIN"
     }
   ],
-  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets); S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

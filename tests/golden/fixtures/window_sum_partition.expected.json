@@ -13,16 +13,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [
-    [
-      "orders.order_date",
-      "m.running_amt"
-    ],
-    [
-      "orders.user_id",
-      "m.running_amt"
-    ]
-  ],
   "notes": "windowed aggregate keeps the row grain; PARTITION BY / ORDER BY keys are WINDOW to running_amt",
   "indirect": [
     {
@@ -36,5 +26,5 @@
       "type": "WINDOW"
     }
   ],
-  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets); S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

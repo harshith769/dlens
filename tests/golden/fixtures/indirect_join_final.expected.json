@@ -13,7 +13,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "indirect": [
     {
       "from": "orders.user_id",
@@ -46,5 +45,6 @@
       "type": "JOIN"
     }
   ],
-  "notes": "every column in ON (equi and non-equi) is a JOIN key to every output column of the final SELECT"
+  "notes": "every column in ON (equi and non-equi) is a JOIN key to every output column of the final SELECT",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

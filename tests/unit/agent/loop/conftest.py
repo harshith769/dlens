@@ -73,7 +73,6 @@ def _extend(
         models={**{m: g.model_info(m) or {} for m in g.model_ids()}, **models},
         exposures={"exposure.p.dash": {"name": "dash", "type": "dashboard"}},
         parse={},
-        deferred=[],
     )
 
 

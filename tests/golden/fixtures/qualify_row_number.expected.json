@@ -18,7 +18,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "notes": "QUALIFY keys are FILTER, also inside its OVER (the clause decides first); user_id -> user_id stays direct only",
   "indirect": [
     {
@@ -47,5 +46,5 @@
       "type": "FILTER"
     }
   ],
-  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets)"
+  "justification": "S03: indirect-edge expectations added by hand from ADR 0020 (D1 classification, D7 targets); S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

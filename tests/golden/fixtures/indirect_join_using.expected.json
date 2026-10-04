@@ -18,7 +18,6 @@
   ],
   "quality": "FULL",
   "constants": [],
-  "deferred": [],
   "indirect": [
     {
       "from": "refunds.order_id",
@@ -51,5 +50,6 @@
       "type": "JOIN"
     }
   ],
-  "notes": "a USING column is a JOIN key on both sides"
+  "notes": "a USING column is a JOIN key on both sides",
+  "justification": "S04: the deferred key is retired; window keys are the WINDOW indirect expectations"
 }

@@ -4,7 +4,6 @@ from dlens.lineage.engine import extract_lineage, lineage_for_sql, topological_m
 from dlens.lineage.gold import GoldReport, IndirectReport, compare, compare_indirect
 from dlens.lineage.models import (
     Confidence,
-    DeferredIndirect,
     Edge,
     EdgeKind,
     IndirectEdge,
@@ -18,7 +17,6 @@ from dlens.lineage.models import (
 
 __all__ = [
     "Confidence",
-    "DeferredIndirect",
     "Edge",
     "EdgeKind",
     "GoldReport",

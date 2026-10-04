@@ -27,11 +27,9 @@ from dlens.lineage.classify import (
     key_columns,
     path_kind,
     step_kind,
-    window_key_columns,
 )
 from dlens.lineage.models import (
     Confidence,
-    DeferredIndirect,
     Edge,
     EdgeKind,
     IndirectEdge,
@@ -78,7 +76,6 @@ class _ModelLineage:
         default_factory=list
     )  # (upstream column id, output column, steps, step inputs, confidence, branch)
     gaps: list[str] = field(default_factory=list)
-    deferred: list[tuple[str, str]] = field(default_factory=list)  # (upstream id, output col)
     constants: list[str] = field(default_factory=list)  # outputs with no input column at all
     scope: Scope | None = None  # root scope of the qualified SELECT (shared with indirect edges)
     indirect: list[_RawIndirect] = field(default_factory=list)
@@ -93,42 +90,28 @@ def topological_models(ingest: IngestResult) -> list[DbtNode]:
     return [models[uid] for uid in sorter.static_order()]
 
 
-def _leaves(node: Node) -> Iterator[Node]:
-    if not node.downstream:
-        yield node
-    for child in node.downstream:
-        yield from _leaves(child)
-
-
 def _walk(
     node: Node,
     steps: list[exp.Expr],
     inputs: list[str],
     branch: int | None,
     scope: exp.Expr | None,
-    dropped: list[Node],
 ) -> Iterator[_Path]:
     """Yield value paths. Children used only in function-attached key positions (window keys,
-    aggregate FILTER / ORDER BY) are not value inputs (ADR 0020); those used only as window keys
-    are also appended to `dropped` (the v0.1 ``deferred_indirect`` record)."""
+    aggregate FILTER / ORDER BY) are not value inputs: they are indirect edges (ADR 0020)."""
     if not node.downstream:
         yield _Path(steps, inputs, node, branch, scope)
         return
     if isinstance(node.source, exp.Union):
         # The UNION node's expression is the first branch's; only the branches are real steps.
         for i, child in enumerate(node.downstream):
-            yield from _walk(child, steps, inputs, i if branch is None else branch, scope, dropped)
+            yield from _walk(child, steps, inputs, i if branch is None else branch, scope)
         return
     keys = key_columns(node.expression)
-    window_keys = window_key_columns(node.expression)
     for child in node.downstream:
         name = column_key(child.name)
-        if name in window_keys:
-            dropped.append(child)
-        elif name not in keys:
-            yield from _walk(
-                child, [*steps, node.expression], [*inputs, name], branch, node.source, dropped
-            )
+        if name not in keys:
+            yield from _walk(child, [*steps, node.expression], [*inputs, name], branch, node.source)
 
 
 def _table_name(table: exp.Table) -> str:
@@ -220,21 +203,14 @@ def lineage_for_sql(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> 
         if output == "*":
             out.gaps.append("unexpanded * in the outer SELECT")
             continue
-        dropped: list[Node] = []
         found = False
-        for path in _walk(root, [], [], None, None, dropped):
+        for path in _walk(root, [], [], None, None):
             ids, gap = _resolve_leaf(path, ingest)
             if gap:
                 out.gaps.append(f"{output} <- {gap}")
             for upstream, conf in ids:
                 out.edges.append((upstream, output, path.steps, path.inputs, conf, path.branch))
                 found = True
-        for key_node in dropped:
-            for leaf in _leaves(key_node):
-                if isinstance(leaf.expression, exp.Table):
-                    uid = ingest.relation_map.get(_table_name(leaf.expression))
-                    if uid:
-                        out.deferred.append((column_id(uid, leaf.name.split(".")[-1]), output))
         if not found and not any(g.startswith(f"{output} <-") for g in out.gaps):
             # Every path ended in a constant: recorded, not a gap (the column is fully parsed).
             out.constants.append(output)
@@ -459,7 +435,7 @@ def _through(
     except Exception:  # sqlglot could not find the column: no edge rather than a guess
         return []
     found: list[tuple[str, Confidence]] = []
-    for path in _walk(node, [], [], None, None, []):
+    for path in _walk(node, [], [], None, None):
         found += _resolve_leaf(path, ingest)[0]
     return found
 
@@ -689,21 +665,12 @@ def extract_lineage(
         direct = {(e.from_column, e.to_column) for e in edges}
         model_indirect, citation_gaps = _model_indirect(model, raw, source, direct)
         indirect += model_indirect
-        deferred = sorted(
-            {
-                DeferredIndirect(from_column=up, to_column=to, kind="WINDOW")
-                for up, out in raw.deferred
-                if (up, to := column_id(model.unique_id, out)) not in direct
-            },
-            key=lambda d: (d.to_column, d.from_column),
-        )
         report[model.unique_id] = ModelParse(
             unique_id=model.unique_id,
             quality=ParseQuality.TABLE_ONLY if raw.gaps else ParseQuality.FULL,
             reason="; ".join(raw.gaps) if raw.gaps else None,
             gaps=raw.gaps,
             constants=sorted({c.lower() for c in raw.constants}),
-            deferred_indirect=deferred,
             citation_gaps=citation_gaps,
         )
     return LineageResult(edges=edges, depends_on=depends_on, parse_report=report, indirect=indirect)

@@ -45,7 +45,6 @@ def make_graph(
         models=models,
         exposures={x: {"name": x, "type": "dashboard"} for x, _ in consumes or []},
         parse={},
-        deferred=[],
     )
 
 
@@ -111,6 +110,5 @@ def with_indirect(g: LineageGraph) -> LineageGraph:
         models={m: g.model_info(m) or {} for m in g.model_ids()},
         exposures={x: g.exposure_info(x) or {} for x, _ in g.consumes()},
         parse={},
-        deferred=[],
         indirect=indirect,
     )

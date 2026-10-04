@@ -38,9 +38,14 @@ def print_counts(result: LineageResult) -> None:
     print(f"low-confidence edges: {sum(e.confidence == 'low' for e in result.edges)}")
     print(f"model-level citations: {sum(e.model_level_citation for e in result.edges)}")
     print(f"depends_on edges: {len(result.depends_on)}")
+    window_keys = Counter(
+        e.to_column.rsplit(".", 1)[0]
+        for e in {(e.from_column, e.to_column): e for e in result.indirect if e.kind == "WINDOW"}.values()
+    )
     for uid, p in result.parse_report.items():
         extra = f"  ({p.reason})" if p.reason else ""
-        window = f"  [{len(p.deferred_indirect)} deferred WINDOW]" if p.deferred_indirect else ""
+        n = window_keys[uid]
+        window = f"  [{n} WINDOW key pair(s)]" if n else ""
         print(f"  {p.quality:<10} {uid}{window}{extra}")
 
 
