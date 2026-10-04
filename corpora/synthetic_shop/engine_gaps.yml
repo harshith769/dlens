@@ -13,17 +13,8 @@
 direct_edges: []  # S04: the 4 kind gaps (scalar-subquery leak, sum(sum(x)) OVER) are fixed
 
 # Edges the engine cites at model level (Edge.model_level_citation) instead of a SQL line.
-# lineage/provenance.py recognises `*` and `t.*` as star items, not `* EXCLUDE (...)`.
-model_level_citations:
-  - {from: int_order_profit.order_id, to: fct_order_margins.order_id, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.customer_id, to: fct_order_margins.customer_id, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.order_date, to: fct_order_margins.order_date, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.net_revenue, to: fct_order_margins.net_revenue, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.cogs_total, to: fct_order_margins.cogs_total, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.gross_margin, to: fct_order_margins.gross_margin, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.shipping_cost_total, to: fct_order_margins.shipping_cost_total, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.discount_total, to: fct_order_margins.discount_total, construct: "SELECT * EXCLUDE (...)", target: S04}
-  - {from: int_order_profit.contribution_margin, to: fct_order_margins.contribution_margin, construct: "SELECT * EXCLUDE (...)", target: S04}
+# lineage/provenance.py recognises `*`, `t.*` and their EXCLUDE / REPLACE forms as star items.
+model_level_citations: []  # S04: provenance reads * EXCLUDE / REPLACE (fct_order_margins)
 
 # Indirect edges (S03, ADR 0020). Asserted equal to what the engine does: the citation entry is
 # present iff every indirect edge carries a model-level citation (no clause locator yet).

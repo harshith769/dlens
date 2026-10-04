@@ -275,7 +275,6 @@ def test_locate_union_branch_and_star_and_fallback() -> None:
     assert fallback.model_level and fallback.lines == (1, 15)
 
 
-@pytest.mark.xfail(strict=True, reason="S04: provenance does not read * EXCLUDE / REPLACE yet")
 @pytest.mark.parametrize(
     ("source", "lines"),
     [

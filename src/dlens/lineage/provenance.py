@@ -11,7 +11,10 @@ from dataclasses import dataclass
 
 _ALIAS = re.compile(r"\bas\s+[\"`]?(\w+)[\"`]?\s*$", re.IGNORECASE | re.DOTALL)
 _BARE = re.compile(r"^(?:distinct\s+)?(?:[\"`]?\w+[\"`]?\.)*[\"`]?(\w+)[\"`]?$", re.IGNORECASE)
-_STAR = re.compile(r"^(?:\w+\.)?\*$")
+# ``*``, ``t.*``, optionally with DuckDB modifiers: ``* EXCLUDE (a, b)``, ``t.* REPLACE (x AS y)``.
+_STAR = re.compile(
+    r"^(?:[\"`]?\w+[\"`]?\.)?\*(?:\s*\b(?:exclude|replace)\s*\(.*\))*$", re.IGNORECASE | re.DOTALL
+)
 _WORD = re.compile(r"[A-Za-z_]\w*")
 _COMMENT = re.compile(r"--[^\n]*|/\*.*?\*/|\{#.*?#\}", re.DOTALL)
 
@@ -58,7 +61,8 @@ def select_items(text: str) -> list[SelectItem]:
             lead = start + len(raw) - len(raw.lstrip())
             tail = start + len(raw.rstrip())
             lines = (text.count("\n", 0, lead) + 1, text.count("\n", 0, tail - 1) + 1)
-            items.append(SelectItem(_item_name(stripped), bool(_STAR.match(stripped)), lines))
+            star = bool(_STAR.match(_COMMENT.sub("", stripped).strip()))
+            items.append(SelectItem(_item_name(stripped), star, lines))
 
     i = 0
     while i < len(text):
