@@ -13,13 +13,26 @@ eval questions. Never point this at a quota-limited provider without checking th
 first answer-phase draft with a fixture-made bad draft (built from the real ledger of the run),
 then lets the real model make the regenerate call, so the validator's regenerate / salvage path
 runs live. Kinds: fake_id, hallucinated, laundering, all_bad (or "all" for every kind).
+
+--provider gemini (the owner runs this; it spends free quota):
+    uv run --extra agent python scripts/smoke_agent.py --provider gemini --max-calls 16 --yes-spend-quota
+runs dev-01 (upstream) and dev-10 (yes/no) through the real loop and validator on the demo
+bundle, with the same guards as smoke_llm.py: the DEV key from the environment (.env is never
+read), the real DEV quota counter (never the demo's), refused without --yes-spend-quota, with
+--max-calls outside 1-16, or if fewer than --max-calls calls are left today. A question starts
+only if a full run (8 calls) still fits under --max-calls; a wrapper on provider.send stops any
+call past the cap. Prints per question: verdict, validation outcome, dev pass, calls used and
+the quota counter before and after. Uses the normal LLM cache, so a re-run is free.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
+import os
 import sys
+from collections.abc import Callable, Mapping
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -37,6 +50,16 @@ from dlens.lineage import short_id
 
 ROOT = Path(__file__).parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "agent_smoke.yaml"
+GEMINI_QUESTIONS = ("dev-01", "dev-10")
+GEMINI_HARD_CAP = 16
+
+
+def _script(name: str) -> Any:  # scripts/ is not a package
+    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def load_questions(path: Path = FIXTURE) -> dict[str, Any]:
@@ -299,9 +322,84 @@ def run_injection(kinds: list[str], spec: dict[str, Any], project: Path, graph: 
     return 0 if ok else 1
 
 
-def main() -> int:
+# -- capped end-to-end run on Gemini (the owner runs it) ----------------------------------------
+
+OUTCOME_LABELS = {"pass": "raw", "warning": "salvaged"}  # dev_report name -> label shown here
+
+
+def smoke_gemini(
+    max_calls: int,
+    env: Mapping[str, str],
+    factory: Callable[[str, Mapping[str, str]], LLMClient] = make_client,
+) -> int:
+    from dlens.agent.loop import MAX_LLM_CALLS
+    from dlens.ui import demo
+
+    llm_smoke, dev = _script("smoke_llm"), _script("dev_report")
+    llm_smoke.refuse_demo_counter(env)
+    client = factory("gemini", env)
+    print(f"quota before: {llm_smoke.counter_line(client)}")
+    left = client.quota.remaining("gemini")
+    if left is not None and left < max_calls:
+        print(f"refused: only {left} calls left today, --max-calls is {max_calls}")
+        return 2
+    capped = llm_smoke.CappedSend(client.provider.send, max_calls)
+    client.provider.send = capped  # type: ignore[method-assign]
+    questions = {q["id"]: q for q in dev.load_questions()}
+    project = demo.projects({})[demo.PROJECT]
+    graph = demo.load_graph(project)
+    logger = RunLogger(runs_dir(env))
+    ok, passed = True, 0
+    for qid in GEMINI_QUESTIONS:
+        q = questions[qid]
+        if capped.calls + MAX_LLM_CALLS > max_calls:
+            print(f"[{qid}] not run: a full run ({MAX_LLM_CALLS} calls) would pass the cap")
+            ok = False
+            continue
+        before, sent = llm_smoke.counter_line(client), capped.calls
+        toolbox = Toolbox(graph, project)
+        try:
+            run = ask(q["question"], client, toolbox, logger, project=demo.PROJECT)
+        except RuntimeError as e:  # the hard cap
+            print(f"[{qid}] stopped: {e}")
+            ok = False
+            break
+
+        def edge_of(i: str, box: Toolbox = toolbox) -> tuple[str, str] | None:
+            rec = box.record(i)
+            return (short_id(rec["from"]), short_id(rec["to"])) if rec and "from" in rec else None
+
+        answer, record = run.answer.model_dump(mode="json"), run.record.model_dump(mode="json")
+        row = dev.score(q, answer, record, edge_of)
+        outcome = dev.validator_outcome(answer, record)
+        cached = run.record.tokens.get("cached_calls", 0)
+        print(
+            f"[{qid}] {q['question']}\n"
+            f"     verdict={row['verdict']} (ok={'y' if row['verdict_ok'] else 'n'}) "
+            f"validation={OUTCOME_LABELS.get(outcome, outcome)} "
+            f"dev_pass={'y' if row['pass'] else 'n'} {'; '.join(row['reasons'])}\n"
+            f"     calls={run.record.llm_calls} (live {capped.calls - sent}, cached {cached})\n"
+            f"     quota {before} -> {llm_smoke.counter_line(client)}\n"
+            f"     answer: {run.answer.refusal_reason or run.answer.answer_text}"
+        )
+        failed_call = (run.record.error or "").startswith(("ProviderError", "QuotaExceeded"))
+        ok &= not failed_call
+        passed += bool(row["pass"])
+    print(f"live calls sent: {capped.calls} (cap {max_calls})")
+    print(f"quota after:  {llm_smoke.counter_line(client)}")
+    ok &= passed == len(GEMINI_QUESTIONS)
+    print(
+        f"{'OK' if ok else 'FAILED'}: dev pass {passed}/{len(GEMINI_QUESTIONS)}"
+        + ("" if ok else "; see the lines above.")
+    )
+    return 0 if ok else 1
+
+
+def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--provider", default="ollama")
+    ap.add_argument("--provider", default="ollama", choices=["ollama", "gemini"])
+    ap.add_argument("--max-calls", type=int, help=f"gemini: live calls allowed (1-{GEMINI_HARD_CAP})")
+    ap.add_argument("--yes-spend-quota", action="store_true", help="gemini: confirm the spend")
     ap.add_argument("--only", help="comma-separated question ids")
     ap.add_argument("--show", action="store_true", help="print each rendered answer")
     ap.add_argument(
@@ -309,10 +407,13 @@ def main() -> int:
         choices=[*KINDS, "all"],
         help="test hook: replace the first answer draft of question a with a bad one",
     )
-    ns = ap.parse_args()
-    if ns.provider != "ollama":
-        print("smoke_agent: only the local ollama provider is allowed here", file=sys.stderr)
-        return 2
+    ns = ap.parse_args(argv)
+    if ns.provider == "gemini":
+        if not ns.yes_spend_quota:
+            sys.exit("smoke_agent: gemini spends free quota; add --yes-spend-quota to confirm.")
+        if ns.max_calls is None or not 1 <= ns.max_calls <= GEMINI_HARD_CAP:
+            sys.exit(f"smoke_agent: gemini needs --max-calls between 1 and {GEMINI_HARD_CAP}.")
+        return smoke_gemini(ns.max_calls, os.environ if env is None else env)
 
     spec = load_questions()
     project = ROOT / "corpora" / spec["corpus"]

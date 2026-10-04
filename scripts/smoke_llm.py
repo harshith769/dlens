@@ -78,7 +78,12 @@ class CappedSend:
         return self.send(*args, **kwargs)
 
 
-def _counter(client: LLMClient) -> str:
+def refuse_demo_counter(env: Mapping[str, str]) -> None:
+    if Path(quota_path(env)).parent.resolve() == demo_state_dir().resolve():
+        sys.exit("smoke: the quota dir is the demo's; smokes use the DEV counter only.")
+
+
+def counter_line(client: LLMClient) -> str:
     used = client.quota.used(GEMINI)
     left = client.quota.remaining(GEMINI)
     return f"used today {used}, left {left} of {client.quota.budgets.get(GEMINI)}"
@@ -89,11 +94,10 @@ def smoke_gemini(
     env: Mapping[str, str],
     factory: Callable[[str, Mapping[str, str]], LLMClient] = make_client,
 ) -> int:
-    if Path(quota_path(env)).parent.resolve() == demo_state_dir().resolve():
-        sys.exit("smoke_llm: the quota dir is the demo's; the smoke uses the DEV counter only.")
+    refuse_demo_counter(env)
     with tempfile.TemporaryDirectory() as tmp:
         client = factory(GEMINI, {**env, "DLENS_CACHE_DIR": tmp})
-        print(f"quota before: {_counter(client)}  (counter: {quota_path(env)})")
+        print(f"quota before: {counter_line(client)}  (counter: {quota_path(env)})")
         left = client.quota.remaining(GEMINI)
         if left is not None and left < max_calls:
             print(f"refused: only {left} calls left today, --max-calls is {max_calls}")
@@ -115,7 +119,7 @@ def smoke_gemini(
             ok &= again.cached
         finally:
             print(f"live calls sent: {capped.calls} (cap {max_calls})")
-            print(f"quota after:  {_counter(client)}")
+            print(f"quota after:  {counter_line(client)}")
     print("OK: gemini smoke passed." if ok else "FAILED: see the lines above.")
     return 0 if ok else 1
 
