@@ -89,7 +89,8 @@ def test_ask_shows_answer_and_chip_opens_source(start):
     chips[0].click().run()
     assert not at.exception
     assert at.session_state.detail == "Source"
-    assert any("highlighted" in t for t in texts(at))
+    assert any("highlighted: **line 3**" in t for t in texts(at))
+    assert any('class="hl"' in t and "sum" in t for t in texts(at))
 
 
 def test_example_button_asks_immediately(start):

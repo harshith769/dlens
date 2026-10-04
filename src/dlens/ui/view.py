@@ -327,31 +327,44 @@ def citation_chips(answer: Answer) -> list[tuple[str, str]]:
 
 @dataclass(frozen=True)
 class Source:
-    file: str
+    file: str  # relative to the project root, as cited
     text: str
     start: int
     end: int
     level: str
 
     @property
-    def cited(self) -> str:
-        """The cited lines with their real line numbers (st.code numbers from 1)."""
-        lines = self.text.splitlines()
-        if self.level == "model":
-            return ""
-        width = len(str(self.end))
-        return "\n".join(
-            f"{n:>{width}} | {lines[n - 1]}"
-            for n in range(self.start, min(self.end, len(lines)) + 1)
-        )
-
-    @property
     def range_label(self) -> str:
         if self.level == "model":
             return "whole file cited (no line claimed)"
-        if self.start == self.end:
-            return f"line {self.start}"
-        return f"lines {self.start}-{self.end}"
+        span = f"line {self.start}" if self.start == self.end else f"lines {self.start}-{self.end}"
+        return f"{span} (the select * that produced it)" if self.level == "star" else span
+
+    @property
+    def highlighted(self) -> range:
+        return range(0) if self.level == "model" else range(self.start, self.end + 1)
+
+
+def highlight_sql(text: str, lines: range = range(0), sql: bool = True) -> str:
+    """Escaped HTML of ``text`` with line numbers and the ``lines`` (1-based) highlighted.
+    Pygments colors SQL when it is installed; otherwise the text is shown plain."""
+    body = text.expandtabs(4).rstrip("\n")
+    try:
+        from pygments import highlight
+        from pygments.formatters import HtmlFormatter
+        from pygments.lexers import SqlLexer, TextLexer
+    except ImportError:  # pragma: no cover - pygments ships with pytest and rich
+        rendered = [escape(line) for line in body.split("\n")]
+    else:
+        fmt = HtmlFormatter(nowrap=True, noclasses=True, style="friendly")
+        # HtmlFormatter closes its spans at every line end, so the output splits on newlines.
+        rendered = highlight(body, SqlLexer() if sql else TextLexer(), fmt).rstrip("\n").split("\n")
+    width = len(str(len(rendered)))
+    out = []
+    for n, line in enumerate(rendered, start=1):
+        num = f'<span class="ln" style="width:{width + 1}ch">{n}</span>'
+        out.append(f'<span class="hl">{num}{line}</span>' if n in lines else num + line)
+    return '<div class="dl-src"><pre>' + "\n".join(out) + "</pre></div>"
 
 
 def load_source(project: Path, cite: Citation) -> Source | None:

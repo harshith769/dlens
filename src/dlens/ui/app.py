@@ -188,16 +188,7 @@ def details() -> None:
     with lineage:
         lineage_view(st.session_state.run, box, selected)
     with source:
-        cite = answer.citations.get(selected) if selected else None
-        if cite is None:
-            st.caption("Select a citation to see the source lines.")
-        else:
-            src = view.load_source(box.project_dir, cite)
-            if src is None:
-                st.error(f"{cite.file} could not be read.")
-            else:
-                st.markdown(f"`{src.file}` · highlighted: **{src.range_label}**")
-                st.code(src.text, language="sql", line_numbers=True)
+        source_view(st.session_state.run, box, selected)
     with steps:
         t = view.trace_info(st.session_state.run)
         st.write(f"{t['llm_calls']} LLM calls · validator: {t['validator']}")
@@ -234,6 +225,32 @@ def lineage_view(run: AgentRun, box: Toolbox, selected: str | None) -> None:
         edges = view.edges_by_id(graph, run.answer.subgraph)
     highlight = frozenset([selected]) if selected else frozenset()
     diagram(view.build_lineage_dot(graph, edges, focus, highlight))
+
+
+def source_view(run: AgentRun, box: Toolbox, selected: str | None) -> None:
+    chips = [c for row in view.claim_rows(run) for c in row.chips]
+    if selected is None and chips:
+        selected = chips[0][0]  # show the first citation until one is picked
+    if selected is None:
+        st.caption("This answer cites no file.")
+        return
+    if selected.startswith("r_"):
+        fact = view.fact_statement(box, selected) or "(fact not found)"
+        st.markdown("**Graph check**")
+        st.markdown(
+            style.muted("Checked on the lineage graph by code, not in a file."),
+            unsafe_allow_html=True,
+        )
+        st.info(fact)
+        return
+    cite = run.answer.citations.get(selected)
+    src = view.load_source(box.project_dir, cite) if cite is not None else None
+    if cite is None or src is None:
+        st.error(f"{cite.file if cite else selected} could not be read inside the project.")
+        return
+    st.markdown(f"`{src.file}` · level: {src.level} · highlighted: **{src.range_label}**")
+    html = view.highlight_sql(src.text, src.highlighted, sql=src.file.endswith(".sql"))
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def ask_tab(project: str) -> None:

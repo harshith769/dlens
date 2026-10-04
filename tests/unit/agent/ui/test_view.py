@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from dlens.agent.answer import Answer, Claim
+from dlens.agent.tools import Toolbox
 from dlens.agent.tools.provenance import Citation, edge_id
 from dlens.graph import LineageGraph
 from dlens.lineage import EdgeKind
@@ -85,11 +86,11 @@ def test_load_source_and_cited_lines(shop_root: Path):
         shop_root, Citation(file="models/fct.sql", line_start=2, line_end=3, level="line")
     )
     assert src and src.range_label == "lines 2-3"
-    assert src.cited.splitlines()[0].startswith("2 | ")
+    assert list(src.highlighted) == [2, 3]
     whole = view.load_source(
         shop_root, Citation(file="models/fct.sql", line_start=1, line_end=1, level="model")
     )
-    assert whole and whole.cited == "" and "whole file" in whole.range_label
+    assert whole and not whole.highlighted and "whole file" in whole.range_label
     assert (
         view.load_source(
             shop_root, Citation(file="../x.sql", line_start=1, line_end=1, level="line")
@@ -357,3 +358,29 @@ def test_claim_line_escapes_and_marks_status():
     assert "<script>" not in html and "&lt;script&gt;" in html
     assert "⚠" in html and "repaired" in html
     assert "✓" in style.claim_line("ok", "verified")
+
+
+def test_highlight_sql_numbers_lines_marks_range_and_escapes():
+    text = "select\n    '<script>x</script>' as a,\n    b\nfrom t\n"
+    html = view.highlight_sql(text, range(2, 4))
+    assert html.startswith('<div class="dl-src"><pre>') and html.endswith("</pre></div>")
+    assert "<script>" not in html and "&lt;" in html
+    rows = html.removeprefix('<div class="dl-src"><pre>').removesuffix("</pre></div>").split("\n")
+    assert len(rows) == 4
+    assert [r.startswith('<span class="hl">') for r in rows] == [False, True, True, False]
+    assert ">1</span>" in rows[0] and ">4</span>" in rows[3]
+    plain = view.highlight_sql("id,amt\n1,5", sql=False)
+    assert "hl" not in plain.replace('class="ln"', "") and "id,amt" in plain
+
+
+def test_star_level_range_label():
+    src = view.Source("models/s.sql", "select *", 1, 1, "star")
+    assert src.range_label == "line 1 (the select * that produced it)"
+
+
+def test_fact_statement_for_graph_checks(shop_root: Path):
+    box = Toolbox(make_shop(), shop_root)
+    box.call("reachability", {"from_column": "raw.amt", "to_column": "fct.total"}, code=True)
+    rid = next(i for i in box.emitted_ids if i.startswith("r_"))
+    assert view.fact_statement(box, rid) == "raw.amt reaches fct.total in 2 hops (graph check)"
+    assert view.fact_statement(box, "r_missing") is None
