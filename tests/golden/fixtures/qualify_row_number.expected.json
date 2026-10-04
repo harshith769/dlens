@@ -20,7 +20,6 @@
   "constants": [],
   "deferred": [],
   "notes": "QUALIFY keys are FILTER, also inside its OVER (the clause decides first); user_id -> user_id stays direct only",
-  "partial": "QUALIFY partition/order keys are not captured (FILTER edges are v0.3)",
   "indirect": [
     {
       "from": "orders.user_id",

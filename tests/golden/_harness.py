@@ -85,11 +85,6 @@ def run_fixture(name: str) -> Result:
     return run_sql((FIXTURES / f"{name}.sql").read_text())
 
 
-# S03 step 3a: the indirect expectations are written from ADR 0020 before the engine emits any
-# indirect edge. While True, fixtures that expect indirect edges are strict xfails.
-INDIRECT_PENDING = True
-
-
 def expected_indirect(name: str) -> set[tuple[str, str, str]]:
     rows = load_expected(name)["indirect"]  # required in every fixture
     assert isinstance(rows, list)
@@ -114,18 +109,14 @@ def support_matrix_md() -> str:
     """Markdown table generated from the fixtures (plus UNTESTED).
 
     no = strict xfail, partial = a fixture that documents what it does not capture (``partial``
-    key, or deferred keys), else yes."""
+    key), else yes. Deferred window keys are also WINDOW indirect edges since S03 (ADR 0020)."""
     rows = ["| Construct | Supported | Note |", "|---|---|---|"]
     for name in fixture_names():
         exp = load_expected(name)
         if exp.get("xfail"):
             level, note = "no", str(exp["xfail"])
-        elif INDIRECT_PENDING and exp["indirect"]:
-            level = "partial"
-            note = "indirect edges are expected; the engine does not emit them yet"
-        elif exp.get("partial") or exp.get("deferred"):
-            level = "partial"
-            note = str(exp.get("partial") or "window PARTITION BY / ORDER BY keys are deferred")
+        elif exp.get("partial"):
+            level, note = "partial", str(exp["partial"])
         else:
             level, note = "yes", str(exp.get("notes", ""))
         rows.append(f"| `{name}` | {level} | {note} |")

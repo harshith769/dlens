@@ -17,7 +17,6 @@
   ],
   "deferred": [],
   "notes": "GROUP BY user_id targets every column but user_id (direct wins); HAVING tax is FILTER to all; count(*) reads no column, so it is recorded like a constant",
-  "partial": "GROUP BY and HAVING keys are not captured (GROUP_BY/FILTER edges are v0.3)",
   "indirect": [
     {
       "from": "orders.user_id",

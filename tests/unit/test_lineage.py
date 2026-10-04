@@ -291,3 +291,79 @@ def test_compare_metrics() -> None:
     assert r.missing == [("a.v", "b.v", "IDENTITY"), ("a.w", "b.w", "IDENTITY")]
     assert r.extra == [("a.q", "b.q", "IDENTITY")]
     assert r.kind_mismatches == [("a.y", "b.z", "RENAME", "TRANSFORMATION")]
+
+
+def _clauses(sql: str) -> dict[tuple[str, str], str]:
+    """(type, key) -> clause text of the indirect candidates (before suppression)."""
+    return {(str(r.kind), r.key): r.clause for r in lineage_for_sql(sql, _ingest()).indirect}
+
+
+@pytest.mark.parametrize(
+    ("sql", "kind", "key", "clause"),
+    [
+        (
+            "select o.id from db.main.orders as o\n"
+            "join db.main.customers as c\n    on o.user_id = c.id\nwhere o.amt > 0",
+            "JOIN",
+            "o.user_id",
+            "on o.user_id = c.id",
+        ),
+        (
+            "select id from db.main.orders where not (amt > 0) and user_id is not null",
+            "FILTER",
+            "orders.user_id",
+            "where not (amt > 0) and user_id is not null",
+        ),
+        (
+            "select lag(amt) over (\n  partition by user_id\n  order by order_date desc\n) as p "
+            "from db.main.orders",
+            "WINDOW",
+            "orders.order_date",
+            "over ( partition by user_id order by order_date desc )",
+        ),
+        (
+            "select count(id) filter (where amt > 0) as n from db.main.orders",
+            "CONDITIONAL",
+            "orders.amt",
+            "filter (where amt > 0)",
+        ),
+        (
+            "select string_agg(cast(id as varchar), ',' order by order_date desc) as s "
+            "from db.main.orders",
+            "SORT",
+            "orders.order_date",
+            "order by order_date desc",
+        ),
+        (
+            "select c.id from db.main.customers as c where exists "
+            "(select 1 from db.main.orders as o where o.user_id = c.id)",
+            "FILTER",
+            "o.user_id",
+            "where exists (select 1 from db.main.orders as o where o.user_id = c.id)",
+        ),
+    ],
+)
+def test_indirect_clause_text_is_verbatim_from_the_compiled_sql(
+    sql: str, kind: str, key: str, clause: str
+) -> None:
+    assert _clauses(sql)[(kind, key)] == clause
+
+
+def test_clause_text_falls_back_to_qualified_sql_when_tokens_point_elsewhere() -> None:
+    """GROUP BY 1 is expanded by qualify with copies of the projection's tokens: the text is
+    the qualified clause, not a wrong slice of the SELECT list."""
+    sql = (
+        "with x as (select id from db.main.orders group by id) "
+        "select user_id from db.main.orders group by 1"
+    )
+    assert _clauses(sql)[("GROUP_BY", "orders.user_id")] == "GROUP BY orders.user_id"
+
+
+def test_unqualified_ambiguous_key_is_low_confidence_to_each_candidate() -> None:
+    sql = (
+        "select o.amt from db.main.orders as o "
+        "join db.main.customers as c on o.user_id = c.id where id > 0"
+    )
+    raw = lineage_for_sql(sql, _ingest())
+    lows = {(short_id(r.upstream), str(r.confidence)) for r in raw.indirect if r.kind == "FILTER"}
+    assert lows == {("orders.id", "low"), ("customers.id", "low")}  # `id` is in both tables

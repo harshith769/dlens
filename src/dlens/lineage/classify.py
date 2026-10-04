@@ -6,6 +6,8 @@ operation. The edge kind is the strongest operation on the path; a path of pure
 pass-throughs is IDENTITY or RENAME depending on whether the name changed end to end.
 """
 
+from dataclasses import dataclass
+
 from sqlglot import exp
 
 from dlens.lineage.models import EdgeKind, IndirectKind
@@ -56,8 +58,9 @@ def column_key(name: str) -> str:
     return name.replace('"', "").lower()
 
 
-def function_key_kind(node: exp.Expr, root: exp.Expr) -> IndirectKind | None:
-    """Innermost function-attached key position of `node` below `root` (ADR 0020), or None.
+def function_key(node: exp.Expr, root: exp.Expr) -> tuple[IndirectKind, exp.Expr] | None:
+    """Innermost function-attached key position of `node` below `root` (ADR 0020): the kind and
+    the clause node (the Window, the aggregate's FILTER ``Where``, or the aggregate's ``Order``).
 
     Window PARTITION BY / ORDER BY -> WINDOW; an aggregate's ``FILTER (WHERE ...)`` ->
     CONDITIONAL; ``ORDER BY`` inside an aggregate (``string_agg(x, ',' ORDER BY y)``) -> SORT.
@@ -66,17 +69,74 @@ def function_key_kind(node: exp.Expr, root: exp.Expr) -> IndirectKind | None:
     while node is not root and node.parent is not None:
         parent = node.parent
         if isinstance(parent, exp.Window) and node.arg_key in ("partition_by", "order"):
-            return IndirectKind.WINDOW
+            return IndirectKind.WINDOW, parent
         if isinstance(parent, exp.Filter) and node.arg_key == "expression":
-            return IndirectKind.CONDITIONAL
+            return IndirectKind.CONDITIONAL, node
         if (
             isinstance(parent, exp.Order)
             and node.arg_key == "expressions"
             and isinstance(parent.parent, exp.AggFunc)
         ):
-            return IndirectKind.SORT
+            return IndirectKind.SORT, parent
         node = parent
     return None
+
+
+def function_key_kind(node: exp.Expr, root: exp.Expr) -> IndirectKind | None:
+    found = function_key(node, root)
+    return found[0] if found else None
+
+
+# Row-set clauses of a SELECT (ADR 0020): the clause decides first.
+_ROW_SET = {
+    "joins": IndirectKind.JOIN,
+    "where": IndirectKind.FILTER,
+    "having": IndirectKind.FILTER,
+    "qualify": IndirectKind.FILTER,
+    "group": IndirectKind.GROUP_BY,
+    "order": IndirectKind.SORT,
+}
+
+
+@dataclass(frozen=True)
+class Position:
+    """Where a key column (or a subquery) sits in a SELECT."""
+
+    kind: IndirectKind
+    clause: exp.Expr  # Where / Having / Qualify / Group / Order / the JOIN's ON, or Window etc.
+    projection: exp.Expr | None  # the SELECT-list item, for function-attached clauses
+
+
+def clause_position(node: exp.Expr, select: exp.Select) -> Position | None:
+    """Indirect position of `node` in `select`, or None (a value: projection argument, CASE
+    condition, FROM). The outermost clause of the SELECT wins: a window key inside QUALIFY is
+    FILTER. In the SELECT list, the innermost function-attached key position decides."""
+    child = node
+    while child.parent is not None and child.parent is not select:
+        child = child.parent
+    if child.parent is None:
+        return None
+    key = child.arg_key
+    if key == "expressions":
+        found = function_key(node, child)
+        return Position(found[0], found[1], child) if found else None
+    kind = _ROW_SET.get(key or "")
+    if kind is None:
+        return None
+    if kind == IndirectKind.JOIN:
+        on = child.args.get("on")
+        if on is None or not (node is on or _contains(on, node)):
+            return None  # e.g. the joined table itself
+        return Position(kind, on, None)
+    return Position(kind, child, None)
+
+
+def _contains(root: exp.Expr, node: exp.Expr) -> bool:
+    while node.parent is not None:
+        if node.parent is root:
+            return True
+        node = node.parent
+    return False
 
 
 def key_columns(expr: exp.Expr) -> dict[str, set[IndirectKind]]:

@@ -58,6 +58,26 @@ class Edge(_Frozen):
     confidence: Confidence = Confidence.HIGH
 
 
+class IndirectEdge(_Frozen):
+    """A DEPENDS_ON_INDIRECT edge (ADR 0020): `from_column` decides which rows reach
+    `to_column`, or how they are grouped or ordered, without flowing into its value.
+
+    `key` is the column as written in the clause (qualified), `expression` the clause SQL taken
+    verbatim from the compiled SQL (whitespace collapsed). Citations are model-level until a
+    clause locator ships with the exposure of indirect edges (ADR 0020, engine_gaps.yml).
+    """
+
+    from_column: str
+    to_column: str
+    kind: IndirectKind
+    key: str
+    expression: str
+    file: str
+    lines: tuple[int, int]
+    model_level_citation: bool = True
+    confidence: Confidence = Confidence.HIGH
+
+
 class DeferredIndirect(_Frozen):
     """A column used only as a key (e.g. window PARTITION BY / ORDER BY). Not an edge in v0.1;
     kept so v0.3 can turn it into a DEPENDS_ON_INDIRECT edge without re-deriving it."""
@@ -82,6 +102,8 @@ class LineageResult(BaseModel):
     depends_on: list[tuple[str, str]]
     """(model, upstream node) pairs from the manifest; complete even when parsing fails."""
     parse_report: dict[str, ModelParse]
+    indirect: list[IndirectEdge] = Field(default_factory=list)
+    """DEPENDS_ON_INDIRECT edges (ADR 0020). No (from, to) pair here has a direct edge."""
 
 
 def column_id(unique_id: str, column: str) -> str:

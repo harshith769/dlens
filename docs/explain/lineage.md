@@ -101,34 +101,34 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `cast_and_coloncolon` | yes | a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged |
 | `cte_chain_3` | yes |  |
 | `distinct` | yes |  |
-| `group_by_having` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_agg_filter_vs_case` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_group_by_all` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_group_by_cte` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_in_subquery` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_join_final` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_join_key_via_cte` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_join_using` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_order_by_limit` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_order_by_no_limit` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_positional_group_order` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_string_agg_order` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_union_branch_where` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_where` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_where_exists` | partial | indirect edges are expected; the engine does not emit them yet |
-| `indirect_window_lag_suppressed` | partial | indirect edges are expected; the engine does not emit them yet |
-| `join_aliases` | partial | indirect edges are expected; the engine does not emit them yet |
+| `group_by_having` | yes | GROUP BY user_id targets every column but user_id (direct wins); HAVING tax is FILTER to all; count(*) reads no column, so it is recorded like a constant |
+| `indirect_agg_filter_vs_case` | yes | same logic, two classes: FILTER (WHERE) is CONDITIONAL; the CASE condition is a direct AGGREGATION input |
+| `indirect_group_by_all` | yes | GROUP BY ALL groups by the non-aggregate projections' columns |
+| `indirect_group_by_cte` | yes | GROUP BY inside a CTE targets only the columns computed through it (n_orders), not c.id / c.name |
+| `indirect_in_subquery` | yes | the outer column, the subquery's selected column and its WHERE column are all FILTER (the outer WHERE decides) |
+| `indirect_join_final` | yes | every column in ON (equi and non-equi) is a JOIN key to every output column of the final SELECT |
+| `indirect_join_key_via_cte` | yes | the JOIN key paid.order_id is resolved through the CTE to payments.order_id; the CTE's GROUP BY targets only paid_amt |
+| `indirect_join_using` | yes | a USING column is a JOIN key on both sides |
+| `indirect_order_by_limit` | yes | top-level ORDER BY (with LIMIT) is SORT to every column; amt -> amt stays direct only |
+| `indirect_order_by_no_limit` | yes | top-level ORDER BY without LIMIT is still SORT to every column |
+| `indirect_positional_group_order` | yes | GROUP BY 1, 2 and ORDER BY 1 resolve to the columns of those projections |
+| `indirect_string_agg_order` | yes | ORDER BY inside an aggregate is SORT to that column only |
+| `indirect_union_branch_where` | yes | a WHERE in one branch of a top-level UNION is FILTER to every output column |
+| `indirect_where` | yes | WHERE columns are FILTER to every output; amt -> amt stays direct only |
+| `indirect_where_exists` | yes | every column in the correlated EXISTS subquery is FILTER (the outer WHERE decides); c.id -> m.id stays direct only |
+| `indirect_window_lag_suppressed` | yes | amt is the lag argument and the ORDER BY key: direct only (suppressed); user_id is WINDOW |
+| `join_aliases` | yes | join keys o.user_id / c.id are JOIN edges to every output column, never direct |
 | `literal_column` | yes | constants have no edges and are recorded in ModelParse.constants, not gaps |
 | `nested_case` | yes | CASE conditions are direct (they decide the value) |
-| `qualify_row_number` | partial | indirect edges are expected; the engine does not emit them yet |
-| `scalar_subquery_select` | partial | indirect edges are expected; the engine does not emit them yet |
-| `self_join` | partial | indirect edges are expected; the engine does not emit them yet |
+| `qualify_row_number` | yes | QUALIFY keys are FILTER, also inside its OVER (the clause decides first); user_id -> user_id stays direct only |
+| `scalar_subquery_select` | yes | correlation keys c.id and o.user_id select rows in the subquery: FILTER to cust_name only, no direct edge |
+| `self_join` | yes | both ON columns are JOIN keys; employees.id -> m.id stays direct only |
 | `star_exclude_replace` | yes | price is excluded: no output column, no edge |
-| `star_join` | partial | indirect edges are expected; the engine does not emit them yet |
-| `subquery_from` | partial | indirect edges are expected; the engine does not emit them yet |
+| `star_join` | yes | tables share no column names; ON keys are JOIN to every column except their own pass-through |
+| `subquery_from` | yes | GROUP BY inside the derived table targets only total_plus (user_id is direct) |
 | `union_all_3` | yes | each branch has its own kind: the UNION node is not a step |
 | `union_distinct` | yes | UNION vs UNION ALL changes no edge |
-| `window_sum_partition` | partial | indirect edges are expected; the engine does not emit them yet |
+| `window_sum_partition` | yes | windowed aggregate keeps the row grain; PARTITION BY / ORDER BY keys are WINDOW to running_amt |
 | star join with duplicate column names | no (untested) | `SELECT *` over a join whose sides share a column name; no fixture, so the output columns and their edges are not guaranteed |
 <!-- support-matrix:end -->
 

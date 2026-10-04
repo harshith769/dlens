@@ -25,7 +25,6 @@
   "constants": [],
   "deferred": [],
   "notes": "join keys o.user_id / c.id are JOIN edges to every output column, never direct",
-  "partial": "join keys are not captured (JOIN edges are v0.3)",
   "indirect": [
     {
       "from": "orders.user_id",
