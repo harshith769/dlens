@@ -253,3 +253,107 @@ def test_chips_skip_graph_checks():
         citations={"e_1": cite},
     )
     assert view.citation_chips(ans) == [("e_1", "[models/a.sql:3-4]")]
+
+
+def _run(answer, validation=None, **record):
+    rec = {"steps": [], "ambiguity": None, "draft_raw": None, "regenerate_draft_raw": None}
+    return SimpleNamespace(
+        answer=answer, record=SimpleNamespace(**{**rec, "validation": validation, **record})
+    )
+
+
+def _v(**kw):
+    return {
+        "passed": True,
+        "regenerated": False,
+        "warning": False,
+        "repairs": [],
+        "completions": [],
+        "dropped_claims": [],
+        "skipped": False,
+        **kw,
+    }
+
+
+def test_verdict_from_real_fields_only():
+    ok = Answer(answer_text="x")
+    assert view.verdict(_run(ok)) == view.Badge("Answered", "primary")
+    assert view.verdict(_run(Answer.refusal("no"))).label == "Refused"
+    clar = Answer(answer_text="which?", clarification={"question": "q", "candidates": ["a"]})
+    assert view.verdict(_run(clar)).label == "Clarification"
+    assert view.verdict(_run(ok, ambiguity={"mode": "chain"})).label == "Chain mode"
+    assert view.verdict(_run(ok, ambiguity={"mode": "per_candidate"})).label == "Answered"
+
+
+def test_verification_badge():
+    a = Answer(answer_text="x")
+    assert view.verification(_run(a, None)).label == "Not checked"
+    assert view.verification(_run(a, _v(skipped=True))).label == "Not checked"
+    assert view.verification(_run(a, _v())) == view.Badge("Verified", "verified")
+    rep = _v(repairs=[{"claim_index": 0}], completions=[{"claim_index": 1}], regenerated=True)
+    assert view.verification(_run(a, rep)).label == "Repaired 1 · Completed 1 · Regenerated"
+    part = view.verification(_run(a, _v(passed=False, warning=True)))
+    assert part == view.Badge("Partially removed", "warning")
+    gone = Answer.refusal("no verifiable claims").model_copy(update={"validation_warning": True})
+    assert view.verification(_run(gone, _v(passed=False, warning=True))).label == (
+        "Nothing verifiable"
+    )
+
+
+def test_claim_rows_map_status_through_dropped_claims():
+    cite = Citation(file="models/a.sql", line_start=3, line_end=3, level="line")
+    ans = Answer(
+        answer_text="x",
+        claims=[
+            Claim(text=" kept0 ", edge_ids=["e_1", "e_1"]),
+            Claim(text="kept2", edge_ids=["e_1"], chunk_ids=["r_9"]),
+        ],
+        citations={"e_1": cite},
+    )
+    # the draft had 3 claims; claim 1 was dropped, claim 2 was repaired
+    v = _v(passed=False, warning=True, dropped_claims=[1], repairs=[{"claim_index": 2}])
+    rows = view.claim_rows(_run(ans, v))
+    assert [(r.text, r.status) for r in rows] == [("kept0", "verified"), ("kept2", "repaired")]
+    assert rows[0].chips == (("e_1", "[models/a.sql:3]"),)
+    assert rows[1].chips == (("e_1", "[models/a.sql:3]"), ("r_9", "[graph check]"))
+
+
+def test_removed_claims_use_the_round_the_loop_kept():
+    first = {
+        "claims": 2,
+        "dropped_claims": [0, 1],
+        "failures": [{"claim_index": 0, "rule": "R8"}, {"claim_index": 1, "rule": "R7"}],
+    }
+    second = {
+        "claims": 2,
+        "dropped_claims": [1],
+        "failures": [
+            {"claim_index": 1, "rule": "R4.hallucinated"},
+            {"claim_index": 1, "rule": "R4.unsupported"},
+        ],
+    }
+    regen = '```json\n{"answer_text": "y", "claims": [{"text": "a"}, {"text": " b "}]}\n```'
+    run = _run(
+        Answer(answer_text="y", claims=[Claim(text="a", edge_ids=["e_1"])]),
+        _v(passed=False, warning=True, dropped_claims=[1], first=first, second=second),
+        draft_raw='{"claims": [{"text": "first-a"}, {"text": "first-b"}]}',
+        regenerate_draft_raw=regen,
+    )
+    assert view.removed_claims(run) == [view.RemovedClaim("b", ("R4",))]
+    assert view.removed_claims(_run(Answer(answer_text="x"), _v())) == []
+    only_first = _run(
+        Answer(answer_text="x"),
+        _v(passed=False, warning=True, dropped_claims=[0, 1], first=first, second=None),
+        draft_raw="not json",
+    )
+    assert view.removed_claims(only_first) == [
+        view.RemovedClaim(None, ("R8",)),
+        view.RemovedClaim(None, ("R7",)),
+    ]
+
+
+def test_claim_line_escapes_and_marks_status():
+    html = style.claim_line("<script>alert(1)</script>", "repaired")
+    assert "<script>" not in html and "&lt;script&gt;" in html
+    assert "⚠" in html and "repaired" in html
+    assert "✓" in style.claim_line("ok", "verified")

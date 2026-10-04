@@ -151,20 +151,32 @@ def answer_panel(project: str) -> None:
             empty_state(project)
         return
     answer = run.answer
+    v, c = view.verdict(run), view.verification(run)
+    st.markdown(style.badge(v.label, v.tone) + style.badge(c.label, c.tone), unsafe_allow_html=True)
     if (warn := warning_line(answer)) is not None:
         st.warning(warn)
     st.markdown(answer.answer_text.strip())
     if answer.clarification is not None:
         st.markdown("\n".join(f"- {c}" for c in answer.clarification.candidates))
-    for n, claim in enumerate(answer.claims):
-        st.markdown(f"- {claim.text.strip()}")
-        for cid in dict.fromkeys(claim.ids):
-            cite = answer.citations.get(cid)
-            if cite is not None:
-                st.button(
-                    view.chip_label(cid, cite), key=f"chip{n}-{cid}", on_click=_pick, args=(cid,)
-                )
+    claims(run)
     details()
+
+
+def claims(run: AgentRun) -> None:
+    rows = view.claim_rows(run)
+    if rows:
+        st.markdown("**Claims**")
+    for n, row in enumerate(rows):
+        st.markdown(style.claim_line(row.text, row.status), unsafe_allow_html=True)
+        with st.container(horizontal=True, gap="small"):
+            for cid, label in row.chips:
+                st.button(label, key=f"chip{n}-{cid}", on_click=_pick, args=(cid,), type="tertiary")
+    removed = view.removed_claims(run)
+    if removed:
+        with st.expander(f"Removed by the validator ({len(removed)})"):
+            for r in removed:
+                rules = ", ".join(r.rules) or "?"
+                st.markdown(f"- {r.text or '(text not recorded)'} · failed {rules}")
 
 
 def details() -> None:

@@ -70,3 +70,20 @@ def badge(label: str, tone: Tone = "neutral") -> str:
 
 def muted(text: str) -> str:
     return f'<span class="dl-muted">{escape(text)}</span>'
+
+
+_STATUS = {
+    "verified": ("✓", VERIFIED, ""),
+    "repaired": ("⚠", WARNING, "repaired id"),
+    "completed": ("⚠", WARNING, "completed citations"),
+}
+
+
+def claim_line(text: str, status: str) -> str:
+    """One claim with its check mark; ``text`` is escaped."""
+    mark, color, note = _STATUS.get(status, ("⚠", WARNING, status))
+    tail = f' <span class="dl-muted">({escape(note)})</span>' if note else ""
+    return (
+        f'<div class="dl-claim"><span style="color:{color};font-weight:600">{mark}</span> '
+        f"{escape(text)}{tail}</div>"
+    )

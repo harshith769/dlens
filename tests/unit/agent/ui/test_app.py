@@ -82,6 +82,8 @@ def test_ask_shows_answer_and_chip_opens_source(start):
     at = ask(start(_agg_answer()))
     assert not at.error, [e.value for e in at.error]
     assert any("total sums stg.amount." in t for t in texts(at))
+    assert any("Answered" in t and "Verified" in t for t in texts(at))
+    assert any("✓" in t and "fct.total aggregates stg.amount" in t for t in texts(at))
     chips = [b for b in at.button if b.label.startswith("[models/")]
     assert chips, [b.label for b in at.button]
     chips[0].click().run()

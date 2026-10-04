@@ -6,6 +6,7 @@ Everything here only reshapes results the agent already produced (answer, run re
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
@@ -14,11 +15,12 @@ from typing import Any
 from dlens.agent.answer import Answer, marker
 from dlens.agent.llm.ollama import DEFAULT_MODEL as OLLAMA_MODEL
 from dlens.agent.loop import AgentRun
+from dlens.agent.tools import Toolbox
 from dlens.agent.tools.provenance import Citation, edge_id, safe_read
 from dlens.cli import trace_summary
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, ParseQuality
-from dlens.ui.style import BORDER, KIND_COLORS, MUTED, PRIMARY
+from dlens.ui.style import BORDER, KIND_COLORS, MUTED, PRIMARY, Tone
 
 ROOT = Path(__file__).resolve().parents[3]
 DEV_QUESTIONS = ROOT / "eval" / "questions" / "dev.jsonl"
@@ -28,6 +30,7 @@ PROJECTS = {
     "jaffle_shop": ROOT / "corpora" / "jaffle_shop",
 }
 EXAMPLES_PER_GROUP = 2
+_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 
 
 @dataclass(frozen=True)
@@ -181,6 +184,130 @@ def build_failed(name: str, exc: BaseException) -> Hint:
         f"{type(exc).__name__}: {exc}",
         (f"make ingest CORPUS={name}",),
     )
+
+
+# -- answer area -------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Badge:
+    label: str
+    tone: Tone
+
+
+def verdict(run: AgentRun) -> Badge:
+    """From real fields only: refused, clarification, chain mode (ambiguity policy), answered."""
+    a = run.answer
+    if a.refused:
+        return Badge("Refused", "warning")
+    if a.clarification is not None:
+        return Badge("Clarification", "neutral")
+    if (run.record.ambiguity or {}).get("mode") == "chain":
+        return Badge("Chain mode", "primary")
+    return Badge("Answered", "primary")
+
+
+def verification(run: AgentRun) -> Badge:
+    v = run.record.validation
+    if not v or v.get("skipped"):
+        return Badge("Not checked", "neutral")
+    if v.get("warning"):
+        if run.answer.refused:
+            return Badge("Nothing verifiable", "warning")
+        return Badge("Partially removed", "warning")
+    parts = []
+    if n := len(v.get("repairs") or []):
+        parts.append(f"Repaired {n}")
+    if n := len(v.get("completions") or []):
+        parts.append(f"Completed {n}")
+    if v.get("regenerated"):
+        parts.append("Regenerated")
+    return Badge(" · ".join(parts) or "Verified", "verified")
+
+
+@dataclass(frozen=True)
+class ClaimRow:
+    text: str
+    status: str  # "verified" | "repaired" | "completed"
+    chips: tuple[tuple[str, str], ...]  # (id, label); r_ ids are "[graph check]"
+
+
+def _kept_indices(run: AgentRun) -> list[int]:
+    """Index of each final claim in the validated draft (salvage drops claims, keeping order)."""
+    v = run.record.validation or {}
+    dropped = set(v.get("dropped_claims") or [])
+    n = len(run.answer.claims) + len(dropped)
+    return [i for i in range(n) if i not in dropped]
+
+
+def claim_rows(run: AgentRun) -> list[ClaimRow]:
+    v = run.record.validation or {}
+    repaired = {r.get("claim_index") for r in v.get("repairs") or []}
+    completed = {c.get("claim_index") for c in v.get("completions") or []}
+    rows = []
+    for claim, k in zip(run.answer.claims, _kept_indices(run), strict=False):
+        status = "repaired" if k in repaired else "completed" if k in completed else "verified"
+        chips = tuple(
+            (i, chip_label(i, run.answer.citations.get(i)))
+            for i in dict.fromkeys(claim.ids)
+            if i in run.answer.citations or i.startswith("r_")
+        )
+        rows.append(ClaimRow(claim.text.strip(), status, chips))
+    return rows
+
+
+@dataclass(frozen=True)
+class RemovedClaim:
+    text: str | None
+    rules: tuple[str, ...]
+
+
+def _draft_claims(raw: str | None) -> list[dict[str, Any]]:
+    try:
+        body = json.loads(_FENCE.sub("", (raw or "").strip()) or "{}")
+    except ValueError:
+        return []
+    claims = body.get("claims") if isinstance(body, dict) else None
+    return claims if isinstance(claims, list) else []
+
+
+def removed_claims(run: AgentRun) -> list[RemovedClaim]:
+    """Claims the validator dropped, with the rules they failed (same round choice as the loop:
+    the one that keeps more claims, ties to the regenerated draft)."""
+    v = run.record.validation or {}
+    dropped = v.get("dropped_claims") or []
+    if not dropped:
+        return []
+    rounds = [
+        (r, raw)
+        for r, raw in (
+            (v.get("second"), run.record.regenerate_draft_raw),
+            (v.get("first"), run.record.draft_raw),
+        )
+        if r
+    ]
+    best, raw = max(
+        rounds, key=lambda rr: rr[0].get("claims", 0) - len(rr[0].get("dropped_claims") or [])
+    )
+    texts = _draft_claims(raw)
+    out = []
+    for k in dropped:
+        rules = tuple(
+            dict.fromkeys(
+                str(f.get("rule", "?")).split(".")[0]
+                for f in best.get("failures") or []
+                if f.get("claim_index") == k
+            )
+        )
+        text = texts[k].get("text") if k < len(texts) and isinstance(texts[k], dict) else None
+        out.append(RemovedClaim(str(text).strip() if text else None, rules))
+    return out
+
+
+def fact_statement(toolbox: Toolbox, item_id: str) -> str | None:
+    """The words of an ``r_`` graph-check fact, or None."""
+    rec = toolbox.record(item_id)
+    return str(rec["fact"]) if rec and "fact" in rec else None
 
 
 def chip_label(item_id: str, cite: Citation | None) -> str:
