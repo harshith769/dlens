@@ -8,11 +8,11 @@
   "duckdb": "1.5.6"
  },
  "runtime_s": {
-  "dbt_compile": 9.3,
+  "dbt_compile": 10.0,
   "controls": 0.6,
-  "local": 10.1,
-  "e2e": 15.1,
-  "total": 35.5
+  "local": 11.3,
+  "e2e": 17.1,
+  "total": 39.4
  },
  "controls": {
   "determinism_failures": [],

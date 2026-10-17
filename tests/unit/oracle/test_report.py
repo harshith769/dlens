@@ -3,7 +3,7 @@ import time
 
 from dlens_oracle import thresholds as th
 from dlens_oracle.build import Corpus, Warehouse
-from dlens_oracle.report import render, undecided
+from dlens_oracle.report import KEYS, render, undecided
 from dlens_oracle.run import _run, comparable
 
 from .conftest import make_toy_gold
@@ -24,7 +24,7 @@ def test_document_is_json_and_deterministic(toy: Corpus, warehouse: Warehouse) -
 
 def test_undecided_and_owner_decisions(toy: Corpus, warehouse: Warehouse) -> None:
     doc = _doc(toy, warehouse)
-    none = {"category_a": [], "category_b": []}
+    none: dict = {k: [] for k in KEYS}
     pending = undecided(doc, none)
     assert pending["category_a"] == []
     src = "stg_orders.user_id"
@@ -34,7 +34,7 @@ def test_undecided_and_owner_decisions(toy: Corpus, warehouse: Warehouse) -> Non
     ]
     assert "**pending**" in render(doc, none)
     decided = {
-        "category_a": [],
+        **none,
         "category_b": [
             {"from": f, "to": t, "check": "local", "reason": "preserved side", "decision": "accept",
              "decided": "2026-10-17"} for f, t in pending["category_b"]

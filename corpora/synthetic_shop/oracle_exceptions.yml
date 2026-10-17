@@ -1,0 +1,570 @@
+# Owner decisions for the perturbation oracle on synthetic_shop (S05, A4).
+#
+# Written from the owner's decisions of 17 Oct 2026 (S05 session). Only the owner decides an entry;
+# the oracle never edits this file and nobody derives entries from parser output.
+#
+# category_a: observed changes not in the gold (spec bug or SQL drift) with the owner's decision.
+# category_b: gold pairs the local check did not observe and no certain auto-tag explains.
+#   Fields: from, to, check (local | e2e), labels (gold labels of the pair), reason_label, reason,
+#   decision, decided, note (optional).
+# tests/integration/test_oracle.py asserts that the untagged local category-B cases EQUAL this list
+# (a new case fails; a case that becomes observed fails until its entry is removed) and that every
+# category-A case has a decision. ORACLE_REPORT.md renders its Owner decisions section from here.
+#
+# Spot-check (owner, 17 Oct 2026): all 10 sampled row_preserving_join cases confirmed.
+
+category_a: []
+
+category_b:
+  - from: stg_customers.customer_id
+    to: dim_customers.country_code
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_customers.customer_id
+    to: dim_customers.email
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_customers.customer_id
+    to: dim_customers.full_name
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_customers.customer_id
+    to: dim_customers.signup_at
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_orders.order_id
+    to: int_orders_enriched.customer_id
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_orders.order_id
+    to: int_orders_enriched.order_date
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_orders.order_id
+    to: int_orders_enriched.order_status_group
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_orders.order_id
+    to: int_orders_enriched.order_tax
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_product_costs.valid_from
+    to: int_product_costs_current.product_id
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.product_name
+    to: fct_product_performance.discounted_units
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.product_name
+    to: fct_product_performance.gross_margin
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.product_name
+    to: fct_product_performance.gross_sales
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.product_name
+    to: fct_product_performance.product_category
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.product_name
+    to: fct_product_performance.product_id
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.product_name
+    to: fct_product_performance.units_sold
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.category
+    to: fct_product_performance.discounted_units
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.category
+    to: fct_product_performance.gross_margin
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.category
+    to: fct_product_performance.gross_sales
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.category
+    to: fct_product_performance.product_id
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.category
+    to: fct_product_performance.product_name
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_products.category
+    to: fct_product_performance.units_sold
+    check: local
+    labels: [GROUP_BY]
+    reason_label: functionally_dependent_group_key
+    reason: "GROUP BY key functionally dependent on product_id; adds no grouping in this data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_web_sessions.session_id
+    to: int_web_sessions_clean.session_number
+    check: local
+    labels: [WINDOW]
+    reason_label: row_number_blind_spot
+    reason: "fingerprint blind spot: row_number outputs 1..n per partition whatever the order"
+    decision: accept
+    decided: "2026-10-17"
+  - from: stg_web_sessions.session_started_at
+    to: int_web_sessions_clean.session_number
+    check: local
+    labels: [WINDOW]
+    reason_label: row_number_blind_spot
+    reason: "fingerprint blind spot: row_number outputs 1..n per partition whatever the order"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_campaign_spend_daily.spend_date
+    to: fct_marketing_attribution.channel
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_campaign_spend_daily.spend_date
+    to: fct_marketing_attribution.spend_usd
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_campaign_spend_daily.channel
+    to: fct_marketing_attribution.report_date
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_campaign_spend_daily.channel
+    to: fct_marketing_attribution.spend_usd
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_inventory_daily.snapshot_date
+    to: fct_inventory_status.product_id
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_inventory_daily.snapshot_date
+    to: fct_inventory_status.warehouse_code
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.attributed_campaign
+    check: local
+    labels: [FILTER]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+    note: "primary sort key session_started_at observed for the same targets; 146 orders have 2+ candidates, 0 ties on session_started_at"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.attributed_channel
+    check: local
+    labels: [FILTER]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+    note: "primary sort key session_started_at observed for the same targets; 146 orders have 2+ candidates, 0 ties on session_started_at"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.attributed_revenue
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.customer_id
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.days_to_convert
+    check: local
+    labels: [FILTER]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+    note: "primary sort key session_started_at observed for the same targets; 146 orders have 2+ candidates, 0 ties on session_started_at"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.order_date
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_id
+    to: int_order_attribution.order_id
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_started_at
+    to: int_order_attribution.attributed_revenue
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_started_at
+    to: int_order_attribution.customer_id
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_started_at
+    to: int_order_attribution.order_date
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_web_sessions_clean.session_started_at
+    to: int_order_attribution.order_id
+    check: local
+    labels: [FILTER]
+    reason_label: qualify_kept_side
+    reason: "QUALIFY order key; target is a partition key or from the kept side"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.customer_id
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.item_count
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.items_subtotal
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.order_date
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.order_status_group
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.order_total
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_orders_enriched.order_id
+    to: int_order_financials.sales_tax
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: fct_product_performance.product_id
+    to: fct_top_products.gross_margin
+    check: local
+    labels: [SORT]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: fct_product_performance.product_id
+    to: fct_top_products.product_name
+    check: local
+    labels: [SORT]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: fct_product_performance.product_id
+    to: fct_top_products.units_sold
+    check: local
+    labels: [SORT]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_order_financials.order_id
+    to: int_customer_order_history.previous_order_date
+    check: local
+    labels: [WINDOW]
+    reason_label: tie_breaker
+    reason: "tie-breaker; no ties in base data"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.order_id
+    to: int_order_profit.customer_id
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.order_id
+    to: int_order_profit.order_date
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.customer_id
+    to: int_order_attribution.attributed_revenue
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.customer_id
+    to: int_order_attribution.order_date
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.customer_id
+    to: int_order_attribution.order_id
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.order_date
+    to: int_order_attribution.attributed_revenue
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.order_date
+    to: int_order_attribution.customer_id
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: int_customer_order_history.order_date
+    to: int_order_attribution.order_id
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: dim_customers.customer_id
+    to: dim_customer_rfm.recency_days
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: dim_customers.customer_id
+    to: dim_customer_rfm.rfm_frequency_score
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: dim_customers.customer_id
+    to: dim_customer_rfm.rfm_monetary_score
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: dim_customers.customer_id
+    to: dim_customer_rfm.rfm_recency_score
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+  - from: dim_customers.customer_id
+    to: dim_customer_rfm.rfm_score
+    check: local
+    labels: [JOIN]
+    reason_label: preserved_side_join_key
+    reason: "key on the row-preserved side; target comes from a row that is always kept, so value perturbation cannot reach it (ADR 0020 targets: all)"
+    decision: accept
+    decided: "2026-10-17"
+
+# End-to-end columns in a seed column's gold closure that no mode changed and no local category-B
+# pair explains. Listed, not gated (ADR 0017; owner, 17 Oct 2026). One likely reason per group,
+# drafted in S05 at the owner's request; the report shows it under the table. Every unexplained
+# (seed, column) must fall in a group.
+e2e_unexplained:
+  - seeds: [raw_order_items.order_id, raw_order_items.product_id, raw_order_items.quantity,
+            raw_order_items.unit_price, raw_orders.tax_usd, raw_products.id, raw_refunds.order_id,
+            raw_refunds.refund_amt]
+    targets: [dim_customer_segments.customer_segment, fct_segment_monthly.active_customers,
+              fct_segment_monthly.customer_segment, fct_segment_monthly.order_month,
+              fct_segment_monthly.segment_order_count, fct_segment_monthly.segment_revenue_finance]
+    reason: >-
+      Absorbed by a threshold downstream: these seeds move lifetime_value, so only
+      rfm_monetary_score changes; it is the units digit of rfm_score (1-3) and the segment
+      cut-offs 330 / 220 are multiples of 10, so no customer changes segment (checked per
+      customer in S05) and the segment-keyed columns of fct_segment_monthly keep their values.
+  - seeds: [raw_product_costs.valid_from]
+    targets: [fct_top_products.product_id, fct_top_products.product_name, fct_top_products.units_sold]
+    reason: >-
+      Absorbed by LIMIT 10: the current-cost change moves gross_margin (observed) but not which
+      products make the top 10.
+  - seeds: [raw_web_sessions.started_at, raw_web_sessions.channel, raw_web_sessions.page_views,
+            raw_web_sessions.is_bot]
+    targets: [fct_marketing_attribution.channel, fct_marketing_attribution.report_date,
+              fct_marketing_attribution.spend_usd, fct_channel_performance_monthly.channel,
+              fct_channel_performance_monthly.report_month, fct_channel_performance_monthly.spend_usd]
+    reason: >-
+      Row-preserving LEFT JOIN from the spend side: locally these pairs show only through fan-out
+      when a perturbed int_sessions_daily key stops being unique; a seed change is re-aggregated
+      by its GROUP BY, keys stay unique, and spend rows keep their values.
+
+# Shown under "Possible later strengthening" in the report (owner, 17 Oct 2026).
+later_strengthening:
+  - >-
+    A tie probe (create ties on the primary order key) would make the 7 tie-breaker pairs
+    observable.
