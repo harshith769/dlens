@@ -323,12 +323,40 @@ def r8_line(r8: dict[str, int]) -> str:
 # -- running ----------------------------------------------------------------------------------
 
 
+def code_rules(record: dict[str, Any]) -> list[str | None]:
+    """The rule of each code-initiated tool call, in order (S08: code vs model steps)."""
+    return [r.get("rule") for st in record["steps"] if st["phase"] == "code" for r in st["results"]]
+
+
+def open_index(graph: Any, project: Path) -> tuple[Any, dict[str, Any]]:
+    """The project's S07 search index for the linker's hybrid stage, and the run manifest entry
+    (owner, S08 Q5): hybrid on, plus the index key (model, revision, chunker, chunk hash)."""
+    from dlens.graph.cache import cache_path
+    from dlens.retrieval.dense import get_embedder
+    from dlens.retrieval.index import SearchIndex, project_index_dir
+
+    index, status = SearchIndex.open(
+        graph=graph,
+        graph_file=cache_path(project),
+        target_dir=project / "target",
+        project_dir=project,
+        index_dir=project_index_dir(project),
+        embedder=get_embedder(),
+    )
+    return index, {"hybrid": True, "index_status": status, "index_key": index.meta.get("key")}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--provider", default="ollama")
     ap.add_argument("--only", help="comma-separated question ids")
     ap.add_argument("--show", action="store_true", help="print each rendered answer")
     ap.add_argument("--json", type=Path, help="write per-question rows and the summary here")
+    ap.add_argument(
+        "--hybrid",
+        action="store_true",
+        help="give resolve_entity the S07 search index (retrieval extra; built by `dlens search`)",
+    )
     ns = ap.parse_args()
     if ns.provider != "ollama":
         print("dev_report: only the local ollama provider is allowed", file=sys.stderr)
@@ -349,13 +377,15 @@ def main() -> int:
     graph = load_or_build(project)
     client = make_client(ns.provider)
     logger = RunLogger(runs_dir())
+    index, manifest = open_index(graph, project) if ns.hybrid else (None, {"hybrid": False})
+    print("manifest:", json.dumps(manifest))
     rows: list[dict[str, Any]] = []
     r8 = Counter[str]()
     tiers = Counter[str]()
     for q in questions:
         if only and q["id"] not in only:
             continue
-        toolbox = Toolbox(graph, project)
+        toolbox = Toolbox(graph, project, index=index)
         run = ask(q["question"], client, toolbox, logger, project=str(project))
 
         def edge_of(i: str, box: Toolbox = toolbox) -> Edge | None:
@@ -376,6 +406,7 @@ def main() -> int:
         r8.update(drops)
         row["r8"] = drops
         row["tiers"] = claim_tiers(record)
+        row["code_rules"] = code_rules(record)
         tiers.update(row["tiers"])
         rows.append(row)
         print(f"{q['id']}: {'PASS' if row['pass'] else 'fail'} {'; '.join(row['reasons'])}")
@@ -390,7 +421,7 @@ def main() -> int:
     t = {k: tiers[k] for k in ("raw", "repaired", "completed", "failed")}
     print("first-draft claims: " + " ".join(f"{k}={n}" for k, n in t.items()))
     if ns.json:
-        out = {"rows": rows, "summary": s, "r8": dict(r8), "claim_tiers": t}
+        out = {"manifest": manifest, "rows": rows, "summary": s, "r8": dict(r8), "claim_tiers": t}
         ns.json.write_text(json.dumps(out, indent=1))
     return 0
 

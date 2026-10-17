@@ -190,3 +190,14 @@ def test_claim_tiers_split_raw_repaired_completed_failed():
     }
     assert dr.claim_tiers(rec) == {"raw": 1, "repaired": 1, "completed": 1, "failed": 1}
     assert dr.claim_tiers({"validation": {"skipped": True}})["raw"] == 0
+
+
+def test_code_rules_lists_code_steps_only():
+    record = {
+        "steps": [
+            {"phase": "tool", "results": [{"tool": "resolve_entity"}]},
+            {"phase": "code", "results": [{"tool": "trace_upstream", "rule": "linked_evidence"}]},
+            {"phase": "code", "results": [{"tool": "reachability", "rule": "reachability_fact"}]},
+        ]
+    }
+    assert dr.code_rules(record) == ["linked_evidence", "reachability_fact"]
