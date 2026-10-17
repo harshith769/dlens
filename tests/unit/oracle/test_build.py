@@ -25,6 +25,7 @@ def test_oracle_imports_only_the_gold_side_of_dlens() -> None:
                 else []
             )
             found += [(path.name, n) for n in names if n.split(".")[0] == "dlens"]
+    assert found, "the oracle reads the gold through dlens.gold_spec"
     assert {n for _, n in found} <= ALLOWED_DLENS, found
 
 
