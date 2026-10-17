@@ -195,6 +195,19 @@ X come from? Can I remove it?", where the second part goes beyond what the linea
 
 ![A live answer on Gemini: the lineage claim is verified and cited; the unsupported second part was removed by the validator](https://raw.githubusercontent.com/harshith769/dlens/main/docs/img/partially-removed.png)
 
+## Search the project (retrieval extra)
+
+```bash
+pip install "dlens-lineage[retrieval]"      # bm25s + onnxruntime, no torch
+dlens search "refund amount" -p corpora/synthetic_shop
+dlens search "customer lifetime value" --artifacts path/to/target --kind column
+```
+
+Hits are model SQL (cut at CTEs), column cards and descriptions, each with `file:lines`. The
+first run downloads `BAAI/bge-small-en-v1.5` (~133 MB, pinned revision) into the Hugging Face
+cache. That is the only network access, and `HF_HUB_OFFLINE=1` keeps later runs offline. The
+index is cached next to the graph and rebuilt only when the project changes.
+
 ## Local UI
 
 ```bash

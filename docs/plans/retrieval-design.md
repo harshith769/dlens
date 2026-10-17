@@ -72,7 +72,7 @@ Chunk(id, kind, model, column, file, line_start, line_end, line_basis, level, ti
    `split: "intra-line"` stat (expected to be 0).
 
 `text` is the source lines verbatim. `title` = `<model> · cte <name>` / `<model> · final select`
-/ `<model> · lines a–b`.
+/ `<model> · sql` (no-CTE models and fallback windows; parts add `(part k)`).
 
 ### 2.2 Column cards
 
@@ -203,6 +203,18 @@ Wordpieces (bge tokenizer, no truncation) on the provisional texts: synthetic_sh
 p95 117; dbt_jira max 336 / p95 252. **0 over 512.** The step-3 gate re-runs this on the real
 chunks.
 
+**Real chunks** (step 4 gate, bge tokenizer at the pinned revision, 17 Oct 2026):
+
+| corpus | chunks | wordpieces max | p95 | over 512 |
+|---|---|---|---|---|
+| synthetic_shop | 506 | 238 | 114 | 0 |
+| dbt_jira | 1,311 | 280 | 195 | 0 |
+| dbt_jira, no project files (compiled basis) | 1,348 | 267 | 195 | 0 |
+| eph_shop (fixture) | 29 | 102 | 60 | 0 |
+
+No chunk needed a tokenizer re-split (`split_by_tokenizer` = 0 everywhere): the 300-estimated-
+token cap keeps every chunk well under 512.
+
 **Gate (b)**: min cosine 0.99999988 ≥ 0.999 on every synthetic_shop text, so it **passes**.
 
 **Threads**: the double build at 4 threads is byte-identical, so the default stays **4**.
@@ -232,7 +244,9 @@ and a README line `pip install torch --index-url https://download.pytorch.org/wh
   `graph.json`; sha256 of `manifest.json`; sha256 of each chunked file (path → hash);
   `model_id` + `model_revision`; `CHUNKER_VERSION`; the embedding runtime name and version (e.g.
   `onnxruntime 1.x` or `sentence-transformers 5.x + torch 2.x`); max sequence length; embedding
-  thread count.
+  thread count. *Added in implementation (S07):* sha256 of `catalog.json` (types are card text),
+  an index format number, and a sha256 of all chunk ids. Ids hash chunk content, so any change in
+  chunker output rebuilds the index even if `CHUNKER_VERSION` wasn't bumped.
   Comparing the stored key with the current one gives the reason for the first difference:
   `rebuilt: manifest changed`, `rebuilt: models/marts/schema.yml changed`, `rebuilt: model
   revision changed`, and so on. If nothing differs: `index reused`.

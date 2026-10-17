@@ -7,6 +7,18 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Hybrid retrieval** (`retrieval` extra; ADR 0014, ADR 0021): chunks of model SQL (split at
+  CTE boundaries, on source `.sql` lines), column cards (name, type, YAML description) and doc
+  chunks (descriptions, `{% docs %}` blocks, exposures, README). Each chunk has file, lines and
+  line basis. Search is BM25 (`bm25s`) plus `BAAI/bge-small-en-v1.5` on onnxruntime at a
+  pinned revision, fused with RRF (k = 60), over exact numpy search. Only files the manifest
+  names are indexed, and graph facts never enter indexed text. The index is cached next to the
+  graph and says why it rebuilt.
+- `dlens search "<query>" [--project DIR | --artifacts TARGET]` with `--k`, `--kind`, `--mode`,
+  `--rebuild`. The model downloads once (~133 MB) into the Hugging Face cache; `HF_HUB_OFFLINE=1`
+  runs fully offline afterwards.
+- `search_docs` tool (capped at 1,500 tokens; YAML/README text returned as quoted, possibly
+  stale data). It is not yet used by `dlens ask` (v0.3, S12).
 - **Artifact-only ingest** (ADR 0013): `dlens ingest --artifacts target/` builds the graph from
   an existing dbt `target/` (manifest.json, optional catalog.json, compiled SQL) with no dbt run,
   no warehouse connection and no network. The dialect comes from `adapter_type` (duckdb,
@@ -47,6 +59,9 @@ All notable changes to this project are documented here. The format follows
   it). `scripts/measure_indirect_reach.py` measures what indirect traversal does to impact size.
 
 ### Changed
+- The `retrieval` extra is now `bm25s`, `onnxruntime`, `tokenizers`, `huggingface-hub` and
+  `numpy`. torch, sentence-transformers and lancedb are gone (a plain pip install adds ~176 MB
+  instead of ~6 GB of CUDA torch; ADR 0021).
 - A FILTER or JOIN key computed by a window function in an inner query (`where rn = 1` over
   `row_number() over (...) as rn`) now resolves to the window's PARTITION BY / ORDER BY columns
   plus its value arguments, matching QUALIFY (ADR 0020, S06 clarification). Before, it resolved
