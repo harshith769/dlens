@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from dlens.graph.graph import LineageGraph
 from dlens.graph.models import Hop, ImpactResult, PathList, hop_rank
-from dlens.graph.report import Report
+from dlens.graph.report import Coverage, Report
 from dlens.lineage import Confidence, IndirectEdge
 
 EXPR_WIDTH = 60
@@ -131,3 +131,19 @@ def render_report(report: Report) -> str:
 
 def _short_model(unique_id: str) -> str:
     return unique_id.split(".")[-1]
+
+
+def render_coverage(c: Coverage) -> str:
+    """``dlens ingest --artifacts`` coverage: counts, then each non-FULL model and why."""
+    n = c.counts
+    lines = [
+        f"coverage:    {n['FULL']} FULL · {n['PARTIAL']} PARTIAL · "
+        f"{n['TABLE_ONLY']} TABLE_ONLY · {n['FAILED']} FAILED"
+    ]
+    width = max((len(_short_model(m.model)) for m in c.models), default=0)
+    for m in c.models:
+        why = ", ".join(f"{k} ×{v}" if v > 1 else k for k, v in m.reasons.items())
+        lines.append(f"  {m.level:<10}  {_short_model(m.model):<{width}}  {why}")
+    if c.models:
+        lines.append("  (details per gap: dlens report --artifacts <target>)")
+    return "\n".join(lines)

@@ -68,3 +68,64 @@ def build_report(graph: LineageGraph) -> Report:
             constants=sum(len(m.constants) for m in models),
         ),
     )
+
+
+# -- coverage summary for artifact ingest (S06) ------------------------------------------------
+
+COVERAGE_LEVELS = ("FULL", "PARTIAL", "TABLE_ONLY", "FAILED")
+
+
+def gap_category(gap: str) -> str:
+    """Group a gap string (``ModelParse.gaps``) by cause, for the coverage summary."""
+    if "unexpanded *" in gap:
+        return "unexpanded *"
+    if "is not a dbt node" in gap:
+        return "table not in the manifest"
+    if "ephemeral model" in gap:
+        return "ephemeral model not unique"
+    if "unresolved column" in gap:
+        return "unresolved column"
+    return "other"
+
+
+class ModelCoverage(BaseModel):
+    model: str
+    level: str
+    reasons: dict[str, int]
+    """Gap category (or the FAILED exception type) -> count."""
+
+
+class Coverage(BaseModel):
+    counts: dict[str, int]
+    models: list[ModelCoverage]
+    """Every model that is not FULL, worst first."""
+
+
+def coverage_summary(graph: LineageGraph) -> Coverage:
+    """FULL = no gaps; PARTIAL = gaps, but at least one column edge into the model; TABLE_ONLY =
+    no column edges (DEPENDS_ON only); FAILED = sqlglot could not parse it. ``ParseQuality``
+    itself is unchanged: PARTIAL and TABLE_ONLY here split its TABLE_ONLY."""
+    with_edges = {e.to_column.rsplit(".", 1)[0] for e in graph.edges()}
+    rows: list[ModelCoverage] = []
+    for uid, p in graph.parse_details().items():
+        if p.quality == ParseQuality.FULL:
+            rows.append(ModelCoverage(model=uid, level="FULL", reasons={}))
+            continue
+        reasons: dict[str, int] = {}
+        if p.quality == ParseQuality.FAILED:
+            level = "FAILED"
+            cause = (p.reason or "unknown").split(":")[0]
+            reasons[cause] = 1
+        else:
+            level = "PARTIAL" if uid in with_edges else "TABLE_ONLY"
+            for gap in p.gaps:
+                cat = gap_category(gap)
+                reasons[cat] = reasons.get(cat, 0) + 1
+        rows.append(ModelCoverage(model=uid, level=level, reasons=dict(sorted(reasons.items()))))
+    order = {lvl: i for i, lvl in enumerate(COVERAGE_LEVELS)}
+    return Coverage(
+        counts={lvl: sum(r.level == lvl for r in rows) for lvl in COVERAGE_LEVELS},
+        models=sorted(
+            (r for r in rows if r.level != "FULL"), key=lambda r: (-order[r.level], r.model)
+        ),
+    )

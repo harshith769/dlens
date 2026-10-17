@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dlens import __version__
 from dlens.graph.graph import FORMAT_VERSION, LineageGraph, build_graph, build_graph_from_artifacts
-from dlens.ingest import TargetInfo, load_target
+from dlens.ingest import ArtifactError, TargetInfo, load_target
 
 SOURCE_DIRS = ("models", "seeds", "macros", "snapshots", "tests")
 
@@ -109,3 +109,20 @@ def load_or_build_artifacts(
         json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     return ArtifactGraph(graph, info, cache, False)
+
+
+def load_artifact_cache(target_dir: Path, out: Path | None = None) -> LineageGraph:
+    """The graph ``dlens ingest --artifacts`` wrote, if it is still current. Never builds:
+    raises :class:`ArtifactError` saying to re-run ingest when it is missing or stale."""
+    cache = artifact_cache_dir(target_dir, out)
+    hint = f"run `dlens ingest --artifacts {target_dir}` first"
+    try:
+        meta = json.loads((cache / "meta.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise ArtifactError(f"no artifact graph in {cache}; {hint}.") from e
+    if meta != artifact_meta(target_dir, str(meta.get("dialect"))):
+        raise ArtifactError(f"the artifact graph in {cache} is stale (artifacts changed); {hint}.")
+    try:
+        return LineageGraph.load(cache / "graph.json")
+    except (OSError, ValueError, KeyError) as e:
+        raise ArtifactError(f"unreadable artifact graph in {cache}; {hint}.") from e

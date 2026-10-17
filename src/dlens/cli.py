@@ -13,11 +13,19 @@ from dlens.agent.loop import AgentRun
 from dlens.agent.loop import ask as run_agent
 from dlens.agent.runlog import RunLogger, runs_dir
 from dlens.agent.tools import Toolbox
-from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, load_or_build
-from dlens.graph.render import render_impact, render_report, render_trace
-from dlens.graph.report import build_report
-from dlens.ingest import DbtError
+from dlens.graph import (
+    AmbiguousColumn,
+    ColumnNotFound,
+    LineageGraph,
+    load_or_build,
+    load_or_build_artifacts,
+)
+from dlens.graph.cache import load_artifact_cache
+from dlens.graph.render import render_coverage, render_impact, render_report, render_trace
+from dlens.graph.report import build_report, coverage_summary
+from dlens.ingest import ArtifactError, DbtError
 from dlens.ingest import ingest as run_ingest
+from dlens.ingest.target import ADAPTER_DIALECTS
 
 app = typer.Typer(help="DLens: column-level lineage and grounded Q&A for dbt projects.")
 
@@ -37,9 +45,44 @@ def main(
     """DLens: column-level lineage and grounded Q&A for dbt projects."""
 
 
+DIALECTS = ", ".join(sorted(set(ADAPTER_DIALECTS.values())))
+
+
 @app.command()
-def ingest(project_dir: Annotated[Path, typer.Argument(help="Path to a dbt project.")]) -> None:
-    """Run dbt on PROJECT_DIR and summarise what DLens will see."""
+def ingest(
+    project_dir: Annotated[
+        Path | None, typer.Argument(help="Path to a dbt project (DLens runs dbt-duckdb).")
+    ] = None,
+    artifacts: Annotated[
+        Path | None,
+        typer.Option(
+            "--artifacts",
+            help="An existing dbt target/ directory: reads manifest.json, catalog.json (optional) "
+            "and compiled SQL. Never runs dbt; no network, no credentials.",
+        ),
+    ] = None,
+    dialect: Annotated[
+        str | None,
+        typer.Option("--dialect", help=f"Override the SQL dialect ({DIALECTS})."),
+    ] = None,
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", help="Where to write the graph (default: <target>/dlens/)."),
+    ] = None,
+    rebuild: Annotated[bool, typer.Option("--rebuild", help="Ignore the cached graph.")] = False,
+) -> None:
+    """Run dbt on PROJECT_DIR, or read an existing target/ with --artifacts, and summarise what
+    DLens will see."""
+    if (project_dir is None) == (artifacts is None):
+        typer.echo("error: give either PROJECT_DIR or --artifacts TARGET_DIR (not both).", err=True)
+        raise typer.Exit(2)
+    if artifacts is not None:
+        _ingest_artifacts(artifacts, dialect, out, rebuild)
+        return
+    if dialect or out or rebuild:
+        typer.echo("error: --dialect, --out and --rebuild apply to --artifacts only.", err=True)
+        raise typer.Exit(2)
+    assert project_dir is not None
     try:
         r = run_ingest(project_dir)
     except DbtError as e:
@@ -55,7 +98,55 @@ def ingest(project_dir: Annotated[Path, typer.Argument(help="Path to a dbt proje
         typer.echo(f"  - {rel}")
 
 
+def _ingest_artifacts(target: Path, dialect: str | None, out: Path | None, rebuild: bool) -> None:
+    try:
+        built = load_or_build_artifacts(target, dialect=dialect, out=out, rebuild=rebuild)
+    except ArtifactError as e:
+        typer.echo(f"ingest failed: {e}", err=True)
+        raise typer.Exit(1) from e
+    g, info = built.graph, built.info
+    kinds = [g.model_info(uid) or {} for uid in g.model_ids()]
+    count = {
+        k: sum(m.get("resource_type") == k for m in kinds) for k in ("model", "seed", "source")
+    }
+    typer.echo(f"artifacts:   {target}  (reads files only; no dbt, no network)")
+    typer.echo(
+        f"manifest:    {info.manifest_version} (dbt {info.dbt_version}), "
+        f"adapter {info.adapter_type} -> dialect {info.dialect}"
+    )
+    if info.catalog_less:
+        typer.echo("catalog:     NONE (catalog-less fallback): columns come from YAML declarations")
+        typer.echo("             and parsed SQL; a * over an undeclared table is a gap.")
+        typer.echo("             Run `dbt docs generate` to write catalog.json for full coverage.")
+    else:
+        typer.echo("catalog:     catalog.json")
+    if info.project_dir is None:
+        typer.echo("citations:   no dbt project around the target: edges cite whole files")
+    if info.compiled_from_files:
+        typer.echo(
+            f"compiled:    {len(info.compiled_from_files)} model(s) read from target/compiled"
+        )
+    for uid in info.missing_compiled:
+        typer.echo(f"  no compiled SQL: {uid} (FAILED; run `dbt compile`)")
+    typer.echo(
+        f"models:      {count['model']}   seeds: {count['seed']}   sources: {count['source']}   "
+        f"exposures: {len({x for x, _ in g.consumes()})}"
+    )
+    typer.echo(f"columns:     {len(g.columns())}")
+    typer.echo(f"edges:       {len(g.edges())} direct, {len(g.indirect_edges())} indirect")
+    typer.echo(render_coverage(coverage_summary(g)))
+    state = "cache reused" if built.reused else "built"
+    typer.echo(f"graph:       {built.cache_dir / 'graph.json'} ({state})")
+
+
 ProjectOpt = Annotated[Path, typer.Option("--project", "-p", help="dbt project directory.")]
+ArtifactsOpt = Annotated[
+    Path | None,
+    typer.Option(
+        "--artifacts",
+        help="Use the graph `dlens ingest --artifacts TARGET_DIR` wrote (never runs dbt).",
+    ),
+]
 DepthOpt = Annotated[int, typer.Option("--depth", "-d", min=1, help="Maximum number of hops.")]
 RebuildOpt = Annotated[bool, typer.Option("--rebuild", help="Ignore the cached graph.")]
 IndirectOpt = Annotated[
@@ -68,13 +159,22 @@ IndirectOpt = Annotated[
 ]
 
 
-def _open_graph(project: Path, column: str, rebuild: bool) -> tuple[LineageGraph, str]:
-    """Load (or build) the graph and resolve COLUMN; exit 1 on a dbt failure, 2 on a bad column."""
+def _graph(project: Path, rebuild: bool, artifacts: Path | None = None) -> LineageGraph:
+    """The artifact graph (``--artifacts``), else the project graph (built with dbt if stale)."""
     try:
-        graph = load_or_build(project, rebuild=rebuild)
-    except DbtError as e:
+        if artifacts is not None:
+            return load_artifact_cache(artifacts)
+        return load_or_build(project, rebuild=rebuild)
+    except (DbtError, ArtifactError) as e:
         typer.echo(f"graph build failed: {e}", err=True)
         raise typer.Exit(1) from e
+
+
+def _open_graph(
+    project: Path, column: str, rebuild: bool, artifacts: Path | None = None
+) -> tuple[LineageGraph, str]:
+    """Load (or build) the graph and resolve COLUMN; exit 1 on a dbt failure, 2 on a bad column."""
+    graph = _graph(project, rebuild, artifacts)
     try:
         return graph, graph.resolve(column)
     except (ColumnNotFound, AmbiguousColumn) as e:
@@ -89,9 +189,10 @@ def trace(
     depth: DepthOpt = 10,
     rebuild: RebuildOpt = False,
     include_indirect: IndirectOpt = False,
+    artifacts: ArtifactsOpt = None,
 ) -> None:
     """Show where COLUMN comes from: every upstream path, with expression and file:lines."""
-    graph, col = _open_graph(project, column, rebuild)
+    graph, col = _open_graph(project, column, rebuild, artifacts)
     paths = graph.upstream(col, max_depth=depth, include_indirect=include_indirect)
     typer.echo(render_trace(graph, col, paths, depth))
 
@@ -103,9 +204,10 @@ def impact(
     depth: DepthOpt = 10,
     rebuild: RebuildOpt = False,
     include_indirect: IndirectOpt = False,
+    artifacts: ArtifactsOpt = None,
 ) -> None:
     """Show what COLUMN feeds: downstream columns, models and exposures."""
-    graph, col = _open_graph(project, column, rebuild)
+    graph, col = _open_graph(project, column, rebuild, artifacts)
     result = graph.downstream(col, max_depth=depth, include_indirect=include_indirect)
     typer.echo(render_impact(graph, result, depth))
 
@@ -115,14 +217,10 @@ def report(
     project: ProjectOpt = Path("."),
     as_json: Annotated[bool, typer.Option("--json", help="Machine-readable output.")] = False,
     rebuild: RebuildOpt = False,
+    artifacts: ArtifactsOpt = None,
 ) -> None:
     """Parse quality per model (FULL / TABLE_ONLY / FAILED) with gaps, and edge totals."""
-    try:
-        graph = load_or_build(project, rebuild=rebuild)
-    except DbtError as e:
-        typer.echo(f"graph build failed: {e}", err=True)
-        raise typer.Exit(1) from e
-    r = build_report(graph)
+    r = build_report(_graph(project, rebuild, artifacts))
     typer.echo(r.model_dump_json(indent=2) if as_json else render_report(r))
 
 
