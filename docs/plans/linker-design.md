@@ -383,6 +383,14 @@ folder first, and falls back to the name prefix. synthetic_shop results are byte
 and after (all 247 cases + 20 dev mentions). dbt_jira is unchanged too: its marts sit directly in
 `models/` (no layer folder) and are named `jira__*` (no prefix), so they still get no marts bonus.
 
+**Dotted ids and `usd` (owner, 18 Oct 2026).** lk-no_match-029 `dim_customers.lifetime_value_usd`
+was the one τ miss: rule C's weak-`usd` step mapped it to `dim_customers.lifetime_value`. The
+corpus check found that `lifetime_value_usd` is a real column (`fct_customer_leaderboard`, a
+RENAME that DESIGN_v2 §1 keeps on purpose so "lifetime value" stays unique), so the gold stays
+no-match. Rule C's weak-`usd` step now works in one direction only: a dotted id may omit the
+column's `usd` (`stg_payments.amt` → `amount_usd`, the pre-S08 test) but may not add a `usd` the
+column lacks. The loop shares the function, so it now refuses that id with 0 LLM calls.
+
 ## Change log
 - 17 Oct 2026: first draft (S08 step 1).
 - 17 Oct 2026: amendments A, B, C (owner, after the case review, before measurement).

@@ -347,10 +347,14 @@ def dotted_column(
         return Dotted(tuple(uids), exact, "exact")
     own = [c for c in g.columns() if g.model_of(c) in uids]
     want = abbreviated(col)
+    # Weak ``usd`` only on the column's side (owner, 18 Oct 2026): a dotted id may leave out a
+    # column's unit (stg_payments.amt -> amount_usd) but may not add one the column lacks, because
+    # ``X_usd`` can be a real, different column elsewhere (dim_customers.lifetime_value_usd ->
+    # no-match; fct_customer_leaderboard.lifetime_value_usd is a RENAME, DESIGN_v2 §1).
     hits = tuple(
         c
         for c in own
-        if (have := abbreviated(g.nx_graph.nodes[c]["name"])) == want or core(have) == core(want)
+        if (have := abbreviated(g.nx_graph.nodes[c]["name"])) == want or core(have) == want
     )
     if hits:
         return Dotted(tuple(uids), hits, "abbreviation")

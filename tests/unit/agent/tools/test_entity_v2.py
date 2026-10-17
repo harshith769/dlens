@@ -299,3 +299,11 @@ def test_layer_comes_from_the_folder_then_the_name_prefix() -> None:
     assert layer("jira__issue", "model", "models/jira__issue.sql") is None  # neither
     assert layer("anything", "seed", "seeds/anything.csv") == "raw"
     assert layer("stg_x", "model", "models/marts/stg_x.sql") == "marts"  # the folder wins
+
+
+def test_dotted_id_may_omit_a_unit_but_not_add_one(box: Toolbox) -> None:
+    """Owner, 18 Oct 2026: lifetime_value_usd is a real column elsewhere (a RENAME)."""
+    assert resolve(box, "dim_customers.lifetime_value_usd")[0]["candidates"] == []
+    assert [c["id"] for c in resolve(box, "stg_payments.amt")[0]["candidates"]] == [
+        "stg_payments.amount_usd"
+    ]
