@@ -23,6 +23,8 @@ class Gold:
     indirect: dict[tuple[str, str], set[str]]  # (from, to) -> indirect types
     # (from, model, type) of rows with `targets: all` (row-set clauses in the final SELECT)
     row_set: set[tuple[str, str, str]] = field(default_factory=set)
+    # (from, model) -> CTE / derived-table names the gold rows route the key through (`via:`)
+    via: dict[tuple[str, str], set[str]] = field(default_factory=dict)
 
     def labels(self, src: str, dst: str) -> set[str]:
         """Edge labels of a pair: its direct kind and/or its indirect types."""
@@ -76,6 +78,10 @@ def load_gold(spec_path: Path) -> Gold:
     for p in expansion.pairs:
         indirect.setdefault((p.from_column, p.to_column), set()).add(p.type)
     row_set = {(r["from"], r["model"], r["type"]) for r in rows if r["targets"] == "all"}
+    via: dict[tuple[str, str], set[str]] = {}
+    for r in rows:
+        if r.get("via"):
+            via.setdefault((r["from"], r["model"]), set()).add(str(r["via"]))
     return Gold(
         seeds={name: list(cols) for name, cols in spec["seeds"].items()},
         models=models,
@@ -83,4 +89,5 @@ def load_gold(spec_path: Path) -> Gold:
         direct=direct,
         indirect=indirect,
         row_set=row_set,
+        via=via,
     )

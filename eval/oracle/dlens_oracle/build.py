@@ -44,6 +44,7 @@ class Model:
     name: str
     sql: str  # compiled SELECT, exactly as dbt wrote it
     parents: tuple[str, ...]  # seed and model names, manifest order
+    path: str = ""  # project-relative source file (manifest original_file_path)
 
 
 @dataclass
@@ -110,7 +111,9 @@ def corpus_from_manifest(manifest: Mapping[str, Any], project: Path) -> Corpus:
         if not node.get("compiled_code"):
             raise OracleError(f"{node['name']} has no compiled_code; run dbt compile first")
         parents = tuple(names[d] for d in node["depends_on"]["nodes"] if d in names)
-        built[node["name"]] = Model(node["name"], node["compiled_code"], parents)
+        built[node["name"]] = Model(
+            node["name"], node["compiled_code"], parents, node.get("original_file_path", "")
+        )
     profile_path = _duckdb_path(project)
     return Corpus(catalogs.pop(), sorted(n["name"] for n in seeds.values()), built, profile_path)
 

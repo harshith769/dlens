@@ -1,4 +1,4 @@
-.PHONY: test test-fast lint ingest eval-smoke eval-full ui demo-bundle demo-requirements
+.PHONY: test test-fast lint ingest eval-smoke eval-full oracle ui demo-bundle demo-requirements
 
 test:
 	uv run pytest
@@ -19,10 +19,18 @@ ingest:
 eval-smoke:
 	DLENS_PROVIDER=ollama DLENS_CACHE_DIR=eval/cache uv run python scripts/dev_report.py
 
+# Perturbation oracle (S05): offline, free; writes eval/oracle/results/ and ORACLE_REPORT.md.
+oracle:
+	uv run python scripts/run_oracle.py
+
 eval-full:
 	@echo "eval-full spends free cloud quota. Check the quota counter first."
 	@read -p "Type 'yes' to continue: " ans; [ "$$ans" = "yes" ] || { echo "Aborted."; exit 1; }
-	@echo "eval-full: not implemented yet"
+	@echo "# Perturbation oracle (S05): offline, free; writes eval/oracle/results/ and ORACLE_REPORT.md.
+oracle:
+	uv run python scripts/run_oracle.py
+
+eval-full: not implemented yet"
 
 # Local UI on Ollama: Ask | Explore lineage | How it works (needs: uv sync --extra agent --extra ui).
 ui:
