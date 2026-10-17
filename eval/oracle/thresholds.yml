@@ -1,0 +1,305 @@
+# Thresholds of synthetic_shop for the perturbation oracle (docs/plans/oracle-design.md §4).
+#
+# Hand-written from the corpus SQL (models/**/*.sql, read as text) and DESIGN_v2 §7.2. NEVER
+# derived from dlens parser output. Line numbers are the model file's (the compiled SQL keeps them).
+#
+# thresholds: one entry per predicate that decides a value or a row.
+#   lines:   every line of the predicate (the coverage test matches scan hits against these)
+#   clause:  FILTER | CONDITIONAL | JOIN | direct (a CASE condition is direct, ADR 0020)
+#   cutoffs: numeric / date cut-offs on `value` (nearest base values are reported around each)
+#   inputs:  the parent columns (gold short ids) whose local perturbation can move the outcome
+#   probe:   SQL over the current parent tables -> (key, value, outcome); one row per key.
+#            Crossings for (input, mode) = keys whose outcome differs from base.
+# not_thresholds: every other scan hit (WHERE, CASE, FILTER (WHERE, HAVING, QUALIFY, comparison and
+#   JOIN … ON lines), each with a one-line reason. tests/unit/oracle/test_thresholds.py asserts
+#   that the two lists cover every hit.
+
+thresholds:
+  - id: sessions_not_bot
+    model: int_web_sessions_clean
+    lines: [14]
+    predicate: "where not is_bot"
+    clause: FILTER
+    cutoffs: []
+    inputs: [stg_web_sessions.is_bot]
+    probe: >
+      select session_id, is_bot, coalesce(not is_bot, false) from stg_web_sessions
+
+  - id: sessions_page_views
+    model: int_web_sessions_clean
+    lines: [15]
+    predicate: "and page_views > 0"
+    clause: FILTER
+    cutoffs: [0]
+    inputs: [stg_web_sessions.page_views]
+    probe: >
+      select session_id, page_views, coalesce(page_views > 0, false) from stg_web_sessions
+
+  - id: late_delivery
+    model: int_shipments_enriched
+    lines: [10]
+    predicate: "case when shipments.delivery_days > 5 then true else false end"
+    clause: direct
+    cutoffs: [5]
+    inputs: [stg_shipments.delivery_days]
+    probe: >
+      select shipment_id, delivery_days, coalesce(delivery_days > 5, false) from stg_shipments
+
+  - id: is_discounted
+    model: int_order_items_enriched
+    lines: [9]
+    predicate: "case when items.unit_price < products.list_price then true else false end"
+    clause: direct
+    cutoffs: [0]  # value = unit_price - list_price; discounted when < 0
+    inputs: [stg_order_items.unit_price, stg_products.list_price]
+    probe: >
+      select i.order_item_id, i.unit_price - p.list_price, coalesce(i.unit_price < p.list_price, false)
+      from stg_order_items as i inner join stg_products as p on i.product_id = p.product_id
+
+  - id: order_status_group
+    model: int_orders_enriched
+    lines: [14]
+    predicate: "case orders.status when 'completed' then 'complete' … else 'other' end"
+    clause: direct
+    cutoffs: []
+    inputs: [stg_orders.status]
+    probe: >
+      select order_id, status, case status when 'completed' then 'complete' when 'placed' then 'open'
+      when 'shipped' then 'open' when 'return_pending' then 'returned' when 'returned' then 'returned'
+      else 'other' end from stg_orders
+
+  - id: is_profitable
+    model: int_order_profit
+    lines: [22, 25]
+    predicate: "case when gross_margin - shipping_cost_total - discount_total > 0 then true"
+    clause: direct
+    cutoffs: [0]
+    inputs: [int_order_item_margins.line_margin, int_order_shipping.shipping_cost_total,
+             int_order_promotions.discount_total]
+    probe: >
+      select o.order_id,
+        coalesce(m.gross_margin, 0) - coalesce(s.shipping_cost_total, 0) - coalesce(p.discount_total, 0),
+        coalesce(m.gross_margin, 0) - coalesce(s.shipping_cost_total, 0) - coalesce(p.discount_total, 0) > 0
+      from int_customer_order_history as o
+      left join (select order_id, sum(line_margin) as gross_margin from int_order_item_margins
+                 group by order_id) as m on o.order_id = m.order_id
+      left join int_order_shipping as s on o.order_id = s.order_id
+      left join int_order_promotions as p on o.order_id = p.order_id
+
+  - id: session_before_order
+    model: int_order_attribution
+    lines: [13]
+    predicate: "and sessions.session_date <= orders.order_date"
+    clause: JOIN
+    cutoffs: [0]  # value = days from session to order; the pair joins when >= 0
+    inputs: [int_web_sessions_clean.session_date, int_customer_order_history.order_date]
+    probe: >
+      select o.order_id || ':' || s.session_id, date_diff('day', s.session_date, o.order_date),
+        coalesce(s.session_date <= o.order_date, false)
+      from int_customer_order_history as o
+      inner join int_web_sessions_clean as s on o.customer_id = s.customer_id
+
+  - id: paid_session
+    model: int_customer_sessions
+    lines: [4]
+    predicate: "count(session_id) filter (where channel <> 'direct')"
+    clause: CONDITIONAL
+    cutoffs: []
+    inputs: [int_web_sessions_clean.channel]
+    probe: >
+      select session_id, channel, coalesce(channel <> 'direct', false) from int_web_sessions_clean
+
+  - id: known_customer
+    model: int_customer_sessions
+    lines: [9]
+    predicate: "where customer_id is not null"
+    clause: FILTER
+    cutoffs: []
+    inputs: [int_web_sessions_clean.customer_id]
+    probe: >
+      select session_id, customer_id, customer_id is not null from int_web_sessions_clean
+
+  - id: late_shipment_filter
+    model: int_order_shipping
+    lines: [7]
+    predicate: "count(shipment_id) filter (where is_late_delivery)"
+    clause: CONDITIONAL
+    cutoffs: []
+    inputs: [int_shipments_enriched.is_late_delivery]
+    probe: >
+      select shipment_id, is_late_delivery, coalesce(is_late_delivery, false)
+      from int_shipments_enriched
+
+  - id: promo_not_internal
+    model: int_order_promotions
+    lines: [10, 13]
+    predicate: "where promotion_id in (select promotion_id … where promo_channel <> 'internal')"
+    clause: FILTER
+    cutoffs: []
+    inputs: [stg_promotions.promo_channel, stg_order_promotions.promotion_id,
+             stg_promotions.promotion_id]
+    probe: >
+      select op.order_promotion_id, op.promotion_id, op.promotion_id in
+        (select promotion_id from stg_promotions where promo_channel <> 'internal')
+      from stg_order_promotions as op
+
+  - id: warehouse_not_test
+    model: int_inventory_daily
+    lines: [18]
+    predicate: "where snapshots.warehouse_code <> 'WH_TEST'"
+    clause: FILTER
+    cutoffs: []
+    inputs: [stg_inventory_snapshots.warehouse_code]
+    probe: >
+      select snapshot_id, warehouse_code, coalesce(warehouse_code <> 'WH_TEST', false)
+      from stg_inventory_snapshots
+
+  - id: rfm_recency
+    model: dim_customer_rfm
+    lines: [21, 22, 23]
+    predicate: "case when recency_days <= 30 then 3 when recency_days <= 90 then 2 else 1 end"
+    clause: direct
+    cutoffs: [30, 90]
+    inputs: [dim_customers.most_recent_order_date, fct_orders.order_date]
+    probe: >
+      select customer_id, r, case when r <= 30 then 3 when r <= 90 then 2 else 1 end
+      from (select customer_id, date_diff('day', most_recent_order_date,
+                   (select max(order_date) from fct_orders)) as r from dim_customers)
+
+  - id: rfm_frequency
+    model: dim_customer_rfm
+    lines: [26, 27, 28]
+    predicate: "case when order_count >= 4 then 3 when order_count >= 2 then 2 else 1 end"
+    clause: direct
+    cutoffs: [2, 4]
+    inputs: [dim_customers.order_count]
+    probe: >
+      select customer_id, order_count,
+        case when order_count >= 4 then 3 when order_count >= 2 then 2 else 1 end
+      from dim_customers
+
+  - id: rfm_monetary
+    model: dim_customer_rfm
+    lines: [31, 32, 33]
+    predicate: "case when lifetime_value >= 500 then 3 when lifetime_value >= 150 then 2 else 1 end"
+    clause: direct
+    cutoffs: [150, 500]
+    inputs: [dim_customers.lifetime_value]
+    probe: >
+      select customer_id, lifetime_value,
+        case when lifetime_value >= 500 then 3 when lifetime_value >= 150 then 2 else 1 end
+      from dim_customers
+
+  - id: customer_segment
+    model: dim_customer_segments
+    lines: [5, 6, 7, 8]
+    predicate: "case when rfm_score >= 330 … when rfm_recency_score = 1 … when rfm_score >= 220 …"
+    clause: direct
+    cutoffs: [220, 330]
+    inputs: [dim_customer_rfm.rfm_score, dim_customer_rfm.rfm_recency_score]
+    probe: >
+      select customer_id, rfm_score, case when rfm_score >= 330 then 'champion'
+        when rfm_recency_score = 1 then 'hibernating' when rfm_score >= 220 then 'loyal'
+        else 'at_risk' end
+      from dim_customer_rfm
+
+  - id: is_high_value
+    model: dim_customer_segments
+    lines: [11]
+    predicate: "rfm_monetary_score = 3 as is_high_value"
+    clause: direct
+    cutoffs: [3]
+    inputs: [dim_customer_rfm.rfm_monetary_score]
+    probe: >
+      select customer_id, rfm_monetary_score, rfm_monetary_score = 3 from dim_customer_rfm
+
+  - id: product_discounted_units
+    model: fct_product_performance
+    lines: [6]
+    predicate: "sum(items.quantity) filter (where items.is_discounted)"
+    clause: CONDITIONAL
+    cutoffs: []
+    inputs: [int_order_item_margins.is_discounted]
+    probe: >
+      select order_item_id, is_discounted, coalesce(is_discounted, false) from int_order_item_margins
+
+  - id: product_complete_orders
+    model: fct_product_performance
+    lines: [14]
+    predicate: "where orders.order_status_group = 'complete'"
+    clause: FILTER
+    cutoffs: []
+    inputs: [int_orders_enriched.order_status_group]
+    probe: >
+      select order_id, order_status_group, coalesce(order_status_group = 'complete', false)
+      from int_orders_enriched
+
+  - id: shipping_late_case
+    model: fct_shipping_performance
+    lines: [5]
+    predicate: "sum(case when is_late_delivery then 1 else 0 end)"
+    clause: direct
+    cutoffs: []
+    inputs: [int_shipments_enriched.is_late_delivery]
+    probe: >
+      select shipment_id, is_late_delivery, coalesce(is_late_delivery, false)
+      from int_shipments_enriched
+
+  - id: shipped_only
+    model: fct_shipping_performance
+    lines: [9]
+    predicate: "where shipped_at is not null"
+    clause: FILTER
+    cutoffs: []
+    inputs: [int_shipments_enriched.shipped_at]
+    probe: >
+      select shipment_id, shipped_at, shipped_at is not null from int_shipments_enriched
+
+  - id: repeat_order
+    model: fct_customer_cohorts
+    lines: [11]
+    predicate: "count(distinct orders.customer_id) filter (where orders.previous_order_date is not null)"
+    clause: CONDITIONAL
+    cutoffs: []
+    inputs: [fct_orders.previous_order_date]
+    probe: >
+      select order_id, previous_order_date, previous_order_date is not null from fct_orders
+
+not_thresholds:
+  # rank filters: the winning row depends on the order keys (covered by shuffle / cross), not on a
+  # data cut-off
+  - {model: int_order_attribution, line: 14, reason: "qualify row_number() = 1: rank filter, no data cut-off"}
+  - {model: int_order_attribution, line: 17, reason: "closes the qualify row_number() = 1 rank filter"}
+  - {model: int_product_costs_current, line: 12, reason: "qualify row_number() = 1: rank filter, no data cut-off"}
+  - {model: int_product_costs_current, line: 15, reason: "closes the qualify row_number() = 1 rank filter"}
+  - {model: fct_inventory_status, line: 9, reason: "qualify row_number() = 1: rank filter, no data cut-off"}
+  - {model: fct_inventory_status, line: 12, reason: "closes the qualify row_number() = 1 rank filter"}
+  # equi-join keys: no cut-off; JOIN edges are exercised by break / shuffle / null_out
+  - {model: int_inventory_daily, line: 17, reason: "equi-join key"}
+  - {model: int_order_attribution, line: 12, reason: "equi-join key (the non-equi part is session_before_order)"}
+  - {model: int_order_financials, line: 30, reason: "equi-join key"}
+  - {model: int_order_financials, line: 32, reason: "equi-join key"}
+  - {model: int_order_item_margins, line: 14, reason: "equi-join key"}
+  - {model: int_order_items_enriched, line: 12, reason: "equi-join key"}
+  - {model: int_order_profit, line: 30, reason: "equi-join key"}
+  - {model: int_order_profit, line: 32, reason: "equi-join key"}
+  - {model: int_order_profit, line: 34, reason: "equi-join key"}
+  - {model: int_order_promotions, line: 9, reason: "equi-join key"}
+  - {model: int_orders_enriched, line: 27, reason: "equi-join key"}
+  - {model: int_product_costs_current, line: 11, reason: "equi-join key"}
+  - {model: int_shipments_enriched, line: 13, reason: "equi-join key"}
+  - {model: dim_customer_rfm, line: 14, reason: "equi-join key"}
+  - {model: dim_customers, line: 24, reason: "equi-join key"}
+  - {model: fct_customer_cohorts, line: 19, reason: "equi-join key"}
+  - {model: fct_customer_leaderboard, line: 8, reason: "equi-join key"}
+  - {model: fct_inventory_status, line: 24, reason: "equi-join key"}
+  - {model: fct_marketing_attribution, line: 22, reason: "equi-join key"}
+  - {model: fct_marketing_attribution, line: 23, reason: "equi-join key"}
+  - {model: fct_marketing_attribution, line: 25, reason: "equi-join key"}
+  - {model: fct_marketing_attribution, line: 26, reason: "equi-join key"}
+  - {model: fct_monthly_finance, line: 30, reason: "equi-join key"}
+  - {model: fct_monthly_finance, line: 37, reason: "equi-join key"}
+  - {model: fct_monthly_finance, line: 40, reason: "equi-join key"}
+  - {model: fct_product_performance, line: 11, reason: "equi-join key"}
+  - {model: fct_product_performance, line: 13, reason: "equi-join key"}
+  - {model: fct_segment_monthly, line: 9, reason: "equi-join key"}
