@@ -20,6 +20,7 @@ from sqlglot.schema import Schema, ensure_schema
 
 from dlens.ingest import IngestResult
 from dlens.ingest.artifacts import Node as DbtNode
+from dlens.ingest.paths import ProjectFiles, display_path, packages_dir
 from dlens.ingest.schema import SqlglotSchema, normalize_relation
 from dlens.lineage.classify import (
     Position,
@@ -643,11 +644,10 @@ def _indirect(
 
 
 def _model_edges(
-    model: DbtNode, raw: _ModelLineage, source: str | None, dialect: str
+    model: DbtNode, raw: _ModelLineage, file: str, source: str | None, dialect: str
 ) -> list[Edge]:
     """Classify and cite each path, then keep one edge per (from, to): the strongest kind."""
     best: dict[tuple[str, str], Edge] = {}
-    file = model.original_file_path or ""
     for upstream, output, steps, inputs, conf, branch in raw.edges:
         kind = path_kind(steps, inputs, upstream.split(".")[-1], output)
         if source is None:
@@ -676,7 +676,11 @@ def _model_edges(
 
 
 def _model_indirect(
-    model: DbtNode, raw: _ModelLineage, source: str | None, direct: set[tuple[str, str]]
+    model: DbtNode,
+    raw: _ModelLineage,
+    file: str,
+    source: str | None,
+    direct: set[tuple[str, str]],
 ) -> tuple[list[IndirectEdge], list[str]]:
     """One edge per (from, to, kind), HIGH over LOW; pairs with a direct edge are dropped (D7).
     Each edge cites its clause's lines in the source file (``locate_clause``). A clause that
@@ -704,7 +708,7 @@ def _model_indirect(
             kind=r.kind,
             key=r.key,
             expression=r.clause,
-            file=model.original_file_path or "",
+            file=file,
             lines=whole if isinstance(cite, str) else cite.lines,
             model_level_citation=isinstance(cite, str),
             confidence=r.confidence,
@@ -730,6 +734,19 @@ def _grow_schema(schema: SqlglotSchema, model: DbtNode, outputs: list[str]) -> N
     tables[table] = {c.lower(): declared.get(c.lower(), "unknown") for c in outputs}
 
 
+def _project_files(ingest: IngestResult, project_dir: Path) -> ProjectFiles:
+    """Where each model's source file is (S06b): a package model's file is under the package's
+    install dir, read only if the manifest references it (``dlens.ingest.paths``)."""
+    root = ingest.manifest.metadata.project_name or ""
+    packages = packages_dir(project_dir)
+    allowed = frozenset(
+        display_path(root, packages, n.package_name, n.original_file_path)
+        for n in ingest.manifest.nodes.values()
+        if n.original_file_path
+    )
+    return ProjectFiles(project_dir, root, packages, allowed)
+
+
 def extract_lineage(
     ingest: IngestResult, project_dir: Path, dialect: str = "duckdb", grow_schema: bool = False
 ) -> LineageResult:
@@ -744,6 +761,11 @@ def extract_lineage(
     indirect: list[IndirectEdge] = []
     report: dict[str, ModelParse] = {}
     depends_on: list[tuple[str, str]] = []
+    files = _project_files(ingest, project_dir)
+    node_files = {
+        uid: files.display(n.package_name, n.original_file_path) if n.original_file_path else ""
+        for uid, n in sorted(ingest.manifest.nodes.items())
+    }
     for model in topological_models(ingest):
         depends_on += [(model.unique_id, d) for d in model.depends_on.nodes]
         if not model.compiled_code:
@@ -762,11 +784,12 @@ def extract_lineage(
             continue
         if grow_schema:
             _grow_schema(ingest.schema, model, raw.outputs)
-        src_path = project_dir / (model.original_file_path or "")
-        source = src_path.read_text() if src_path.is_file() else None
-        edges += _model_edges(model, raw, source, dialect)
+        found = files.path(model.package_name, model.original_file_path or "")
+        source = found[1].read_text() if found else None
+        file = node_files[model.unique_id]
+        edges += _model_edges(model, raw, file, source, dialect)
         direct = {(e.from_column, e.to_column) for e in edges}
-        model_indirect, citation_gaps = _model_indirect(model, raw, source, direct)
+        model_indirect, citation_gaps = _model_indirect(model, raw, file, source, direct)
         indirect += model_indirect
         report[model.unique_id] = ModelParse(
             unique_id=model.unique_id,
@@ -776,4 +799,6 @@ def extract_lineage(
             constants=sorted({c.lower() for c in raw.constants}),
             citation_gaps=citation_gaps,
         )
-    return LineageResult(edges=edges, depends_on=depends_on, parse_report=report, indirect=indirect)
+    return LineageResult(
+        edges=edges, depends_on=depends_on, parse_report=report, indirect=indirect, files=node_files
+    )

@@ -78,6 +78,12 @@ def _sha256(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
+# What builds an artifact graph, beyond its JSON shape (FORMAT_VERSION): bump it when the same
+# artifacts would now give a different graph, so caches built before the change are rebuilt.
+# 2 (S06b): package models cite their files under the packages install dir.
+BUILDER_VERSION = 2
+
+
 def artifact_meta(target_dir: Path, dialect: str) -> dict[str, object]:
     """What a cached artifact graph was built from; any difference means rebuild."""
     return {
@@ -86,6 +92,7 @@ def artifact_meta(target_dir: Path, dialect: str) -> dict[str, object]:
         "dialect": dialect,
         "dlens_version": __version__,
         "format_version": FORMAT_VERSION,
+        "builder_version": BUILDER_VERSION,
     }
 
 

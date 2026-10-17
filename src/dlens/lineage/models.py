@@ -98,6 +98,9 @@ class LineageResult(BaseModel):
     parse_report: dict[str, ModelParse]
     indirect: list[IndirectEdge] = Field(default_factory=list)
     """DEPENDS_ON_INDIRECT edges (ADR 0020). No (from, to) pair here has a direct edge."""
+    files: dict[str, str] = Field(default_factory=dict)
+    """Node unique_id -> its file relative to the project root (S06b): a package node's file is
+    ``<packages-install-path>/<package>/<original_file_path>`` (``dlens.ingest.paths``)."""
 
 
 def column_id(unique_id: str, column: str) -> str:

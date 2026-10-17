@@ -18,7 +18,7 @@ from dlens.agent.answer import Answer, marker
 from dlens.agent.llm.ollama import DEFAULT_MODEL as OLLAMA_MODEL
 from dlens.agent.loop import AgentRun
 from dlens.agent.tools import Toolbox
-from dlens.agent.tools.provenance import Citation, Provenance, edge_id, safe_read
+from dlens.agent.tools.provenance import Citation, Provenance, edge_id, graph_files, safe_read
 from dlens.cli import trace_summary
 from dlens.graph import LineageGraph
 from dlens.lineage import Edge, ParseQuality
@@ -471,8 +471,8 @@ def highlight_sql(text: str, lines: range = range(0), sql: bool = True) -> str:
     return '<div class="dl-src"><pre>' + "\n".join(out) + "</pre></div>"
 
 
-def load_source(project: Path, cite: Citation) -> Source | None:
-    text = safe_read(project, cite.file)
+def load_source(project: Path, cite: Citation, graph: LineageGraph | None = None) -> Source | None:
+    text = safe_read(project, cite.file, graph_files(graph) if graph is not None else ())
     if text is None:
         return None
     return Source(cite.file, text, cite.line_start, cite.line_end, cite.level)
@@ -815,7 +815,7 @@ def edge_models(graph: LineageGraph, edges: list[Edge], focus: str | None = None
 def model_source(graph: LineageGraph, project: Path, uid: str) -> Source | None:
     """The model's file, read through ``safe_read`` (never outside the project)."""
     file = (graph.model_info(uid) or {}).get("file", "")
-    text = safe_read(project, file)
+    text = safe_read(project, file, graph_files(graph))
     return None if text is None else Source(file, text, 1, 1, "model")
 
 

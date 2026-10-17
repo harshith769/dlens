@@ -53,8 +53,9 @@ def safe_rel(rel: str) -> bool:
 
 
 def display_path(root_name: str, packages: str, package: str | None, rel: str) -> str:
-    """Project-relative path of a file dbt records relative to ``package``."""
-    if not package or package == root_name:
+    """Project-relative path of a file dbt records relative to ``package``. Without a root
+    project name (a manifest that lacks ``metadata.project_name``) every file is a root file."""
+    if not package or not root_name or package == root_name:
         return rel
     return f"{packages}/{package}/{rel}"
 

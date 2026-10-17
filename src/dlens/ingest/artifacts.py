@@ -60,6 +60,7 @@ class ManifestMetadata(_Base):
     dbt_schema_version: str | None = None
     dbt_version: str | None = None
     adapter_type: str | None = None
+    project_name: str | None = None
 
 
 class Manifest(_Base):

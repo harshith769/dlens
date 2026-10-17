@@ -65,7 +65,7 @@ def _edges(sql: str) -> dict[tuple[str, str], Edge]:
     raw = lineage_for_sql(sql, _ingest())
     return {
         (short_id(e.from_column), short_id(e.to_column)): e
-        for e in _model_edges(model, raw, None, "duckdb")
+        for e in _model_edges(model, raw, "", None, "duckdb")
     }
 
 

@@ -104,7 +104,7 @@ class LineageGraph:
             n.unique_id: {
                 "resource_type": n.resource_type,
                 "name": n.name,
-                "file": n.original_file_path or "",
+                "file": result.files.get(n.unique_id, n.original_file_path or ""),
             }
             for n in ingested.manifest.nodes.values()
         }

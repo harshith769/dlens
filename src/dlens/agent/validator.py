@@ -39,7 +39,13 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from dlens.agent.answer import Answer, Claim, Ledger
-from dlens.agent.tools.provenance import Citation, contains_word, safe_read, text_sha1
+from dlens.agent.tools.provenance import (
+    Citation,
+    contains_word,
+    graph_files,
+    safe_read,
+    text_sha1,
+)
 from dlens.agent.tools.reach import check, fact_record
 
 ID_PREFIXES = ("e_", "s_", "r_")
@@ -168,7 +174,9 @@ class ValidationContext:
     def read(self, file: str) -> str | None:
         """Fresh (per validation) and path-traversal safe."""
         if file not in self._files:
-            self._files[file] = safe_read(Path(self.ledger.project_dir), file)
+            self._files[file] = safe_read(
+                Path(self.ledger.project_dir), file, graph_files(self.ledger.graph)
+            )
         return self._files[file]
 
     def _add_column(self, text: str) -> None:

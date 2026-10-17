@@ -465,7 +465,7 @@ def source_view(run: AgentRun, box: Toolbox, selected: str | None) -> None:
         st.info(fact)
         return
     cite = run.answer.citations.get(selected)
-    src = view.load_source(box.project_dir, cite) if cite is not None else None
+    src = view.load_source(box.project_dir, cite, box.graph) if cite is not None else None
     if cite is None or src is None:
         st.error(f"{cite.file if cite else selected} could not be read inside the project.")
         return

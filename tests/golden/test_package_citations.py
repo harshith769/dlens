@@ -55,10 +55,6 @@ EXPECTED_ROOT_DIRECT = {
     (f"{PKG}.name_upper", f"{NAMES}.display_name"): (ROOT_FILE, (3, 3), False),
 }
 
-PACKAGE_FIX = pytest.mark.xfail(
-    strict=True, reason="S06b: package model paths are not resolved under dbt_packages/ yet"
-)
-
 
 @pytest.fixture(scope="module")
 def graph() -> LineageGraph:
@@ -75,12 +71,10 @@ def _direct(
     }
 
 
-@PACKAGE_FIX
 def test_package_model_direct_edges_cite_lines_in_the_package(graph: LineageGraph) -> None:
     assert _direct(graph, PKG) == EXPECTED_PKG_DIRECT
 
 
-@PACKAGE_FIX
 def test_package_model_indirect_edges_cite_lines_in_the_package(graph: LineageGraph) -> None:
     got = {
         (e.from_column, e.to_column, str(e.kind)): (e.file, e.lines, e.model_level_citation)
@@ -90,7 +84,6 @@ def test_package_model_indirect_edges_cite_lines_in_the_package(graph: LineageGr
     assert got == EXPECTED_PKG_INDIRECT
 
 
-@PACKAGE_FIX
 def test_package_model_file_and_column_citations(graph: LineageGraph) -> None:
     assert (graph.model_info(PKG) or {}).get("file") == PKG_FILE
     prov = Provenance(graph, EPH_PROJECT)

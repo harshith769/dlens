@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -22,6 +23,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from dlens.graph import LineageGraph
+from dlens.ingest.paths import resolve
 from dlens.lineage import Edge
 from dlens.lineage.provenance import locate
 
@@ -45,16 +47,24 @@ def excerpt_id(file: str, line_start: int, line_end: int) -> str:
     return "s_" + hashlib.sha1(f"{file}|{line_start}|{line_end}".encode()).hexdigest()[:8]
 
 
-def safe_read(root: Path, file: str) -> str | None:
+def safe_read(root: Path, file: str, allowed: Collection[str] = ()) -> str | None:
     """Text of ``file`` relative to ``root``, or None if it is missing or resolves outside ``root``
-    (``../`` or symlink escapes). Always reads from disk: no cache."""
+    (``../`` or symlink escapes). The one exception is a package installed as a symlink: a file
+    under ``<packages-install-path>/<pkg>/`` in ``allowed`` (the graph's files, see
+    ``graph_files``) whose package root is really ``<pkg>`` (``dlens.ingest.paths.resolve``).
+    Always reads from disk: no cache."""
     if not file:
         return None
-    base = root.resolve()
-    path = (base / file).resolve()
-    if not path.is_relative_to(base) or not path.is_file():
-        return None
-    return path.read_text(errors="replace")
+    path = resolve(root, file, allowed)
+    return None if path is None else path.read_text(errors="replace")
+
+
+def graph_files(graph: LineageGraph) -> frozenset[str]:
+    """Every file the graph's nodes name (relative to the project root): what a citation may
+    read through a package symlink."""
+    return frozenset(
+        f for uid in graph.model_ids() if (f := (graph.model_info(uid) or {}).get("file"))
+    )
 
 
 def text_sha1(text: str, line_start: int, line_end: int) -> str:
@@ -75,8 +85,10 @@ class Provenance:
     project_dir: Path
     _sources: dict[str, str | None] = field(default_factory=dict)
     _edge_ids: dict[str, Edge] = field(default_factory=dict)
+    _allowed: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
+        self._allowed = graph_files(self.graph)
         for e in self.graph.edges():
             eid = edge_id(e)
             other = self._edge_ids.get(eid)
@@ -89,7 +101,7 @@ class Provenance:
     def source(self, file: str) -> str | None:
         """Text of a project file, or None if it is missing or outside the project root."""
         if file not in self._sources:
-            self._sources[file] = safe_read(self.project_dir, file)
+            self._sources[file] = safe_read(self.project_dir, file, self._allowed)
         return self._sources[file]
 
     @staticmethod

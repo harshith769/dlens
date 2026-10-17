@@ -123,3 +123,50 @@ def test_text_sha1_depends_on_the_range() -> None:
     text = "a\nb\nc\n"
     assert text_sha1(text, 1, 2) == text_sha1("a\nb\nzzz", 1, 2)
     assert text_sha1(text, 1, 2) != text_sha1(text, 2, 3)
+
+
+# -- package symlinks (S06b) ----------------------------------------------------------------------
+
+
+def _linked_project(tmp_path: Path, name: str = "pkg") -> Path:
+    """project/dbt_packages/pkg -> ../../outside, as `dbt deps` links a local package; outside/
+    also holds a file the manifest never references."""
+    outside = tmp_path / "outside"
+    (outside / "models").mkdir(parents=True)
+    (outside / "dbt_project.yml").write_text(f"name: {name}\n")
+    (outside / "models" / "m.sql").write_text("select 1 as a\n")
+    (outside / "notes.txt").write_text("unreferenced\n")
+    root = tmp_path / "project"
+    (root / "dbt_packages").mkdir(parents=True)
+    (root / "dbt_project.yml").write_text("name: root\n")
+    (root / "dbt_packages" / "pkg").symlink_to("../../outside")
+    return root
+
+
+REFERENCED = frozenset({"dbt_packages/pkg/models/m.sql"})
+
+
+def test_safe_read_symlinked_package_referenced_file_is_allowed(tmp_path) -> None:
+    from dlens.agent.tools.provenance import safe_read
+
+    root = _linked_project(tmp_path)
+    assert safe_read(root, "dbt_packages/pkg/models/m.sql", REFERENCED) == "select 1 as a\n"
+    assert safe_read(root, "dbt_packages/pkg/models/m.sql") is None  # no allowlist: as before
+
+
+def test_safe_read_symlinked_package_unreferenced_file_is_rejected(tmp_path) -> None:
+    from dlens.agent.tools.provenance import safe_read
+
+    root = _linked_project(tmp_path)
+    assert safe_read(root, "dbt_packages/pkg/notes.txt", REFERENCED) is None
+    # a symlink to a parent dir can't reach outside/ either, even if the path is allowlisted
+    (root / "dbt_packages" / "up").symlink_to("../..")
+    sneaky = "dbt_packages/up/outside/models/m.sql"
+    assert safe_read(root, sneaky, REFERENCED | {sneaky}) is None
+
+
+def test_safe_read_package_name_mismatch_is_rejected(tmp_path) -> None:
+    from dlens.agent.tools.provenance import safe_read
+
+    root = _linked_project(tmp_path, name="not_pkg")
+    assert safe_read(root, "dbt_packages/pkg/models/m.sql", REFERENCED) is None
