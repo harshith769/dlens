@@ -1,0 +1,10 @@
+# DLens local change: a DuckDB profile so the integration project builds offline (set E, S06).
+# Seeds land in the schema the package's sources expect (var jira_schema).
+integration_tests:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "jira.duckdb"
+      schema: jira_integration_tests
+      threads: 4

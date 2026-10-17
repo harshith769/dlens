@@ -1,0 +1,638 @@
+# dbt_jira v1.10.2
+
+[PR #195](https://github.com/fivetran/dbt_jira/pull/195) includes the following updates:
+
+## Feature Updates
+- Adds DuckDB as a supported destination.
+
+# dbt_jira v1.10.1
+
+[PR #193](https://github.com/fivetran/dbt_jira/pull/193) includes the following updates:
+
+## Bug Fix
+- Fixes a runtime error on Snowflake and BigQuery that occurred when an issue's concatenated comments exceeded the warehouse's string length limit. The `conversation` field in `jira__issue_enhanced` now returns `'conversation too long to render'` for those issues instead of failing the entire run. `count_comments` is unaffected. The character threshold defaults to 16,777,216 (16MB) but can be lowered using the `jira_conversation_char_limit` variable. [See the README for configuration details](https://github.com/fivetran/dbt_jira#controlling-conversation-aggregations-in-jira__issue_enhanced) and the [DECISIONLOG](https://github.com/fivetran/dbt_jira/blob/main/DECISIONLOG.md#conversation-aggregation-guard-against-string-length-limits) for per-warehouse details.
+
+# dbt_jira v1.10.0
+
+[PR #191](https://github.com/fivetran/dbt_jira/pull/191) includes the following updates:
+
+## Under the Hood
+- Migrates the `union_connections`, `apply_source_relation`, and `partition_by_source_relation` macros to the `dbt_fivetran_utils` package.
+- Adds the `fivetran_using_source_casing` variable for case-sensitive destination support. When enabled, downstream transformations respect source casing to ensure consistent results. See the [Additional Configurations](https://github.com/fivetran/dbt_jira/#source-casing-for-case-sensitive-destinations) section of the README for details.
+
+# dbt_jira v1.9.0
+
+[PR #186](https://github.com/fivetran/dbt_jira/pull/186) includes the following updates:
+
+## Feature Update
+- Adds configurable table variable `Include Team Dimension in Sprint Enhanced` to control whether the `team` column is included in `jira__sprint_enhanced`. Variable is set to `true` by default. When set to `false`, the table rolls up to one row per sprint with all metrics aggregated at the sprint level. Only applicable if the `team` table is synced in your connector. 
+
+- **For dbt Core users**: Introduces `jira_sprint_enhanced_include_teams` variable to control whether the team dimension is included in `jira__sprint_enhanced`. This variable only applies when `jira_using_teams` is also enabled. [See the README on how to configure this variable](https://github.com/fivetran/dbt_jira#controlling-team-level-granularity-in-jira__sprint_enhanced).
+
+## Bug Fix
+- Fixes an issue in `jira__sprint_enhanced` where `original_estimate_seconds`, `remaining_estimate_seconds`, and `time_spent_seconds` were undercounted when multiple issues in the same sprint shared identical estimate values. The model now correctly sums estimates per issue before aggregating to the sprint level.
+
+# dbt_jira v1.9.0-a1
+
+[PR #184](https://github.com/fivetran/dbt_jira/pull/184) includes the following updates:
+
+## Feature Update
+- Adds a new variable `jira_sprint_enhanced_include_teams` (default `true`) to control whether the team dimension is included in `jira__sprint_enhanced`. When set to `false`, the model rolls up to one row per sprint with all metrics aggregated at the sprint level. This variable only applies when `jira_using_teams` is also enabled. ([docs](https://github.com/fivetran/dbt_jira?tab=readme-ov-file#disable-models-for-non-existent-sources))
+
+## Bug Fix
+- Fixes an issue in `jira__sprint_enhanced` where `original_estimate_seconds`, `remaining_estimate_seconds`, and `time_spent_seconds` were undercounted when multiple issues in the same sprint shared identical estimate values. The model now correctly sums estimates per issue before aggregating to the sprint level.
+
+# dbt_jira v1.8.0
+
+[PR #182](https://github.com/fivetran/dbt_jira/pull/182) includes the following updates:
+
+## Bug Fix
+- For warehouses using the `insert_overwrite` strategy, updates the incremental filter in `jira__daily_issue_field_history` to align with the model's partition grain. This helps prevent issues with incomplete partition coverage.
+  - You must run a `--full-refresh` after upgrading to apply this fix to existing data.
+
+## Under the Hood
+- Updates integrity test for `jira__daily_sprint_issue_history` to track the last sprint-related event per day, ensuring that only sprint IDs recorded at the final event timestamp for each issue/day are included.
+
+# dbt_jira v1.8.0-a1
+
+[PR #178](https://github.com/fivetran/dbt_jira/pull/178) includes the following updates:
+
+## Bug Fix
+- Updates `jira__sprint_enhanced` to resolve the team per issue per sprint when `jira_using_teams` is enabled. Previously, if an issue had no team assigned at any point during the sprint, the team would appear as null even if a team was later assigned. An additional row would also be created if an issue moved from one team to another within a sprint, causing potential double counting. Now, the model selects the most recent non-null team for each issue-sprint combination, ensuring team assignments are correctly reflected in sprint metrics. 
+
+## Documentation
+- Updated the `jira__sprint_enhanced` model description in the README to clarify that granularity is one row per team per sprint when teams are enabled.
+
+# dbt_jira v1.7.0
+
+[PR #175](https://github.com/fivetran/dbt_jira/pull/175) includes the following updates:
+
+## Schema/Data Change (--full-refresh required after upgrading)
+**3 total changes • 3 possible breaking changes**
+
+| Data Model(s) | Change type | Old | New | Notes |
+| ---------- | ----------- | -------- | -------- | ----- |
+| `jira__daily_issue_field_history` <br> `jira__daily_sprint_issue_history` <br> `jira__issue_enhanced` | Removed default columns (**Breaking Change**) | `story_points` and `story_point_estimate` included by default | Columns only included when added to `var('issue_field_history_columns')` | These fields are Scrum-specific custom fields not universally used. Add the relevant fields to the `issue_field_history_columns` variable to retain them. |
+| `jira__sprint_enhanced` | Removed default columns (**Breaking Change**) | `story_points_committed`, `story_points_end`, `story_points_completed`, `story_point_estimate_committed`, `story_point_estimate_end`, and `story_point_estimate_completed` included by default | Columns only included when `story points` and/or `story point estimate` are added to `var('issue_field_history_columns')` | These metrics depend on `story_points`/`story_point_estimate` being tracked in field history. Add the relevant fields to the `issue_field_history_columns` variable to retain them. |
+| `jira__daily_sprint_issue_history` <br> `jira__sprint_enhanced` | Column type change | `story_points` and `story_point_estimate` cast as `float` | Cast as `numeric` | Improves precision for fractional story point values. |
+
+## Bug Fix
+- Updated `stg_jira__sprint` to filter out soft-deleted sprint records using the `_fivetran_deleted` flag.
+
+## Under the Hood
+- Adds a new `convert_string_to_numeric` macro with warehouse-specific dispatch implementations to safely cast story point string values to numeric, handling edge cases such as comma-formatted numbers.
+
+## Documentation
+- Updates model descriptions to remove static documentation for `story_points`, `story_point_estimate`, and `team` columns. Removes story point-related column documentation from `jira__sprint_enhanced` as these columns are dynamic and only present when added to `var('issue_field_history_columns')`.
+  - To retain story point data, add `story points` and/or `story point estimate` to the `issue_field_history_columns` variable in your `dbt_project.yml` ([See the README for details](https://github.com/fivetran/dbt_jira?tab=readme-ov-file#define-daily-issue-field-history-columns)). Quickstart users can add these fields in the Issue Field History Columns setting.
+ 
+# dbt_jira v1.6.0
+
+[PR #170](https://github.com/fivetran/dbt_jira/pull/170) includes the following update:
+
+## Schema/Data Change (--full-refresh required after upgrading)
+**1 total change • 1 possible breaking change**
+
+| Data Model(s) | Change type | Old | New | Notes |
+| ---------- | ----------- | -------- | -------- | ----- |
+| `jira__daily_issue_field_history` | Incremental filter fix (**Breaking Change**) | Filtered by `date_day >= max_date_week` | Filtered by `date_week >= max_date_week` | Aligns the incremental filter with the model's weekly partition key. The previous filter could cause data loss during partition overwrites in BigQuery and Databricks destinations on incremental runs.  could cause data loss during partition overwrites on incremental runs. A full refresh is recommended to backfill any records that may have been missed. |
+
+# dbt_jira v1.5.2
+
+[PR #174](https://github.com/fivetran/dbt_jira/pull/171) includes the following updates: 
+
+## Documentation
+- In the `quickstart.yml` file: 
+  - Made several corrections to Quickstart `supported_vars` descriptions to reflect correct time granularity for `jira_issue_history_buffer` and `lookback_window` variables. 
+
+# dbt_jira v1.5.1
+
+[PR #171](https://github.com/fivetran/dbt_jira/pull/171) includes the following updates:
+
+## Feature Update
+- Optimizes the `jira__daily_sprint_issue_history` model for Databricks destinations by adjusting the `split_sprint_ids()` macro.
+
+## Under the Hood
+- Adjusts the vertical integrity `jira__daily_sprint_issue_history` test to incorporate the sprint start date.
+
+# dbt_jira v1.5.1-a1
+[PR #170](https://github.com/fivetran/dbt_jira/pull/170) includes the following updates:
+
+## Bug Fixes
+- Fixed incremental filtering in `jira__daily_issue_field_history` and `int_jira__pivot_daily_field_history` to align with the model's weekly partition key, preventing potential data loss during partition overwrites. `updated_at_week` is now calculated in upstream models (`int_jira__issue_field_history` and `int_jira__issue_multiselect_history`).
+
+## Documentation
+- Made several corrections to Quickstart `supported_vars` descriptions.
+
+# dbt_jira v1.5.0
+
+[PR #168](https://github.com/fivetran/dbt_jira/pull/168) includes the following updates:
+
+## Schema/Data Change (--full-refresh required after upgrading)
+**5 total changes • 3 possible breaking changes**
+
+| Data Model(s) | Change type | Old | New | Notes |
+| ---------- | ----------- | -------- | -------- | ----- |
+| `jira__daily_sprint_issue_history` | Date range (**Breaking Change**) | From the start of the sprint to the last day an issue was added to it | From the start of the sprint to its end | Initially, model incorrectly tracked issues after being removed from sprint or days missing in sprint when issues were added early. Extends tracking period to full sprint lifecycle, creating additional daily records and changing historical data structure. If no end date is provided, sprints will be tracked up to the current date.  [PR #169](https://github.com/fivetran/dbt_jira/pull/169) |
+| `jira__daily_sprint_issue_history` | Removed column (**Breaking Change**) | Included `updated_at` column | Column removed | Previously model tracked timestamp when sprint assignment was updated. New logic uses sprint date ranges instead of tracking individual update events. [PR #169](https://github.com/fivetran/dbt_jira/pull/169) |
+| `jira__daily_issue_field_history` | New column (**Breaking Change**) | Tracked `sprint` (sprint IDs) as a default field. | Now also tracks `sprint_name` (sprint names) | Provides human-readable sprint names alongside sprint IDs. [PR #162](https://github.com/fivetran/dbt_jira/pull/162) |
+| `jira__timestamp_issue_field_history` | New columns | Only tracked `status` as a default field | Now tracks `sprint` (sprint IDs), `sprint_name` (sprint names) as default fields alongside `status` | Brings timestamp model closer to parity with daily model. Story points fields are configurable via `issue_field_history_columns` variable. [PR #162](https://github.com/fivetran/dbt_jira/pull/162) |
+| `jira__daily_sprint_issue_history`<br>`jira__sprint_enhanced` | New column | | `team` | Adds `team` column. You can disable team functionality by leveraging the `jira_using_teams` variable in dbt Core (Quickstart will handle enable/disable automatically). See the [README](https://github.com/fivetran/dbt_jira#disable-models-for-non-existent-sources) for configuration details. [PR #163](https://github.com/fivetran/dbt_jira/pull/163) |
+
+## Bug Fixes
+- Fixes compilation errors in `int_jira__pivot_daily_field_history`, `int_jira__pivot_timestamp_field_history` when `sprint` or `sprint_name` were included in the `issue_field_history_columns` variable. `int_jira__timestamp_field_history_scd` also handles this logic, along with `story_points` and `story_point_estimate`. These fields are now properly excluded from the custom columns loop since they're handled as default fields. [PR #162](https://github.com/fivetran/dbt_jira/pull/162)
+- Optimizes joins in `jira__daily_sprint_issue_history` to allow for quicker full refresh runs. [PR #169](https://github.com/fivetran/dbt_jira/pull/169)
+
+## Under the Hood
+- Creates `split_sprint_ids()` macro to unnest the `jira__daily_issue_field_history.sprint` field. [PR #169](https://github.com/fivetran/dbt_jira/pull/169)
+- Adjusts the issue field history null placeholder from `is_null` to `-is_null` for more consistent aggregations. [PR #169](https://github.com/fivetran/dbt_jira/pull/169)
+
+## Documentation
+- Adds missing field descriptions.
+
+# dbt_jira v1.4.1-a1
+
+[PR #169](https://github.com/fivetran/dbt_jira/pull/169) includes the following updates:
+
+## Schema/Data Change
+**1 total change • 1 possible breaking change**
+
+| Data Model(s) | Change type | Old | New | Notes |
+| ------------- | ----------- | ----| --- | ----- |
+| `jira__daily_sprint_issue_history` | Date range | From the start of the sprint to the last day an issue was added to it | From the start of the sprint to its end | If no end date is provided, sprints will be tracked up to the current date. |
+
+## Bug Fixes
+- Ensures `jira__daily_sprint_issue_history` provide an accurate history of sprints and the issues associated with them at the time. Previously:
+  - When an issue was removed from a sprint, the model would continue to track them together.
+  - If a sprint ended over a month after an issue was last added to it, the model omitted the days in between these dates.
+- Optimizes joins in `jira__daily_sprint_issue_history` to allow for quicker full refresh runs.
+
+## Under the Hood
+- Creates `split_sprint_ids()` macro to unnest the `jira__daily_issue_field_history.sprint` field.
+- Adjusts the issue field history null placeholder from `is_null` to `-is_null` for more consistent aggregations.
+
+# dbt_jira v1.4.0
+
+[PR #165](https://github.com/fivetran/dbt_jira/pull/165) includes the following updates:
+
+## Documentation
+- Updates README with standardized Fivetran formatting.
+- Removes duplicative column yml definitions.
+
+## Under the Hood
+- In the `quickstart.yml` file:
+  - Adds `table_variables` for relevant sources to prevent missing sources from blocking downstream Quickstart models.
+  - Adds `supported_vars` for Quickstart UI customization.
+
+# dbt_jira v1.3.1
+[PR #161](https://github.com/fivetran/dbt_jira/pull/161) includes the following updates:
+
+## Bug Fixes
+- Ensures that issues in `jira__issue_enhanced` properly reflect their current sprint assignments. Previously, if an issue was assigned to a sprint and later unassigned (leaving it with no sprint), the old sprint would persist as the issue's `current_sprint_name` and `current_sprint_id`.
+
+## Test Updates
+- Fixes `vertical_integrity_sprint_enhanced` test to filter out deleted issues (as done in `stg_jira__issue`) to align source/end model issue counts by sprint. 
+- Excludes more fields that are aggregated strings with non-deterministic orders to the exclude columns set in `consistency_issue_enhanced`.  
+
+# dbt_jira v1.3.0
+
+[PR #159](https://github.com/fivetran/dbt_jira/pull/159) includes the following updates:
+
+## Features
+  - Increases the required dbt version upper limit to v3.0.0
+
+# dbt_jira v1.2.1-a1
+
+[PR #158](https://github.com/fivetran/dbt_jira/pull/158) includes the following updates:
+
+## Bug Fixes
+- Ensures that issues in `jira__issue_enhanced` properly reflect their current sprint assignments. Previously, if an issue was assigned to a sprint and later unassigned (leaving it with no sprint), the old sprint would persist as the issue's `current_sprint_name` and `current_sprint_id`.
+
+# dbt_jira v1.2.0
+[PR #157](https://github.com/fivetran/dbt_jira/pull/157) includes the following updates:
+
+## Schema/Data Change
+** 6 total change • 5 possible breaking changes**
+
+| Data Model(s) | Change type | Old | New | Notes |
+| ------------- | ----------- | ----| --- | ----- |
+| All models | New column | | `source_relation` | Identifies the source connection when using multiple Jira connections |
+| `jira__daily_issue_field_history` | Updated surrogate key | `issue_day_id` = `issue_id` + `date_day` | `issue_day_id` = `issue_id` + `date_day` + `source_relation`  | Updated to include `source_relation` |
+| `jira__daily_sprint_issue_history` | Updated surrogate key | `sprint_issue_day_id` = `issue_id` + `sprint_id` + `date_day` | `sprint_issue_day_id` = `issue_id` + `sprint_id` + `date_day` + `source_relation`  | Updated to include `source_relation` |
+| `jira__timestamp_issue_field_history` | Updated surrogate key | `issue_timestamp_id` = `issue_id` + `valid_from` | `issue_timestamp_id` = `issue_id` + `valid_from` + `source_relation`  | Updated to include `source_relation` |
+| `int_jira__pivot_daily_field_history` <br> `int_jira__field_history_scd` | Updated surrogate key | `issue_day_id` = `issue_id` + `valid_starting_on` | `issue_day_id` =  `issue_id` + `valid_starting_on` + `source_relation` | Updated to include `source_relation` |
+
+## Feature Update
+- **Union Data Functionality**: This release supports running the package on multiple Jira source connections. See the [README](https://github.com/fivetran/dbt_jira/tree/main?tab=readme-ov-file#step-3-define-database-and-schema-variables) for details on how to leverage this feature.
+
+## Bug Fix
+- Removes `issue_type` from `exception_cols` set in `jira__timestamp_issue_field_history` to avoid compilation errors when the field is included in the `issue_field_history_columns` variable.
+
+## Tests Update
+- Removes uniqueness tests. The new unioning feature requires combination-of-column tests to consider the new `source_relation` column in addition to the existing primary key, but this is not supported across dbt versions.
+- These tests will be reintroduced once a version-agnostic solution is available.
+> We have kept uniqueness tests on the surrogate keys listed above.
+
+## Under the Hood
+- Consistency tests introduced and updated on all end models to validate that the above changes do not impact end model values. 
+
+# dbt_jira v1.1.0
+
+## Schema/Data Change
+**7 total changes • 5 possible breaking changes**
+
+| Data Model(s) | Change type | Old | New | Notes |
+| ---------- | ----------- | -------- | -------- | ----- |
+| [jira__timestamp_issue_field_history](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__timestamp_issue_field_history)       | New Model (**Breaking Change**)  |     |  | SCD Type 2 table tracking field changes at timestamp level with validity periods. Each record shows complete field state during a time period with `valid_from`/`valid_until` timestamps. |
+| [jira__issue_status_transitions](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__issue_status_transitions) | New Model (**Breaking Change**) |  |  | Issue status transition tracking with workflow analysis. Provides chronological view of status changes with timing metrics, transition direction analysis, and lifecycle indicators.  |
+| [stg_jira__team](https://fivetran.github.io/dbt_jira/#!/model/model.jira.stg_jira__team) | New Model (**Breaking Change**) |  |  | Adds staging model for Jira teams functionality. You can leverage the `jira__using_teams` variable to disable this model in dbt Core (Quickstart will handle enabling/disabling automatically).  |
+| [stg_jira__team_tmp](https://fivetran.github.io/dbt_jira/#!/model/model.jira.stg_jira__team) | New Model (**Breaking Change**) |  |  | Adds temp model for Jira teams functionality.  You can leverage the `jira__using_teams` variable to disable this model in dbt Core (Quickstart will handle enabling/disabling automatically).  |
+| [jira__daily_issue_field_history](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__daily_issue_field_history)       | Data Change (**Breaking Change**)  | If configured -  `project`, `assignee`, `team` brought in with default field id values. | If configured - `project`, `assignee`, `team` names now brought through. | Fields customers can define with the `issue_field_history_columns` variable that bring in their identifier values now bring in the names for easier analytical insights. |
+| [stg_jira__issue_field_history](https://fivetran.github.io/dbt_jira_source/#!/model/model.jira_source.stg_jira__issue_field_history)        | New Column   |          |  `author_id`    |    Tracks which user made each field change for audit trail and change attribution.     |
+| [stg_jira__issue_multiselect_history](https://fivetran.github.io/dbt_jira_source/#!/model/model.jira_source.stg_jira__issue_multiselect_history)        | New Column   |          |  `author_id`    |    Tracks which user made each multiselect field change for audit trail and change attribution.       |
+
+## Feature Update
+- Adds support for Jira teams functionality by introducing staging models `stg_jira__team` and `stg_jira__team_tmp`.
+- Enhances issue field history models to include team information if teams are enabled.
+  - When teams are enabled, team data will populate in the `jira__daily_issue_field_history` model to track team assignments over time and the `jira__issue_enhanced` model to provide current team assignment for each issue.
+
+## Feature Update
+- Creates new analysis folder with `jira__issue_transition_cumulative_flow_analysis` and `jira_daily_issue_status_category_analysis` models. See the analysis [README.md](https://github.com/fivetran/dbt_jira/blob/main/analysis/README.md) for more details on how to use these models for your Jira reporting.
+
+## Under the Hood
+- Introduces relevant team related seed data, macros, and variables to ensure team support.
+- Creates new ephemeral intermediate models that perform necessary operations to build the new `jira__timestamp_issue_field_history` models.
+  - `int_jira__pivot_timestamp_field_history`: Table pivoting out the fields in field history into columns at the timestamp level to capture all field changes rather than just daily snapshots. 
+  - `int_jira__timestamp_field_history_scd`: Slowly-changing-dimension model that backfills field values at the timestamp level.
+- Introduces relevant team related seed data, macros, and variables to ensure team support.
+- Creates consistency tests for new end models. 
+
+# dbt_jira v1.0.0
+
+[PR #145](https://github.com/fivetran/dbt_jira/pull/145) includes the following updates:
+
+## Breaking Changes
+
+### Source Package Consolidation
+- Removed the dependency on the `fivetran/jira_source` package.
+  - All functionality from the source package has been merged into this transformation package for improved maintainability and clarity.
+  - If you reference `fivetran/jira_source` in your `packages.yml`, you must remove this dependency to avoid conflicts.
+  - Any source overrides referencing the `fivetran/jira_source` package will also need to be removed or updated to reference this package.
+  - Update any jira_source-scoped variables to be scoped to only under this package. See the [README](https://github.com/fivetran/dbt_jira/blob/main/README.md) for how to configure the build schema of staging models.
+- As part of the consolidation, vars are no longer used to reference staging models, and only sources are represented by vars. Staging models are now referenced directly with `ref()` in downstream models.
+
+### dbt Fusion Compatibility Updates
+- Updated package to maintain compatibility with dbt-core versions both before and after v1.10.6, which introduced a breaking change to multi-argument test syntax (e.g., `unique_combination_of_columns`).
+- Temporarily removed unsupported tests to avoid errors and ensure smoother upgrades across different dbt-core versions. These tests will be reintroduced once a safe migration path is available.
+  - Removed all `dbt_utils.unique_combination_of_columns` tests.
+  - Moved `loaded_at_field: _fivetran_synced` under the `config:` block in `src_jira.yml`.
+
+## Under the Hood
+- Updated conditions in `.github/workflows/auto-release.yml`.
+- Added `.github/workflows/generate-docs.yml`.
+
+# dbt_jira v0.21.0
+
+[PR #140](https://github.com/fivetran/dbt_jira/pull/140) includes the following updates:
+
+## Breaking Change for dbt Core < 1.9.6
+
+> *Note: This is not relevant to Fivetran Quickstart users.*
+
+Migrated `freshness` from a top-level source property to a source `config` in alignment with [recent updates](https://github.com/dbt-labs/dbt-core/issues/11506) from dbt Core ([Jira Source v0.9.0](https://github.com/fivetran/dbt_jira_source/releases/tag/v0.9.0)). This will resolve the following deprecation warning that users running dbt >= 1.9.6 may have received:
+
+```
+[WARNING]: Deprecated functionality
+Found `freshness` as a top-level property of `jira` in file
+`models/src_jira.yml`. The `freshness` top-level property should be moved
+into the `config` of `jira`.
+```
+
+**IMPORTANT:** Users running dbt Core < 1.9.6 will not be able to utilize freshness tests in this release or any subsequent releases, as older versions of dbt will not recognize freshness as a source `config` and therefore not run the tests.
+
+If you are using dbt Core < 1.9.6 and want to continue running Jira freshness tests, please elect **one** of the following options:
+  1. (Recommended) Upgrade to dbt Core >= 1.9.6
+  2. Do not upgrade your installed version of the `jira` package. Pin your dependency on v0.20.0 in your `packages.yml` file.
+  3. Utilize a dbt [override](https://docs.getdbt.com/reference/resource-properties/overrides) to overwrite the package's `jira` source and apply freshness via the previous release top-level property route. This will require you to copy and paste the entirety of the previous release `src_jira.yml` file and add an `overrides: jira_source` property.
+
+## Bug Fix
+- Changed casting of `sprint_id` to a string rather than an integer in `jira__daily_sprint_issue_history` to resolve casting errors.
+
+## Under the Hood
+- Updates to ensure integration tests use latest version of dbt.
+
+# dbt_jira v0.20.1-a2
+The latest version of [PR #138](https://github.com/fivetran/dbt_jira/pull/138) contains the following updates:
+
+## Bug Fix
+- Changed casting of `sprint_id` to a string rather than an integer in `jira__daily_sprint_issue_history` to resolve casting errors.
+
+## Under the Hood
+- Updated the package maintainer pull request template.
+- Updated `consistency_issue_enhanced` test to exclude columns that depend on calculations involving the current timestamp to remove failures.
+- Updated the sprint integrity tests to handle the new `sprint_id` casting.
+
+# dbt_jira v0.20.1-a1
+[PR #138](https://github.com/fivetran/dbt_jira/pull/138) contains the following updates:
+
+## Bug Fix
+- Moved casting of integer of `sprint_id` in `jira__daily_sprint_issue_history` into a later CTE to avoid casting errors where `field_value` is a string.
+
+## Under the Hood
+- Updated the package maintainer pull request template.
+- Updated `consistency_issue_enhanced` test to exclude columns that depend on calculations involving the current timestamp to remove failures.
+
+# dbt_jira v0.20.0
+This release includes the following updates.
+
+**8 total changes • 6 possible breaking changes (requires a --full-refresh run after upgrading)**
+
+| Data Model                                    | Change Type | Old Name | New Name                                  | Notes                                                             |
+|---------------------------------------------------|-------------|----------|-------------------------------------------|-------------------------------------------------------------------|
+| [jira__daily_sprint_issue_history](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__daily_sprint_issue_history)        | New Model   |     |  | Each record represents a snapshot of a sprint and its assorted issues on a given day between the sprint start date and the most recent update to the sprint.               |
+| [jira__sprint_enhanced](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__sprint_enhanced)        | New Model   |          |    |       This model provides enhanced sprint-level metrics in Jira, incorporating data from sprints, sprint-related issue history, and sprint-based story points tracking.        |
+| [jira__daily_issue_field_history](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__daily_issue_field_history)        | New Columns   |          |  `story_points`, `story_point_estimate`    |    Adding story point fields by default to persist to sprint/issue end models.     |
+| [jira__issue_enhanced](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__issue_enhanced)        | New Columns   |          |  `story_points`, `story_point_estimate`    |    Adding story point fields by default to persist to sprint/issue end models.       |
+| [jira__user_enhanced](https://fivetran.github.io/dbt_jira/#!/model/model.jira.jira__user_enhanced)        | New Columns   |          |  `is_active`    |    Helps show the active user records.    |
+| [stg_jira__issue_multiselect_history](https://fivetran.github.io/dbt_jira_source/#!/model/model.jira_source.stg_jira__issue_multiselect_history)        | New Columns   |          |  `is_active`    |    Shows which of the field history values is the current one.       |
+| [stg_jira__issue_field_history](https://fivetran.github.io/dbt_jira_source/#!/model/model.jira_source.stg_jira__issue_field_history)        | New Columns   |          |  `is_active`    |    Shows which of the field history values is the current one.      |
+| [stg_jira__issue_user](https://fivetran.github.io/dbt_jira_source/#!/model/model.jira_source.stg_jira__issue_user)        | New Columns   |          |  `is_active`    |    Shows which of the field history values is the current one.      |
+
+## Breaking Changes
+- Added `story_points` and `story_point_estimate` as default fields in the `jira__daily_issue_field_history` and `jira__issue_enhanced` models. ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+  - **Important**: These fields are now included by default. If your `issue_field_history_columns` variable already includes `story_points` or `story_point_estimate`, you must remove them and run a `--full-refresh` to avoid duplication errors.
+
+## Feature Updates: New Sprint Reports
+- Introduced two new models: `jira__daily_sprint_issue_history` to look at daily sprint issue snapshots, and `jira__sprint_enhanced` to examine high level sprint metrics, such as velocity, time tracking and story point completion. Customers should now be able to build valuable sprint visualizations, like their own velocity reports, estimation tracking, and goal metrics. ([#136](https://github.com/fivetran/dbt_jira/pull/136)) 
+- If users are not utilizing the `sprint` source, these models can be disabled by setting the variable `jira_using_sprints` to `false`. More instructions [are available in the README](https://github.com/fivetran/dbt_jira?tab=readme-ov-file#step-4-disable-models-for-non-existent-sources). ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+
+## Under the Hood
+- Added consistency and integrity tests for the `jira__sprint_enhanced` model. ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+- Added new `jira__daily_sprint_issue_history` and `jira__sprint_enhanced`  to public models in the `quickstart.yml` configuration. ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+- Corrected formatting on intermediate and end models to conform with best practices and improve readability. ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+
+## Documentation
+- Updated yml documentation and README with new models, fields and descriptions. ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+- [Created a DECISIONLOG](https://github.com/fivetran/dbt_jira/blob/main/DECISIONLOG.md#enhancing-jira-sprint-reporting-with-flexible-metrics) to explain why we bring in multiple metrics from current sprint data as well as historical sprint data for the `jira__sprint_enhanced` model. ([#136](https://github.com/fivetran/dbt_jira/pull/136))
+- Added Quickstart model counts to README. ([#135](https://github.com/fivetran/dbt_jira/pull/135))
+- Corrected references to connectors and connections in the README. ([#135](https://github.com/fivetran/dbt_jira/pull/135))
+
+# dbt_jira v0.19.0
+[PR #133](https://github.com/fivetran/dbt_jira/pull/133) contains the following updates:
+
+## Breaking Changes
+- This change is marked as breaking due to its impact on Redshift configurations.
+- For Redshift users, comment data aggregated under the `conversations` field in the `jira__issue_enhanced` table is now disabled by default to prevent consistent errors related to Redshift's varchar length limits. 
+  - If you wish to re-enable `conversations` on Redshift, set the `jira_include_conversations` variable to `true` in your `dbt_project.yml`.
+
+## Under the Hood
+- Updated the `comment` seed data to ensure conversations are correctly disabled for Redshift by default.
+- Renamed the `jira_is_databricks_sql_warehouse` macro to `jira_is_incremental_compatible`, which was updated to return `true` if the Databricks runtime is an all-purpose cluster (previously it checked only for a SQL warehouse runtime) or if the target is any other non-Databricks-supported destination.
+  - This update addresses Databricks runtimes (e.g., endpoints and external runtimes) that do not support the `insert_overwrite` incremental strategy used in the `jira__daily_issue_field_history` and `int_jira__pivot_daily_field_history` models.
+- For Databricks users, the `jira__daily_issue_field_history` and `int_jira__pivot_daily_field_history` models will now apply the incremental strategy only if running on an all-purpose cluster. All other Databricks runtimes will not utilize an incremental strategy.
+- Added consistency tests for the `jira__project_enhanced` and `jira__user_enhanced` models.
+
+# dbt_jira v0.18.0
+[PR #131](https://github.com/fivetran/dbt_jira/pull/131) contains the following updates:
+## Breaking Changes
+> Since the following changes are breaking, a `--full-refresh` after upgrading will be required.
+
+- Changed the partitioning from days to weeks in the following models for BigQuery and Databricks All Purpose Cluster destinations:
+  - `int_jira__pivot_daily_field_history`
+    - Added field `valid_starting_at_week` for use with the new weekly partition logic.
+  - `jira__daily_issue_field_history`
+    - Added field `date_week` for use with the new weekly partition logic.
+- This adjustment reduces the total number of partitions, helping avoid partition limit issues in certain warehouses.
+- For Databricks All Purpose Cluster destinations, updated the `file_format` to `delta` for improved performance.
+- Updated the default materialization of `int_jira__issue_calendar_spine` from incremental to ephemeral to improve performance and maintainability.
+
+## Documentation Update
+- Updated [README](https://github.com/fivetran/dbt_jira/blob/main/README.md#lookback-window) with the new default of 1 week for the `lookback_window` variable.
+
+## Under the Hood
+- Replaced the deprecated `dbt.current_timestamp_backcompat()` function with `dbt.current_timestamp()` to ensure all timestamps are captured in UTC for the following models:
+  - `int_jira__issue_calendar_spine`
+  - `int_jira__issue_join`
+  - `jira__issue_enhanced`
+- Updated model `int_jira__issue_calendar_spine` to prevent errors during compilation.
+- Added consistency tests for the `jira__daily_issue_field_history` and `jira__issue_enhanced` models.
+
+# dbt_jira v0.17.0
+[PR #127](https://github.com/fivetran/dbt_jira/pull/127) contains the following updates:
+
+## 🚨 Breaking Changes 🚨
+> ⚠️ Since the following changes are breaking, a `--full-refresh` after upgrading will be required.
+- To reduce storage, updated the default materialization of the upstream staging models to views. (See the [dbt_jira_source CHANGELOG](https://github.com/fivetran/dbt_jira_source/blob/main/CHANGELOG.md#dbt_jira_source-v070) for more details.)
+
+## Performance improvements (🚨 Breaking Changes 🚨)
+  - Updated the incremental strategy of the following models to `insert_overwrite` for BigQuery and Databricks All Purpose Cluster destinations and `delete+insert` for all other supported destinations. 
+    - `int_jira__issue_calendar_spine`
+    - `int_jira__pivot_daily_field_history`
+    - `jira__daily_issue_field_history`
+    > At this time, models for Databricks SQL Warehouse destinations are materialized as tables without support for incremental runs.
+
+  - Removed intermediate models `int_jira__agg_multiselect_history`, `int_jira__combine_field_histories`, and `int_jira__daily_field_history` by combining them with `int_jira__pivot_daily_field_history`. This is to reduce the redundancy of the data stored in tables, the number of full scans, and the volume of write operations.
+    - Note that if you have previously run this package, these models may still exist in your destination schema, however they will no longer be updated. 
+  - Updated the default materialization of `int_jira__issue_type_parents` from a table to a view. This model is called only in `int_jira__issue_users`, so a view will reduce storage requirements while not significantly hindering performance.
+  - For Snowflake and BigQuery destinations, added the following `cluster_by` columns to the configs for incremental models:
+    - `int_jira__issue_calendar_spine` clustering on columns `['date_day', 'issue_id']`
+    - `int_jira__pivot_daily_field_history` clustering on columns `['valid_starting_on', 'issue_id']`
+    - `jira__daily_issue_field_history` clustering on columns `['date_day', 'issue_id']`
+  - For Databricks All Purpose Cluster destinations, updated incremental model file formats to `parquet` for compatibility with the `insert_overwrite` strategy.
+
+## Features
+- Added a default 3-day look-back to incremental models to accommodate late arriving records. The number of days can be changed by setting the var `lookback_window` in your dbt_project.yml. See the [Lookback Window section of the README](https://github.com/fivetran/dbt_jira/blob/main/README.md#lookback-window) for more details.
+- Added macro `jira_lookback` to streamline the lookback window calculation.
+
+## Under the Hood:
+- Added integration testing pipeline for Databricks SQL Warehouse.
+- Added macro `jira_is_databricks_sql_warehouse` for detecting if a Databricks target is an All Purpose Cluster or a SQL Warehouse.
+- Updated the maintainer pull request template.
+
+# dbt_jira v0.16.0
+[PR #122](https://github.com/fivetran/dbt_jira/pull/122) contains the following updates:
+
+## 🚨 Breaking Changes: Bug Fixes 🚨
+- The following fields in the below mentioned models have been converted to a string datatype (previously integer) to ensure classic Jira projects may link issues to epics. In classic Jira projects the epic reference is in a hyperlink form (ie. "https://ulr-here/epic-key") as opposed to an ID. As such, a string datatype is needed to successfully link issues to epics. If you are referencing these fields downstream, be sure to make any changes to account for the new datatype.
+  - `revised_parent_issue_id` field within the `int_jira__issue_type_parents` model
+  - `parent_issue_id` field within the `jira__issue_enhanced` model
+
+## Documentation updates
+- Update README to highlight requirements for using custom fields with the `issue_field_history_columns` variable.
+
+## Under the Hood
+- Included auto-releaser GitHub Actions workflow to automate future releases.
+- Updated the maintainer PR template to resemble the most up to date format.
+- Updated `field` and `issue_field_history` seed files to ensure we have an updated test case to capture the epic-link scenario for classic Jira environments.
+
+# dbt_jira v0.15.0
+[PR #108](https://github.com/fivetran/dbt_jira/pull/108) contains the following updates:
+## 🚨 Breaking Changes 🚨
+- Updated the `jira__daily_issue_field_history` model to make sure `issue_type` values are correctly joined into the downstream issue models. This applied only if `issue type` is leveraged within the `issue_field_history_columns` variable.
+>**Note**: Please be aware that a `dbt run --full-refresh` will be required after upgrading to this version in order to capture the updates.
+
+# dbt_jira v0.14.0 
+## 🚨 Breaking Changes 🚨
+- Fixed the `jira__daily_issue_field_history` model to make sure `component` values are correctly joined into the downstream issue models. This applied only if `components` are leveraged within the `issue_field_history_columns` variable. ([PR #99](https://github.com/fivetran/dbt_jira/pull/99))
+>**Note**: Please be aware that a `dbt run --full-refresh` will be required after upgrading to this version in order to capture the updates.
+
+## Bug Fixes
+- Updated the `int_jira__issue_calendar_spine` logic, which now references the `int_jira__field_history_scd` model as an upstream dependency. ([PR #104](https://github.com/fivetran/dbt_jira/pull/104))
+- Modified the `open_until` field  within the `int_jira__issue_calendar_spine` model to be dependent on the `int_jira__field_history_scd` model's `valid_starting_on` column as opposed to the `issue` table's `updated_at` field. ([PR #104](https://github.com/fivetran/dbt_jira/pull/104))
+  - This is required as some resolved issues (outside of the 30 day or `jira_issue_history_buffer` variable window) were having faulty incremental loads due to untracked fields (fields not tracked via the `issue_field_history_columns` variable or other fields not identified in the history tables such as Links, Comments, etc.). This caused the `updated_at` column to update, but there were no tracked fields that were updated, thus causing a faulty incremental load.
+
+
+## Under the Hood
+- Added additional seed rows to ensure the new configuration for components properly runs for all edge cases and compare against normal issue field history fields like `summary`. ([PR #104](https://github.com/fivetran/dbt_jira/pull/104))
+- Incorporated the new `fivetran_utils.drop_schemas_automation` macro into the end of each Buildkite integration test job. ([PR #98](https://github.com/fivetran/dbt_jira/pull/98))
+- Updated the pull request templates. ([PR #98](https://github.com/fivetran/dbt_jira/pull/98))
+ 
+## Contributors
+- [@kenzie-marsh](https://github.com/kenzie-marsh) ([Issue #100](https://github.com/fivetran/dbt_jira/issues/100))
+
+
+# dbt_jira v0.13.0
+## 🚨 Breaking Changes 🚨:
+[PR #95](https://github.com/fivetran/dbt_jira/pull/95) applies the following changes:
+- Added the `status_id` column as a default field for the `jira__daily_issue_field_history` model. This is required to perform an accurate join for the `status` field in incremental runs.
+  - Please be aware a `dbt run --full-refresh` will be required following this upgrade.
+
+## 🎉 Feature Updates 🎉
+[PR #93](https://github.com/fivetran/dbt_jira/pull/93) applies the following changes:
+- Adds the option to use `field_name` instead of `field_id` as the field-grain for issue field history transformations. Previously, the package would strictly partition and join issue field data using `field_id`. However, this assumed that it was impossible to have fields with the same name in Jira. For instance, it is very easy to create another `Sprint` field, and different Jira users across your organization may choose the wrong or inconsistent version of the field. 
+  - Thus, to treat these as the same field, set the new `jira_field_grain` variable to `'field_name'` in your `dbt_project.yml` file. You must run a full refresh to accurately fold this change in.
+
+## Under the Hood
+[PR #95](https://github.com/fivetran/dbt_jira/pull/95) applies the following changes:
+- With the addition of the default `status_id` field in the `jira__daily_issue_field_history` model, there is no longer a need to do the extra partitioning to fill values for the `status` field. As such, the `status` partitions were removed in place of `status_id`. However, in the final cte of the model we join in the status staging model to populate the appropriate status per the accurate status_id for the given day.
+
+## Contributors
+- [@RivkiHofman](https://github.com/RivkiHofman) ([#92](https://github.com/fivetran/dbt_jira/pull/92))
+
+# dbt_jira v0.12.2
+## Bug Fixes
+- Reverting the changes introduced between v0.12.1 except Databricks compatibility. Please stay tuned for a future release that will integrate the v0.12.1 changes in a bug free release. ([#88](https://github.com/fivetran/dbt_jira/pull/88))
+# dbt_jira v0.12.1
+## 🚨 Breaking Changes 🚨:
+- Fixed `jira__daily_issue_field_history` model to make sure component values are correctly joined into our issue models ([#81](https://github.com/fivetran/dbt_jira/pull/81)).
+- Please note, a `dbt run --full-refresh` will be required after upgrading to this version in order to capture the updates.
+## 🎉 Feature Updates 🎉
+- Databricks compatibility 🧱 ([#80](https://github.com/fivetran/dbt_jira/pull/80)).
+
+# dbt_jira v0.11.0
+## 🚨 Breaking Changes 🚨:
+[PR #74](https://github.com/fivetran/dbt_jira/pull/74) includes the following breaking changes:
+- Dispatch update for dbt-utils to dbt-core cross-db macros migration. Specifically `{{ dbt_utils.<macro> }}` have been updated to `{{ dbt.<macro> }}` for the below macros:
+    - `any_value`
+    - `bool_or`
+    - `cast_bool_to_text`
+    - `concat`
+    - `date_trunc`
+    - `dateadd`
+    - `datediff`
+    - `escape_single_quotes`
+    - `except`
+    - `hash`
+    - `intersect`
+    - `last_day`
+    - `length`
+    - `listagg`
+    - `position`
+    - `replace`
+    - `right`
+    - `safe_cast`
+    - `split_part`
+    - `string_literal`
+    - `type_bigint`
+    - `type_float`
+    - `type_int`
+    - `type_numeric`
+    - `type_string`
+    - `type_timestamp`
+    - `array_append`
+    - `array_concat`
+    - `array_construct`
+- For `current_timestamp` and `current_timestamp_in_utc` macros, the dispatch AND the macro names have been updated to the below, respectively:
+    - `dbt.current_timestamp_backcompat`
+    - `dbt.current_timestamp_in_utc_backcompat`
+- `dbt_utils.surrogate_key` has also been updated to `dbt_utils.generate_surrogate_key`. Since the method for creating surrogate keys differ, we suggest all users do a `full-refresh` for the most accurate data. For more information, please refer to dbt-utils [release notes](https://github.com/dbt-labs/dbt-utils/releases) for this update.
+- Dependencies on `fivetran/fivetran_utils` have been upgraded, previously `[">=0.3.0", "<0.4.0"]` now `[">=0.4.0", "<0.5.0"]`.
+- Incremental strategies for all incremental models in this package have been adjusted to use `delete+insert` if the warehouse being used is Snowflake, Postgres, or Redshift.
+
+# dbt_jira v0.10.1
+## ❗Please Note❗
+- While this is a patch update, it may also require a full refresh. Please run `dbt run --full-refresh` after upgrading to ensure you have the latest incremental logic.
+## 🐞 Bug Fix
+- Updated logic for model `int_jira__issue_sprint` to further adjust how current sprint is determined. It now uses a combination of the newest `updated_at` date for the issue and the newest `started_at` date of the sprint. This is to account for times when jira updates two sprint records at the same time. ([#77](https://github.com/fivetran/dbt_jira/pull/77) and [#78](https://github.com/fivetran/dbt_jira/pull/78))
+## Contributors
+- [@jingyu-spenmo](https://github.com/jingyu-spenmo) ([#78](https://github.com/fivetran/dbt_jira/pull/78))
+
+
+# dbt_jira v0.10.0
+## 🚨 Breaking Changes
+- For model `jira__issue_enhanced`, updated column names `sprint_id` and `sprint_name` to `current_sprint_id` and `current_sprint_name`, respectively, to confirm the record is for the current sprint. ([#76](https://github.com/fivetran/dbt_jira/pull/76))
+
+## 🐞 Bug Fix
+- Updated logic for model `int_jira__issue_sprint` to adjust how current sprint is determined. It now uses the newest `started_at` date of the sprint instead of the `updated_at` date. ([#76](https://github.com/fivetran/dbt_jira/pull/76))
+
+# dbt_jira v0.9.0
+## 🚨 Breaking Changes 🚨
+
+- The default schema for the source tables are now built within a schema titled (`<target_schema>` + `_jira_source`) in your destination. The previous default schema was (`<target_schema>` + `_stg_jira`) for source. This may be overwritten if desired. ([#63](https://github.com/fivetran/dbt_jira/pull/63))
+- Flipped column aliases `sum_close_time_seconds` and `sum_current_open_seconds` of intermediate model `int_jira__user_metrics.sql`. ([#66](https://github.com/fivetran/dbt_jira/pull/66))
+- This ensures that downstream model `jira__user_enhanced.sql` calculates columns `avg_age_currently_open_seconds` and `avg_close_time_seconds` correctly. ([#66](https://github.com/fivetran/dbt_jira/pull/66))
+
+## 🎉 Documentation and Feature Updates
+- Updated README documentation updates for easier navigation and setup of the dbt package. ([#63](https://github.com/fivetran/dbt_jira/pull/63))
+- Added `jira_[source_table_name]_identifier` variables to allow for easier flexibility of the package to refer to source tables with different names. ([#63](https://github.com/fivetran/dbt_jira/pull/63))
+
+## Bug Fixes
+- Corrected bug introduced in 0.8.0 that would prevent the correct `status` data from being passed to model `jira__daily_issue_field_history`. ([#63](https://github.com/fivetran/dbt_jira/pull/63))
+  - Please note, a `dbt run --full-refresh` will be required after upgrading to this version in order to capture the updates.
+
+# dbt_jira v0.8.2
+## Bug Fixes
+- Corrected bug introduced in 0.8.0 that would prevent `sprint` data from being passed to model `jira__daily_issue_field_history`. ([#62](https://github.com/fivetran/dbt_jira/pull/62))
+
+
+## Contributors
+- [@troyschuetrumpf-elation](https://github.com/troyschuetrumpf-elation) ([#62](https://github.com/fivetran/dbt_jira/pull/62))
+
+# dbt_jira v0.8.1
+## Features
+- Makes priority data optional. Allows new env var `jira_using_priorities`. Models `jira__issue_enhanced` and `int_jira__issue_join` won't require source `jira.priority` or contain priority-related columns if `jira_using_priorities: false`. ([#55](https://github.com/fivetran/dbt_jira/pull/55))
+
+## Contributors
+- @everettttt ([#55](https://github.com/fivetran/dbt_jira/pull/55))
+
+# dbt_jira v0.8.0
+## 🚨 Breaking Changes 🚨
+- Previously the `jira__daily_field_history` and `jira__issue_enhanced` models allowed for users to leverage the `issue_field_history_columns` to bring through custom `field_id`s. However, the `field_id` was not very intuitive to report off. Therefore, the package has been updated to bring through the `field_name` values in the variable and persist through to the final models. ([#54](https://github.com/fivetran/dbt_jira/pull/54))
+  - Please note, if you leveraged this variable in the past then you will want to update the `field_id` (customfield_000123) to be the `field_name` (Cool Custom Field) now. Further, a `dbt run --full-refresh` will be required as well.
+
+## Features
+- Multi-select fields that are populated within the `jira__daily_issue_field_history` and `jira__issue_enhanced` models are automatically joined with `stg_jira__field_option` to ensure the field names are populated. ([#54](https://github.com/fivetran/dbt_jira/pull/54))
+
+# dbt_jira v0.7.0
+🎉 dbt v1.0.0 Compatibility 🎉
+## 🚨 Breaking Changes 🚨
+- Adjusts the `require-dbt-version` to now be within the range [">=1.0.0", "<2.0.0"]. Additionally, the package has been updated for dbt v1.0.0 compatibility. If you are using a dbt version <1.0.0, you will need to upgrade in order to leverage the latest version of the package.
+  - For help upgrading your package, I recommend reviewing this GitHub repo's Release Notes on what changes have been implemented since your last upgrade.
+  - For help upgrading your dbt project to dbt v1.0.0, I recommend reviewing dbt-labs [upgrading to 1.0.0 docs](https://docs.getdbt.com/docs/guides/migration-guide/upgrading-to-1-0-0) for more details on what changes must be made.
+- Upgrades the package dependency to refer to the latest `dbt_jira_source`. Additionally, the latest `dbt_jira_source` package has a dependency on the latest `dbt_fivetran_utils`. Further, the latest `dbt_fivetran_utils` package also has a dependency on `dbt_utils` [">=0.8.0", "<0.9.0"].
+  - Please note, if you are installing a version of `dbt_utils` in your `packages.yml` that is not in the range above then you will encounter a package dependency error.
+
+# dbt_jira v0.6.0
+## 🚨 Breaking Changes
+- This release of the `dbt_jira` packages implements changes to the incremental logic within various models highlighted in the Bug Fixes section below. As such, a `dbt run --full-refresh` will be required after upgrading this dependency for this package in your `packages.yml`.
+## Bug Fixes
+- Corrected CTE references within `int_jira__issue_assignee_resolution`. The final cte referenced was previously selecting from `issue_field_history` when it should have been selecting from `filtered`. ([#45](https://github.com/fivetran/dbt_jira/pull/45))
+- Modified the incremental logic within `int_jira__agg_multiselect_history` to properly capture latest record. Previously, this logic would work for updates made outside of 24 hours. This logic update will now capture any changes since the previous dbt run. ([#48](https://github.com/fivetran/dbt_jira/pull/48))
+## Under the Hood
+- Modified the `int_jira__issue_calendar_spine` model to use the `dbt-utils.current_timestamp_in_utc` to better capture the current datetime across regions. ([#47](https://github.com/fivetran/dbt_jira/pull/47))
+
+## Contributors
+- @thibonacci ([#45](https://github.com/fivetran/dbt_jira/pull/45))
+
+# dbt_jira v0.1.0 -> v0.5.1
+Refer to the relevant release notes on the Github repository for specific details for the previous releases. Thank you!
