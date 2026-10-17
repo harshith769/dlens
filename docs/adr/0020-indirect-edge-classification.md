@@ -106,3 +106,25 @@ from spec §6 ("same provenance"), and `engine_gaps.yml` tracks it (target S04).
   ALL it is `"ALL"`.
 - **Exposure.** Trace and impact follow indirect edges only on request (`--include-indirect`).
   The tools, validator, UI and demo stay direct-only until S10/S12 (see `docs/explain/graph.md`).
+
+## Clarification (S06, 17 Oct 2026)
+
+- **Window-derived keys.** When a FILTER or JOIN key resolves to a column computed by a window
+  function in an inner query (a CTE or derived table), the key's upstream is that window's
+  PARTITION BY and ORDER BY columns plus its value arguments (`x` in `sum(x) over (...)`). The
+  edge type stays the clause's: FILTER for WHERE/HAVING, JOIN for ON. That matches what QUALIFY
+  gives, where every column inside the clause, its OVER included, is FILTER. Example: a
+  Postgres-style dedupe `... from (select ..., row_number() over (partition by k order by t desc)
+  as rn ...) where rn = 1` gives FILTER edges from `k` and `t`, as `qualify row_number() over
+  (...) = 1` does. Without this rule the key resolved to nothing, because window keys are not
+  value inputs. sqlglot also rewrites QUALIFY this way for dialects that lack it (Postgres), so
+  Postgres lost every QUALIFY FILTER edge (S06 dialect check: indirect F1 0.9589 → 1.0000).
+- The rule applies only to keys resolved through an inner query. A bare `ORDER BY alias` of a
+  window projection in the same SELECT is unchanged. The window's own WINDOW edges are unchanged.
+- Goldens: `indirect_window_key_dedupe_subquery`, `indirect_window_key_running_total`,
+  `indirect_window_key_join`. The synthetic_shop and jaffle_shop graphs were byte-identical before
+  and after (neither uses the pattern).
+- **Equivalent SQL, different labels (accepted, no rule change in S06).** `count(x) filter (where
+  c)` gives `c` a CONDITIONAL indirect edge. `count(iff(c, x, null))`, which is what sqlglot writes
+  for Snowflake, gives `c` a direct edge, because a CASE/IFF condition decides the value (CASE
+  conditions stay direct). Both follow the rules above; the labels differ because the SQL differs.

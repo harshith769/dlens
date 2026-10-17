@@ -1,22 +1,69 @@
 {
   "edges": [
-    {"from": "orders.id", "to": "m.id", "kind": "IDENTITY"},
-    {"from": "orders.user_id", "to": "m.user_id", "kind": "IDENTITY"},
-    {"from": "orders.amt", "to": "m.running_total", "kind": "TRANSFORMATION"}
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.user_id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.running_total",
+      "kind": "TRANSFORMATION"
+    }
   ],
   "quality": "FULL",
   "constants": [],
   "indirect": [
-    {"from": "orders.user_id", "to": "m.running_total", "type": "WINDOW"},
-    {"from": "orders.order_date", "to": "m.running_total", "type": "WINDOW"},
-    {"from": "orders.amt", "to": "m.id", "type": "FILTER"},
-    {"from": "orders.amt", "to": "m.user_id", "type": "FILTER"},
-    {"from": "orders.user_id", "to": "m.id", "type": "FILTER"},
-    {"from": "orders.user_id", "to": "m.running_total", "type": "FILTER"},
-    {"from": "orders.order_date", "to": "m.id", "type": "FILTER"},
-    {"from": "orders.order_date", "to": "m.user_id", "type": "FILTER"},
-    {"from": "orders.order_date", "to": "m.running_total", "type": "FILTER"}
+    {
+      "from": "orders.user_id",
+      "to": "m.running_total",
+      "type": "WINDOW"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.running_total",
+      "type": "WINDOW"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.user_id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.user_id",
+      "to": "m.running_total",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.user_id",
+      "type": "FILTER"
+    },
+    {
+      "from": "orders.order_date",
+      "to": "m.running_total",
+      "type": "FILTER"
+    }
   ],
-  "notes": "a filter on a windowed aggregate: the key's upstream is the value argument (amt) plus PARTITION BY / ORDER BY, as `qualify sum(amt) over (...) > 100` gives; the window keys stay WINDOW to running_total too",
-  "xfail_indirect": "window-derived keys resolve to the window's columns only after the S06 engine fix (next commit)"
+  "notes": "a filter on a windowed aggregate: the key's upstream is the value argument (amt) plus PARTITION BY / ORDER BY, as `qualify sum(amt) over (...) > 100` gives; the window keys stay WINDOW to running_total too"
 }

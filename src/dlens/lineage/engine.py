@@ -103,21 +103,28 @@ def _walk(
     inputs: list[str],
     branch: int | None,
     scope: exp.Expr | None,
+    window_keys: bool = False,
 ) -> Iterator[_Path]:
     """Yield value paths. Children used only in function-attached key positions (window keys,
-    aggregate FILTER / ORDER BY) are not value inputs: they are indirect edges (ADR 0020)."""
+    aggregate FILTER / ORDER BY) are not value inputs: they are indirect edges (ADR 0020).
+
+    ``window_keys`` (resolving a FILTER/JOIN key through an inner query, ADR 0020 S06
+    clarification): a window's PARTITION BY / ORDER BY columns are followed too, because a key
+    computed by a window depends on them as much as on its value arguments."""
     if not node.downstream:
         yield _Path(steps, inputs, node, branch, scope)
         return
     if isinstance(node.source, exp.Union):
         # The UNION node's expression is the first branch's; only the branches are real steps.
         for i, child in enumerate(node.downstream):
-            yield from _walk(child, steps, inputs, i if branch is None else branch, scope)
+            yield from _walk(
+                child, steps, inputs, i if branch is None else branch, scope, window_keys
+            )
         return
     keys = key_columns(node.expression)
     for child in node.downstream:
         name = column_key(child.name)
-        if name in keys:
+        if name in keys and not (window_keys and IndirectKind.WINDOW in keys[name]):
             continue
         ref = child.reference_node_name or ""
         if ref.startswith(EPHEMERAL_CTE_PREFIX):
@@ -126,7 +133,9 @@ def _walk(
                 [*steps, node.expression], [*inputs, name], child, branch, node.source, ephemeral
             )
             continue
-        yield from _walk(child, [*steps, node.expression], [*inputs, name], branch, node.source)
+        yield from _walk(
+            child, [*steps, node.expression], [*inputs, name], branch, node.source, window_keys
+        )
 
 
 def _table_name(table: exp.Table) -> str:
@@ -486,16 +495,22 @@ def _ephemeral_scope(scope: Scope) -> str | None:
 
 
 def _through(
-    name: str, scope: Scope, ingest: IngestResult, schema: Schema, dialect: str
+    name: str,
+    scope: Scope,
+    ingest: IngestResult,
+    schema: Schema,
+    dialect: str,
+    window_keys: bool = False,
 ) -> list[tuple[str, Confidence]]:
     """Upstream columns of `name` in a CTE / derived table / this SELECT's own projection,
-    with the same walk and leaf resolution as direct edges (value paths only)."""
+    with the same walk and leaf resolution as direct edges (value paths; plus window keys when
+    ``window_keys``, see ``_walk``)."""
     try:
         node = to_node(name, scope, dialect, schema=schema, trim_selects=False)
     except Exception:  # sqlglot could not find the column: no edge rather than a guess
         return []
     found: list[tuple[str, Confidence]] = []
-    for path in _walk(node, [], [], None, None):
+    for path in _walk(node, [], [], None, None, window_keys):
         found += _resolve_leaf(path, ingest)[0]
     return found
 
@@ -513,7 +528,9 @@ def _resolve_key(
         if isinstance(src, Scope):
             if (ephemeral := _ephemeral_scope(src)) is not None:
                 return _ephemeral_column(ephemeral, name, ingest)[0]
-            return _through(name, src, ingest, schema, dialect)
+            # A key computed in an inner query: a window there contributes its PARTITION BY /
+            # ORDER BY columns as well as its value arguments (ADR 0020, S06 clarification).
+            return _through(name, src, ingest, schema, dialect, window_keys=True)
         return []
     select = scope.expression
     if isinstance(select, exp.Select) and name in {p.alias_or_name for p in select.selects}:

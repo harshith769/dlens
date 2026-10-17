@@ -44,6 +44,13 @@ answers use them.
 4. **Resolve each key** like a direct leaf:
    - A table → its dbt column (HIGH confidence).
    - A CTE or derived table → `to_node` plus `_walk`/`_resolve_leaf`, through the projection.
+     If the key is computed by a window in that inner query (Postgres-style `where rn = 1` over
+     `row_number() over (...) as rn`, or a filter on `sum(x) over (...)`), its upstream is the
+     window's PARTITION BY and ORDER BY columns plus its value arguments. `_walk(...,
+     window_keys=True)` follows the key children it normally cuts (ADR 0020, S06 clarification).
+     So a dedupe in a subquery gives the same FILTER edges as the QUALIFY form, and a JOIN on
+     `order_seq = 1` gives JOIN edges from the window's columns. The type stays the clause's
+     (FILTER or JOIN).
    - A correlated column → the parent scopes.
    - A bare select alias (`ORDER BY 1`, `ORDER BY alias`) → that projection.
    - Ambiguous and unqualified → LOW confidence, one edge to each candidate table.
@@ -144,3 +151,7 @@ answers use them.
 6. `jaffle_shop/orders.sql` builds columns with a `{% for %}` loop, so the compiled file has
    more lines than the source. Why do its WHERE/GROUP BY clauses still get exact source lines,
    and what would happen to a clause inside the loop?
+7. `select id, amt from (select id, amt, row_number() over (partition by user_id order by
+   order_date desc) as rn from orders) t where rn = 1`. Which FILTER edges does it give, why do
+   they match `qualify row_number() over (...) = 1`, and what did the engine give for `rn`
+   before S06 (and why: which children does `_walk` normally cut)?
