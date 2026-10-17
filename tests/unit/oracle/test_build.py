@@ -61,12 +61,12 @@ def test_topological_is_deterministic_and_rejects_cycles() -> None:
         _topological({"a": ["b"], "b": ["a"]})
 
 
-def test_children_and_downstream(toy: Corpus) -> None:
+def test_children_and_descendants(toy: Corpus) -> None:
     assert toy.children["raw_orders"] == ["stg_orders"]
     assert toy.children["stg_orders"] == ["orders_users", "first_per_user"]
     assert toy.children["orders_users"] == []
-    assert toy.downstream("raw_orders") == ["stg_orders", "orders_users", "first_per_user"]
-    assert toy.downstream("raw_users") == ["orders_users"]
+    assert toy.descendants("raw_orders") == ["stg_orders", "orders_users", "first_per_user"]
+    assert toy.descendants("raw_users") == ["orders_users"]
 
 
 def test_warehouse_materialises_and_restores(warehouse: Warehouse) -> None:

@@ -6,6 +6,7 @@ import duckdb
 import pytest
 
 from dlens_oracle.build import Corpus, Model, Warehouse
+from dlens_oracle.gold import Gold
 
 SEEDS = {
     "raw_orders": (
@@ -67,3 +68,32 @@ def toy(tmp_path: Path) -> Corpus:
 @pytest.fixture
 def warehouse(toy: Corpus) -> Warehouse:
     return Warehouse(toy)
+
+
+STG = ["order_id", "user_id", "amount", "placed", "status"]
+
+
+def make_toy_gold(drop: tuple[str, str] | None = None) -> Gold:
+    """Hand-written gold for the toy corpus in conftest.py (ADR 0020 targets)."""
+    direct = {
+        ("raw_orders.id", "stg_orders.order_id"): "RENAME",
+        **{(f"raw_orders.{c}", f"stg_orders.{c}"): "IDENTITY" for c in STG[1:]},
+        ("stg_orders.order_id", "orders_users.order_id"): "IDENTITY",
+        ("stg_orders.amount", "orders_users.amount"): "IDENTITY",
+        ("raw_users.name", "orders_users.name"): "IDENTITY",
+        ("stg_orders.user_id", "first_per_user.user_id"): "IDENTITY",
+        ("stg_orders.order_id", "first_per_user.order_id"): "IDENTITY",
+    }
+    direct.pop(drop, None)  # type: ignore[arg-type]
+    targets = ["orders_users.order_id", "orders_users.amount", "orders_users.name"]
+    indirect: dict[tuple[str, str], set[str]] = {}
+    for src, kind in [("stg_orders.user_id", "JOIN"), ("raw_users.id", "JOIN"),
+                      ("stg_orders.status", "FILTER")]:  # fmt: skip
+        for t in targets:
+            if (src, t) not in direct:
+                indirect.setdefault((src, t), set()).add(kind)
+    indirect[("stg_orders.user_id", "first_per_user.order_id")] = {"FILTER"}
+    return Gold(
+        seeds={}, models={}, depends_on={}, direct=direct, indirect=indirect,
+        row_set={(k, "orders_users", "JOIN") for k in ("stg_orders.user_id", "raw_users.id")},
+    )  # fmt: skip

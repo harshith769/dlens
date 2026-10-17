@@ -62,7 +62,7 @@ class Corpus:
             for parent in model.parents:
                 self.children[parent].append(model.name)
 
-    def downstream(self, table: str) -> list[str]:
+    def descendants(self, table: str) -> list[str]:
         """Every model that (transitively) reads ``table``, in topological order."""
         reached = {table}
         out = []
