@@ -245,6 +245,8 @@ class Cand:
     seed: int = 0
     rules: list[str] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
+    context: bool = False  # took text tokens as model context (not a whole-text match)
+    cap: float | None = None  # amendment F: kept below every whole-text match
 
     @property
     def stage(self) -> int:
@@ -252,7 +254,8 @@ class Cand:
 
     @property
     def raw(self) -> float:
-        return self.base + self.model_bonus + self.layer
+        total = self.base + self.model_bonus + self.layer
+        return total if self.cap is None else min(total, self.cap)
 
     @property
     def score(self) -> float:
@@ -267,6 +270,8 @@ class Cand:
             "layer": self.layer,
             "raw": round(self.raw, 4),
             "rules": self.rules,
+            "context": self.context,
+            **({"cap": round(self.cap, 4)} if self.cap is not None else {}),
             **self.extra,
         }
 
@@ -291,6 +296,8 @@ def _match(
     rules = [form.rule] if form.rule else []
     rest_rw = [rewrite(t) for t in rest]
     if rest == col_surface and not rules:
+        if ctx:  # amendment F: a context-taking match is at most rewritten
+            return "rewritten", REWRITTEN, ["model_context"], coverage
         return "surface", SURFACE, rules, coverage
     used = rules + _rewrites(rest, rest_rw, col_surface, col_rw)
     if rest_rw == col_rw or core(rest_rw) == core(col_rw):
@@ -415,17 +422,22 @@ def _stage2(g: LineageGraph, text: str) -> list[Cand]:
             tier, base, rules, cov = _match(f, col, bodies[uid])
             prior, seed = _layer_of(g, cid)
             c = Cand(cid, _col_row(g, cid, tier), tier, base, MODEL_BONUS * cov, prior, seed, rules)
+            c.context = cov > 0
             if best is None or c.raw > best.raw:
                 best = c
         assert best is not None
         out.append(best)
     # Amendment D: a text that already is a column's name (no token taken as model context) is not
     # read as "column of model": then no candidate gets the model bonus ("payment method").
-    if any(c.tier in ("surface", "rewritten") and c.model_bonus == 0 for c in out):
+    # Amendment F: and no context-taking candidate ranks above any whole-text match ("pmt id").
+    whole = [c.raw for c in out if c.tier in ("surface", "rewritten") and not c.context]
+    if whole:
         for c in out:
             if c.model_bonus:
                 c.extra["model_bonus_dropped"] = round(c.model_bonus, 4)
                 c.model_bonus = 0.0
+            if c.context:
+                c.cap = min(whole) - 0.001
     for uid in g.model_ids():
         info = g.model_info(uid) or {}
         if info.get("resource_type") != "model":

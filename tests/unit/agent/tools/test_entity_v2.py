@@ -152,18 +152,21 @@ def test_plural_is_a_rewrite_not_surface(box: Toolbox) -> None:
 
 
 def test_model_bonus_dropped_when_the_text_is_a_column_name(box: Toolbox) -> None:
-    """Amendment D: 'payment method' is a column's name, so raw_payments.method gets no bonus."""
+    """Amendment D: 'payment method' is a column's name, so raw_payments.method gets no bonus.
+    Amendment F then keeps that context reading at the rewritten tier: 0.93 vs 0.865."""
     p, side = resolve(box, "payment method")
     assert p["candidates"][0]["id"] == "stg_payments.payment_method"
     assert side["parts"]["raw_payments.method"]["model_bonus"] == 0.0
-    assert p["ambiguous"] is True  # two honest readings, 0.93 vs 0.925
+    assert side["parts"]["raw_payments.method"]["tier"] == "rewritten"
+    assert p["ambiguous"] is False
 
 
 def test_cap_is_on_the_printed_score_only(box: Toolbox) -> None:
-    """Amendment E: both print 0.96; the ranking still uses the raw sums."""
+    """Amendment E: ranking uses the raw sums. Since F a context match tops out at
+    0.87 + 0.06 + 0.01 = 0.94, so the 0.96 printed cap no longer binds in practice."""
     p, side = resolve(box, "sales tax in fct_orders")
     assert p["candidates"][0]["id"] == "fct_orders.sales_tax"
-    assert p["candidates"][0]["score"] == 0.96
+    assert p["candidates"][0]["score"] == 0.94
     assert (
         side["parts"]["fct_orders.sales_tax"]["raw"]
         > side["parts"]["int_customer_order_history.sales_tax"]["raw"]
@@ -307,3 +310,13 @@ def test_dotted_id_may_omit_a_unit_but_not_add_one(box: Toolbox) -> None:
     assert [c["id"] for c in resolve(box, "stg_payments.amt")[0]["candidates"]] == [
         "stg_payments.amount_usd"
     ]
+
+
+def test_context_match_never_beats_a_whole_text_match(box: Toolbox) -> None:
+    """Amendment F (owner, 18 Oct 2026): 'pmt id' is payment_id (rewritten, whole text), not
+    raw_payments.id (surface only after taking 'pmt' -> payment as model context)."""
+    p, side = resolve(box, "pmt id")
+    assert p["candidates"][0]["id"] == "stg_payments.payment_id"
+    raw_id = side["parts"]["raw_payments.id"]
+    assert raw_id["tier"] == "rewritten" and raw_id["context"] is True
+    assert raw_id["raw"] < side["parts"]["stg_payments.payment_id"]["raw"]

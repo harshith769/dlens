@@ -391,7 +391,18 @@ no-match. Rule C's weak-`usd` step now works in one direction only: a dotted id 
 column's `usd` (`stg_payments.amt` → `amount_usd`, the pre-S08 test) but may not add a `usd` the
 column lacks. The loop shares the function, so it now refuses that id with 0 LLM calls.
 
+**F. Context never beats the whole text (owner, 18 Oct 2026; the owner's message calls it "E",
+renamed because E is the printed-score cap).** A match that takes text tokens as model context
+is at most `rewritten` (0.87), even when the remaining tokens equal the column name. When any
+column matches the whole text (surface or rewritten, no context), every context-taking candidate
+is capped 0.001 below the lowest such match. Found by "pmt id" in the S08 report: `raw_payments.id`
+(surface after taking "pmt" as model context, 0.925) beat the whole-text rewritten match
+`payment_id` (0.87). A consequence: "payment method" is no longer ambiguous (0.93 vs 0.865), and
+the 0.96 printed cap (E) no longer binds, because a context match now tops out at 0.94.
+
 ## Change log
 - 17 Oct 2026: first draft (S08 step 1).
 - 17 Oct 2026: amendments A, B, C (owner, after the case review, before measurement).
 - 17 Oct 2026: amendments D, E (owner, during implementation, before measurement).
+- 18 Oct 2026: layer from folder; dotted `usd` one-way; amendment F (owner, after the first S08
+  report, which had observed linker-dev and linker-test).

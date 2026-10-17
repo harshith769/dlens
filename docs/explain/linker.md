@@ -36,8 +36,10 @@ Then two adjustments:
 - **Model bonus** (+0.06 × coverage): text tokens that name the column's model (layer prefixes
   excluded, B) and are not part of the column name become context. Full coverage can break a
   tie (0.06 > δ); partial coverage only orders candidates. Amendment D: no bonus at all when some
-  column already matches the whole text ("payment method").
-- **Layer prior**: marts +0.010, intermediate +0.005, staging 0, raw/seed −0.005. The spread is
+  column already matches the whole text ("payment method"). Amendment F: a context-taking match
+  is at most `rewritten` and is kept below every whole-text match ("pmt id" → `payment_id`).
+- **Layer prior**: marts +0.010, intermediate +0.005, staging 0, raw/seed −0.005, read from the
+  model's folder under `models/` (fqn path), else the name prefix. The spread is
   0.015 < δ, so it orders ties but never resolves them.
 
 **Stage 3, hybrid** (only with a built S07 index, and only when stage 2 has no surface or
