@@ -570,7 +570,7 @@ must come from that frozen system. Any change after 7 Dec means re-running every
 | SQL | `sqlglot==30.21.0` (verified: `lineage(None, …)` returns a dict) |
 | Graph | NetworkX; JSON edge list |
 | Vectors / lexical | numpy exact search (`.npy` on disk) / `bm25s`; embeddings on CPU (v0.3 target; ADR 0014) |
-| Embeddings | sentence-transformers with `BAAI/bge-small-en-v1.5` |
+| Embeddings | `BAAI/bge-small-en-v1.5` (pinned revision) on onnxruntime + `tokenizers`, CPU (v0.3, ADR 0021; was sentence-transformers) |
 | LLM SDKs | `google-genai`, `ollama`, OpenAI-compatible client (replaces `groq`; v0.3 target; ADR 0012) behind `LLMClient` |
 | Config / schemas | pydantic, pydantic-settings, `.env` |
 | CLI / API / UI | Typer / FastAPI (v1.0) / Streamlit (pinned 1.65.x; Graphviz for graphs) |

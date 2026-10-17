@@ -1,6 +1,6 @@
 # 0014. numpy exact search instead of LanceDB; embeddings on CPU
 
-- Status: Accepted
+- Status: Accepted; amended by ADR 0021 (embedding runtime)
 - Date: 2026-10-04
 - Source: docs/DLENS_SPEC.md, Section 0, row 24
 - Implemented in: S07 (B1)
@@ -11,7 +11,7 @@ Corpora have 400–20,000 chunks. Ollama keeps the 6 GB GPU busy during runs. La
 
 ## Decision
 
-Dense vectors are stored as `.npy` and searched exactly with numpy. `bge-small-en-v1.5` embeddings run on CPU; the `retrieval` extra installs the CPU torch wheel.
+Dense vectors are stored as `.npy` and searched exactly with numpy. `bge-small-en-v1.5` embeddings run on CPU. *Amended by ADR 0021 (17 Oct 2026):* the runtime is onnxruntime on the model repo's own fp32 `onnx/model.onnx`, not sentence-transformers + the CPU torch wheel, so the `retrieval` extra installs no torch.
 
 ## Consequences
 

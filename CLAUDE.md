@@ -44,11 +44,11 @@ Principle: code guarantees, the LLM narrates. If code can compute it, don't ask 
 
 ## Stack
 Python 3.12 (CI also 3.13), uv, dbt-core 1.12.5 + dbt-duckdb 1.11.0, sqlglot 30.21.0, NetworkX,
-bm25s, sentence-transformers (bge-small-en-v1.5, CPU), google-genai, ollama, Typer,
+bm25s, onnxruntime + tokenizers (bge-small-en-v1.5 at a pinned revision, CPU; ADR 0021), numpy exact
+search (ADR 0014), google-genai, ollama, Typer,
 Streamlit (pinned >=1.65,<1.66), pytest, hypothesis, ruff, mypy.
-v0.3 targets (still in pyproject until they land): numpy exact search replaces LanceDB (ADR 0014);
-an OpenAI-compatible adapter replaces groq (ADR 0012).
-Extras: agent, ui, retrieval (heavy; never in the demo install).
+v0.3 target (still in pyproject until it lands): an OpenAI-compatible adapter replaces groq (ADR 0012).
+Extras: agent, ui, retrieval (onnxruntime, no torch; never in the demo install).
 
 ## Models
 - Local (dev + second benchmark model): qwen3:4b-instruct-2507-q4_K_M via Ollama, num_ctx 8192.

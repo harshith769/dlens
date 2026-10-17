@@ -148,7 +148,7 @@ test of its `.md` provenance.
   `1_Pooling`/`2_Normalize` config.
 - Vectors are stored as float32 `dense.npy` (n × 384), with rows in `chunks.jsonl` order.
   Search is an exact dot product (`vectors @ q`) and a stable argsort (ADR 0014).
-- **Runtime: pending step 2.** The candidates are (a) sentence-transformers + CPU torch and
+- **Runtime: (b) onnxruntime + `tokenizers` (owner pick, 17 Oct 2026; ADR 0021).** The candidates were (a) sentence-transformers + CPU torch and
   (b) onnxruntime + `tokenizers` on the BAAI repo's own `onnx/model.onnx` at the same revision
   (it must be fp32, not quantised). fastembed is measured as a reference only and is not
   eligible. (b) is only allowed if cosine((a), (b)) ≥ 0.999 on **every** synthetic_shop chunk.
@@ -166,7 +166,7 @@ test of its `.md` provenance.
 each list cut to its top 100 before fusion. Ties are broken by chunk id. Modes are `bm25`,
 `dense` and `hybrid` (the default). An optional `kinds` filter is applied **before** ranking.
 
-### 3.4 Runtime measurement (step 2, 17 Oct 2026; owner pick pending)
+### 3.4 Runtime measurement (step 2, 17 Oct 2026; owner picked (b), ADR 0021)
 
 Setup: `scripts/bench_embedders.py`, one throwaway venv per variant (WSL2, x86_64, 4 threads,
 batch 32, model `BAAI/bge-small-en-v1.5` @ `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a`, timed runs
@@ -195,8 +195,8 @@ specifies CLS pooling. `modules.json` ends in `Normalize`. `sentence_bert_config
 | 4 threads vs 1 thread (bytes, synthetic_shop) | identical | identical | – |
 | Wheels (cp312/313) | linux x86_64/aarch64, macOS arm64, win amd64 | same, plus win arm64 | – |
 
-Sizes are site-packages deltas over a core install of the same kind (uv: Python 3.13 per the
-repo's `.python-version`; pip: 3.12). pip_B and pip_F have the 26 MB `onnx` check package
+Sizes are site-packages deltas over a core install of the same kind (uv: Python 3.13, the newest
+`requires-python` allows; pip: 3.12). pip_B and pip_F have the 26 MB `onnx` check package
 subtracted. Neither runtime has Intel-mac wheels at these versions.
 
 Wordpieces (bge tokenizer, no truncation) on the provisional texts: synthetic_shop max 271 /
