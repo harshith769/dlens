@@ -50,6 +50,40 @@ run takes about 10 seconds on jaffle_shop; after that the graph is cached in
 `target/dlens_graph.json` and rebuilt when the manifest, your SQL, or the DLens version changes
 (`--rebuild` forces it). Column ids are `model.column`.
 
+### Your own project, any warehouse: artifact-only ingest
+
+If your project already builds (on Snowflake, BigQuery, Postgres, Redshift, Databricks, Spark,
+Trino or DuckDB), point DLens at its `target/` directory. DLens doesn't run dbt or connect to
+your warehouse:
+
+```bash
+pipx install dlens-lineage            # or: pip install dlens-lineage
+cd path/to/your/dbt_project
+dbt compile && dbt docs generate      # your usual dbt, your usual profile; docs generate writes catalog.json
+dlens ingest --artifacts target/      # reads files only
+dlens trace fct_orders.revenue --artifacts target/
+dlens impact stg_orders.order_id --artifacts target/
+dlens report --artifacts target/
+```
+
+**Privacy: DLens reads files only. No network, no credentials, nothing leaves your machine.**
+It reads `manifest.json`, `catalog.json` (optional) and the compiled SQL. It writes one folder,
+`target/dlens/` (or `--out DIR`), and nowhere else in your project. The graph there is reused
+until the manifest or catalog changes.
+
+- **Dialect**: taken from the manifest's `adapter_type`: duckdb, snowflake, bigquery, postgres,
+  redshift, databricks, spark, trino. For other adapters, pass `--dialect` with the closest one.
+- **Manifest versions**: v12 (dbt 1.8 to 1.12, and dbt 2.0). Any other version is a clear error,
+  never a silent mis-parse. Catalog: v1.
+- **Without `catalog.json`** (catalog-less fallback): columns come from your YAML declarations and
+  from the parsed SQL of upstream models. A `select *` over a table with no declared columns
+  can't be expanded, so it is reported as a gap. `dlens ingest` prints FULL / PARTIAL /
+  TABLE_ONLY / FAILED counts and why. dbt 2.0 doesn't write `catalog.json`, so it uses this
+  fallback for now.
+- **Ephemeral models** appear in the lineage under their own name, with their own columns.
+- Citations point at your source `.sql` files when `target/` sits inside the dbt project;
+  otherwise they cite whole files.
+
 ### Example output
 
 The commands below ran on [`corpora/synthetic_shop`](https://github.com/harshith769/dlens/blob/main/corpora/synthetic_shop/DESIGN.md), a
@@ -210,7 +244,10 @@ Design notes for each part are in [`docs/explain/`](https://github.com/harshith7
 
 ## Limitations
 
-- DuckDB only. Other warehouses may work through sqlglot dialects but are untested.
+- `dlens ingest PROJECT_DIR` builds with DuckDB only. Other warehouses go through
+  `dlens ingest --artifacts target/`. That path is tested by transpiling a DuckDB corpus to
+  Snowflake, BigQuery and Postgres with sqlglot (edge F1 within 0.02 of DuckDB), not yet on SQL
+  written by hand for those warehouses.
 - Python 3.12 and 3.13 only; dbt-core is pinned to 1.12.x and dbt-duckdb to 1.11.x.
 - `ingest` runs dbt in the project directory (it writes `target/` and `logs/`).
 - Only *value* dependencies are edges. Join, filter, GROUP BY and window keys are not edges yet

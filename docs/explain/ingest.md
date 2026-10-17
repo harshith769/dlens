@@ -5,6 +5,9 @@ Given a dbt project directory, it runs dbt, reads the artifacts, and hands the l
 engine three things: compiled SQL per model, a sqlglot schema, and a map from warehouse
 relation names to dbt `unique_id`s. `dlens ingest PROJECT_DIR` prints a summary.
 
+For a `target/` that already exists (any warehouse, no dbt run), see
+[artifact-ingest.md](artifact-ingest.md): `dlens ingest --artifacts` reuses the loaders below.
+
 ## How it works
 1. `runner.py` finds `dbt` next to the running interpreter (else on PATH), then runs
    `dbt build --empty --exclude resource_type:test` and `dbt docs generate`.

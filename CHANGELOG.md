@@ -7,6 +7,23 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Artifact-only ingest** (ADR 0013): `dlens ingest --artifacts target/` builds the graph from
+  an existing dbt `target/` (manifest.json, optional catalog.json, compiled SQL) with no dbt run,
+  no warehouse connection and no network. The dialect comes from `adapter_type` (duckdb,
+  snowflake, bigquery, postgres, redshift, databricks, spark, trino; `--dialect` overrides).
+  Manifest v12 is supported (dbt 1.8 to 1.12 and 2.0); any other version is a clear error. The
+  graph is cached in `target/dlens/` (or `--out`) and reused while the manifest and catalog
+  hashes match. `trace`, `impact` and `report` take `--artifacts target/`.
+- Catalog-less fallback: without catalog.json, columns come from YAML declarations, and each
+  parsed model's output columns feed the models after it. A `*` over an undeclared table is a
+  gap. `dlens ingest` prints FULL / PARTIAL / TABLE_ONLY / FAILED counts with reasons.
+- Ephemeral models appear in the lineage under their own name and columns, instead of being
+  skipped through their `__dbt__cte__` CTE.
+- Dialect round trip test: synthetic_shop transpiled to Snowflake, BigQuery and Postgres keeps
+  direct and indirect edge F1 within 0.02 of DuckDB (`scripts/dialect_check.py`,
+  `eval/reports/s06_dialects.json`).
+- CI: a core install (no extras) on macOS and Windows runs `dlens ingest --artifacts` on a
+  committed fixture. Every `uv sync` step retries once on transient download errors.
 - Perturbation oracle (`make oracle`, `eval/oracle/`, ADR 0017): an independent dynamic check of
   the synthetic_shop gold. It perturbs each column in DuckDB, re-runs the compiled SQL (one hop
   and end to end) and compares the changed columns with `lineage_spec.yml`. Result: 0
@@ -27,11 +44,19 @@ All notable changes to this project are documented here. The format follows
   it). `scripts/measure_indirect_reach.py` measures what indirect traversal does to impact size.
 
 ### Changed
+- A FILTER or JOIN key computed by a window function in an inner query (`where rn = 1` over
+  `row_number() over (...) as rn`) now resolves to the window's PARTITION BY / ORDER BY columns
+  plus its value arguments, matching QUALIFY (ADR 0020, S06 clarification). Before, it resolved
+  to nothing.
 - Graph format v4: adds `citation_gaps` to the parse report and drops `deferred_indirect` (window
   keys are WINDOW indirect edges). Reads v2–v4, so the demo bundle (v2) loads unchanged, and
   older caches are rebuilt.
 
 ### Fixed
+- A WHERE over a derived-table column (`... ) as t where t.amt > 100`) now cites its own lines
+  instead of falling back to the whole file.
+- On Windows, `dlens trace`/`impact` no longer crash with UnicodeEncodeError when output is piped
+  or redirected; the CLI writes UTF-8.
 - Edge kind follows each input's own path: a scalar subquery's aggregate no longer makes a
   sibling column AGGREGATION, and `sum(sum(x)) OVER (...)` is AGGREGATION.
 - `SELECT * EXCLUDE (...)` / `* REPLACE (...)` / `t.* EXCLUDE (...)` columns cite the star's line
