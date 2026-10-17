@@ -44,7 +44,7 @@ Then two adjustments:
 
 **Stage 3, hybrid** (only with a built S07 index, and only when stage 2 has no surface or
 rewritten match): the S07 hybrid search over column cards. A card counts only if its dense
-cosine is ≥ 0.80 (RRF ranks are relative, so rank 1 exists even for junk). Its score is 0.50 +
+cosine is ≥ 0.695 (RRF ranks are relative, so rank 1 exists even for junk). Its score is 0.50 +
 0.30 × rrf_norm, ranked together with the stage-2 fuzzy candidates. Without an index the payload
 says `"hybrid": "unavailable"`, which is always the case in the core and demo installs.
 

@@ -195,7 +195,7 @@
    "linker-dev": {
     "n": 118,
     "top1": [
-     81,
+     84,
      103
     ],
     "top3": [
@@ -203,19 +203,19 @@
      103
     ],
     "no_match": [
-     14,
+     15,
      15
     ],
     "ambiguous_rate": [
-     34,
+     37,
      103
     ],
     "ambiguous_recall": [
-     26,
+     27,
      32
     ],
     "false_ambiguous": [
-     8,
+     10,
      71
     ]
    },
@@ -234,7 +234,7 @@
      20
     ],
     "ambiguous_rate": [
-     21,
+     20,
      109
     ],
     "ambiguous_recall": [
@@ -242,7 +242,7 @@
      23
     ],
     "false_ambiguous": [
-     4,
+     3,
      86
     ]
    },
@@ -305,54 +305,54 @@
    "linker-dev": {
     "n": 118,
     "top1": [
-     81,
+     87,
      103
     ],
     "top3": [
-     88,
+     94,
      103
     ],
     "no_match": [
-     14,
+     15,
      15
     ],
     "ambiguous_rate": [
-     35,
+     50,
      103
     ],
     "ambiguous_recall": [
-     26,
+     30,
      32
     ],
     "false_ambiguous": [
-     9,
+     20,
      71
     ]
    },
    "linker-test": {
     "n": 129,
     "top1": [
-     91,
+     95,
      109
     ],
     "top3": [
-     91,
+     101,
      109
     ],
     "no_match": [
-     19,
+     18,
      20
     ],
     "ambiguous_rate": [
-     21,
+     32,
      109
     ],
     "ambiguous_recall": [
-     17,
+     20,
      23
     ],
     "false_ambiguous": [
-     4,
+     12,
      86
     ]
    },
@@ -386,11 +386,11 @@
    "dbt_jira sample": {
     "n": 20,
     "top1": [
-     6,
+     8,
      17
     ],
     "top3": [
-     11,
+     13,
      17
     ],
     "no_match": [
@@ -398,15 +398,15 @@
      3
     ],
     "ambiguous_rate": [
-     7,
+     9,
      17
     ],
     "ambiguous_recall": [
-     5,
+     6,
      6
     ],
     "false_ambiguous": [
-     2,
+     3,
      11
     ]
    }
@@ -9017,13 +9017,13 @@
       "raw_product_costs.unit_cost"
      ],
      "scores": [
-      0.96,
+      0.915,
       0.644,
       0.639
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -9501,11 +9501,11 @@
       "fct_channel_performance_monthly.spend_usd"
      ],
      "scores": [
-      0.96
+      0.92
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -10028,18 +10028,14 @@
      "mention": "dim_customers.lifetime_value_usd",
      "gold": [],
      "expect_ambiguous": false,
-     "top": [
-      "dim_customers.lifetime_value"
-     ],
-     "scores": [
-      0.87
-     ],
+     "top": [],
+     "scores": [],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "dotted_abbreviation",
+     "stage": "none",
      "top1": false,
      "top3": false,
-     "no_match_ok": false
+     "no_match_ok": true
     },
     {
      "id": "lk-exact_id-001",
@@ -10721,15 +10717,15 @@
      "expect_ambiguous": false,
      "top": [
       "stg_promotions.promo_code",
-      "raw_promotions.code",
-      "int_order_promotions.promo_codes"
+      "int_order_promotions.promo_codes",
+      "raw_promotions.code"
      ],
      "scores": [
       0.97,
-      0.925,
-      0.875
+      0.875,
+      0.865
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": "unavailable",
      "stage": "exact_name",
      "top1": true,
@@ -10921,17 +10917,17 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "raw_payments.id",
-      "stg_payments.payment_id"
+      "stg_payments.payment_id",
+      "raw_payments.id"
      ],
      "scores": [
-      0.925,
-      0.87
+      0.87,
+      0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
-     "top1": false,
+     "stage": "rewritten",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -10945,24 +10941,24 @@
      ],
      "expect_ambiguous": false,
      "top": [
+      "stg_order_promotions.order_promotion_id",
       "int_order_promotions.order_id",
       "stg_order_promotions.order_id",
-      "raw_order_promotions.id",
-      "raw_order_promotions.order_id",
-      "stg_order_promotions.order_promotion_id"
+      "stg_order_promotions.promotion_id",
+      "raw_order_promotions.id"
      ],
      "scores": [
-      0.935,
-      0.93,
-      0.925,
-      0.925,
-      0.87
+      0.87,
+      0.869,
+      0.869,
+      0.869,
+      0.865
      ],
      "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
-     "top1": false,
-     "top3": false,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -11124,23 +11120,23 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "raw_product_costs.id",
-      "int_product_costs_current.product_id",
       "stg_product_costs.product_cost_id",
+      "int_product_costs_current.product_id",
       "stg_product_costs.product_id",
+      "raw_product_costs.id",
       "raw_product_costs.product_id"
      ],
      "scores": [
-      0.925,
-      0.875,
       0.87,
-      0.87,
+      0.869,
+      0.869,
+      0.865,
       0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
-     "top1": false,
+     "stage": "rewritten",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -11202,19 +11198,19 @@
      ],
      "expect_ambiguous": true,
      "top": [
-      "raw_suppliers.name",
       "int_product_costs_current.supplier_name",
-      "stg_suppliers.supplier_name"
+      "stg_suppliers.supplier_name",
+      "raw_suppliers.name"
      ],
      "scores": [
-      0.925,
       0.875,
-      0.87
+      0.87,
+      0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
-     "top1": false,
+     "stage": "rewritten",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -11424,24 +11420,24 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "raw_product_costs.id",
-      "int_product_costs_current.product_id",
       "stg_product_costs.product_cost_id",
+      "int_product_costs_current.product_id",
       "stg_product_costs.product_id",
+      "raw_product_costs.id",
       "raw_product_costs.product_id"
      ],
      "scores": [
-      0.925,
-      0.875,
       0.87,
-      0.87,
+      0.869,
+      0.869,
+      0.865,
       0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
-     "top1": true,
-     "top3": true,
+     "stage": "rewritten",
+     "top1": false,
+     "top3": false,
      "no_match_ok": false
     },
     {
@@ -11480,12 +11476,12 @@
       "raw_customers.last_name"
      ],
      "scores": [
-      0.96,
-      0.96
+      0.93,
+      0.925
      ],
      "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": false,
      "top3": true,
      "no_match_ok": false
@@ -11503,11 +11499,11 @@
       "fct_shipping_performance.carrier"
      ],
      "scores": [
-      0.96
+      0.94
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -11527,13 +11523,13 @@
       "int_web_sessions_clean.utm_campaign"
      ],
      "scores": [
-      0.96,
-      0.96,
-      0.96
+      0.93,
+      0.925,
+      0.915
      ],
      "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -11553,13 +11549,13 @@
       "int_product_costs_current.lead_time_days"
      ],
      "scores": [
-      0.96,
-      0.96,
+      0.93,
+      0.925,
       0.663
      ],
      "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -11991,12 +11987,12 @@
       "fct_top_products.units_sold"
      ],
      "scores": [
-      0.96,
-      0.96
+      0.91,
+      0.91
      ],
      "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -12354,12 +12350,12 @@
       "fct_product_performance.gross_margin"
      ],
      "scores": [
-      0.96,
+      0.94,
       0.694
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -12378,12 +12374,12 @@
       "fct_top_products.units_sold"
      ],
      "scores": [
-      0.96,
+      0.94,
       0.632
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -12449,13 +12445,13 @@
       "fct_segment_monthly.segment_revenue_finance"
      ],
      "scores": [
-      0.96,
+      0.94,
       0.7,
       0.619
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -13653,9 +13649,9 @@
      ],
      "scores": [
       0.97,
-      0.925
+      0.865
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": "unavailable",
      "stage": "exact_name",
      "top1": true,
@@ -14387,13 +14383,13 @@
       "int_customer_order_history.sales_tax"
      ],
      "scores": [
-      0.96,
-      0.96,
-      0.955
+      0.94,
+      0.905,
+      0.895
      ],
      "ambiguous": true,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15250,13 +15246,13 @@
       "jira__daily_sprint_issue_history.time_spent_seconds"
      ],
      "scores": [
-      0.96,
+      0.91,
       0.699,
       0.682
      ],
      "ambiguous": false,
      "hybrid": "unavailable",
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15406,12 +15402,12 @@
       "fct_customer_leaderboard.full_name"
      ],
      "scores": [
-      0.734,
-      0.704
+      0.868,
+      0.838
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15425,13 +15421,17 @@
       "int_shipments_enriched.is_late_delivery"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "int_shipments_enriched.is_late_delivery"
+     ],
+     "scores": [
+      0.805
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15444,13 +15444,19 @@
       "stg_shipments.delivery_days"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "stg_shipments.delivery_days",
+      "fct_shipping_performance.late_shipment_count"
+     ],
+     "scores": [
+      0.798,
+      0.781
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15505,13 +15511,13 @@
       "raw_product_costs.unit_cost"
      ],
      "scores": [
-      0.96,
+      0.915,
       0.644,
       0.639
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15532,12 +15538,12 @@
       "raw_suppliers.lead_time_days"
      ],
      "scores": [
-      0.704,
-      0.699
+      0.858,
+      0.853
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15551,13 +15557,21 @@
       "int_order_promotions.max_discount_pct"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "int_order_promotions.promo_codes",
+      "stg_order_promotions.discount_usd",
+      "int_order_promotions.max_discount_pct"
+     ],
+     "scores": [
+      0.83,
+      0.828,
+      0.821
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
-     "top3": false,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15570,15 +15584,23 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "int_order_promotions.promo_codes"
+      "stg_order_promotions.discount_usd",
+      "int_order_promotions.promo_codes",
+      "stg_order_promotions.promotion_id",
+      "raw_order_promotions.promotion_id",
+      "stg_promotions.promo_channel"
      ],
      "scores": [
-      0.835
+      0.835,
+      0.835,
+      0.818,
+      0.807,
+      0.793
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
-     "top1": true,
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     },
@@ -15592,13 +15614,25 @@
       "int_inventory_daily.inventory_value"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "int_inventory_daily.inventory_value",
+      "stg_inventory_snapshots.qty_on_hand",
+      "fct_inventory_status.qty_on_hand",
+      "int_inventory_daily.qty_on_hand",
+      "int_inventory_daily.prior_qty_on_hand"
+     ],
+     "scores": [
+      0.803,
+      0.798,
+      0.796,
+      0.791,
+      0.787
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15610,13 +15644,19 @@
       "int_inventory_daily.qty_change"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "stg_inventory_snapshots.qty_on_hand",
+      "int_inventory_daily.qty_change"
+     ],
+     "scores": [
+      0.823,
+      0.803
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
-     "top3": false,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15628,13 +15668,23 @@
       "int_order_profit.is_profitable"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "int_order_profit.is_profitable",
+      "int_order_profit.net_revenue",
+      "int_order_profit.order_date",
+      "int_order_profit.order_id"
+     ],
+     "scores": [
+      0.852,
+      0.839,
+      0.833,
+      0.828
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15647,11 +15697,15 @@
       "int_order_profit.cogs_total"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
+     "top": [
+      "int_order_item_margins.line_cost"
+     ],
+     "scores": [
+      0.818
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -15683,13 +15737,19 @@
       "fct_customer_cohorts.cumulative_net_paid"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "fct_customer_cohorts.cumulative_net_paid",
+      "fct_customer_cohorts.cohort_net_paid"
+     ],
+     "scores": [
+      0.838,
+      0.808
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15702,15 +15762,23 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "fct_monthly_finance.revenue_finance_mom_change"
+      "fct_monthly_finance.net_revenue",
+      "fct_monthly_finance.revenue_finance_mom_change",
+      "fct_monthly_finance.revenue_marketing",
+      "fct_segment_monthly.segment_revenue_finance",
+      "fct_monthly_finance.revenue_finance"
      ],
      "scores": [
-      0.81
+      0.813,
+      0.81,
+      0.809,
+      0.796,
+      0.792
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
-     "top1": true,
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     },
@@ -15724,18 +15792,24 @@
      ],
      "expect_ambiguous": false,
      "top": [
+      "fct_product_performance.discounted_units",
+      "stg_order_promotions.discount_usd",
+      "raw_order_promotions.discount_usd",
       "fct_product_performance.units_sold",
       "fct_top_products.units_sold"
      ],
      "scores": [
+      0.805,
+      0.788,
+      0.771,
       0.618,
       0.618
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15748,13 +15822,19 @@
       "int_order_items_enriched.is_discounted"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "stg_order_promotions.discount_usd",
+      "int_order_items_enriched.is_discounted"
+     ],
+     "scores": [
+      0.825,
+      0.794
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
-     "top3": false,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -15771,16 +15851,18 @@
      "top": [
       "fct_orders.net_paid_usd",
       "int_order_financials.net_paid_usd",
-      "int_customer_order_history.net_paid_usd"
+      "int_customer_order_history.net_paid_usd",
+      "int_order_profit.net_revenue"
      ],
      "scores": [
-      0.701,
-      0.666,
-      0.656
+      0.861,
+      0.83,
+      0.818,
+      0.813
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15797,18 +15879,20 @@
      ],
      "expect_ambiguous": true,
      "top": [
+      "raw_web_sessions.started_at",
       "stg_web_sessions.session_started_at",
       "int_web_sessions_clean.session_started_at",
-      "raw_web_sessions.started_at"
+      "int_web_sessions_clean.session_date"
      ],
      "scores": [
-      0.696,
-      0.691,
-      0.626
+      0.848,
+      0.83,
+      0.818,
+      0.807
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -15822,11 +15906,23 @@
       "int_web_sessions_clean.session_number"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "int_customer_sessions.session_count",
+      "dim_customer_rfm.web_session_count",
+      "int_customer_sessions.paid_session_count",
+      "int_customer_sessions.first_session_at",
+      "int_customer_sessions.customer_id"
+     ],
+     "scores": [
+      0.826,
+      0.817,
+      0.808,
+      0.796,
+      0.793
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -15889,16 +15985,24 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "int_order_promotions.promotion_count"
+      "int_order_promotions.discount_total",
+      "int_order_promotions.promo_codes",
+      "stg_order_promotions.discount_usd",
+      "int_order_promotions.promotion_count",
+      "stg_order_promotions.promotion_id"
      ],
      "scores": [
-      0.689
+      0.833,
+      0.833,
+      0.826,
+      0.82,
+      0.814
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
-     "top1": true,
-     "top3": true,
+     "stage": "hybrid",
+     "top1": false,
+     "top3": false,
      "no_match_ok": false
     },
     {
@@ -15993,11 +16097,11 @@
       "fct_channel_performance_monthly.spend_usd"
      ],
      "scores": [
-      0.96
+      0.92
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -16012,12 +16116,20 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "int_customer_order_history.order_total"
+      "int_customer_order_history.order_total",
+      "int_customer_order_history.order_date",
+      "int_customer_order_history.item_count",
+      "int_customer_order_history.items_subtotal",
+      "int_customer_order_history.customer_id"
      ],
      "scores": [
-      0.845
+      0.845,
+      0.84,
+      0.836,
+      0.834,
+      0.831
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
      "top1": true,
@@ -16034,17 +16146,17 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "dim_customers.order_count",
-      "fct_daily_revenue.order_count"
+      "fct_daily_revenue.order_count",
+      "dim_customers.order_count"
      ],
      "scores": [
-      0.661,
+      0.803,
       0.661
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": "used",
-     "stage": "fuzzy",
-     "top1": false,
+     "stage": "hybrid",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -16520,18 +16632,14 @@
      "mention": "dim_customers.lifetime_value_usd",
      "gold": [],
      "expect_ambiguous": false,
-     "top": [
-      "dim_customers.lifetime_value"
-     ],
-     "scores": [
-      0.87
-     ],
+     "top": [],
+     "scores": [],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "dotted_abbreviation",
+     "stage": "none",
      "top1": false,
      "top3": false,
-     "no_match_ok": false
+     "no_match_ok": true
     },
     {
      "id": "lk-exact_id-001",
@@ -17213,15 +17321,15 @@
      "expect_ambiguous": false,
      "top": [
       "stg_promotions.promo_code",
-      "raw_promotions.code",
-      "int_order_promotions.promo_codes"
+      "int_order_promotions.promo_codes",
+      "raw_promotions.code"
      ],
      "scores": [
       0.97,
-      0.925,
-      0.875
+      0.875,
+      0.865
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": null,
      "stage": "exact_name",
      "top1": true,
@@ -17413,17 +17521,17 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "raw_payments.id",
-      "stg_payments.payment_id"
+      "stg_payments.payment_id",
+      "raw_payments.id"
      ],
      "scores": [
-      0.925,
-      0.87
+      0.87,
+      0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
-     "top1": false,
+     "stage": "rewritten",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -17437,24 +17545,24 @@
      ],
      "expect_ambiguous": false,
      "top": [
+      "stg_order_promotions.order_promotion_id",
       "int_order_promotions.order_id",
       "stg_order_promotions.order_id",
-      "raw_order_promotions.id",
-      "raw_order_promotions.order_id",
-      "stg_order_promotions.order_promotion_id"
+      "stg_order_promotions.promotion_id",
+      "raw_order_promotions.id"
      ],
      "scores": [
-      0.935,
-      0.93,
-      0.925,
-      0.925,
-      0.87
+      0.87,
+      0.869,
+      0.869,
+      0.869,
+      0.865
      ],
      "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
-     "top1": false,
-     "top3": false,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -17616,23 +17724,23 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "raw_product_costs.id",
-      "int_product_costs_current.product_id",
       "stg_product_costs.product_cost_id",
+      "int_product_costs_current.product_id",
       "stg_product_costs.product_id",
+      "raw_product_costs.id",
       "raw_product_costs.product_id"
      ],
      "scores": [
-      0.925,
-      0.875,
       0.87,
-      0.87,
+      0.869,
+      0.869,
+      0.865,
       0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
-     "top1": false,
+     "stage": "rewritten",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -17694,19 +17802,19 @@
      ],
      "expect_ambiguous": true,
      "top": [
-      "raw_suppliers.name",
       "int_product_costs_current.supplier_name",
-      "stg_suppliers.supplier_name"
+      "stg_suppliers.supplier_name",
+      "raw_suppliers.name"
      ],
      "scores": [
-      0.925,
       0.875,
-      0.87
+      0.87,
+      0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
-     "top1": false,
+     "stage": "rewritten",
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -17816,22 +17924,22 @@
      "top": [
       "stg_order_promotions.promotion_id",
       "raw_order_promotions.promotion_id",
-      "stg_order_promotions.order_promotion_id",
-      "stg_promotions.promotion_id",
-      "fct_order_margins.order_id"
+      "fct_order_margins.order_id",
+      "stg_order_items.order_id",
+      "stg_order_promotions.order_promotion_id"
      ],
      "scores": [
       0.803,
       0.798,
-      0.782,
-      0.617,
-      0.612
+      0.788,
+      0.783,
+      0.782
      ],
      "ambiguous": true,
      "hybrid": "used",
      "stage": "fuzzy",
      "top1": false,
-     "top3": true,
+     "top3": false,
      "no_match_ok": false
     },
     {
@@ -17844,15 +17952,21 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "stg_payments.payment_id"
+      "raw_payments.id",
+      "stg_payments.payment_id",
+      "stg_payments.order_id",
+      "raw_payments.order_id"
      ],
      "scores": [
-      0.766
+      0.786,
+      0.766,
+      0.758,
+      0.757
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
-     "top1": true,
+     "stage": "hybrid",
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     },
@@ -17916,24 +18030,24 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "raw_product_costs.id",
-      "int_product_costs_current.product_id",
       "stg_product_costs.product_cost_id",
+      "int_product_costs_current.product_id",
       "stg_product_costs.product_id",
+      "raw_product_costs.id",
       "raw_product_costs.product_id"
      ],
      "scores": [
-      0.925,
-      0.875,
       0.87,
-      0.87,
+      0.869,
+      0.869,
+      0.865,
       0.865
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
-     "top1": true,
-     "top3": true,
+     "stage": "rewritten",
+     "top1": false,
+     "top3": false,
      "no_match_ok": false
     },
     {
@@ -17947,19 +18061,23 @@
      "expect_ambiguous": false,
      "top": [
       "int_order_financials.refund_amount",
+      "int_order_financials.item_count",
+      "int_order_financials.customer_id",
       "int_order_financials.order_total",
-      "int_order_financials.order_id"
+      "int_order_financials.net_paid_usd"
      ],
      "scores": [
       0.858,
+      0.845,
+      0.838,
       0.835,
-      0.823
+      0.826
      ],
      "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
      "top1": false,
-     "top3": true,
+     "top3": false,
      "no_match_ok": false
     },
     {
@@ -17976,12 +18094,12 @@
       "raw_customers.last_name"
      ],
      "scores": [
-      0.96,
-      0.96
+      0.93,
+      0.925
      ],
      "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": false,
      "top3": true,
      "no_match_ok": false
@@ -17999,11 +18117,11 @@
       "fct_shipping_performance.carrier"
      ],
      "scores": [
-      0.96
+      0.94
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18023,13 +18141,13 @@
       "int_web_sessions_clean.utm_campaign"
      ],
      "scores": [
-      0.96,
-      0.96,
-      0.96
+      0.93,
+      0.925,
+      0.915
      ],
      "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18049,13 +18167,13 @@
       "int_product_costs_current.lead_time_days"
      ],
      "scores": [
-      0.96,
-      0.96,
+      0.93,
+      0.925,
       0.663
      ],
      "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18116,11 +18234,15 @@
       "stg_customers.signup_at"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
+     "top": [
+      "fct_customer_cohorts.cohort_month"
+     ],
+     "scores": [
+      0.835
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -18134,13 +18256,19 @@
       "int_shipments_enriched.days_to_ship"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "int_shipments_enriched.days_to_ship",
+      "stg_shipments.delivery_days"
+     ],
+     "scores": [
+      0.789,
+      0.789
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18152,11 +18280,15 @@
       "fct_shipping_performance.avg_delivery_days"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "fct_shipping_performance.shipping_costs_usd"
+     ],
+     "scores": [
+      0.787
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -18170,13 +18302,17 @@
       "int_campaign_spend_daily.click_through_rate"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "int_campaign_spend_daily.click_through_rate"
+     ],
+     "scores": [
+      0.805
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18189,16 +18325,22 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "fct_marketing_attribution.attributed_orders"
+      "fct_marketing_attribution.attributed_orders",
+      "fct_marketing_attribution.attributed_revenue",
+      "fct_marketing_attribution.cost_per_order",
+      "int_order_attribution.attributed_revenue"
      ],
      "scores": [
-      0.69
+      0.835,
+      0.826,
+      0.822,
+      0.804
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": false,
-     "top3": false,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18210,13 +18352,17 @@
       "int_order_attribution.attributed_channel"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "int_order_attribution.attributed_channel"
+     ],
+     "scores": [
+      0.835
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18272,11 +18418,15 @@
       "int_inventory_daily.prior_qty_on_hand"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "stg_inventory_snapshots.qty_on_hand"
+     ],
+     "scores": [
+      0.83
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -18290,13 +18440,17 @@
       "fct_inventory_status.days_of_cover"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "fct_inventory_status.days_of_cover"
+     ],
+     "scores": [
+      0.808
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18310,13 +18464,21 @@
       "int_order_profit.net_revenue"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "int_order_profit.net_revenue",
+      "fct_monthly_finance.revenue_marketing",
+      "fct_orders.revenue_marketing"
+     ],
+     "scores": [
+      0.805,
+      0.8,
+      0.801
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18349,15 +18511,23 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "fct_order_margins.margin_pct"
+      "fct_order_margins.net_revenue",
+      "fct_order_margins.margin_pct",
+      "fct_monthly_finance.contribution_margin",
+      "fct_order_margins.contribution_margin",
+      "int_order_profit.contribution_margin"
      ],
      "scores": [
-      0.81
+      0.819,
+      0.81,
+      0.801,
+      0.8,
+      0.796
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
-     "top1": true,
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     },
@@ -18371,13 +18541,23 @@
       "dim_customer_segments.recency_days"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "dim_customers.most_recent_order_date",
+      "dim_customer_rfm.recency_days",
+      "int_customer_order_history.order_date",
+      "int_customer_order_history.previous_order_date"
+     ],
+     "scores": [
+      0.868,
+      0.838,
+      0.782,
+      0.779
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
-     "top3": false,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18409,13 +18589,17 @@
       "fct_segment_monthly.customer_segment"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
+     "top": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "scores": [
+      0.81
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18431,11 +18615,11 @@
       "dim_customer_segments.is_high_value"
      ],
      "scores": [
-      0.704
+      0.84
      ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18449,13 +18633,25 @@
       "fct_segment_monthly.active_customers"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "fct_segment_monthly.active_customers",
+      "fct_segment_monthly.segment_order_count",
+      "fct_segment_monthly.customer_segment",
+      "fct_customer_cohorts.repeat_customers",
+      "dim_customer_segments.customer_segment"
+     ],
+     "scores": [
+      0.824,
+      0.81,
+      0.794,
+      0.794,
+      0.786
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18467,11 +18663,23 @@
       "fct_customer_cohorts.cohort_customers"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "dim_customers.signup_at",
+      "fct_customer_cohorts.months_since_signup",
+      "stg_customers.signup_at",
+      "fct_customer_cohorts.cohort_month",
+      "fct_customer_cohorts.repeat_customers"
+     ],
+     "scores": [
+      0.854,
+      0.854,
+      0.851,
+      0.833,
+      0.826
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -18491,12 +18699,12 @@
       "fct_top_products.units_sold"
      ],
      "scores": [
-      0.96,
-      0.96
+      0.91,
+      0.91
      ],
      "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18530,13 +18738,25 @@
       "stg_order_items.unit_price"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "stg_order_items.unit_price",
+      "int_order_items_enriched.line_amount",
+      "int_order_item_margins.line_cost",
+      "raw_order_items.unit_price",
+      "int_order_items_enriched.unit_price"
+     ],
+     "scores": [
+      0.823,
+      0.823,
+      0.816,
+      0.813,
+      0.807
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -18548,11 +18768,19 @@
       "dim_customers.most_recent_order_date"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "dim_customer_rfm.recency_days",
+      "int_customer_order_history.order_date",
+      "int_customer_order_history.previous_order_date"
+     ],
+     "scores": [
+      0.797,
+      0.769,
+      0.761
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -18652,11 +18880,11 @@
       "int_sessions_daily.visitor_count"
      ],
      "scores": [
-      0.661
+      0.805
      ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18726,19 +18954,23 @@
      ],
      "expect_ambiguous": true,
      "top": [
+      "int_sessions_daily.visitor_count",
+      "int_sessions_daily.session_count",
+      "int_customer_sessions.paid_session_count",
       "fct_marketing_attribution.session_count",
-      "int_customer_sessions.session_count",
-      "int_sessions_daily.session_count"
+      "int_customer_sessions.session_count"
      ],
      "scores": [
+      0.828,
+      0.805,
+      0.798,
       0.642,
-      0.637,
       0.637
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
-     "top1": true,
+     "stage": "hybrid",
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     },
@@ -18854,12 +19086,12 @@
       "fct_product_performance.gross_margin"
      ],
      "scores": [
-      0.96,
+      0.94,
       0.694
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18878,12 +19110,12 @@
       "fct_top_products.units_sold"
      ],
      "scores": [
-      0.96,
+      0.94,
       0.632
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18898,12 +19130,20 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "int_customer_sessions.session_count"
+      "int_customer_sessions.session_count",
+      "int_customer_sessions.paid_session_count",
+      "dim_customer_rfm.web_session_count",
+      "int_customer_sessions.total_page_views",
+      "int_customer_sessions.customer_id"
      ],
      "scores": [
-      0.835
+      0.835,
+      0.83,
+      0.824,
+      0.817,
+      0.794
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
      "top1": true,
@@ -18921,15 +19161,21 @@
      "expect_ambiguous": false,
      "top": [
       "fct_order_margins.gross_margin",
-      "int_order_profit.gross_margin"
+      "fct_order_margins.contribution_margin",
+      "int_order_profit.gross_margin",
+      "fct_order_margins.net_revenue",
+      "fct_order_margins.margin_pct"
      ],
      "scores": [
-      0.674,
-      0.669
+      0.838,
+      0.833,
+      0.828,
+      0.824,
+      0.815
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -18949,13 +19195,13 @@
       "fct_segment_monthly.segment_revenue_finance"
      ],
      "scores": [
-      0.96,
+      0.94,
       0.7,
       0.619
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -19355,14 +19601,18 @@
      "mention": "exchange rate",
      "gold": [],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "stg_payments.amount_usd"
+     ],
+     "scores": [
+      0.65
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
-     "no_match_ok": true
+     "no_match_ok": false
     },
     {
      "id": "lk-no_match-020",
@@ -20153,9 +20403,9 @@
      ],
      "scores": [
       0.97,
-      0.925
+      0.865
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": null,
      "stage": "exact_name",
      "top1": true,
@@ -20766,21 +21016,21 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "fct_segment_monthly.segment_revenue_finance",
       "fct_daily_revenue.revenue_finance",
+      "fct_segment_monthly.segment_revenue_finance",
       "fct_monthly_finance.revenue_finance",
       "fct_orders.revenue_finance"
      ],
      "scores": [
+      0.805,
       0.79,
-      0.653,
       0.653,
       0.653
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
-     "top1": true,
+     "stage": "hybrid",
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     },
@@ -20838,14 +21088,22 @@
      ],
      "expect_ambiguous": false,
      "top": [
-      "dim_customers.most_recent_order_date"
+      "dim_customers.most_recent_order_date",
+      "fct_orders.order_date",
+      "fct_orders.previous_order_date",
+      "stg_orders.order_date",
+      "raw_orders.order_date"
      ],
      "scores": [
-      0.792
+      0.81,
+      0.79,
+      0.78,
+      0.78,
+      0.766
      ],
-     "ambiguous": false,
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -20887,13 +21145,13 @@
       "int_customer_order_history.sales_tax"
      ],
      "scores": [
-      0.96,
-      0.96,
-      0.955
+      0.94,
+      0.905,
+      0.895
      ],
      "ambiguous": true,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -20908,19 +21166,23 @@
      ],
      "expect_ambiguous": false,
      "top": [
+      "int_order_shipping.shipment_count",
       "int_order_shipping.shipping_cost_total",
-      "int_order_profit.shipping_cost_total",
-      "fct_order_margins.shipping_cost_total"
+      "int_order_shipping.first_shipped_at",
+      "int_order_shipping.last_delivered_at",
+      "int_order_profit.shipping_cost_total"
      ],
      "scores": [
+      0.853,
       0.835,
-      0.83,
-      0.714
+      0.834,
+      0.833,
+      0.83
      ],
      "ambiguous": true,
      "hybrid": "used",
      "stage": "hybrid",
-     "top1": true,
+     "top1": false,
      "top3": true,
      "no_match_ok": false
     }
@@ -21672,11 +21934,23 @@
       "jira__sprint_enhanced.sprint_started_at"
      ],
      "expect_ambiguous": true,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "sprint.start_date",
+      "stg_jira__sprint.started_at",
+      "int_jira__issue_sprint.sprint_started_at",
+      "jira__sprint_enhanced.sprint_started_at",
+      "jira__issue_enhanced.sprint_started_at"
+     ],
+     "scores": [
+      0.853,
+      0.823,
+      0.791,
+      0.791,
+      0.784
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -21708,13 +21982,17 @@
       "jira__issue_enhanced.open_duration_seconds"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
+     "top": [
+      "jira__issue_enhanced.open_duration_seconds"
+     ],
+     "scores": [
+      0.82
+     ],
      "ambiguous": false,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -21726,13 +22004,21 @@
       "jira__issue_status_transitions.previous_status"
      ],
      "expect_ambiguous": false,
-     "top": [],
-     "scores": [],
-     "ambiguous": false,
+     "top": [
+      "jira__issue_status_transitions.previous_status",
+      "jira__issue_status_transitions.status",
+      "jira__issue_status_transitions.transition_at"
+     ],
+     "scores": [
+      0.815,
+      0.808,
+      0.805
+     ],
+     "ambiguous": true,
      "hybrid": "used",
-     "stage": "none",
-     "top1": false,
-     "top3": false,
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -21750,13 +22036,13 @@
       "jira__daily_sprint_issue_history.time_spent_seconds"
      ],
      "scores": [
-      0.96,
+      0.91,
       0.699,
       0.682
      ],
      "ambiguous": false,
      "hybrid": null,
-     "stage": "surface",
+     "stage": "rewritten",
      "top1": true,
      "top3": true,
      "no_match_ok": false
@@ -21773,22 +22059,22 @@
      ],
      "expect_ambiguous": true,
      "top": [
-      "int_jira__issue_join.remaining_estimate_seconds",
-      "int_jira__issue_type_parents.remaining_estimate_seconds",
+      "stg_jira__issue.original_estimate_seconds",
+      "int_jira__issue_users.original_estimate_seconds",
       "int_jira__issue_users.remaining_estimate_seconds",
-      "jira__daily_sprint_issue_history.remaining_estimate_seconds",
-      "jira__issue_enhanced.remaining_estimate_seconds"
+      "stg_jira__issue.remaining_estimate_seconds",
+      "int_jira__issue_join.remaining_estimate_seconds"
      ],
      "scores": [
-      0.789,
-      0.789,
-      0.789,
-      0.784,
-      0.784
+      0.795,
+      0.794,
+      0.793,
+      0.791,
+      0.789
      ],
      "ambiguous": true,
      "hybrid": "used",
-     "stage": "fuzzy",
+     "stage": "hybrid",
      "top1": false,
      "top3": false,
      "no_match_ok": false
@@ -21861,7 +22147,7 @@
     0.0,
     0.0,
     0.0,
-    0.87
+    0.0
    ],
    "positive": [
     1.0,
@@ -21871,7 +22157,7 @@
     0.505,
     0.41,
     0.482,
-    0.975,
+    0.915,
     0.704,
     0.594,
     0.687,
@@ -21893,7 +22179,7 @@
     0.875,
     0.88,
     0.88,
-    0.98,
+    0.92,
     0.682,
     0.661,
     0.97,
@@ -21941,18 +22227,18 @@
     0.87,
     0.875,
     0.875,
-    0.925,
-    0.935,
+    0.87,
+    0.87,
     0.87,
     0.88,
     0.87,
     0.88,
     0.87,
     0.88,
-    0.925,
+    0.87,
     0.88,
     0.875,
-    0.925,
+    0.875,
     0.88,
     0.875,
     0.87,
@@ -21961,12 +22247,12 @@
     0.766,
     0.783,
     0.794,
-    0.925,
+    0.87,
     0.672,
-    0.99,
-    1.0,
-    0.99,
-    0.99
+    0.93,
+    0.94,
+    0.93,
+    0.93
    ]
   },
   "cosine": [
@@ -22276,7 +22562,8 @@
     "rules": [
      "P1",
      "plural"
-    ]
+    ],
+    "context": true
    },
    "fct_daily_revenue.order_count": {
     "stage": 2,
@@ -22287,13 +22574,14 @@
     "raw": 0.6283,
     "rules": [
      "P1"
-    ]
+    ],
+    "context": false
    }
   }
  },
  "constants": {
   "NO_MATCH": 0.6,
   "AMBIGUOUS_GAP": 0.05,
-  "COS_MIN": 0.8
+  "COS_MIN": 0.695
  }
 }

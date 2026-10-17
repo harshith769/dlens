@@ -1,6 +1,8 @@
 # Entity linker v2: design (S08, v0.3 B2)
 
-Status: **draft for owner approval** (17 Oct 2026). No code until it is approved.
+Status: **FROZEN** (owner, 18 Oct 2026) until the S09 re-check on the 96 dev questions. Any later
+change is made on dev only and recorded in the change log with before/after numbers. Approved 17
+Oct 2026; amendments A–F and the COS_MIN change are recorded below.
 Scope: `resolve_entity` in `src/dlens/agent/tools/entity.py`, a new `Toolbox(index=...)`
 argument, the linker test set under `eval/linker/` and a linker report. The lineage engine,
 `eval/metrics.py`, the validator rules and the agent loop's refusal and ambiguity code are not
@@ -400,9 +402,20 @@ is capped 0.001 below the lowest such match. Found by "pmt id" in the S08 report
 `payment_id` (0.87). A consequence: "payment method" is no longer ambiguous (0.93 vs 0.865), and
 the 0.96 printed cap (E) no longer binds, because a context match now tops out at 0.94.
 
+**COS_MIN = 0.695: the one permitted change (owner, 18 Oct 2026).** Rule, stated before it was
+computed: the lowest COS_MIN at which no linker-dev non-dotted no-match case is matched through
+stage 3. With the floor off, the stage-3 candidates those 10 cases would return have cosines up to
+0.6946 ("ship date"), so COS_MIN = 0.695 (`scripts/linker_report.py --calibrate-cos-min`, which
+reads linker-dev only). **Disclosure: linker-test had already been observed** (the first S08
+report, at COS_MIN = 0.80) before this change was made. The rule used no linker-test number, but
+the post-change linker-test result is not a blind estimate, and it is reported once.
+
 ## Change log
 - 17 Oct 2026: first draft (S08 step 1).
 - 17 Oct 2026: amendments A, B, C (owner, after the case review, before measurement).
 - 17 Oct 2026: amendments D, E (owner, during implementation, before measurement).
-- 18 Oct 2026: layer from folder; dotted `usd` one-way; amendment F (owner, after the first S08
-  report, which had observed linker-dev and linker-test).
+- 18 Oct 2026: layer from folder; dotted `usd` one-way; amendment F; COS_MIN 0.80 → 0.695 (owner,
+  after the first S08 report, which had observed linker-dev and linker-test).
+- 18 Oct 2026: design frozen until S09's 96-dev re-check. Open finding (seen on linker-test, so
+  not acted on): `stg_shipments.shipping_cost`, the DESIGN_v2 trap-8 unanswerable near-miss,
+  resolves to `shipping_cost_usd` through the one-way `usd` rule.

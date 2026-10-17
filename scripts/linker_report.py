@@ -208,6 +208,31 @@ def cosine_evidence(graph: Any, index: Any, cases: list[dict[str, Any]]) -> list
     return rows
 
 
+def calibrate_cos_min(graph: Any, index: Any, cases: list[dict[str, Any]]) -> dict[str, Any]:
+    """The owner's rule (18 Oct 2026), on linker-dev ONLY: the lowest COS_MIN at which no
+    non-dotted no-match case is matched through stage 3. With the floor off, record the cosine of
+    every stage-3 candidate that would be returned (score >= tau) for those cases; the answer is
+    just above the largest one (3 decimals, rounded up)."""
+    import math
+
+    from dlens.agent.tools import entity
+
+    saved = entity.COS_MIN
+    entity.COS_MIN = -1.0
+    try:
+        per_case = []
+        for c in cases:
+            if c["gold"] or c["split"] != "linker-dev" or entity._DOTTED.match(c["mention"]):
+                continue
+            ranked, _ = entity.link(graph, c["mention"], index)
+            cos = [x.extra["cosine"] for x in ranked if x.tier == "hybrid"]
+            per_case.append({"id": c["id"], "mention": c["mention"], "stage3_cosines": cos})
+    finally:
+        entity.COS_MIN = saved
+    worst = max((x for r in per_case for x in r["stage3_cosines"]), default=0.0)
+    return {"cases": per_case, "max_cosine": worst, "cos_min": math.floor(worst * 1000 + 1) / 1000}
+
+
 def dev15(graph: Any) -> dict[str, Any]:
     from dlens.agent.tools import entity
     from dlens.agent.tools.provenance import Provenance
@@ -229,7 +254,16 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--work", type=Path, help="scratch dir for the dbt_jira build and index")
     ap.add_argument("--no-jira", action="store_true")
+    ap.add_argument(
+        "--calibrate-cos-min",
+        action="store_true",
+        help="only print the COS_MIN the owner's linker-dev rule gives, and exit",
+    )
     args = ap.parse_args()
+    if args.calibrate_cos_min:
+        graph, _, index = synthetic(with_hybrid=True)
+        print(json.dumps(calibrate_cos_min(graph, index, load("cases.jsonl")), indent=1))
+        return 0
     work = args.work or Path(tempfile.mkdtemp(prefix="linker_report_"))
     work.mkdir(parents=True, exist_ok=True)
 

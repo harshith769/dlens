@@ -77,7 +77,7 @@ LAYER_PRIOR = {"marts": 0.010, "intermediate": 0.005, "staging": 0.0, "raw": -0.
 SCORE_CAP = 0.96  # printed scores of stages 2-3; ranking and ``ambiguous`` use the raw sum
 NO_MATCH = 0.60  # tau
 AMBIGUOUS_GAP = 0.05  # delta
-COS_MIN = 0.80
+COS_MIN = 0.695  # one permitted change, linker-dev rule (design §4.3, 18 Oct 2026)
 HYBRID_K = 10
 CLOSEST = 3
 RRF_MAX = 2 / 61  # rank 1 in both lists, RRF k = 60

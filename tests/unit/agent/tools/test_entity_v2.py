@@ -15,6 +15,7 @@ import pytest
 from dlens.agent.tools import Toolbox
 from dlens.agent.tools.entity import (
     AMBIGUOUS_GAP,
+    COS_MIN,
     NO_MATCH,
     RRF_MAX,
     _soft_dice,
@@ -193,7 +194,7 @@ def test_one_shared_word_of_two_is_no_match_and_closest_stays_out_of_the_payload
 
 
 def test_thresholds_are_the_design_values() -> None:
-    assert (NO_MATCH, AMBIGUOUS_GAP) == (0.60, 0.05)
+    assert (NO_MATCH, AMBIGUOUS_GAP, COS_MIN) == (0.60, 0.05, 0.695)
 
 
 # -- dotted ids (amendment C) -------------------------------------------------------------------
@@ -264,7 +265,7 @@ def test_strong_hybrid_beats_a_below_bar_stage2_candidate(tmp_path: Path) -> Non
 
 
 def test_hybrid_needs_the_cosine_floor(tmp_path: Path) -> None:
-    idx = FakeIndex([(f"{P}.fct_orders.sales_tax", RRF_MAX, 0.79)])
+    idx = FakeIndex([(f"{P}.fct_orders.sales_tax", RRF_MAX, COS_MIN - 0.001)])
     box = Toolbox(make_graph(), tmp_path, index=idx)  # type: ignore[arg-type]
     p, _ = resolve(box, "warehouse temperature")
     assert p["candidates"] == [] and p["hybrid"] == "used"
