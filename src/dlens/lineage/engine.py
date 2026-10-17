@@ -6,9 +6,10 @@ unique_ids through the relation map. The kind comes from the projections on the 
 provenance from the model's source .sql.
 """
 
+import copy
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from graphlib import TopologicalSorter
 from pathlib import Path
 
@@ -84,6 +85,7 @@ class _ModelLineage:
     constants: list[str] = field(default_factory=list)  # outputs with no input column at all
     scope: Scope | None = None  # root scope of the qualified SELECT (shared with indirect edges)
     indirect: list[_RawIndirect] = field(default_factory=list)
+    outputs: list[str] = field(default_factory=list)  # output columns, in projection order
 
 
 def topological_models(ingest: IngestResult) -> list[DbtNode]:
@@ -197,6 +199,11 @@ def _resolve_leaf(
         return [(column_id(uid, col), Confidence.HIGH)], None
     # Placeholder: sqlglot could not tell which table the column belongs to. Emit a
     # low-confidence edge to every table in the step's scope that could hold it.
+    if col == "*":
+        # A star over a table the schema doesn't know (catalog-less ingest): there is no column
+        # to point at, so it is a gap (TABLE_ONLY), never an edge to a column named "*".
+        tables = [_table_name(t) for t in _scope_tables(path.scope)] if path.scope else []
+        return [], f"unexpanded * from {', '.join(tables) or 'an unknown table'}"
     candidates = [_table_name(t) for t in _scope_tables(path.scope)] if path.scope else []
     known = [r for r in candidates if _has_column(ingest.schema, r, col)]
     if not known:
@@ -235,7 +242,7 @@ def lineage_for_sql(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> 
         None, expression, schema=schema, dialect=dialect, scope=scope, trim_selects=False
     )
     assert isinstance(trees, dict)  # guarded by golden test #0
-    out = _ModelLineage(scope=scope)
+    out = _ModelLineage(scope=scope, outputs=[o for o in trees if o != "*"])
     for output, root in trees.items():
         if output == "*":
             out.gaps.append("unexpanded * in the outer SELECT")
@@ -243,8 +250,8 @@ def lineage_for_sql(sql: str, ingest: IngestResult, dialect: str = "duckdb") -> 
         found = False
         for path in _walk(root, [], [], None, None):
             ids, gap = _resolve_leaf(path, ingest)
-            if gap:
-                out.gaps.append(f"{output} <- {gap}")
+            if gap and (entry := f"{output} <- {gap}") not in out.gaps:
+                out.gaps.append(entry)
             for upstream, conf in ids:
                 out.edges.append((upstream, output, path.steps, path.inputs, conf, path.branch))
                 found = True
@@ -684,10 +691,30 @@ def _model_indirect(
     return sorted(best.values(), key=lambda e: (e.to_column, e.from_column, e.kind)), gaps
 
 
+def _grow_schema(schema: SqlglotSchema, model: DbtNode, outputs: list[str]) -> None:
+    """Spec §7 step 2: make a parsed model's output columns visible to later models. Types come
+    from the schema already there (YAML ``data_type``) or are ``unknown``."""
+    if not model.relation_name or not outputs:
+        return  # ephemeral models are inlined as CTEs; sqlglot sees their columns there
+    parts = normalize_relation(model.relation_name).split(".")
+    if len(parts) != 3:
+        return
+    db, sch, table = parts
+    tables = schema.setdefault(db, {}).setdefault(sch, {})
+    declared = tables.get(table, {})
+    tables[table] = {c.lower(): declared.get(c.lower(), "unknown") for c in outputs}
+
+
 def extract_lineage(
-    ingest: IngestResult, project_dir: Path, dialect: str = "duckdb"
+    ingest: IngestResult, project_dir: Path, dialect: str = "duckdb", grow_schema: bool = False
 ) -> LineageResult:
-    """Direct column edges, manifest DEPENDS_ON edges and a parse report for every model."""
+    """Direct column edges, manifest DEPENDS_ON edges and a parse report for every model.
+
+    ``grow_schema`` (catalog-less artifact ingest, S06): after each model parses, its output
+    columns are added to a copy of the schema, so models downstream can expand ``*`` and
+    resolve columns. With a catalog it stays off: the catalog already lists every column."""
+    if grow_schema:
+        ingest = replace(ingest, schema=copy.deepcopy(ingest.schema))
     edges: list[Edge] = []
     indirect: list[IndirectEdge] = []
     report: dict[str, ModelParse] = {}
@@ -708,6 +735,8 @@ def extract_lineage(
                 reason=f"{type(e).__name__}: {e}"[:500],
             )
             continue
+        if grow_schema:
+            _grow_schema(ingest.schema, model, raw.outputs)
         src_path = project_dir / (model.original_file_path or "")
         source = src_path.read_text() if src_path.is_file() else None
         edges += _model_edges(model, raw, source, dialect)

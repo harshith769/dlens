@@ -18,9 +18,13 @@ relation map) into:
 
 ## How it works
 1. **DAG order** (`engine.topological_models`): `graphlib.TopologicalSorter` over manifest
-   `depends_on`. The catalog already contains every built model, so order doesn't change the result
-   today. It keeps the spec §7 contract ("later models can see earlier outputs") for when the schema
-   is grown during the run.
+   `depends_on`. With a catalog, every built model is already in the schema, so order doesn't change
+   the result. Without one (catalog-less artifact ingest, S06), `extract_lineage(...,
+   grow_schema=True)` adds each parsed model's output columns to a copy of the schema, in
+   projection order (spec §7 step 2: "later models can see earlier outputs"). A downstream
+   `select *` then expands, and its columns resolve to HIGH-confidence edges. The types come
+   from YAML `data_type`, or are `unknown`. The catalog path never grows the schema, and its
+   graphs were byte-identical before and after S06.
 2. **One sqlglot call per model**: `lineage(None, compiled_code, schema=..., dialect="duckdb")`
    returns `{output_column: Node}`. Each node's `expression` is the projection at that level, its
    `source` is the SELECT (or UNION) it lives in, and its `downstream` are the columns it reads.
@@ -75,7 +79,9 @@ relation map) into:
    their clause through `provenance.line_map` / `locate_clause` (indirect-edges.md).
 8. **Ambiguous columns**: sqlglot returns a Placeholder leaf. The engine emits a LOW-confidence
    edge to every table in that SELECT's FROM/JOINs whose schema has the column, or that the schema
-   doesn't know.
+   doesn't know. A Placeholder `*` (a star over a table the schema doesn't know, which only
+   happens without a catalog) is a gap, never an edge to a column named `*`. Each gap is recorded
+   once per output column, however many paths reach it.
 9. **Parse quality**: an exception from sqlglot → FAILED, with no column edges but DEPENDS_ON kept.
    Any gap (unmapped table, unexpanded `*`, an unresolvable column) → TABLE_ONLY, and the edges
    that did resolve are still emitted. Otherwise FULL.
@@ -204,3 +210,7 @@ constant in only some UNION branches still has edges and is not recorded.
 6. `customer_orders` joins `__dbt__cte__order_payments as p on orders.id = p.order_id`. Which
    upstream column does the JOIN indirect edge for `p.order_id` come from, and why does
    `paid_payments`' `where amount_cents > 0` give no FILTER edge on `customer_orders`?
+7. Catalog-less, `customer_orders` in eph_shop starts with `select * from raw_orders`, and
+   raw_orders declares no columns in YAML. What does the parse report say for it, which edge
+   survives, and why does `customer_summary` still get HIGH-confidence edges from
+   `customer_orders`?
