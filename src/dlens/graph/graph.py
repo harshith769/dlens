@@ -17,7 +17,7 @@ from dlens.graph.models import (
     PathList,
     hop_rank,
 )
-from dlens.ingest import IngestResult, ingest
+from dlens.ingest import IngestResult, TargetInfo, ingest, load_target
 from dlens.lineage import (
     Edge,
     IndirectEdge,
@@ -388,3 +388,17 @@ def build_graph(project_dir: Path, dialect: str = "duckdb") -> LineageGraph:
     """Run dbt (ingest), extract column lineage and build the graph."""
     ingested = ingest(project_dir)
     return LineageGraph.from_results(ingested, extract_lineage(ingested, project_dir, dialect))
+
+
+def build_graph_from_artifacts(
+    target_dir: Path, dialect: str | None = None
+) -> tuple[LineageGraph, TargetInfo]:
+    """Artifact-only build (ADR 0013): read an existing dbt target/, never run dbt.
+
+    Citations come from the source files of the dbt project around ``target_dir`` when there is
+    one; otherwise every edge cites its model's file at model level. Without catalog.json the
+    schema grows model by model (catalog-less fallback)."""
+    ingested, info = load_target(target_dir, dialect)
+    project = info.project_dir or target_dir
+    result = extract_lineage(ingested, project, info.dialect, grow_schema=info.catalog_less)
+    return LineageGraph.from_results(ingested, result), info
