@@ -275,6 +275,21 @@ where user_id
             ("orders.user_id", "m.amt_b", "FILTER"): ((9, 10), "orders.user_id"),
         },
     ),
+    (
+        # qualify writes the outer column as t.amt and copies the alias's position (line 6):
+        # the clause is still the WHERE on line 7 (S06).
+        "where_over_derived_table_column",
+        """select id, amt
+from (
+    select id, amt
+    from {{ ref('orders') }}
+    where user_id > 0
+) as t
+where amt > 100
+""",
+        None,
+        {("orders.amt", "m.id", "FILTER"): ((7, 7), "t.amt")},
+    ),
 ]
 
 

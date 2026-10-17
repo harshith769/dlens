@@ -76,7 +76,10 @@ relation map) into:
    branch gets the k-th match. Star-expanded columns cite the `*`, including DuckDB's
    `* EXCLUDE (...)`, `* REPLACE (...)` and `t.* EXCLUDE (...)` forms (S04, fct_order_margins). If
    nothing matches, the whole file is cited with `model_level_citation=True`. Indirect edges cite
-   their clause through `provenance.line_map` / `locate_clause` (indirect-edges.md).
+   their clause through `provenance.line_map` / `locate_clause` (indirect-edges.md). The clause is
+   found from the source positions of the columns in it. A column's qualifier (`t.` in `t.amt`) is
+   ignored there, because qualify copies it from the source's alias together with the alias's
+   position (`) as t`), which lies outside the clause (S06).
 8. **Ambiguous columns**: sqlglot returns a Placeholder leaf. The engine emits a LOW-confidence
    edge to every table in that SELECT's FROM/JOINs whose schema has the column, or that the schema
    doesn't know. A Placeholder `*` (a star over a table the schema doesn't know, which only

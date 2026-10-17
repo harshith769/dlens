@@ -272,6 +272,13 @@ _STARTERS = re.compile(
 )
 
 
+def _qualifier(node: exp.Expr) -> bool:
+    """A column's table/db/catalog part. qualify copies it from the source's alias, together with
+    the alias's position (``) as t``), so it can point outside the clause; the column's own name
+    is always inside it (S06)."""
+    return isinstance(node.parent, exp.Column) and node.arg_key in {"table", "db", "catalog"}
+
+
 def _clause_text(sql: str, clause: exp.Expr, dialect: str) -> tuple[str, Span | None]:
     """The clause as written in the compiled SQL (whitespace collapsed), e.g. ``on o.user_id =
     c.id`` or ``over (partition by k order by d)``, and its span in the compiled SQL.
@@ -304,8 +311,9 @@ def _clause_text(sql: str, clause: exp.Expr, dialect: str) -> tuple[str, Span | 
         keyword, fallback = rf"{clause.key}\s+by", clause.sql(dialect=dialect)
     else:  # a JOIN's ON condition (USING is expanded to ON by qualify)
         keyword, fallback = r"on|using", f"ON {clause.sql(dialect=dialect)}"
-    starts = [n.meta["start"] for c in span for n in c.walk() if "start" in n.meta]
-    ends = [n.meta["end"] for c in span for n in c.walk() if "end" in n.meta]
+    nodes = [n for c in span for n in c.walk() if "start" in n.meta and not _qualifier(n)]
+    starts = [n.meta["start"] for n in nodes]
+    ends = [n.meta["end"] for n in nodes]
     if not starts:
         return fallback, _keyword_span(sql, clause)
     first, last = min(starts), max(ends)
