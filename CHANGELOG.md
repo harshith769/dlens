@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Perturbation oracle (`make oracle`, `eval/oracle/`, ADR 0017): an independent dynamic check of
+  the synthetic_shop gold. It perturbs each column in DuckDB, re-runs the compiled SQL (one hop
+  and end to end) and compares the changed columns with `lineage_spec.yml`. Result: 0
+  disagreements the gold misses, 762 of 907 one-hop pairs observed, and every unobserved pair
+  auto-tagged or decided by the owner (`ORACLE_REPORT.md`, `oracle_exceptions.yml`). The
+  integration test re-runs it (about 40 s).
 - `dlens trace ... --include-indirect` and `dlens impact ... --include-indirect` (default off):
   traversal also follows indirect edges (JOIN, FILTER, GROUP_BY, WINDOW, SORT, CONDITIONAL),
   and each indirect hop is marked with its type, its clause and the clause's `file:lines`.
