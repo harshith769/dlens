@@ -17,7 +17,9 @@ For a `target/` that already exists (any warehouse, no dbt run), see
    catalog columns sorted by `index`).
 3. `schema.py` builds `{db: {schema: {table: {col: type}}}}` from the catalog, builds
    `normalised relation_name -> unique_id` from the manifest, and lists catalog relations
-   that no manifest node claims.
+   that no manifest node claims. A source declared over a seed's table (both claim one relation, as in
+   Fivetran's integration projects) maps to the source, because models read the table through
+   `source()`. Any other collision raises (S06).
 
 ## Why these choices
 - **Compiled SQL only.** Raw model SQL contains Jinja (`ref`, macros) that sqlglot cannot

@@ -104,6 +104,13 @@ declares every seed column in YAML; most real projects don't. On the eph_shop fi
 seeds are undeclared, `customer_orders` is PARTIAL: its 3 columns that come through `select *
 from raw_orders` are gaps.
 
+**Set E, fivetran/dbt_jira v1.10.2** (`corpora/dbt_jira`): built offline, 61 models (13
+ephemeral), 1,046 columns, 761 direct and 4,830 indirect edges. Coverage: 60 FULL, 1 PARTIAL,
+0 FAILED. The PARTIAL model is `int_jira__issue_sprint`. Its `field_history.*` comes from an
+inlined ephemeral model whose body has its own `WITH`, and sqlglot doesn't expand the star
+through that nested WITH: 8 gaps, a known engine limitation. Ingesting it also found that a
+source declared over its seed's table claims the same relation; the source now wins (ingest.md).
+
 **CI** (`core-artifacts` job): a core install with no extras on macos-latest and windows-latest
 runs `dlens ingest --artifacts` on the committed eph_shop fixture (build, cache reuse, trace,
 catalog-less with `--out`) plus the artifact-ingest unit tests. Its first Windows run found a real

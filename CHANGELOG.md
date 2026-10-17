@@ -22,6 +22,9 @@ All notable changes to this project are documented here. The format follows
 - Dialect round trip test: synthetic_shop transpiled to Snowflake, BigQuery and Postgres keeps
   direct and indirect edge F1 within 0.02 of DuckDB (`scripts/dialect_check.py`,
   `eval/reports/s06_dialects.json`).
+- Set-E corpus: [fivetran/dbt_jira](https://github.com/fivetran/dbt_jira) v1.10.2 vendored in
+  `corpora/dbt_jira` (Apache-2.0; `SOURCE.md` lists every local change), built offline with
+  dbt-duckdb. 61 models, 13 of them ephemeral; 60 FULL, 1 PARTIAL. It is not in the wheel or sdist.
 - CI: a core install (no extras) on macOS and Windows runs `dlens ingest --artifacts` on a
   committed fixture. Every `uv sync` step retries once on transient download errors.
 - Perturbation oracle (`make oracle`, `eval/oracle/`, ADR 0017): an independent dynamic check of
@@ -55,6 +58,8 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 - A WHERE over a derived-table column (`... ) as t where t.amt > 100`) now cites its own lines
   instead of falling back to the whole file.
+- A source declared over a seed's table (both claim one relation) no longer stops ingest: the
+  relation maps to the source, which is what models read. Any other collision is a clear error.
 - On Windows, `dlens trace`/`impact` no longer crash with UnicodeEncodeError when output is piped
   or redirected; the CLI writes UTF-8.
 - Edge kind follows each input's own path: a scalar subquery's aggregate no longer makes a
