@@ -1,4 +1,5 @@
-"""Ingest: run dbt, load its artifacts, build the schema and relation map."""
+"""Ingest: run dbt (or read an existing target/), load its artifacts, build the schema and
+relation map."""
 
 from pathlib import Path
 
@@ -10,8 +11,18 @@ from dlens.ingest.schema import (
     build_sqlglot_schema,
     unmapped_relations,
 )
+from dlens.ingest.target import ArtifactError, TargetInfo, load_target
 
-__all__ = ["DbtArtifacts", "DbtError", "IngestResult", "ingest", "load_artifacts"]
+__all__ = [
+    "ArtifactError",
+    "DbtArtifacts",
+    "DbtError",
+    "IngestResult",
+    "TargetInfo",
+    "ingest",
+    "load_artifacts",
+    "load_target",
+]
 
 
 def load_artifacts(artifacts: DbtArtifacts) -> IngestResult:
