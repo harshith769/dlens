@@ -22,7 +22,7 @@ import json
 import re
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass, field
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any, Literal
 
 import sqlglot
@@ -31,6 +31,7 @@ from sqlglot import exp
 from dlens.agent.llm.tokens import estimate_tokens
 from dlens.agent.llm.types import Message
 from dlens.graph import LineageGraph
+from dlens.ingest.paths import ProjectFiles, patch_rel, safe_rel
 from dlens.lineage import column_id
 from dlens.lineage.provenance import locate
 
@@ -424,55 +425,33 @@ def docs_block_lines(text: str, name: str) -> tuple[int, int] | None:
 # -- project files -----------------------------------------------------------------------------
 
 
-def _safe_rel(rel: str) -> bool:
-    p = PurePosixPath(rel)
-    return bool(rel) and not p.is_absolute() and ".." not in p.parts
-
-
 @dataclass
 class _Files:
-    """Reads only manifest-referenced files, relative to their package root."""
+    """Reads only manifest-referenced files, through the shared resolver (``ingest.paths``)."""
 
-    project_dir: Path | None
-    root_name: str
-    packages_dir: str
+    project: ProjectFiles
     read_log: dict[str, str] = field(default_factory=dict)  # display path -> sha256
 
+    @property
+    def project_dir(self) -> Path | None:
+        return self.project.project_dir
+
+    @property
+    def root_name(self) -> str:
+        return self.project.root_name
+
     def display(self, package: str, rel: str) -> str:
-        if package == self.root_name:
-            return rel
-        return f"{self.packages_dir}/{package}/{rel}"
+        return self.project.display(package, rel)
 
     def read(self, package: str, rel: str) -> tuple[str, str] | None:
         """(display path, text) of a project file, or None if unavailable."""
-        if self.project_dir is None or not _safe_rel(rel):
+        found = self.project.path(package, rel)
+        if found is None:
             return None
-        shown = self.display(package, rel)
-        path = self.project_dir / shown
-        if not path.is_file():
-            return None
+        shown, path = found
         text = path.read_text(encoding="utf-8", errors="replace")
         self.read_log[shown] = hashlib.sha256(text.encode()).hexdigest()
         return shown, text
-
-
-def _packages_dir(project_dir: Path | None) -> str:
-    if project_dir is None:
-        return "dbt_packages"
-    try:
-        text = (project_dir / "dbt_project.yml").read_text(encoding="utf-8")
-    except OSError:
-        return "dbt_packages"
-    m = re.search(r"^packages-install-path:\s*['\"]?([^'\"\s#]+)", text, re.MULTILINE)
-    return m.group(1).strip("/") if m else "dbt_packages"
-
-
-def _patch_rel(patch_path: str | None) -> tuple[str | None, str | None]:
-    """``pkg://models/schema.yml`` -> (pkg, models/schema.yml)."""
-    if not patch_path or "://" not in patch_path:
-        return None, None
-    pkg, rel = patch_path.split("://", 1)
-    return pkg, rel
 
 
 # -- the chunker -------------------------------------------------------------------------------
@@ -568,7 +547,7 @@ def _compiled(ctx: _Ctx, node: dict[str, Any]) -> str:
     """A model's compiled SQL: ``compiled_code``, else ``target/compiled/<pkg>/<path>``."""
     compiled = node.get("compiled_code") or ""
     rel = node.get("original_file_path") or ""
-    if not compiled and _safe_rel(rel):
+    if not compiled and safe_rel(rel):
         cpath = ctx.target_dir / "compiled" / node["package_name"] / rel
         if cpath.is_file():
             compiled = cpath.read_text(encoding="utf-8", errors="replace")
@@ -653,7 +632,7 @@ def _cards(ctx: _Ctx, node: dict[str, Any], carded: set[str]) -> None:
     cat = _catalog_columns(ctx, uid)
     title_base = _node_title(node)
     rtype = node["resource_type"]
-    yml_pkg, yml_rel = _patch_rel(node.get("patch_path"))
+    yml_pkg, yml_rel = patch_rel(node.get("patch_path"))
     if rtype == "source":
         yml_pkg, yml_rel = pkg, node.get("original_file_path")
     src = None
@@ -744,7 +723,7 @@ def _node_description(ctx: _Ctx, node: dict[str, Any]) -> None:
         )
         doc_kind = "source_description"
     else:
-        yml_pkg, yml_rel = _patch_rel(node.get("patch_path"))
+        yml_pkg, yml_rel = patch_rel(node.get("patch_path"))
         section = {"model": "models", "seed": "seeds", "snapshot": "snapshots"}.get(rtype, "models")
         cite = ctx.cite_description(yml_pkg or pkg, yml_rel, section, node["name"])
         doc_kind = "model_description"
@@ -893,8 +872,7 @@ def build_chunks(
     manifest = json.loads((target_dir / "manifest.json").read_text(encoding="utf-8"))
     cat_path = target_dir / "catalog.json"
     catalog = json.loads(cat_path.read_text(encoding="utf-8")) if cat_path.is_file() else None
-    root = manifest.get("metadata", {}).get("project_name") or ""
-    files = _Files(project_dir, root, _packages_dir(project_dir))
+    files = _Files(ProjectFiles.for_manifest(project_dir, manifest))
     ctx = _Ctx(graph, manifest, catalog, files, target_dir, dialect, fits)
     nodes = {**manifest["nodes"], **manifest.get("sources", {})}
     carded: set[str] = set()
