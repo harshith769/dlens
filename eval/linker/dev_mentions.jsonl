@@ -1,0 +1,20 @@
+{"id": "dev-01", "corpus": "synthetic_shop", "split": "dev", "mention": "stg_payments.amount_usd", "gold": ["stg_payments.amount_usd"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-02", "corpus": "synthetic_shop", "split": "dev", "mention": "stg_customers.country_code", "gold": ["stg_customers.country_code"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-03", "corpus": "synthetic_shop", "split": "dev", "mention": "int_order_items_enriched.line_amount", "gold": ["int_order_items_enriched.line_amount"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-04", "corpus": "synthetic_shop", "split": "dev", "mention": "int_order_financials.sales_tax", "gold": ["int_order_financials.sales_tax"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-05", "corpus": "synthetic_shop", "split": "dev", "mention": "fct_orders.net_paid_usd", "gold": ["fct_orders.net_paid_usd"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-06", "corpus": "synthetic_shop", "split": "dev", "mention": "fct_daily_revenue.revenue_marketing", "gold": ["fct_daily_revenue.revenue_marketing"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-07", "corpus": "synthetic_shop", "split": "dev", "mention": "stg_products.list_price", "gold": ["stg_products.list_price"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-08", "corpus": "synthetic_shop", "split": "dev", "mention": "raw_refunds.refund_amt", "gold": ["raw_refunds.refund_amt"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-09", "corpus": "synthetic_shop", "split": "dev", "mention": "int_order_financials.order_date", "gold": ["int_order_financials.order_date"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-10", "corpus": "synthetic_shop", "split": "dev", "mention": "raw_payments.amt", "gold": ["raw_payments.amt"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-11", "corpus": "synthetic_shop", "split": "dev", "mention": "fct_orders.revenue_finance", "gold": ["fct_orders.revenue_finance"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-12", "corpus": "synthetic_shop", "split": "dev", "mention": "int_orders_enriched.order_status_group", "gold": ["int_orders_enriched.order_status_group"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-13", "corpus": "synthetic_shop", "split": "dev", "mention": "int_order_financials.order_total", "gold": ["int_order_financials.order_total"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-14", "corpus": "synthetic_shop", "split": "dev", "mention": "prod category on order items", "gold": ["int_order_items_enriched.product_category"], "expect_ambiguous": false, "wording": "description"}
+{"id": "dev-15", "corpus": "synthetic_shop", "split": "dev", "mention": "number of orders per customer", "gold": ["dim_customers.order_count"], "expect_ambiguous": false, "wording": "description"}
+{"id": "dev-16", "corpus": "synthetic_shop", "split": "dev", "mention": "previous order date", "gold": ["fct_orders.previous_order_date", "int_customer_order_history.previous_order_date"], "expect_ambiguous": true, "wording": "description", "note": "expected ambiguous; the chain policy answers for fct_orders"}
+{"id": "dev-17", "corpus": "synthetic_shop", "split": "dev", "mention": "fct_orders.revenue_finance", "gold": ["fct_orders.revenue_finance"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-18", "corpus": "synthetic_shop", "split": "dev", "mention": "int_order_financials.net_paid_usd", "gold": ["int_order_financials.net_paid_usd"], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-19", "corpus": "synthetic_shop", "split": "dev", "mention": "stg_orders.ship_date", "gold": [], "expect_ambiguous": false, "wording": "identifier"}
+{"id": "dev-20", "corpus": "synthetic_shop", "split": "dev", "mention": "fct_payment_events.event_at", "gold": ["fct_payment_events.event_at"], "expect_ambiguous": false, "wording": "identifier"}

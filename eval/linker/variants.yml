@@ -1,0 +1,187 @@
+# Hand-drafted linker mentions (S08 step 3). NOT gold until the owner has reviewed them.
+#
+# Written from corpora/synthetic_shop/DESIGN_v2.md (Appendix A/C column definitions, §3 traps,
+# §1 dev constraints), lineage_spec.yml column names and traps.yml. Never from dlens or parser
+# output. dbt_jira rows come from the project's own models/jira.yml descriptions (public).
+# scripts/gen_linker_cases.py turns this file plus mechanical variants of lineage_spec.yml names
+# into eval/linker/cases.jsonl, dev_mentions.jsonl and jira_sample.jsonl.
+#
+# Row fields: mention, gold (list of model.column ids; [] = must be no-match), optional rule
+# (phrase rule id), ambiguous (default: len(gold) > 1), note, unsure (why the drafter was not sure;
+# listed for the owner's review).
+
+description:
+  - {mention: "date the customer signed up", gold: [stg_customers.signup_at, dim_customers.signup_at]}
+  - {mention: "customer's full name", gold: [dim_customers.full_name, fct_customer_leaderboard.full_name]}
+  - {mention: "days between ordering and shipping", gold: [int_shipments_enriched.days_to_ship]}
+  - {mention: "whether a delivery arrived late", gold: [int_shipments_enriched.is_late_delivery]}
+  - {mention: "how many days a delivery took", gold: [stg_shipments.delivery_days, int_shipments_enriched.delivery_days],
+     unsure: "'how many' triggers P2 (-> 'day delivery took count'); the intended reading is a duration, not a count"}
+  - {mention: "average delivery time per carrier", gold: [fct_shipping_performance.avg_delivery_days]}
+  - {mention: "clicks divided by impressions", gold: [int_campaign_spend_daily.click_through_rate]}
+  - {mention: "return on ad spend", gold: [fct_marketing_attribution.roas, fct_channel_performance_monthly.roas]}
+  - {mention: "marketing spend per attributed order", gold: [fct_marketing_attribution.cost_per_order]}
+  - {mention: "channel of the last web session before the order", gold: [int_order_attribution.attributed_channel]}
+  - {mention: "days from web session to purchase", gold: [int_order_attribution.days_to_convert]}
+  - {mention: "current unit cost of a product", gold: [int_product_costs_current.unit_cost],
+     unsure: "raw/stg_product_costs and int_order_item_margins also carry unit_cost; 'current' points to int_product_costs_current only through its model name"}
+  - {mention: "supplier lead time", gold: [raw_suppliers.lead_time_days, stg_suppliers.lead_time_days, int_product_costs_current.lead_time_days]}
+  - {mention: "cost of an order line", gold: [int_order_item_margins.line_cost]}
+  - {mention: "margin on an order line", gold: [int_order_item_margins.line_margin]}
+  - {mention: "highest discount percentage on an order", gold: [int_order_promotions.max_discount_pct]}
+  - {mention: "promotion codes used on an order", gold: [int_order_promotions.promo_codes]}
+  - {mention: "value of the stock on hand", gold: [int_inventory_daily.inventory_value, fct_inventory_status.inventory_value]}
+  - {mention: "change in stock since the previous snapshot", gold: [int_inventory_daily.qty_change]}
+  - {mention: "stock level at the previous snapshot", gold: [int_inventory_daily.prior_qty_on_hand]}
+  - {mention: "days of stock left", gold: [fct_inventory_status.days_of_cover]}
+  - {mention: "whether an order made a profit", gold: [int_order_profit.is_profitable]}
+  - {mention: "revenue after refunds and discounts", gold: [int_order_profit.net_revenue, fct_order_margins.net_revenue, fct_monthly_finance.net_revenue]}
+  - {mention: "cost of goods sold for an order", gold: [int_order_profit.cogs_total, fct_order_margins.cogs_total]}
+  - {mention: "profit after shipping and discounts", gold: [int_order_profit.contribution_margin, fct_order_margins.contribution_margin, fct_monthly_finance.contribution_margin]}
+  - {mention: "contribution margin as a share of net revenue", gold: [fct_order_margins.margin_pct]}
+  - {mention: "days since the customer's most recent order", gold: [dim_customer_rfm.recency_days, dim_customer_segments.recency_days],
+     unsure: "near fct_orders.days_since_previous_order (days between consecutive orders), a different column"}
+  - {mention: "days between an order and the one before it", gold: [fct_orders.days_since_previous_order]}
+  - {mention: "segment label such as champion or loyal", gold: [dim_customer_segments.customer_segment, fct_segment_monthly.customer_segment, fct_customer_leaderboard.customer_segment]}
+  - {mention: "whether the customer is high value", gold: [dim_customer_segments.is_high_value]}
+  - {mention: "distinct customers who ordered in a segment and month", gold: [fct_segment_monthly.active_customers]}
+  - {mention: "customers in a signup cohort", gold: [fct_customer_cohorts.cohort_customers]}
+  - {mention: "customers who came back for another order", gold: [fct_customer_cohorts.repeat_customers]}
+  - {mention: "running total of net paid per cohort", gold: [fct_customer_cohorts.cumulative_net_paid]}
+  - {mention: "month over month change in finance revenue", gold: [fct_monthly_finance.revenue_finance_mom_change]}
+  - {mention: "units sold per product", gold: [fct_product_performance.units_sold, fct_top_products.units_sold]}
+  - {mention: "units sold with a discount", gold: [fct_product_performance.discounted_units]}
+  - {mention: "sales amount per product before costs", gold: [fct_product_performance.gross_sales]}
+  - {mention: "whether an order line had a discount", gold: [int_order_items_enriched.is_discounted, int_order_item_margins.is_discounted]}
+  - {mention: "price per unit on an order line", gold: [raw_order_items.unit_price, stg_order_items.unit_price, int_order_items_enriched.unit_price]}
+  - {mention: "net cash paid for an order", gold: [int_order_financials.net_paid_usd, int_customer_order_history.net_paid_usd, fct_orders.net_paid_usd]}
+  - {mention: "when the customer last ordered", gold: [dim_customers.most_recent_order_date]}
+  - {mention: "when a web session started", gold: [raw_web_sessions.started_at, stg_web_sessions.session_started_at, int_web_sessions_clean.session_started_at]}
+  - {mention: "sequence number of a customer's session", gold: [int_web_sessions_clean.session_number]}
+
+# Phrase rules (design §2.2). >= 3 per rule, none taken from dev.jsonl.
+phrase:
+  - {rule: P1, mention: "number of shipments per order", gold: [int_order_shipping.shipment_count]}
+  - {rule: P1, mention: "number of late shipments", gold: [int_order_shipping.late_shipment_count, fct_shipping_performance.late_shipment_count]}
+  - {rule: P1, mention: "number of promotions on an order", gold: [int_order_promotions.promotion_count]}
+  - {rule: P1, mention: "number of items in an order", gold: [int_orders_enriched.item_count, int_order_financials.item_count, int_customer_order_history.item_count, fct_orders.item_count]}
+  - {rule: P1, mention: "number of visitors", gold: [int_sessions_daily.visitor_count]}
+  - {rule: P2, mention: "how many promotions an order used", gold: [int_order_promotions.promotion_count]}
+  - {rule: P2, mention: "how many visitors per day", gold: [int_sessions_daily.visitor_count]}
+  - {rule: P2, mention: "how many late shipments per order", gold: [int_order_shipping.late_shipment_count],
+     unsure: "fct_shipping_performance.late_shipment_count also matches; only a partial model-name bonus (order) separates them"}
+  - {rule: P2, mention: "how many paid sessions", gold: [int_customer_sessions.paid_session_count]}
+  - {rule: P3, mention: "count of sessions per channel", gold: [int_sessions_daily.session_count, int_customer_sessions.session_count, fct_marketing_attribution.session_count],
+     unsure: "'per channel' fits int_sessions_daily and fct_marketing_attribution (grain includes channel), not int_customer_sessions; gold is the name set"}
+  - {rule: P3, mention: "count of visitors", gold: [int_sessions_daily.visitor_count]}
+  - {rule: P3, mention: "count of promotions", gold: [int_order_promotions.promotion_count]}
+  - {rule: P3, mention: "count of web sessions per customer", gold: [dim_customer_rfm.web_session_count]}
+  - {rule: P4, mention: "total shipping cost", gold: [int_order_shipping.shipping_cost_total, int_order_profit.shipping_cost_total, fct_order_margins.shipping_cost_total]}
+  - {rule: P4, mention: "total discount", gold: [int_order_promotions.discount_total, int_order_profit.discount_total, fct_order_margins.discount_total]}
+  - {rule: P4, mention: "total cogs", gold: [int_order_profit.cogs_total, fct_order_margins.cogs_total]}
+  - {rule: P4, mention: "total adjustments", gold: [fct_monthly_finance.adjustments_total]}
+
+# "X in/of/on/for <model words>": the model is named in words, not as a dotted id.
+model_qualified:
+  - {mention: "gross margin of top products", gold: [fct_top_products.gross_margin]}
+  - {mention: "units sold in product performance", gold: [fct_product_performance.units_sold]}
+  - {mention: "session count for customer sessions", gold: [int_customer_sessions.session_count]}
+  - {mention: "gross margin in order margins", gold: [fct_order_margins.gross_margin]}
+  - {mention: "net revenue in monthly finance", gold: [fct_monthly_finance.net_revenue]}
+  - {mention: "spend usd for channel performance", gold: [fct_channel_performance_monthly.spend_usd]}
+  - {mention: "order total in customer order history", gold: [int_customer_order_history.order_total]}
+  - {mention: "lifetime value on the customer leaderboard", gold: [fct_customer_leaderboard.lifetime_value_usd],
+     unsure: "dim_customers.lifetime_value is a surface match (0.93); the leaderboard column is rewritten (0.87) + full model bonus (0.06) = 0.93: a designed tie, so expected ambiguous"}
+  - {mention: "order count per day", gold: [fct_daily_revenue.order_count],
+     unsure: "'day' does not match the model token 'daily' (no stemming), so no model bonus: expected ambiguous with dim_customers.order_count. Kept as a known limitation"}
+
+# Near-duplicate names (DESIGN_v2 §3 trap 8 and the other homonym families).
+near_duplicate:
+  - {mention: "refund_amt", gold: [raw_refunds.refund_amt, stg_refunds.refund_amt]}
+  - {mention: "refund amount", gold: [int_order_financials.refund_amount, int_customer_order_history.refund_amount]}
+  - {mention: "refunded amount", gold: [fct_orders.refunded_amount, fct_daily_revenue.refunded_amount, fct_monthly_finance.refunded_amount]}
+  - {mention: "fct_orders.refund_amount", gold: [], note: "fct_orders has refunded_amount, not refund_amount"}
+  - {mention: "int_order_financials.refunded_amount", gold: [], note: "int_order_financials has refund_amount"}
+  - {mention: "shipping cost total", gold: [int_order_shipping.shipping_cost_total, int_order_profit.shipping_cost_total, fct_order_margins.shipping_cost_total]}
+  - {mention: "shipping_costs_usd", gold: [fct_shipping_performance.shipping_costs_usd]}
+  - {mention: "shipping_cost_usd", gold: [raw_shipments.shipping_cost_usd, stg_shipments.shipping_cost_usd, int_shipments_enriched.shipping_cost_usd]}
+  - {mention: "shipping cost usd", gold: [raw_shipments.shipping_cost_usd, stg_shipments.shipping_cost_usd, int_shipments_enriched.shipping_cost_usd],
+     unsure: "DESIGN FINDING: plural stripping is in the surface tier, so shipping_costs_usd also normalises to 'shipping cost usd' (0.93) and, with the marts prior, can rank first. The trap pair collapses"}
+  - {mention: "int_order_shipping.shipping_cost_usd", gold: [], note: "that model has shipping_cost_total"}
+  - {mention: "fct_shipping_performance.shipping_cost_total", gold: [], note: "that model has shipping_costs_usd"}
+  - {mention: "fct_shipping_performance.shipping_cost_usd", gold: [],
+     unsure: "one letter from the real shipping_costs_usd; plural stripping makes it a surface match in that model, so v2 will resolve it, but the loop's unknown-column check refuses it. Gold [] follows the loop"}
+  - {mention: "revenue finance", gold: [fct_orders.revenue_finance, fct_daily_revenue.revenue_finance, fct_monthly_finance.revenue_finance]}
+  - {mention: "revenue marketing", gold: [fct_orders.revenue_marketing, fct_daily_revenue.revenue_marketing, fct_monthly_finance.revenue_marketing]}
+  - {mention: "segment revenue finance", gold: [fct_segment_monthly.segment_revenue_finance]}
+  - {mention: "order count", gold: [dim_customers.order_count, fct_daily_revenue.order_count]}
+  - {mention: "segment order count", gold: [fct_segment_monthly.segment_order_count]}
+  - {mention: "lifetime value usd", gold: [fct_customer_leaderboard.lifetime_value_usd]}
+  - {mention: "cohort net paid", gold: [fct_customer_cohorts.cohort_net_paid]}
+
+# Must be no-match: plausible but absent, dotted absent, and out of domain.
+no_match:
+  - {mention: "ship date"}
+  - {mention: "customer age"}
+  - {mention: "order weight"}
+  - {mention: "delivery address"}
+  - {mention: "tax rate"}
+  - {mention: "gift card balance"}
+  - {mention: "warehouse temperature"}
+  - {mention: "loyalty points"}
+  - {mention: "product color"}
+  - {mention: "supplier rating"}
+  - {mention: "employee name"}
+  - {mention: "cart abandonment rate"}
+  - {mention: "net promoter score"}
+  - {mention: "invoice number"}
+  - {mention: "credit limit"}
+  - {mention: "exchange rate"}
+  - {mention: "phone number"}
+  - {mention: "subscription plan"}
+  - {mention: "reorder point"}
+  - {mention: "kubernetes pod restarts"}
+  - {mention: "fct_orders.discount_code"}
+  - {mention: "dim_customers.phone"}
+  - {mention: "stg_products.color"}
+  - {mention: "int_order_shipping.tracking_number"}
+  - {mention: "fct_daily_revenue.profit"}
+  - {mention: "stg_shipments.shipping_cost", note: "DESIGN_v2 trap 8 unanswerable near-miss"}
+  - {mention: "raw_orders.customer_id", note: "raw_orders has user_id; customer_id starts in stg_orders"}
+  - {mention: "stg_customers.customer_name"}
+  - {mention: "dim_customers.lifetime_value_usd", note: "exists only in fct_customer_leaderboard"}
+  - {mention: "fct_orders.ship_date"}
+
+# The mention each dev question passes to resolve_entity. Default: the question's target id.
+# Reported separately; never in linker-test.
+dev_mentions:
+  dev-14: {mention: "prod category on order items"}
+  dev-15: {mention: "number of orders per customer"}
+  dev-16: {mention: "previous order date",
+           gold: [fct_orders.previous_order_date, int_customer_order_history.previous_order_date],
+           note: "expected ambiguous; the chain policy answers for fct_orders"}
+  dev-19: {mention: "stg_orders.ship_date", gold: []}
+
+# dbt_jira: 20 hand-checkable mentions over the marts (gold = models/jira.yml names).
+jira:
+  - {variant: exact_id, mention: "jira__issue_enhanced.resolved_at", gold: [jira__issue_enhanced.resolved_at]}
+  - {variant: exact_id, mention: "jira__sprint_enhanced.sprint_issues", gold: [jira__sprint_enhanced.sprint_issues]}
+  - {variant: exact_id, mention: "jira__project_enhanced.count_open_issues", gold: [jira__project_enhanced.count_open_issues]}
+  - {variant: exact_name, mention: "work_ratio", gold: [jira__issue_enhanced.work_ratio]}
+  - {variant: exact_name, mention: "minutes_in_status", gold: [jira__issue_status_transitions.minutes_in_status]}
+  - {variant: abbreviation, mention: "avg close time days", gold: [jira__project_enhanced.avg_close_time_days, jira__user_enhanced.avg_close_time_days]}
+  - {variant: abbreviation, mention: "average age currently open days", gold: [jira__project_enhanced.avg_age_currently_open_days, jira__user_enhanced.avg_age_currently_open_days]}
+  - {variant: word_order, mention: "name assignee", gold: [jira__issue_enhanced.assignee_name, jira__daily_sprint_issue_history.assignee_name]}
+  - {variant: word_order, mention: "sprint left in days", gold: [jira__daily_sprint_issue_history.days_left_in_sprint]}
+  - {variant: phrase, rule: P1, mention: "number of comments on an issue", gold: [jira__issue_enhanced.count_comments],
+     unsure: "P1 gives 'comment count'; the column is count_comments, reached only by word order on top of the rule"}
+  - {variant: phrase, rule: P3, mention: "count of closed issues", gold: [jira__project_enhanced.count_closed_issues, jira__user_enhanced.count_closed_issues]}
+  - {variant: description, mention: "when the sprint began", gold: [jira__sprint_enhanced.sprint_started_at, jira__daily_sprint_issue_history.sprint_started_at, jira__issue_enhanced.sprint_started_at]}
+  - {variant: description, mention: "title of the parent epic", gold: [jira__issue_enhanced.parent_issue_name]}
+  - {variant: description, mention: "seconds the issue has been open", gold: [jira__issue_enhanced.open_duration_seconds]}
+  - {variant: description, mention: "status the issue moved from", gold: [jira__issue_status_transitions.previous_status]}
+  - {variant: model_qualified, mention: "time spent seconds in sprint enhanced", gold: [jira__sprint_enhanced.time_spent_seconds]}
+  - {variant: typo, mention: "remaning_estimate_seconds", gold: [jira__daily_sprint_issue_history.remaining_estimate_seconds, jira__issue_enhanced.remaining_estimate_seconds, jira__sprint_enhanced.remaining_estimate_seconds]}
+  - {variant: no_match, mention: "story points", gold: []}
+  - {variant: no_match, mention: "jira__issue_enhanced.story_points", gold: []}
+  - {variant: no_match, mention: "customer satisfaction score", gold: []}
