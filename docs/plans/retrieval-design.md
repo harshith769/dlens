@@ -1,6 +1,6 @@
 # Retrieval design (S07, B1)
 
-Status: **draft for owner approval** (step 1 of S07). The embedding runtime is marked
+Status: **approved by the owner, 17 Oct 2026**, with the tightenings below folded in (step 1 of S07). The embedding runtime is marked
 *pending step 2* and is filled in from measurements before any retrieval code lands.
 
 Scope: chunker, BM25, dense, RRF fusion, a cached index, the `search_docs` tool function and
@@ -17,12 +17,14 @@ is not touched.
    reuses this index and must not see parser output, or the S1 vs S4 comparison loses its
    meaning. Graph facts are stored as separate chunk **metadata** and only `search_docs` adds
    them to its payload. A test checks that no card's indexed text holds any graph-derived value.
-2. **Gold and eval material is never indexed.** Only files dbt knows about are chunked: model
-   `.sql` files, schema YAML (model, seed and source descriptions), `{% docs %}` blocks,
-   exposures, and the project-root `README.md`. Never indexed: `DESIGN*.md`,
-   `lineage_spec.yml`, `traps.yml`, `spec_expected.yml`, `*_gaps.yml`, `ORACLE_REPORT.md`,
-   `eval/`, or anything else that isn't on that list. This is an allow-list, so a new gold file
-   can't leak in by default. A test checks it on synthetic_shop.
+2. **Gold and eval material is never indexed. The allow-list comes from the manifest.** Only
+   files the manifest references are chunked: each node's `original_file_path` (model `.sql`),
+   each node's and source's `patch_path`/`original_file_path` YAML, each docs block's
+   `original_file_path` (`.md`) and each exposure's `original_file_path`. The only addition is
+   the project-root `README.md`. The filesystem is **never globbed**. A file the manifest
+   doesn't name (`DESIGN*.md`, `lineage_spec.yml`, `traps.yml`, `ORACLE_REPORT.md`,
+   `oracle_exceptions.yml`, `engine_gaps.yml`, `SOURCE.md`, `eval/`) can't be chunked. A test on
+   synthetic_shop (and dbt_jira's `SOURCE.md` by name) checks that none of those is ever chunked.
 3. **Line numbers match lineage citations.** Model chunks use the source `.sql` lines
    (`original_file_path`), the same basis as `Provenance`. When the source files are missing
    (artifact-only ingest without the project), the chunk uses the compiled SQL and is marked
@@ -74,10 +76,12 @@ Chunk(id, kind, model, column, file, line_start, line_end, line_basis, level, ti
 
 ### 2.2 Column cards
 
-One card for each column found in the catalog (or, for catalog-less ingest, declared in
-YAML), for models, seeds and sources. Columns only the parser knows about (an ephemeral model's
-columns) get **no card**: their existence is parser output (rule 1). Build stats report how many
-there are. The S08 linker still reaches them through exact or normalised graph matching.
+One card for each column known from project or warehouse sources: columns **declared in YAML**
+(manifest `columns`) or **listed in `catalog.json`**, for models, seeds and sources. Columns only
+the parser knows about get **no card**: (a) an ephemeral model's columns and (b) columns added by
+S06's catalog-less schema growth (in the graph but in neither YAML nor a real `catalog.json`).
+Their existence is parser output (rule 1). Build stats report both counts separately. The S08
+linker still reaches them through exact or normalised graph matching.
 
 Indexed text:
 ```
@@ -148,8 +152,10 @@ test of its `.md` provenance.
   (b) onnxruntime + `tokenizers` on the BAAI repo's own `onnx/model.onnx` at the same revision
   (it must be fp32, not quantised). fastembed is measured as a reference only and is not
   eligible. (b) is only allowed if cosine((a), (b)) ≥ 0.999 on **every** synthetic_shop chunk.
-- Determinism: a fixed thread count (`DLENS_EMBED_THREADS`, default 4, which sets torch/ORT
-  intra-op threads and `OMP_NUM_THREADS` before import), batch size 32, and batches in fixed
+- Determinism: a fixed thread count (`DLENS_EMBED_THREADS`, which sets torch/ORT intra-op
+  threads and `OMP_NUM_THREADS` before import). The default is 4 if step 2's double build of
+  the synthetic_shop vectors at 4 threads is byte-identical, otherwise 1. The thread count is
+  part of the index key and `meta.json`. Other fixed settings: batch size 32, and batches in fixed
   chunk order (padding depends on batch composition). For the same machine and threads, two
   builds give byte-identical `dense.npy` (tested with the fake embedder in unit tests, and with
   the real model in the integration test).
@@ -160,6 +166,62 @@ test of its `.md` provenance.
 each list cut to its top 100 before fusion. Ties are broken by chunk id. Modes are `bm25`,
 `dense` and `hybrid` (the default). An optional `kinds` filter is applied **before** ranking.
 
+### 3.4 Runtime measurement (step 2, 17 Oct 2026; owner pick pending)
+
+Setup: `scripts/bench_embedders.py`, one throwaway venv per variant (WSL2, x86_64, 4 threads,
+batch 32, model `BAAI/bge-small-en-v1.5` @ `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a`, timed runs
+with `HF_HUB_OFFLINE=1` after one download). Texts are **provisional chunks** (the step-3
+chunker doesn't exist yet): model SQL in ≤900-char windows, column cards from YAML +
+catalog.json, model/exposure/docs-block descriptions. That gives 497 texts for synthetic_shop and
+1,122 for dbt_jira.
+
+Checks at the pinned revision: `onnx/model.onnx` exists, is 133,093,490 bytes, has 197
+initializers that are all `FLOAT` (fp32, not quantised), opset 11. `1_Pooling/config.json`
+specifies CLS pooling. `modules.json` ends in `Normalize`. `sentence_bert_config.json` has
+`max_seq_length: 512`.
+
+| | (a) sentence-transformers + torch | (b) onnxruntime + tokenizers | fastembed (reference only) |
+|---|---|---|---|
+| Versions | ST 6.1.0, torch 2.14.1 | onnxruntime 1.31.0, tokenizers 0.23.3, huggingface_hub 2.2.0 | fastembed 0.9.0 |
+| Extra size, **uv** from this repo (torch from the CPU index) | **+1,037 MB** (torch 2.14.1+cpu) | **+151 MB** | – |
+| Extra size, **plain pip** from a built wheel, fresh Linux venv | **+6,010 MB** (torch 2.14.1+cu130 and 15 nvidia-* wheels, triton) | **+176 MB** | +199 MB |
+| Cold start (import + model load, warm disk) | 3.95 s | 0.58–0.66 s | 0.55 s |
+| Embed synthetic_shop (497) | 4.6 s | 3.5 s | 17.6–18.3 s |
+| Embed dbt_jira (1,122) | 17.5–18.1 s | 14.6–15.6 s | 52–54 s |
+| Embed synthetic_shop, 1 thread | 10.5 s | 10.6 s | – |
+| Cosine vs (a), min / mean, synthetic_shop | – | **0.99999988** / 1.0000000 | 0.9999977 / 0.9999990 |
+| Cosine vs (a), min / mean, dbt_jira | – | 0.99999988 / 1.0000000 | 0.9999973 / 0.9999989 |
+| Same vectors twice at 4 threads (bytes) | identical (both corpora) | identical (both corpora) | identical |
+| 4 threads vs 1 thread (bytes, synthetic_shop) | identical | identical | – |
+| Wheels (cp312/313) | linux x86_64/aarch64, macOS arm64, win amd64 | same, plus win arm64 | – |
+
+Sizes are site-packages deltas over a core install of the same kind (uv: Python 3.13 per the
+repo's `.python-version`; pip: 3.12). pip_B and pip_F have the 26 MB `onnx` check package
+subtracted. Neither runtime has Intel-mac wheels at these versions.
+
+Wordpieces (bge tokenizer, no truncation) on the provisional texts: synthetic_shop max 271 /
+p95 117; dbt_jira max 336 / p95 252. **0 over 512.** The step-3 gate re-runs this on the real
+chunks.
+
+**Gate (b)**: min cosine 0.99999988 ≥ 0.999 on every synthetic_shop text, so it **passes**.
+
+**Threads**: the double build at 4 threads is byte-identical, so the default stays **4**.
+
+**Recommendation: (b) onnxruntime + tokenizers.** It is 7× smaller with uv and 34× smaller with
+plain pip (pip ignores `[tool.uv.sources]` and installs CUDA torch, about 6 GB, which is what a
+`pip install dlens-lineage[retrieval]` user would get). It cold-starts 6× faster, embeds 10–25%
+faster, and its vectors match (a) to 1e-7. It needs no index URL instructions in the README. Cost:
+about 60 lines of our own code (tokenise, CLS pool, L2 normalise), a test pinned against (a)'s
+reference vectors, and an ADR (0021, amending ADR 0014's "CPU torch wheel" line and spec §12's
+Embeddings row). fastembed is slower here (it doesn't sort by length, so batches pad more) and is
+not eligible.
+
+If (b) is picked, the `retrieval` extra becomes `bm25s`, `onnxruntime`, `tokenizers`,
+`huggingface-hub` and `numpy` (pinned in uv.lock), and `lancedb` and `sentence-transformers`
+leave it. If (a) is picked: `sentence-transformers` + `torch` from the pytorch-cpu index for uv,
+and a README line `pip install torch --index-url https://download.pytorch.org/whl/cpu` before
+`pip install dlens-lineage[retrieval]`.
+
 ## 4. Index lifecycle
 
 - Location (writes only inside the cache dir, the S06 rule):
@@ -169,7 +231,8 @@ each list cut to its top 100 before fusion. Ties are broken by chunk id. Modes a
 - **Key** (stored in `meta.json` with each part, so a rebuild can say why): sha256 of
   `graph.json`; sha256 of `manifest.json`; sha256 of each chunked file (path → hash);
   `model_id` + `model_revision`; `CHUNKER_VERSION`; the embedding runtime name and version (e.g.
-  `onnxruntime 1.x` or `sentence-transformers 5.x + torch 2.x`); max sequence length.
+  `onnxruntime 1.x` or `sentence-transformers 5.x + torch 2.x`); max sequence length; embedding
+  thread count.
   Comparing the stored key with the current one gives the reason for the first difference:
   `rebuilt: manifest changed`, `rebuilt: models/marts/schema.yml changed`, `rebuilt: model
   revision changed`, and so on. If nothing differs: `index reused`.
@@ -219,7 +282,9 @@ Payload (what the LLM would see):
 [--mode hybrid|bm25|dense] [--rebuild]`. It prints ranked hits with id, kind, file:lines and a
 one-line snippet, and states `index reused` or `rebuilt: <reason>` with the build time. It
 needs the `retrieval` extra: without it, it prints `install dlens-lineage[retrieval]` and exits
-2. Tests inject the fake embedder through `DLENS_EMBEDDER=fake` (test-only, documented).
+2. Tests inject the fake embedder through `DLENS_EMBEDDER=fake`. Whenever it is active, the CLI
+prints `fake embedder: test mode, results are not real` on every run. It is a test hook, not a
+user feature, and is not documented in the README (only here and in the explain doc).
 
 ## 7. Packaging
 
