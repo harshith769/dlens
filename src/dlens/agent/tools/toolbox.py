@@ -37,12 +37,14 @@ _CODE_TOOLS = {"reachability": reachability}
 
 
 class ToolResult(BaseModel):
-    """One logged call: ``{tool, args, llm_payload, side_records}``."""
+    """One logged call: ``{tool, args, llm_payload, side_records, code_initiated, rule}``."""
 
     tool: str
     args: dict[str, Any]
     llm_payload: dict[str, Any]
     side_records: dict[str, Any] = Field(default_factory=dict)
+    code_initiated: bool = False  # run by code (``call(..., code=True)``), not by the model
+    rule: str | None = None  # the loop rule that made a code-initiated call
 
     @property
     def content(self) -> str:
@@ -85,9 +87,16 @@ class Toolbox:
         edge = self._prov.edge_by_id(eid)
         return None if edge is None else self._prov.edge_string(edge)
 
-    def call(self, name: str, args: dict[str, Any] | None = None, code: bool = False) -> ToolResult:
+    def call(
+        self,
+        name: str,
+        args: dict[str, Any] | None = None,
+        code: bool = False,
+        rule: str | None = None,
+    ) -> ToolResult:
         """Run a tool. Never raises: failures come back as ``{"error": {...}}`` payloads.
-        ``code=True`` also allows the code-only tools (``reachability``)."""
+        ``code=True`` also allows the code-only tools (``reachability``) and tags the result
+        ``code_initiated`` with the loop ``rule`` that made it."""
         args = dict(args or {})
         tool = _TOOLS.get(name) or (_CODE_TOOLS.get(name) if code else None)
         try:
@@ -96,7 +105,14 @@ class Toolbox:
             out: ToolOutput = tool(self._prov, args)
         except ToolError as e:
             out = ToolOutput(e.payload())
-        result = ToolResult(tool=name, args=args, llm_payload=out.payload, side_records=out.side)
+        result = ToolResult(
+            tool=name,
+            args=args,
+            llm_payload=out.payload,
+            side_records=out.side,
+            code_initiated=code,
+            rule=rule if code else None,
+        )
         if not result.is_error:
             shown = set(_ids_in(out.payload))
             for kind in ("edges", "excerpts", "facts"):

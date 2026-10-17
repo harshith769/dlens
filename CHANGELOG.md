@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Agent rule `linked_evidence`** (S08, owner decision): for where-from / how-computed / impact
+  questions, when resolve_entity linked exactly one unambiguous column and no trace/impact ran
+  on it, code runs the matching tool (0 LLM calls). Every code-initiated tool call is now tagged
+  `code_initiated: true` with its `rule` in the ledger and the run record.
 - **Citation coverage** in `dlens ingest --artifacts` and `dlens report` (text and `--json`):
   line-level vs model-level citations for SQL-model columns, direct and indirect edges, with the
   model-level ones grouped by reason (no project files, file not found, SELECT built by a macro or

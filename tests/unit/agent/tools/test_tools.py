@@ -359,7 +359,8 @@ def test_ledger_is_per_conversation(toolbox: Toolbox) -> None:
 def test_log_keeps_payload_and_side_records_separate(toolbox: Toolbox) -> None:
     toolbox.call("trace_upstream", {"column_id": TOTAL})
     entry = toolbox.log[0].model_dump()
-    assert set(entry) == {"tool", "args", "llm_payload", "side_records"}
+    assert set(entry) == {"tool", "args", "llm_payload", "side_records", "code_initiated", "rule"}
+    assert (entry["code_initiated"], entry["rule"]) == (False, None)  # the model's call
     assert "edges" in entry["side_records"] and "edges" not in entry["llm_payload"]
 
 

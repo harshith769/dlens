@@ -61,6 +61,12 @@ REGENERATE_LIST_TOKENS = 300
 _TOOL_NAMES = "resolve_entity|trace_upstream|impact_downstream|get_model_sql"
 _TEXT_TOOL_CALL = re.compile(rf'<tool_call>|\{{\s*"name"\s*:\s*"({_TOOL_NAMES})"')
 _QUESTION_COLUMN = re.compile(r"(?<![\w.])[A-Za-z_]\w*\.[A-Za-z_]\w*(?![\w.])")
+# where-from / how-computed wording (rule linked_evidence); meaning questions don't match
+_TRACE_WORDING = re.compile(
+    r"\b(comes?\s+from|upstream|derived|sourced|"
+    r"how\s+(?:is|are|was|were)\b.*\b(?:computed|calculated|derived|built|made))\b",
+    re.IGNORECASE,
+)
 _IMPACT_WORDING = re.compile(r"\b(affect|impact|chang|break|downstream)\w*", re.IGNORECASE)
 _REACH_WORDING = re.compile(r"\b(affect|impact|depend|feed|flow|reach|chang)\w*", re.IGNORECASE)
 _DEPEND_WORDING = re.compile(r"\bdepend\w*", re.IGNORECASE)
@@ -154,6 +160,7 @@ class Agent:
         self._tool_phase(question)
         if not any(i.startswith(("e_", "s_")) for i in self.toolbox.emitted_ids):
             self._code_evidence(question)
+        self._linked_evidence(question)
         self._reachability_fact(question)
         self.record.timings["tool_ms"] = _ms(t0)
 
@@ -487,7 +494,7 @@ class Agent:
         names = self._question_columns(question)
         for name in names[:MAX_CODE_EVIDENCE_COLUMNS]:
             if not self._already_called(tool, g.resolve(name)):
-                self._code_call(tool, {"column_id": name})
+                self._code_call(tool, {"column_id": name}, rule="code_evidence")
         if names:
             self.record.stop_reason += "+code_evidence"
 
@@ -517,7 +524,41 @@ class Agent:
         if len(names) != 2 or not _REACH_WORDING.search(question):
             return
         src, dst = names[::-1] if _DEPEND_WORDING.search(question) else names
-        self._code_call("reachability", {"from_column": src, "to_column": dst})
+        self._code_call(
+            "reachability", {"from_column": src, "to_column": dst}, rule="reachability_fact"
+        )
+
+    def _linked_evidence(self, question: str) -> None:
+        """Rule ``linked_evidence`` (owner, 17 Oct 2026). After the tool phase, if the question
+        asks where a column comes from / how it is computed (trace) or what it affects (impact),
+        resolve_entity linked exactly one column with ``ambiguous: false``, and neither
+        trace_upstream nor impact_downstream ran on that column, code runs the matching tool on
+        it: a "code" step, not an LLM call. It never fires for an ambiguous result, without a
+        linked column, or for meaning questions ("what does X mean")."""
+        tool = _intent_tool(question)
+        if tool is None:
+            return
+        g = self.toolbox.graph
+        linked: set[str] = set()
+        for r in self.toolbox.log:
+            p = r.llm_payload
+            if r.tool != "resolve_entity" or r.is_error:
+                continue
+            if p.get("ambiguous"):
+                return
+            cands = p.get("candidates") or []
+            if cands and cands[0].get("kind") == "column":
+                try:
+                    linked.add(g.resolve(cands[0]["id"]))
+                except Exception:
+                    continue
+        if len(linked) != 1:
+            return
+        [column] = linked
+        if any(self._already_called(t, column) for t in ("trace_upstream", "impact_downstream")):
+            return
+        self._code_call(tool, {"column_id": g.display_name(column)}, rule="linked_evidence")
+        self.record.stop_reason += "+linked_evidence"
 
     def _already_called(self, tool: str, column: str) -> bool:
         return any(
@@ -525,8 +566,8 @@ class Agent:
             for r in self.toolbox.log
         )
 
-    def _code_call(self, tool: str, args: dict[str, Any]) -> None:
-        result = self.toolbox.call(tool, args, code=True)
+    def _code_call(self, tool: str, args: dict[str, Any], rule: str) -> None:
+        result = self.toolbox.call(tool, args, code=True, rule=rule)
         self.record.steps.append(
             Step(
                 index=len(self.record.steps),
@@ -540,7 +581,11 @@ class Agent:
         for r in self.toolbox.log:
             if r.tool == "trace_upstream" and r.side_records.get("column") == column:
                 return
-        self._code_call("trace_upstream", {"column_id": self.toolbox.graph.display_name(column)})
+        self._code_call(
+            "trace_upstream",
+            {"column_id": self.toolbox.graph.display_name(column)},
+            rule="chain_trace",
+        )
 
     # -- helpers -----------------------------------------------------------------------------
 
@@ -654,7 +699,19 @@ def _step_result(
         side_records=r.side_records,
         deduped=deduped,
         duplicate_of=duplicate_of,
+        code_initiated=r.code_initiated,
+        rule=r.rule,
     )
+
+
+def _intent_tool(question: str) -> str | None:
+    """The tool for the question's lineage intent: impact wording (as ``_code_evidence``) ->
+    impact_downstream; where-from / how-computed wording -> trace_upstream; else None."""
+    if _IMPACT_WORDING.search(question):
+        return "impact_downstream"
+    if _TRACE_WORDING.search(question):
+        return "trace_upstream"
+    return None
 
 
 def _clip(text: str, n: int = REPAIR_ERROR_CHARS) -> str:

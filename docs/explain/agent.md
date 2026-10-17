@@ -129,6 +129,23 @@ benchmark scoring never use it.
   (graph check)`. This is a `code` step, not an LLM call. One or three named columns make no
   fact, because there is then no single yes/no pair. The validator's R9 holds the answer's
   verdict to the fact (validator.md).
+- **Linked evidence (rule `linked_evidence`, owner 17 Oct 2026).** After the tool phase and the
+  evidence guarantee, if (a) the question asks where a column comes from or how it is computed
+  (`comes from`, `upstream`, `derived`, `sourced`, `how is … computed/calculated/derived/built/
+  made`) or what it affects (the evidence guarantee's effect wording, which wins), (b) every
+  resolve_entity result is unambiguous and together they link **exactly one** column (the top
+  candidate, a column), and (c) neither `trace_upstream` nor `impact_downstream` ran on that
+  column, code runs the matching tool on it. It never fires for an `ambiguous: true` result,
+  with no linked column, or for meaning questions ("what does X mean"), which have no lineage
+  intent. Found by re-recording the presets after linker v2: with one clear candidate the 4B
+  model sometimes stopped after resolve_entity (dev-14, then refused for lack of evidence) or
+  read only the SQL (dev-13, no edges to cite). The evidence guarantee did not cover either,
+  because it needs a dotted id in the question and fires only when nothing is citable. A
+  `code` step, not an LLM call; `stop_reason` gets `+linked_evidence`.
+- **Every code step is tagged.** Each code-initiated call carries `code_initiated: true` and its
+  `rule` (`code_evidence`, `linked_evidence`, `reachability_fact`, `chain_trace`) in the ledger
+  (`ToolResult`) and the run record (`StepResult`), so the v1.0 ablations can separate the
+  model's tool choices from code's. The answer phase sees these results like any other.
 - **No citable evidence after that**: refused by code with the tool errors as the reason, with
   no answer call.
 
@@ -167,3 +184,7 @@ That is enough to replay the no-validator ablation offline.
 3. In the live smoke, question b cited `e_4b2_403a`, an id no tool emitted. Which part of this
    design guarantees the id gets no citation, and which part (not yet written) must remove the
    claim? What would `draft_raw` in the run record let you measure later?
+4. "How is int_order_financials.order_total computed?": the model calls resolve_entity, then
+   get_model_sql, and answers. Does `linked_evidence` fire, and why doesn't the evidence
+   guarantee? Would it fire for "What does order_total mean?", or if resolve_entity had said
+   `ambiguous: true`? How would an ablation count the extra trace: as the model's call or not?

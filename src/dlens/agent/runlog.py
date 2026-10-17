@@ -34,6 +34,10 @@ class StepResult(BaseModel):
     side_records: dict[str, Any] = Field(default_factory=dict)
     deduped: bool = False
     duplicate_of: int | None = None  # index in the toolbox log of the original call
+    # A call code made, not the model (phase "code"), and the rule that made it, so ablations can
+    # separate model choices from code steps.
+    code_initiated: bool = False
+    rule: str | None = None
 
 
 class Step(BaseModel):
