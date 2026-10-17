@@ -1,0 +1,70 @@
+{
+  "what": "sqlglot round trip DuckDB -> dialect on synthetic_shop compiled SQL, scored against lineage_spec.yml; not real-world dialect SQL",
+  "normalisation": "identifier case only (column ids lowercased)",
+  "max_drop": 0.02,
+  "sqlglot": "30.21.0",
+  "duckdb": {
+    "direct_f1": 1.0,
+    "indirect_f1": 1.0
+  },
+  "dialects": {
+    "snowflake": {
+      "direct_f1": 0.9945,
+      "indirect_f1": 0.9968,
+      "direct_drop": 0.0055,
+      "indirect_drop": 0.0032,
+      "quality": {
+        "FULL": 49,
+        "TABLE_ONLY": 0,
+        "FAILED": 0
+      },
+      "lost_direct": [],
+      "gained_direct": [
+        "fct_orders.previous_order_date -> fct_customer_cohorts.repeat_customers",
+        "int_order_item_margins.is_discounted -> fct_product_performance.discounted_units",
+        "int_shipments_enriched.is_late_delivery -> int_order_shipping.late_shipment_count",
+        "int_web_sessions_clean.channel -> int_customer_sessions.paid_session_count"
+      ],
+      "lost_indirect": [
+        "fct_orders.previous_order_date -> fct_customer_cohorts.repeat_customers CONDITIONAL",
+        "int_order_item_margins.is_discounted -> fct_product_performance.discounted_units CONDITIONAL",
+        "int_shipments_enriched.is_late_delivery -> int_order_shipping.late_shipment_count CONDITIONAL",
+        "int_web_sessions_clean.channel -> int_customer_sessions.paid_session_count CONDITIONAL"
+      ],
+      "gained_indirect": [],
+      "not_full": {}
+    },
+    "bigquery": {
+      "direct_f1": 1.0,
+      "indirect_f1": 1.0,
+      "direct_drop": 0.0,
+      "indirect_drop": 0.0,
+      "quality": {
+        "FULL": 49,
+        "TABLE_ONLY": 0,
+        "FAILED": 0
+      },
+      "lost_direct": [],
+      "gained_direct": [],
+      "lost_indirect": [],
+      "gained_indirect": [],
+      "not_full": {}
+    },
+    "postgres": {
+      "direct_f1": 1.0,
+      "indirect_f1": 1.0,
+      "direct_drop": 0.0,
+      "indirect_drop": 0.0,
+      "quality": {
+        "FULL": 49,
+        "TABLE_ONLY": 0,
+        "FAILED": 0
+      },
+      "lost_direct": [],
+      "gained_direct": [],
+      "lost_indirect": [],
+      "gained_indirect": [],
+      "not_full": {}
+    }
+  }
+}
