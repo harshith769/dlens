@@ -24,6 +24,17 @@
   ]
  },
  "disabled": {},
+ "docs": {
+  "doc.eph_shop.customer_orders_desc": {
+   "block_contents": "One row per order with the customer's running order number (order_seq).\nAmounts are in US dollars.",
+   "name": "customer_orders_desc",
+   "original_file_path": "models/docs.md",
+   "package_name": "eph_shop",
+   "path": "docs.md",
+   "resource_type": "doc",
+   "unique_id": "doc.eph_shop.customer_orders_desc"
+  }
+ },
  "exposures": {},
  "functions": {},
  "group_map": {},
@@ -201,8 +212,10 @@
     ]
    },
    "deprecation_date": null,
-   "description": "",
-   "doc_blocks": [],
+   "description": "One row per order with the customer's running order number (order_seq).\nAmounts are in US dollars.",
+   "doc_blocks": [
+    "doc.eph_shop.customer_orders_desc"
+   ],
    "docs": {
     "node_color": null,
     "show": true

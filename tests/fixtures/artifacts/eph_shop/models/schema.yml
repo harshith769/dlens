@@ -9,6 +9,7 @@ models:
       - name: full_name
         data_type: varchar
   - name: customer_orders
+    description: '{{ doc("customer_orders_desc") }}'
     columns:
       - name: order_id
       - name: customer_id

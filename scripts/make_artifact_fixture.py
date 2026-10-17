@@ -42,6 +42,10 @@ NODE_FIELDS = (
     "identifier",
     "columns",
     "config",
+    # Text the S07 chunker reads (descriptions and where they are written).
+    "description",
+    "patch_path",
+    "source_name",
 )
 METADATA_FIELDS = ("dbt_schema_version", "dbt_version", "adapter_type", "project_name")
 
@@ -65,7 +69,11 @@ def trim_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         out["depends_on"] = {"nodes": n.get("depends_on", {}).get("nodes", [])}
         out["config"] = {"materialized": n.get("config", {}).get("materialized")}
         out["columns"] = {
-            k: {"name": c["name"], "data_type": c.get("data_type")}
+            k: {
+                "name": c["name"],
+                "data_type": c.get("data_type"),
+                "description": c.get("description", ""),
+            }
             for k, c in n.get("columns", {}).items()
         }
         return out
@@ -74,9 +82,7 @@ def trim_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     return {
         "metadata": {k: manifest["metadata"].get(k) for k in METADATA_FIELDS},
         "nodes": {
-            k: node(v)
-            for k, v in sorted(manifest["nodes"].items())
-            if v["resource_type"] in keep
+            k: node(v) for k, v in sorted(manifest["nodes"].items()) if v["resource_type"] in keep
         },
         "sources": {k: node(v) for k, v in sorted(manifest.get("sources", {}).items())},
         "exposures": {
@@ -85,8 +91,21 @@ def trim_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
                 "name": v["name"],
                 "type": v["type"],
                 "depends_on": {"nodes": v.get("depends_on", {}).get("nodes", [])},
+                "package_name": v.get("package_name"),
+                "original_file_path": v.get("original_file_path"),
+                "label": v.get("label"),
+                "description": v.get("description", ""),
+                "owner": {"name": (v.get("owner") or {}).get("name")},
             }
             for k, v in sorted(manifest.get("exposures", {}).items())
+        },
+        "docs": {
+            k: {
+                f: v.get(f)
+                for f in ("name", "package_name", "original_file_path", "block_contents")
+            }
+            for k, v in sorted(manifest.get("docs", {}).items())
+            if v.get("package_name") != "dbt"
         },
     }
 
@@ -116,8 +135,12 @@ def build(name: str) -> dict[str, Any]:
         catalog = sanitize(json.loads((target / "catalog.json").read_text()), build_dir)
         if name == "synthetic_shop":
             return {"manifest.json": trim_manifest(manifest), "catalog.json": trim_catalog(catalog)}
-        # eph_shop keeps the real manifest, minus dbt's ~700 KB of built-in macros and docs.
-        manifest = {k: v for k, v in manifest.items() if k not in {"macros", "docs"}}
+        # eph_shop keeps the real manifest, minus dbt's ~700 KB of built-in macros and docs
+        # (the project's own docs blocks stay: S07 chunks them).
+        manifest = {k: v for k, v in manifest.items() if k != "macros"}
+        manifest["docs"] = {
+            k: v for k, v in manifest.get("docs", {}).items() if v.get("package_name") != "dbt"
+        }
         files: dict[str, Any] = {"manifest.json": manifest, "catalog.json": catalog}
         for sql in sorted((target / "compiled").rglob("*.sql")):
             files[sql.relative_to(target).as_posix()] = sql.read_text()

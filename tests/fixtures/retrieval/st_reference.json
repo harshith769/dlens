@@ -1,0 +1,15 @@
+{
+  "model": "BAAI/bge-small-en-v1.5",
+  "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "generated_by": "sentence-transformers 6.1.0 + torch 2.14.1+cpu, normalize_embeddings=True",
+  "texts": [
+    "stg_payments.amount_usd\ntype: DOUBLE\ndescription: Payment amount converted to US dollars.",
+    "Where does the number of orders per customer come from?",
+    "with orders as (\n    select * from {{ ref('stg_orders') }}\n),\norder_agg as (\n    select customer_id, count(*) as order_count\n    from orders\n    group by 1\n)",
+    "exposure finance_dashboard (dashboard)\nMonthly and daily revenue for the finance team.",
+    "refund amount",
+    "Represent this sentence for searching relevant passages: how is revenue_finance computed",
+    "select\n    order_id,\n    sum(line_amount) as order_total\nfrom {{ ref('int_order_items_enriched') }}\ngroup by 1",
+    "docs block: customer lifetime value is the sum of net paid amounts over all orders."
+  ]
+}
