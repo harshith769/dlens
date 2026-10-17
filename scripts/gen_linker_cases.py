@@ -6,7 +6,7 @@ uv run python scripts/gen_linker_cases.py --check  # exit 1 if the files on disk
 Sources: lineage_spec.yml column names (the gold inventory, hand-written from DESIGN_v2) and the
 hand-drafted eval/linker/variants.yml. The graph, the parser and dlens's linker are never loaded:
 the gold of a case can't come from the system it scores. dbt_jira gold ids are checked against the
-project's own models/jira.yml.
+project's own model YAML files (models/**/*.yml).
 
 Mechanical variants (exact id, exact bare name, abbreviation, word order, typo, model-qualified)
 come from the spec names by fixed rules. A local normaliser (split, plural strip, the design's
@@ -33,7 +33,7 @@ import yaml
 ROOT = Path(__file__).parents[1]
 SPEC = ROOT / "corpora" / "synthetic_shop" / "lineage_spec.yml"
 GAPS = ROOT / "corpora" / "synthetic_shop" / "linker_gaps.yml"
-JIRA_YML = ROOT / "corpora" / "dbt_jira" / "models" / "jira.yml"
+JIRA_MODELS = ROOT / "corpora" / "dbt_jira" / "models"  # gold checked against its YAML files
 DEV = ROOT / "eval" / "questions" / "dev.jsonl"
 OUT = ROOT / "eval" / "linker"
 VARIANTS = OUT / "variants.yml"
@@ -354,17 +354,23 @@ def dev_mentions(variants: dict[str, Any], models: dict[str, list[str]]) -> list
 
 
 def jira_sample(variants: dict[str, Any]) -> list[dict[str, Any]]:
-    doc = yaml.safe_load(JIRA_YML.read_text())
-    ids = {f"{m['name']}.{c['name']}" for m in doc["models"] for c in m.get("columns", [])}
+    ids = set()
+    for f in sorted(JIRA_MODELS.rglob("*.yml")):
+        doc = yaml.safe_load(f.read_text()) or {}
+        ids |= {
+            f"{m['name']}.{c['name']}"
+            for m in doc.get("models") or []
+            for c in m.get("columns") or []
+        }
     out = []
     for i, row in enumerate(variants["jira"], 1):
         bad = [g for g in row["gold"] if g not in ids]
         if bad:
-            raise SystemExit(f"jira: gold {bad} not in models/jira.yml")
+            raise SystemExit(f"jira: gold {bad} not in the dbt_jira model YAML")
         out.append({
             "id": f"jira-{i:02d}", "corpus": "dbt_jira", "split": "jira-sample", "variant": row["variant"],
             "mention": row["mention"], "gold": sorted(row["gold"]), "expect_ambiguous": len(row["gold"]) > 1,
-            **{k: row[k] for k in ("rule", "unsure") if k in row},
+            **{k: row[k] for k in ("rule", "note", "unsure") if k in row},
         })  # fmt: skip
     return out
 

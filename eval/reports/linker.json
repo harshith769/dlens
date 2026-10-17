@@ -166,11 +166,11 @@
    "dbt_jira sample": {
     "n": 20,
     "top1": [
-     6,
+     13,
      17
     ],
     "top3": [
-     10,
+     13,
      17
     ],
     "no_match": [
@@ -178,16 +178,16 @@
      3
     ],
     "ambiguous_rate": [
-     11,
+     10,
      17
     ],
     "ambiguous_recall": [
-     6,
-     6
+     8,
+     8
     ],
     "false_ambiguous": [
-     5,
-     11
+     2,
+     9
     ]
    }
   },
@@ -276,11 +276,11 @@
    "dbt_jira sample": {
     "n": 20,
     "top1": [
-     6,
+     13,
      17
     ],
     "top3": [
-     11,
+     13,
      17
     ],
     "no_match": [
@@ -288,16 +288,16 @@
      3
     ],
     "ambiguous_rate": [
-     7,
+     6,
      17
     ],
     "ambiguous_recall": [
-     5,
-     6
+     6,
+     8
     ],
     "false_ambiguous": [
-     2,
-     11
+     0,
+     9
     ]
    }
   },
@@ -386,11 +386,11 @@
    "dbt_jira sample": {
     "n": 20,
     "top1": [
-     8,
+     15,
      17
     ],
     "top3": [
-     13,
+     16,
      17
     ],
     "no_match": [
@@ -398,16 +398,16 @@
      3
     ],
     "ambiguous_rate": [
-     9,
+     8,
      17
     ],
     "ambiguous_recall": [
-     6,
-     6
+     7,
+     8
     ],
     "false_ambiguous": [
-     3,
-     11
+     1,
+     9
     ]
    }
   }
@@ -8361,9 +8361,13 @@
      "rule": null,
      "mention": "work_ratio",
      "gold": [
-      "jira__issue_enhanced.work_ratio"
+      "int_jira__issue_join.work_ratio",
+      "int_jira__issue_type_parents.work_ratio",
+      "int_jira__issue_users.work_ratio",
+      "jira__issue_enhanced.work_ratio",
+      "stg_jira__issue.work_ratio"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_join.work_ratio",
       "int_jira__issue_type_parents.work_ratio",
@@ -8381,8 +8385,8 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "exact",
-     "top1": false,
-     "top3": false,
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -8421,6 +8425,8 @@
      "rule": null,
      "mention": "avg close time days",
      "gold": [
+      "int_jira__project_metrics.avg_close_time_days",
+      "int_jira__user_metrics.avg_close_time_days",
       "jira__project_enhanced.avg_close_time_days",
       "jira__user_enhanced.avg_close_time_days"
      ],
@@ -8442,7 +8448,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "normalised",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -8452,6 +8458,8 @@
      "rule": null,
      "mention": "average age currently open days",
      "gold": [
+      "int_jira__project_metrics.avg_age_currently_open_days",
+      "int_jira__user_metrics.avg_age_currently_open_days",
       "jira__project_enhanced.avg_age_currently_open_days",
       "jira__user_enhanced.avg_age_currently_open_days"
      ],
@@ -8473,7 +8481,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "normalised",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -8483,6 +8491,8 @@
      "rule": null,
      "mention": "name assignee",
      "gold": [
+      "int_jira__issue_join.assignee_name",
+      "int_jira__issue_users.assignee_name",
       "jira__daily_sprint_issue_history.assignee_name",
       "jira__issue_enhanced.assignee_name"
      ],
@@ -8504,7 +8514,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "fuzzy",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -8544,9 +8554,11 @@
      "rule": "P1",
      "mention": "number of comments on an issue",
      "gold": [
+      "int_jira__issue_comments.count_comments",
+      "int_jira__issue_join.count_comments",
       "jira__issue_enhanced.count_comments"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_comments.count_comments",
       "comment.issue_id",
@@ -8564,8 +8576,8 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "fuzzy",
-     "top1": false,
-     "top3": false,
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -8574,6 +8586,8 @@
      "rule": "P3",
      "mention": "count of closed issues",
      "gold": [
+      "int_jira__project_metrics.count_closed_issues",
+      "int_jira__user_metrics.count_closed_issues",
       "jira__project_enhanced.count_closed_issues",
       "jira__user_enhanced.count_closed_issues"
      ],
@@ -8595,7 +8609,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "fuzzy",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -8605,6 +8619,8 @@
      "rule": null,
      "mention": "when the sprint began",
      "gold": [
+      "int_jira__issue_join.sprint_started_at",
+      "int_jira__issue_sprint.sprint_started_at",
       "jira__daily_sprint_issue_history.sprint_started_at",
       "jira__issue_enhanced.sprint_started_at",
       "jira__sprint_enhanced.sprint_started_at"
@@ -8637,9 +8653,12 @@
      "rule": null,
      "mention": "title of the parent epic",
      "gold": [
+      "int_jira__issue_join.parent_issue_name",
+      "int_jira__issue_type_parents.parent_issue_name",
+      "int_jira__issue_users.parent_issue_name",
       "jira__issue_enhanced.parent_issue_name"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_join.is_parent_epic",
       "int_jira__issue_type_parents.is_parent_epic",
@@ -8755,32 +8774,30 @@
      "id": "jira-17",
      "variant": "typo",
      "rule": null,
-     "mention": "remaning_estimate_seconds",
+     "mention": "minuts_in_status",
      "gold": [
-      "jira__daily_sprint_issue_history.remaining_estimate_seconds",
-      "jira__issue_enhanced.remaining_estimate_seconds",
-      "jira__sprint_enhanced.remaining_estimate_seconds"
+      "jira__issue_status_transitions.minutes_in_status"
      ],
-     "expect_ambiguous": true,
+     "expect_ambiguous": false,
      "top": [
-      "int_jira__issue_join.remaining_estimate_seconds",
-      "int_jira__issue_type_parents.remaining_estimate_seconds",
-      "int_jira__issue_users.remaining_estimate_seconds",
-      "jira__daily_sprint_issue_history.remaining_estimate_seconds",
-      "jira__issue_enhanced.remaining_estimate_seconds"
+      "jira__issue_status_transitions.minutes_in_status",
+      "jira__issue_status_transitions.minutes_in_previous_status",
+      "int_jira__field_history_scd.status",
+      "int_jira__pivot_daily_field_history.status",
+      "int_jira__pivot_timestamp_field_history.status"
      ],
      "scores": [
-      0.872,
-      0.872,
-      0.872,
-      0.872,
-      0.872
+      0.862,
+      0.72,
+      0.452,
+      0.452,
+      0.452
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": null,
      "stage": "fuzzy",
-     "top1": false,
-     "top3": false,
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -14941,9 +14958,13 @@
      "rule": null,
      "mention": "work_ratio",
      "gold": [
-      "jira__issue_enhanced.work_ratio"
+      "int_jira__issue_join.work_ratio",
+      "int_jira__issue_type_parents.work_ratio",
+      "int_jira__issue_users.work_ratio",
+      "jira__issue_enhanced.work_ratio",
+      "stg_jira__issue.work_ratio"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_join.work_ratio",
       "int_jira__issue_type_parents.work_ratio",
@@ -14961,8 +14982,8 @@
      "ambiguous": true,
      "hybrid": "unavailable",
      "stage": "exact_name",
-     "top1": false,
-     "top3": false,
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -14995,6 +15016,8 @@
      "rule": null,
      "mention": "avg close time days",
      "gold": [
+      "int_jira__project_metrics.avg_close_time_days",
+      "int_jira__user_metrics.avg_close_time_days",
       "jira__project_enhanced.avg_close_time_days",
       "jira__user_enhanced.avg_close_time_days"
      ],
@@ -15016,7 +15039,7 @@
      "ambiguous": true,
      "hybrid": "unavailable",
      "stage": "surface",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -15026,6 +15049,8 @@
      "rule": null,
      "mention": "average age currently open days",
      "gold": [
+      "int_jira__project_metrics.avg_age_currently_open_days",
+      "int_jira__user_metrics.avg_age_currently_open_days",
       "jira__project_enhanced.avg_age_currently_open_days",
       "jira__user_enhanced.avg_age_currently_open_days"
      ],
@@ -15047,7 +15072,7 @@
      "ambiguous": true,
      "hybrid": "unavailable",
      "stage": "rewritten",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -15057,6 +15082,8 @@
      "rule": null,
      "mention": "name assignee",
      "gold": [
+      "int_jira__issue_join.assignee_name",
+      "int_jira__issue_users.assignee_name",
       "jira__daily_sprint_issue_history.assignee_name",
       "jira__issue_enhanced.assignee_name"
      ],
@@ -15076,7 +15103,7 @@
      "ambiguous": true,
      "hybrid": "unavailable",
      "stage": "rewritten",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -15108,9 +15135,11 @@
      "rule": "P1",
      "mention": "number of comments on an issue",
      "gold": [
+      "int_jira__issue_comments.count_comments",
+      "int_jira__issue_join.count_comments",
       "jira__issue_enhanced.count_comments"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_comments.count_comments",
       "int_jira__issue_join.count_comments",
@@ -15124,7 +15153,7 @@
      "ambiguous": true,
      "hybrid": "unavailable",
      "stage": "rewritten",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -15134,6 +15163,8 @@
      "rule": "P3",
      "mention": "count of closed issues",
      "gold": [
+      "int_jira__project_metrics.count_closed_issues",
+      "int_jira__user_metrics.count_closed_issues",
       "jira__project_enhanced.count_closed_issues",
       "jira__user_enhanced.count_closed_issues"
      ],
@@ -15153,7 +15184,7 @@
      "ambiguous": true,
      "hybrid": "unavailable",
      "stage": "surface",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -15163,6 +15194,8 @@
      "rule": null,
      "mention": "when the sprint began",
      "gold": [
+      "int_jira__issue_join.sprint_started_at",
+      "int_jira__issue_sprint.sprint_started_at",
       "jira__daily_sprint_issue_history.sprint_started_at",
       "jira__issue_enhanced.sprint_started_at",
       "jira__sprint_enhanced.sprint_started_at"
@@ -15183,9 +15216,12 @@
      "rule": null,
      "mention": "title of the parent epic",
      "gold": [
+      "int_jira__issue_join.parent_issue_name",
+      "int_jira__issue_type_parents.parent_issue_name",
+      "int_jira__issue_users.parent_issue_name",
       "jira__issue_enhanced.parent_issue_name"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [],
      "scores": [],
      "ambiguous": false,
@@ -15261,32 +15297,24 @@
      "id": "jira-17",
      "variant": "typo",
      "rule": null,
-     "mention": "remaning_estimate_seconds",
+     "mention": "minuts_in_status",
      "gold": [
-      "jira__daily_sprint_issue_history.remaining_estimate_seconds",
-      "jira__issue_enhanced.remaining_estimate_seconds",
-      "jira__sprint_enhanced.remaining_estimate_seconds"
+      "jira__issue_status_transitions.minutes_in_status"
      ],
-     "expect_ambiguous": true,
+     "expect_ambiguous": false,
      "top": [
-      "int_jira__issue_join.remaining_estimate_seconds",
-      "int_jira__issue_type_parents.remaining_estimate_seconds",
-      "int_jira__issue_users.remaining_estimate_seconds",
-      "jira__daily_sprint_issue_history.remaining_estimate_seconds",
-      "jira__issue_enhanced.remaining_estimate_seconds"
+      "jira__issue_status_transitions.minutes_in_status",
+      "jira__issue_status_transitions.minutes_in_previous_status"
      ],
      "scores": [
-      0.789,
-      0.789,
-      0.789,
-      0.784,
-      0.784
+      0.775,
+      0.647
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": "unavailable",
      "stage": "fuzzy",
-     "top1": false,
-     "top3": false,
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -21707,9 +21735,13 @@
      "rule": null,
      "mention": "work_ratio",
      "gold": [
-      "jira__issue_enhanced.work_ratio"
+      "int_jira__issue_join.work_ratio",
+      "int_jira__issue_type_parents.work_ratio",
+      "int_jira__issue_users.work_ratio",
+      "jira__issue_enhanced.work_ratio",
+      "stg_jira__issue.work_ratio"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_join.work_ratio",
       "int_jira__issue_type_parents.work_ratio",
@@ -21727,8 +21759,8 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "exact_name",
-     "top1": false,
-     "top3": false,
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -21761,6 +21793,8 @@
      "rule": null,
      "mention": "avg close time days",
      "gold": [
+      "int_jira__project_metrics.avg_close_time_days",
+      "int_jira__user_metrics.avg_close_time_days",
       "jira__project_enhanced.avg_close_time_days",
       "jira__user_enhanced.avg_close_time_days"
      ],
@@ -21782,7 +21816,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "surface",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -21792,6 +21826,8 @@
      "rule": null,
      "mention": "average age currently open days",
      "gold": [
+      "int_jira__project_metrics.avg_age_currently_open_days",
+      "int_jira__user_metrics.avg_age_currently_open_days",
       "jira__project_enhanced.avg_age_currently_open_days",
       "jira__user_enhanced.avg_age_currently_open_days"
      ],
@@ -21813,7 +21849,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "rewritten",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -21823,6 +21859,8 @@
      "rule": null,
      "mention": "name assignee",
      "gold": [
+      "int_jira__issue_join.assignee_name",
+      "int_jira__issue_users.assignee_name",
       "jira__daily_sprint_issue_history.assignee_name",
       "jira__issue_enhanced.assignee_name"
      ],
@@ -21842,7 +21880,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "rewritten",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -21874,9 +21912,11 @@
      "rule": "P1",
      "mention": "number of comments on an issue",
      "gold": [
+      "int_jira__issue_comments.count_comments",
+      "int_jira__issue_join.count_comments",
       "jira__issue_enhanced.count_comments"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [
       "int_jira__issue_comments.count_comments",
       "int_jira__issue_join.count_comments",
@@ -21890,7 +21930,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "rewritten",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -21900,6 +21940,8 @@
      "rule": "P3",
      "mention": "count of closed issues",
      "gold": [
+      "int_jira__project_metrics.count_closed_issues",
+      "int_jira__user_metrics.count_closed_issues",
       "jira__project_enhanced.count_closed_issues",
       "jira__user_enhanced.count_closed_issues"
      ],
@@ -21919,7 +21961,7 @@
      "ambiguous": true,
      "hybrid": null,
      "stage": "surface",
-     "top1": false,
+     "top1": true,
      "top3": true,
      "no_match_ok": false
     },
@@ -21929,6 +21971,8 @@
      "rule": null,
      "mention": "when the sprint began",
      "gold": [
+      "int_jira__issue_join.sprint_started_at",
+      "int_jira__issue_sprint.sprint_started_at",
       "jira__daily_sprint_issue_history.sprint_started_at",
       "jira__issue_enhanced.sprint_started_at",
       "jira__sprint_enhanced.sprint_started_at"
@@ -21952,7 +21996,7 @@
      "hybrid": "used",
      "stage": "hybrid",
      "top1": false,
-     "top3": false,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -21961,9 +22005,12 @@
      "rule": null,
      "mention": "title of the parent epic",
      "gold": [
+      "int_jira__issue_join.parent_issue_name",
+      "int_jira__issue_type_parents.parent_issue_name",
+      "int_jira__issue_users.parent_issue_name",
       "jira__issue_enhanced.parent_issue_name"
      ],
-     "expect_ambiguous": false,
+     "expect_ambiguous": true,
      "top": [],
      "scores": [],
      "ambiguous": false,
@@ -22051,32 +22098,24 @@
      "id": "jira-17",
      "variant": "typo",
      "rule": null,
-     "mention": "remaning_estimate_seconds",
+     "mention": "minuts_in_status",
      "gold": [
-      "jira__daily_sprint_issue_history.remaining_estimate_seconds",
-      "jira__issue_enhanced.remaining_estimate_seconds",
-      "jira__sprint_enhanced.remaining_estimate_seconds"
+      "jira__issue_status_transitions.minutes_in_status"
      ],
-     "expect_ambiguous": true,
+     "expect_ambiguous": false,
      "top": [
-      "stg_jira__issue.original_estimate_seconds",
-      "int_jira__issue_users.original_estimate_seconds",
-      "int_jira__issue_users.remaining_estimate_seconds",
-      "stg_jira__issue.remaining_estimate_seconds",
-      "int_jira__issue_join.remaining_estimate_seconds"
+      "jira__issue_status_transitions.minutes_in_status",
+      "jira__issue_status_transitions.minutes_in_previous_status"
      ],
      "scores": [
-      0.795,
-      0.794,
-      0.793,
-      0.791,
-      0.789
+      0.775,
+      0.647
      ],
-     "ambiguous": true,
+     "ambiguous": false,
      "hybrid": "used",
-     "stage": "hybrid",
-     "top1": false,
-     "top3": false,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
