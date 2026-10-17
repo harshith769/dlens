@@ -30,7 +30,10 @@ install hint. The core and demo installs don't change.
 1. **Which files** (`chunks._Files`). Only files the manifest names are read: each node's
    `original_file_path`, `patch_path` YAML, docs-block `.md` files, exposure files, plus
    `README.md` at the project root. Package models (dbt_jira) resolve under
-   `<packages-install-path>/<package>/`. Nothing is globbed, so `lineage_spec.yml`, `traps.yml`,
+   `<packages-install-path>/<package>/` through the resolver lineage also uses
+   (`dlens.ingest.paths`, S06b; see artifact-ingest.md), so a chunk and a citation name the same
+   file. A package installed as a symlink is read only for manifest-referenced files of a package
+   whose `dbt_project.yml` name matches. Nothing is globbed, so `lineage_spec.yml`, `traps.yml`,
    `DESIGN.md` and other gold files next to the project can't be indexed.
 2. **CTE boundaries** (`cte_names`, `cte_segments`). sqlglot parses the **compiled** SQL to get
    the outer WITH's CTE names in order. Inlined ephemerals (`__dbt__cte__*`) are skipped. Each

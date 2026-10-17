@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Citation coverage** in `dlens ingest --artifacts` and `dlens report` (text and `--json`):
+  line-level vs model-level citations for SQL-model columns, direct and indirect edges, with the
+  model-level ones grouped by reason (no project files, file not found, SELECT built by a macro or
+  Jinja, clause key written by a macro or Jinja, clause not in the source). Seed and source
+  columns are counted apart: they always cite a whole CSV or YAML file.
 - **Hybrid retrieval** (`retrieval` extra; ADR 0014, ADR 0021): chunks of model SQL (split at
   CTE boundaries, on source `.sql` lines), column cards (name, type, YAML description) and doc
   chunks (descriptions, `{% docs %}` blocks, exposures, README). Each chunk has file, lines and
@@ -71,6 +76,12 @@ All notable changes to this project are documented here. The format follows
   older caches are rebuilt.
 
 ### Fixed
+- Package models (e.g. every dbt_jira model) cite lines in their own files under
+  `<packages-install-path>/<package>/` instead of the whole file. Lineage and the chunker share
+  one resolver (`dlens.ingest.paths`). A package that `dbt deps` installed as a symlink is
+  followed only for files the graph references, and only if the package root's `dbt_project.yml`
+  names that package. Graph format unchanged; artifact caches carry `builder_version` 2, so
+  caches built before the fix rebuild.
 - A WHERE over a derived-table column (`... ) as t where t.amt > 100`) now cites its own lines
   instead of falling back to the whole file.
 - A source declared over a seed's table (both claim one relation) no longer stops ingest: the

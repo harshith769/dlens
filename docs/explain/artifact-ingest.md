@@ -125,6 +125,64 @@ string holding the build directory. `tests/unit/test_no_absolute_paths.py` scans
 fixtures, demo, docs, eval and corpora. Known-safe mentions pass only through an exact
 (file, substring) allowlist.
 
+## Package paths and citation coverage (S06b)
+
+**What it does.** A model from a dbt package gets line-level citations in its own file, and
+`dlens ingest --artifacts` / `dlens report` say how many citations are line-level and why the rest
+are not.
+
+**How it works.** dbt records `original_file_path` relative to the node's package, so a package
+model's file on disk is `<packages-install-path>/<package>/<original_file_path>`.
+`dlens.ingest.paths` turns (package, path) into that project-relative "display" path, reading
+`packages-install-path` from `dbt_project.yml` (default `dbt_packages`). The engine reads the
+source through it and stores the display path in `Edge.file` / `IndirectEdge.file`;
+`LineageResult.files` carries it to the graph's model `file`. The chunker uses the same
+`ProjectFiles`, so a chunk and a citation always name the same file (tested on all 61 dbt_jira
+models). Root-project files keep their plain path, so graphs of projects without package models
+are byte-identical to before (synthetic_shop, jaffle_shop checked against main).
+
+Reads stay confined (`paths.resolve`, used by `safe_read` and so by the agent, validator and UI).
+A path must resolve inside the project root, except that `dbt deps` installs a `local:` package as
+a symlink that can point outside it (dbt_jira: `dbt_packages/jira -> ../..`). A path under
+`<packages-install-path>/<pkg>/` that leaves the root is read only if (a) the graph or manifest
+references it for that package and (b) the resolved package root's `dbt_project.yml` is named
+`<pkg>`, and it must stay inside that root. A `dbt_packages/x -> $HOME` link reads nothing,
+because in Ask mode file text can reach a cloud LLM.
+
+`graph.citations.citation_coverage` counts citations the way users get them (columns and direct
+edges through `Provenance`'s re-check; indirect edges by their flag) and groups the reasons.
+
+**dbt 2.0.** The packages layout is **doc-verified, not run**: dbt's `packages-install-path`
+reference gives the key and the `dbt_packages` default and draws no 2.0 distinction. No 2.0 build
+with packages was run here (the S06 2.0.8 check used a project without packages).
+
+**Why this design.** One resolver means the two features can't disagree on paths, and confinement
+is written once. Storing the display path, not resolving at read time, keeps every reader (CLI,
+agent, validator, UI, demo) unchanged: they already read `project_dir / file`. FORMAT_VERSION
+stays at 4 because the JSON shape didn't change. Only the *value* of `file` for package models
+did, from a path nothing could open. A new `builder_version` in the artifact cache's `meta.json`
+(not in `graph.json`, so the demo bundle is untouched) rebuilds caches made before the fix.
+
+**Alternatives rejected.** Resolving package paths at read time from `package_name`: every
+reader would need the manifest or a new graph field. Following any symlink under
+`dbt_packages/`: widens what can be read. Bumping FORMAT_VERSION: it changes the demo bundle's
+contract for no shape change.
+
+**Results (dbt_jira, 17 Oct 2026).**
+
+| | before | after |
+|---|---|---|
+| SQL-model columns | 0 / 764 line-level | 613 / 764 (80.2%) |
+| direct edges | 0 / 761 | 628 / 761 (82.5%) |
+| indirect edges | 0 / 4830 | 3998 / 4830 (82.8%) |
+
+282 seed/source columns cite a whole CSV/YAML file by design. Every model-level citation left
+comes from SQL a macro writes. The 18 `stg_*_tmp` models are one
+`fivetran_utils.union_connections(...)` call with no SELECT in the source (151 columns, 133
+direct edges). 816 indirect edges have clause keys written by `dbt_utils.group_by(n)` or a
+`{% for %}` loop, and 16 have clauses not found in the source. The ≥95% target was **not** met.
+Closing the gap would need the engine to cite macro calls, which is outside S06b.
+
 ## Explain-back questions
 1. A colleague runs `dlens ingest --artifacts target/` on artifacts from dbt 1.7, then on a
    copy of the same `target/` on another laptop. What happens in each case, and which two values
@@ -135,3 +193,13 @@ fixtures, demo, docs, eval and corpora. Known-safe mentions pass only through an
 3. On Postgres, why did every QUALIFY FILTER edge disappear before S06, and why does
    `count(x) filter (where c)` on Snowflake now give a direct edge from `c` instead of a
    CONDITIONAL one? Which of the two did we fix, and why not the other?
+4. (S06b) dbt_jira's `dbt_packages/jira` is a symlink to `../..`. Walk through what `safe_read`
+   does for `dbt_packages/jira/models/jira__issue_enhanced.sql`, for
+   `dbt_packages/jira/integration_tests/profiles.yml`, and for the first path if `dbt_project.yml`
+   up there were named `jira_fork`. Which check rejects each failing case?
+5. (S06b) The fix changed `file` in graph.json for package models. Why is FORMAT_VERSION still 4,
+   and what stops a cache built yesterday from being reused with the old, model-level citations?
+   Why does that value live in `meta.json` and not in `graph.json`?
+6. (S06b) After the fix, dbt_jira reports 82.5% of direct edges line-level and 60 FULL models.
+   Explain why both numbers are true, which models hold the 133 model-level edges, and why
+   citing their lines would need an engine change rather than a path fix.
