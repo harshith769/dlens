@@ -168,3 +168,27 @@ def test_load_target_never_writes(tmp_path: Path) -> None:
     before = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
     load_target(target)
     assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) == before
+
+
+# -- committed fixtures (scripts/make_artifact_fixture.py) ------------------------------------
+
+ARTIFACTS = Path(__file__).parents[1] / "fixtures" / "artifacts"
+
+
+def test_eph_shop_fixture_loads() -> None:
+    ingested, info = load_target(ARTIFACTS / "eph_shop" / "target")
+    assert (info.dialect, info.catalog_less, info.project_dir) == (
+        "duckdb",
+        False,
+        ARTIFACTS / "eph_shop",
+    )
+    ephemeral = {n.name for n in ingested.manifest.models if n.config.materialized == "ephemeral"}
+    assert ephemeral == {"paid_payments", "order_payments"}
+    assert all(m.compiled_code for m in ingested.manifest.models)
+
+
+def test_synthetic_shop_fixture_loads() -> None:
+    ingested, info = load_target(ARTIFACTS / "synthetic_shop")
+    assert (info.manifest_version, info.dialect, info.project_dir) == ("v12", "duckdb", None)
+    assert len(ingested.manifest.models) == 49
+    assert ingested.unmapped == []

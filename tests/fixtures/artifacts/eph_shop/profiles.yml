@@ -1,0 +1,7 @@
+eph_shop:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "eph_shop.duckdb"
+      threads: 1

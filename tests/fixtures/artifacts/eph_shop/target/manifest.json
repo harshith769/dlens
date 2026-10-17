@@ -1,0 +1,1013 @@
+{
+ "child_map": {
+  "model.eph_shop.customer_orders": [
+   "model.eph_shop.customer_summary"
+  ],
+  "model.eph_shop.customer_summary": [],
+  "model.eph_shop.order_payments": [
+   "model.eph_shop.customer_orders"
+  ],
+  "model.eph_shop.paid_payments": [
+   "model.eph_shop.order_payments"
+  ],
+  "model.eph_shop.stg_customers": [
+   "model.eph_shop.customer_summary"
+  ],
+  "seed.eph_shop.raw_customers": [
+   "model.eph_shop.stg_customers"
+  ],
+  "seed.eph_shop.raw_orders": [
+   "model.eph_shop.customer_orders"
+  ],
+  "seed.eph_shop.raw_payments": [
+   "model.eph_shop.paid_payments"
+  ]
+ },
+ "disabled": {},
+ "exposures": {},
+ "functions": {},
+ "group_map": {},
+ "groups": {},
+ "metadata": {
+  "adapter_type": "duckdb",
+  "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+  "dbt_version": "1.12.5",
+  "env": {},
+  "project_id": "8a3a13b2bcaa3478b1f6b63c6303ea78",
+  "project_name": "eph_shop",
+  "quoting": {
+   "column": null,
+   "database": true,
+   "identifier": true,
+   "schema": true
+  },
+  "send_anonymous_usage_stats": true
+ },
+ "metrics": {},
+ "nodes": {
+  "model.eph_shop.customer_orders": {
+   "access": "protected",
+   "alias": "customer_orders",
+   "build_path": null,
+   "checksum": {
+    "checksum": "ae6cc88c4cf6ccffd170b8187a2a5b8445a68a3edd610950d6ea2d6b47b971bc",
+    "name": "sha256"
+   },
+   "columns": {
+    "amount_usd": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": null,
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "amount_usd",
+     "quote": null,
+     "tags": []
+    },
+    "customer_id": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": null,
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "customer_id",
+     "quote": null,
+     "tags": []
+    },
+    "order_date": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": null,
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "order_date",
+     "quote": null,
+     "tags": []
+    },
+    "order_id": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": null,
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "order_id",
+     "quote": null,
+     "tags": []
+    },
+    "order_seq": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": null,
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "order_seq",
+     "quote": null,
+     "tags": []
+    }
+   },
+   "compiled": true,
+   "compiled_code": "with  __dbt__cte__paid_payments as (\n\n\nselect order_id, amount_cents\nfrom \"eph_shop\".\"main\".\"raw_payments\"\nwhere amount_cents > 0\n),  __dbt__cte__order_payments as (\n\n\nselect\n    order_id,\n    sum(amount_cents) / 100.0 as amount_usd\nfrom __dbt__cte__paid_payments\ngroup by order_id\n), orders as (\n    select * from \"eph_shop\".\"main\".\"raw_orders\"\n)\n\nselect\n    orders.id as order_id,\n    orders.customer_id,\n    orders.order_date,\n    p.amount_usd,\n    row_number() over (partition by orders.customer_id order by orders.order_date) as order_seq\nfrom orders\nleft join __dbt__cte__order_payments as p on orders.id = p.order_id\nwhere orders.status <> 'returned'",
+   "compiled_path": "target/compiled/eph_shop/models/customer_orders.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "table",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "seed.eph_shop.raw_orders",
+     "model.eph_shop.order_payments"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [
+    {
+     "id": "model.eph_shop.paid_payments",
+     "sql": " __dbt__cte__paid_payments as (\n\n\nselect order_id, amount_cents\nfrom \"eph_shop\".\"main\".\"raw_payments\"\nwhere amount_cents > 0\n)"
+    },
+    {
+     "id": "model.eph_shop.order_payments",
+     "sql": " __dbt__cte__order_payments as (\n\n\nselect\n    order_id,\n    sum(amount_cents) / 100.0 as amount_usd\nfrom __dbt__cte__paid_payments\ngroup by order_id\n)"
+    }
+   ],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_shop",
+    "customer_orders"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "customer_orders",
+   "original_file_path": "models/customer_orders.sql",
+   "package_name": "eph_shop",
+   "patch_path": "eph_shop://models/schema.yml",
+   "path": "customer_orders.sql",
+   "primary_key": [],
+   "raw_code": "with orders as (\n    select * from {{ ref('raw_orders') }}\n)\n\nselect\n    orders.id as order_id,\n    orders.customer_id,\n    orders.order_date,\n    p.amount_usd,\n    row_number() over (partition by orders.customer_id order by orders.order_date) as order_seq\nfrom orders\nleft join {{ ref('order_payments') }} as p on orders.id = p.order_id\nwhere orders.status <> 'returned'",
+   "refs": [
+    {
+     "name": "raw_orders",
+     "package": null,
+     "version": null
+    },
+    {
+     "name": "order_payments",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": "\"eph_shop\".\"main\".\"customer_orders\"",
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_shop.customer_orders",
+   "unrendered_config": {
+    "materialized": "table"
+   },
+   "version": null
+  },
+  "model.eph_shop.customer_summary": {
+   "access": "protected",
+   "alias": "customer_summary",
+   "build_path": null,
+   "checksum": {
+    "checksum": "6ec9984e697860e3f732fb77efac2ef8ea77d609e96b97c35e712807bba14e2a",
+    "name": "sha256"
+   },
+   "columns": {},
+   "compiled": true,
+   "compiled_code": "select\n    c.customer_id,\n    c.full_name,\n    count(co.order_id) as order_count,\n    sum(co.amount_usd) as lifetime_usd\nfrom \"eph_shop\".\"main\".\"stg_customers\" as c\nleft join \"eph_shop\".\"main\".\"customer_orders\" as co on c.customer_id = co.customer_id\ngroup by c.customer_id, c.full_name",
+   "compiled_path": "target/compiled/eph_shop/models/customer_summary.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "table",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "model.eph_shop.stg_customers",
+     "model.eph_shop.customer_orders"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_shop",
+    "customer_summary"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "customer_summary",
+   "original_file_path": "models/customer_summary.sql",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "customer_summary.sql",
+   "primary_key": [],
+   "raw_code": "select\n    c.customer_id,\n    c.full_name,\n    count(co.order_id) as order_count,\n    sum(co.amount_usd) as lifetime_usd\nfrom {{ ref('stg_customers') }} as c\nleft join {{ ref('customer_orders') }} as co on c.customer_id = co.customer_id\ngroup by c.customer_id, c.full_name",
+   "refs": [
+    {
+     "name": "stg_customers",
+     "package": null,
+     "version": null
+    },
+    {
+     "name": "customer_orders",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": "\"eph_shop\".\"main\".\"customer_summary\"",
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_shop.customer_summary",
+   "unrendered_config": {
+    "materialized": "table"
+   },
+   "version": null
+  },
+  "model.eph_shop.order_payments": {
+   "access": "protected",
+   "alias": "order_payments",
+   "build_path": null,
+   "checksum": {
+    "checksum": "838ec997746edec80f1bae665134b06611eeb46c9e59a25925e426ba5d6579b5",
+    "name": "sha256"
+   },
+   "columns": {},
+   "compiled": true,
+   "compiled_code": "\n\nwith __dbt__cte__paid_payments as (\n\n\nselect order_id, amount_cents\nfrom \"eph_shop\".\"main\".\"raw_payments\"\nwhere amount_cents > 0\n) select\n    order_id,\n    sum(amount_cents) / 100.0 as amount_usd\nfrom __dbt__cte__paid_payments\ngroup by order_id",
+   "compiled_path": "target/compiled/eph_shop/models/order_payments.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "ephemeral",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "model.eph_shop.paid_payments"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [
+    {
+     "id": "model.eph_shop.paid_payments",
+     "sql": " __dbt__cte__paid_payments as (\n\n\nselect order_id, amount_cents\nfrom \"eph_shop\".\"main\".\"raw_payments\"\nwhere amount_cents > 0\n)"
+    }
+   ],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_shop",
+    "order_payments"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "order_payments",
+   "original_file_path": "models/order_payments.sql",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "order_payments.sql",
+   "primary_key": [],
+   "raw_code": "{{ config(materialized='ephemeral') }}\n\nselect\n    order_id,\n    sum(amount_cents) / 100.0 as amount_usd\nfrom {{ ref('paid_payments') }}\ngroup by order_id",
+   "refs": [
+    {
+     "name": "paid_payments",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": null,
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_shop.order_payments",
+   "unrendered_config": {
+    "materialized": "ephemeral"
+   },
+   "version": null
+  },
+  "model.eph_shop.paid_payments": {
+   "access": "protected",
+   "alias": "paid_payments",
+   "build_path": null,
+   "checksum": {
+    "checksum": "4eea1a81d952f1500c2e1099d2ecfc978e7ddb52cd5ee057130ac6122aaa2762",
+    "name": "sha256"
+   },
+   "columns": {},
+   "compiled": true,
+   "compiled_code": "\n\nselect order_id, amount_cents\nfrom \"eph_shop\".\"main\".\"raw_payments\"\nwhere amount_cents > 0",
+   "compiled_path": "target/compiled/eph_shop/models/paid_payments.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "ephemeral",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "seed.eph_shop.raw_payments"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_shop",
+    "paid_payments"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "paid_payments",
+   "original_file_path": "models/paid_payments.sql",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "paid_payments.sql",
+   "primary_key": [],
+   "raw_code": "{{ config(materialized='ephemeral') }}\n\nselect order_id, amount_cents\nfrom {{ ref('raw_payments') }}\nwhere amount_cents > 0",
+   "refs": [
+    {
+     "name": "raw_payments",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": null,
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_shop.paid_payments",
+   "unrendered_config": {
+    "materialized": "ephemeral"
+   },
+   "version": null
+  },
+  "model.eph_shop.stg_customers": {
+   "access": "protected",
+   "alias": "stg_customers",
+   "build_path": null,
+   "checksum": {
+    "checksum": "8899b090a34a1228b3cbf1bda22e66d1e7e5e6e1be5482877df29803eb07fa76",
+    "name": "sha256"
+   },
+   "columns": {
+    "customer_id": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": "integer",
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "customer_id",
+     "quote": null,
+     "tags": []
+    },
+    "full_name": {
+     "config": {
+      "meta": {},
+      "tags": []
+     },
+     "constraints": [],
+     "data_type": "varchar",
+     "description": "",
+     "dimension": null,
+     "doc_blocks": [],
+     "entity": null,
+     "granularity": null,
+     "meta": {},
+     "name": "full_name",
+     "quote": null,
+     "tags": []
+    }
+   },
+   "compiled": true,
+   "compiled_code": "select\n    id as customer_id,\n    first_name || ' ' || last_name as full_name\nfrom \"eph_shop\".\"main\".\"raw_customers\"",
+   "compiled_path": "target/compiled/eph_shop/models/stg_customers.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "table",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "seed.eph_shop.raw_customers"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_shop",
+    "stg_customers"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "stg_customers",
+   "original_file_path": "models/stg_customers.sql",
+   "package_name": "eph_shop",
+   "patch_path": "eph_shop://models/schema.yml",
+   "path": "stg_customers.sql",
+   "primary_key": [],
+   "raw_code": "select\n    id as customer_id,\n    first_name || ' ' || last_name as full_name\nfrom {{ ref('raw_customers') }}",
+   "refs": [
+    {
+     "name": "raw_customers",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": "\"eph_shop\".\"main\".\"stg_customers\"",
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_shop.stg_customers",
+   "unrendered_config": {
+    "materialized": "table"
+   },
+   "version": null
+  },
+  "seed.eph_shop.raw_customers": {
+   "alias": "raw_customers",
+   "build_path": null,
+   "checksum": {
+    "checksum": "33263baf62a0620d2801c2d9bf56c7575d09271d17e6d31064ec78064e68bbb5",
+    "name": "sha256"
+   },
+   "columns": {},
+   "config": {
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "delimiter": ",",
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "lookback": 1,
+    "materialized": "seed",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quote_columns": null,
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": []
+   },
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "fqn": [
+    "eph_shop",
+    "raw_customers"
+   ],
+   "group": null,
+   "meta": {},
+   "name": "raw_customers",
+   "original_file_path": "seeds/raw_customers.csv",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "raw_customers.csv",
+   "raw_code": "",
+   "relation_name": "\"eph_shop\".\"main\".\"raw_customers\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "tags": [],
+   "unique_id": "seed.eph_shop.raw_customers",
+   "unrendered_config": {}
+  },
+  "seed.eph_shop.raw_orders": {
+   "alias": "raw_orders",
+   "build_path": null,
+   "checksum": {
+    "checksum": "0baf32406ff8297f3e43db496269409ecfa284f83f3aa4e69a7261c0d5264e74",
+    "name": "sha256"
+   },
+   "columns": {},
+   "config": {
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "delimiter": ",",
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "lookback": 1,
+    "materialized": "seed",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quote_columns": null,
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": []
+   },
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "fqn": [
+    "eph_shop",
+    "raw_orders"
+   ],
+   "group": null,
+   "meta": {},
+   "name": "raw_orders",
+   "original_file_path": "seeds/raw_orders.csv",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "raw_orders.csv",
+   "raw_code": "",
+   "relation_name": "\"eph_shop\".\"main\".\"raw_orders\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "tags": [],
+   "unique_id": "seed.eph_shop.raw_orders",
+   "unrendered_config": {}
+  },
+  "seed.eph_shop.raw_payments": {
+   "alias": "raw_payments",
+   "build_path": null,
+   "checksum": {
+    "checksum": "a719878ca62c24be7c75fb531e67a79e43464ffcd341bf2e1f1c8af22bd99667",
+    "name": "sha256"
+   },
+   "columns": {},
+   "config": {
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "delimiter": ",",
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "lookback": 1,
+    "materialized": "seed",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quote_columns": null,
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": []
+   },
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "fqn": [
+    "eph_shop",
+    "raw_payments"
+   ],
+   "group": null,
+   "meta": {},
+   "name": "raw_payments",
+   "original_file_path": "seeds/raw_payments.csv",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "raw_payments.csv",
+   "raw_code": "",
+   "relation_name": "\"eph_shop\".\"main\".\"raw_payments\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "tags": [],
+   "unique_id": "seed.eph_shop.raw_payments",
+   "unrendered_config": {}
+  }
+ },
+ "parent_map": {
+  "model.eph_shop.customer_orders": [
+   "model.eph_shop.order_payments",
+   "seed.eph_shop.raw_orders"
+  ],
+  "model.eph_shop.customer_summary": [
+   "model.eph_shop.customer_orders",
+   "model.eph_shop.stg_customers"
+  ],
+  "model.eph_shop.order_payments": [
+   "model.eph_shop.paid_payments"
+  ],
+  "model.eph_shop.paid_payments": [
+   "seed.eph_shop.raw_payments"
+  ],
+  "model.eph_shop.stg_customers": [
+   "seed.eph_shop.raw_customers"
+  ],
+  "seed.eph_shop.raw_customers": [],
+  "seed.eph_shop.raw_orders": [],
+  "seed.eph_shop.raw_payments": []
+ },
+ "saved_queries": {},
+ "selectors": {},
+ "semantic_models": {},
+ "sources": {},
+ "unit_tests": {}
+}

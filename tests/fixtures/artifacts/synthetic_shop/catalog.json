@@ -1,0 +1,3722 @@
+{
+ "metadata": {
+  "dbt_schema_version": "https://schemas.getdbt.com/dbt/catalog/v1.json"
+ },
+ "nodes": {
+  "model.synthetic_shop.dim_customer_rfm": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "recency_days": {
+     "comment": null,
+     "index": 2,
+     "name": "recency_days",
+     "type": "BIGINT"
+    },
+    "rfm_frequency_score": {
+     "comment": null,
+     "index": 4,
+     "name": "rfm_frequency_score",
+     "type": "INTEGER"
+    },
+    "rfm_monetary_score": {
+     "comment": null,
+     "index": 5,
+     "name": "rfm_monetary_score",
+     "type": "INTEGER"
+    },
+    "rfm_recency_score": {
+     "comment": null,
+     "index": 3,
+     "name": "rfm_recency_score",
+     "type": "INTEGER"
+    },
+    "rfm_score": {
+     "comment": null,
+     "index": 6,
+     "name": "rfm_score",
+     "type": "INTEGER"
+    },
+    "web_session_count": {
+     "comment": null,
+     "index": 7,
+     "name": "web_session_count",
+     "type": "BIGINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "dim_customer_rfm",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.dim_customer_rfm"
+  },
+  "model.synthetic_shop.dim_customer_segments": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "customer_segment": {
+     "comment": null,
+     "index": 4,
+     "name": "customer_segment",
+     "type": "VARCHAR"
+    },
+    "is_high_value": {
+     "comment": null,
+     "index": 5,
+     "name": "is_high_value",
+     "type": "BOOLEAN"
+    },
+    "recency_days": {
+     "comment": null,
+     "index": 3,
+     "name": "recency_days",
+     "type": "BIGINT"
+    },
+    "rfm_score": {
+     "comment": null,
+     "index": 2,
+     "name": "rfm_score",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "dim_customer_segments",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.dim_customer_segments"
+  },
+  "model.synthetic_shop.dim_customers": {
+   "columns": {
+    "country_code": {
+     "comment": null,
+     "index": 4,
+     "name": "country_code",
+     "type": "VARCHAR"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "email": {
+     "comment": null,
+     "index": 3,
+     "name": "email",
+     "type": "VARCHAR"
+    },
+    "first_order_date": {
+     "comment": null,
+     "index": 6,
+     "name": "first_order_date",
+     "type": "DATE"
+    },
+    "full_name": {
+     "comment": null,
+     "index": 2,
+     "name": "full_name",
+     "type": "VARCHAR"
+    },
+    "lifetime_value": {
+     "comment": null,
+     "index": 9,
+     "name": "lifetime_value",
+     "type": "DECIMAL(38,2)"
+    },
+    "most_recent_order_date": {
+     "comment": null,
+     "index": 7,
+     "name": "most_recent_order_date",
+     "type": "DATE"
+    },
+    "order_count": {
+     "comment": null,
+     "index": 8,
+     "name": "order_count",
+     "type": "BIGINT"
+    },
+    "signup_at": {
+     "comment": null,
+     "index": 5,
+     "name": "signup_at",
+     "type": "TIMESTAMP"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "dim_customers",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.dim_customers"
+  },
+  "model.synthetic_shop.fct_channel_performance_monthly": {
+   "columns": {
+    "attributed_revenue": {
+     "comment": null,
+     "index": 4,
+     "name": "attributed_revenue",
+     "type": "DECIMAL(38,2)"
+    },
+    "channel": {
+     "comment": null,
+     "index": 2,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "report_month": {
+     "comment": null,
+     "index": 1,
+     "name": "report_month",
+     "type": "TIMESTAMP"
+    },
+    "roas": {
+     "comment": null,
+     "index": 5,
+     "name": "roas",
+     "type": "DOUBLE"
+    },
+    "spend_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "spend_usd",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_channel_performance_monthly",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_channel_performance_monthly"
+  },
+  "model.synthetic_shop.fct_customer_cohorts": {
+   "columns": {
+    "cohort_customers": {
+     "comment": null,
+     "index": 4,
+     "name": "cohort_customers",
+     "type": "BIGINT"
+    },
+    "cohort_month": {
+     "comment": null,
+     "index": 1,
+     "name": "cohort_month",
+     "type": "TIMESTAMP"
+    },
+    "cohort_net_paid": {
+     "comment": null,
+     "index": 6,
+     "name": "cohort_net_paid",
+     "type": "DECIMAL(38,2)"
+    },
+    "cumulative_net_paid": {
+     "comment": null,
+     "index": 7,
+     "name": "cumulative_net_paid",
+     "type": "DECIMAL(38,2)"
+    },
+    "months_since_signup": {
+     "comment": null,
+     "index": 3,
+     "name": "months_since_signup",
+     "type": "BIGINT"
+    },
+    "order_month": {
+     "comment": null,
+     "index": 2,
+     "name": "order_month",
+     "type": "TIMESTAMP"
+    },
+    "repeat_customers": {
+     "comment": null,
+     "index": 5,
+     "name": "repeat_customers",
+     "type": "BIGINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_customer_cohorts",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_customer_cohorts"
+  },
+  "model.synthetic_shop.fct_customer_leaderboard": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "customer_segment": {
+     "comment": null,
+     "index": 4,
+     "name": "customer_segment",
+     "type": "VARCHAR"
+    },
+    "full_name": {
+     "comment": null,
+     "index": 2,
+     "name": "full_name",
+     "type": "VARCHAR"
+    },
+    "lifetime_value_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "lifetime_value_usd",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_customer_leaderboard",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_customer_leaderboard"
+  },
+  "model.synthetic_shop.fct_daily_revenue": {
+   "columns": {
+    "order_count": {
+     "comment": null,
+     "index": 2,
+     "name": "order_count",
+     "type": "BIGINT"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 1,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "refunded_amount": {
+     "comment": null,
+     "index": 5,
+     "name": "refunded_amount",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_finance": {
+     "comment": null,
+     "index": 3,
+     "name": "revenue_finance",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_marketing": {
+     "comment": null,
+     "index": 4,
+     "name": "revenue_marketing",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_daily_revenue",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_daily_revenue"
+  },
+  "model.synthetic_shop.fct_inventory_status": {
+   "columns": {
+    "as_of_date": {
+     "comment": null,
+     "index": 3,
+     "name": "as_of_date",
+     "type": "DATE"
+    },
+    "days_of_cover": {
+     "comment": null,
+     "index": 6,
+     "name": "days_of_cover",
+     "type": "DOUBLE"
+    },
+    "inventory_value": {
+     "comment": null,
+     "index": 5,
+     "name": "inventory_value",
+     "type": "DECIMAL(18,2)"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "qty_on_hand": {
+     "comment": null,
+     "index": 4,
+     "name": "qty_on_hand",
+     "type": "INTEGER"
+    },
+    "warehouse_code": {
+     "comment": null,
+     "index": 2,
+     "name": "warehouse_code",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_inventory_status",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_inventory_status"
+  },
+  "model.synthetic_shop.fct_marketing_attribution": {
+   "columns": {
+    "attributed_orders": {
+     "comment": null,
+     "index": 5,
+     "name": "attributed_orders",
+     "type": "BIGINT"
+    },
+    "attributed_revenue": {
+     "comment": null,
+     "index": 6,
+     "name": "attributed_revenue",
+     "type": "DECIMAL(38,2)"
+    },
+    "channel": {
+     "comment": null,
+     "index": 2,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "cost_per_order": {
+     "comment": null,
+     "index": 7,
+     "name": "cost_per_order",
+     "type": "DOUBLE"
+    },
+    "report_date": {
+     "comment": null,
+     "index": 1,
+     "name": "report_date",
+     "type": "DATE"
+    },
+    "roas": {
+     "comment": null,
+     "index": 8,
+     "name": "roas",
+     "type": "DOUBLE"
+    },
+    "session_count": {
+     "comment": null,
+     "index": 4,
+     "name": "session_count",
+     "type": "BIGINT"
+    },
+    "spend_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "spend_usd",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_marketing_attribution",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_marketing_attribution"
+  },
+  "model.synthetic_shop.fct_monthly_finance": {
+   "columns": {
+    "adjustments_total": {
+     "comment": null,
+     "index": 7,
+     "name": "adjustments_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "contribution_margin": {
+     "comment": null,
+     "index": 6,
+     "name": "contribution_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "finance_month": {
+     "comment": null,
+     "index": 1,
+     "name": "finance_month",
+     "type": "TIMESTAMP"
+    },
+    "net_revenue": {
+     "comment": null,
+     "index": 5,
+     "name": "net_revenue",
+     "type": "DECIMAL(38,2)"
+    },
+    "refunded_amount": {
+     "comment": null,
+     "index": 4,
+     "name": "refunded_amount",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_finance": {
+     "comment": null,
+     "index": 2,
+     "name": "revenue_finance",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_finance_mom_change": {
+     "comment": null,
+     "index": 8,
+     "name": "revenue_finance_mom_change",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_marketing": {
+     "comment": null,
+     "index": 3,
+     "name": "revenue_marketing",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_monthly_finance",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_monthly_finance"
+  },
+  "model.synthetic_shop.fct_order_margins": {
+   "columns": {
+    "cogs_total": {
+     "comment": null,
+     "index": 5,
+     "name": "cogs_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "contribution_margin": {
+     "comment": null,
+     "index": 9,
+     "name": "contribution_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "discount_total": {
+     "comment": null,
+     "index": 8,
+     "name": "discount_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "gross_margin": {
+     "comment": null,
+     "index": 6,
+     "name": "gross_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "margin_pct": {
+     "comment": null,
+     "index": 10,
+     "name": "margin_pct",
+     "type": "DOUBLE"
+    },
+    "net_revenue": {
+     "comment": null,
+     "index": 4,
+     "name": "net_revenue",
+     "type": "DECIMAL(38,2)"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "shipping_cost_total": {
+     "comment": null,
+     "index": 7,
+     "name": "shipping_cost_total",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_order_margins",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_order_margins"
+  },
+  "model.synthetic_shop.fct_orders": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "days_since_previous_order": {
+     "comment": null,
+     "index": 14,
+     "name": "days_since_previous_order",
+     "type": "BIGINT"
+    },
+    "item_count": {
+     "comment": null,
+     "index": 6,
+     "name": "item_count",
+     "type": "HUGEINT"
+    },
+    "items_subtotal": {
+     "comment": null,
+     "index": 7,
+     "name": "items_subtotal",
+     "type": "DECIMAL(38,2)"
+    },
+    "net_paid_usd": {
+     "comment": null,
+     "index": 11,
+     "name": "net_paid_usd",
+     "type": "DECIMAL(38,2)"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_status_group": {
+     "comment": null,
+     "index": 5,
+     "name": "order_status_group",
+     "type": "VARCHAR"
+    },
+    "order_total": {
+     "comment": null,
+     "index": 9,
+     "name": "order_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "previous_order_date": {
+     "comment": null,
+     "index": 4,
+     "name": "previous_order_date",
+     "type": "DATE"
+    },
+    "refunded_amount": {
+     "comment": null,
+     "index": 10,
+     "name": "refunded_amount",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_finance": {
+     "comment": null,
+     "index": 12,
+     "name": "revenue_finance",
+     "type": "DECIMAL(38,2)"
+    },
+    "revenue_marketing": {
+     "comment": null,
+     "index": 13,
+     "name": "revenue_marketing",
+     "type": "DECIMAL(38,2)"
+    },
+    "sales_tax": {
+     "comment": null,
+     "index": 8,
+     "name": "sales_tax",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_orders",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_orders"
+  },
+  "model.synthetic_shop.fct_payment_events": {
+   "columns": {
+    "event_amount_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "event_amount_usd",
+     "type": "DECIMAL(18,2)"
+    },
+    "event_at": {
+     "comment": null,
+     "index": 4,
+     "name": "event_at",
+     "type": "TIMESTAMP"
+    },
+    "event_id": {
+     "comment": null,
+     "index": 1,
+     "name": "event_id",
+     "type": "VARCHAR"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_payment_events",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_payment_events"
+  },
+  "model.synthetic_shop.fct_product_performance": {
+   "columns": {
+    "discounted_units": {
+     "comment": null,
+     "index": 5,
+     "name": "discounted_units",
+     "type": "HUGEINT"
+    },
+    "gross_margin": {
+     "comment": null,
+     "index": 7,
+     "name": "gross_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "gross_sales": {
+     "comment": null,
+     "index": 6,
+     "name": "gross_sales",
+     "type": "DECIMAL(38,2)"
+    },
+    "product_category": {
+     "comment": null,
+     "index": 3,
+     "name": "product_category",
+     "type": "VARCHAR"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "product_name": {
+     "comment": null,
+     "index": 2,
+     "name": "product_name",
+     "type": "VARCHAR"
+    },
+    "units_sold": {
+     "comment": null,
+     "index": 4,
+     "name": "units_sold",
+     "type": "HUGEINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_product_performance",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_product_performance"
+  },
+  "model.synthetic_shop.fct_segment_monthly": {
+   "columns": {
+    "active_customers": {
+     "comment": null,
+     "index": 4,
+     "name": "active_customers",
+     "type": "BIGINT"
+    },
+    "customer_segment": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_segment",
+     "type": "VARCHAR"
+    },
+    "order_month": {
+     "comment": null,
+     "index": 1,
+     "name": "order_month",
+     "type": "TIMESTAMP"
+    },
+    "segment_order_count": {
+     "comment": null,
+     "index": 3,
+     "name": "segment_order_count",
+     "type": "BIGINT"
+    },
+    "segment_revenue_finance": {
+     "comment": null,
+     "index": 5,
+     "name": "segment_revenue_finance",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_segment_monthly",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_segment_monthly"
+  },
+  "model.synthetic_shop.fct_shipping_performance": {
+   "columns": {
+    "avg_delivery_days": {
+     "comment": null,
+     "index": 5,
+     "name": "avg_delivery_days",
+     "type": "DOUBLE"
+    },
+    "carrier": {
+     "comment": null,
+     "index": 1,
+     "name": "carrier",
+     "type": "VARCHAR"
+    },
+    "late_shipment_count": {
+     "comment": null,
+     "index": 4,
+     "name": "late_shipment_count",
+     "type": "HUGEINT"
+    },
+    "ship_month": {
+     "comment": null,
+     "index": 2,
+     "name": "ship_month",
+     "type": "TIMESTAMP"
+    },
+    "shipment_count": {
+     "comment": null,
+     "index": 3,
+     "name": "shipment_count",
+     "type": "BIGINT"
+    },
+    "shipping_costs_usd": {
+     "comment": null,
+     "index": 6,
+     "name": "shipping_costs_usd",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_shipping_performance",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_shipping_performance"
+  },
+  "model.synthetic_shop.fct_top_products": {
+   "columns": {
+    "gross_margin": {
+     "comment": null,
+     "index": 4,
+     "name": "gross_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "product_name": {
+     "comment": null,
+     "index": 2,
+     "name": "product_name",
+     "type": "VARCHAR"
+    },
+    "units_sold": {
+     "comment": null,
+     "index": 3,
+     "name": "units_sold",
+     "type": "HUGEINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "fct_top_products",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.fct_top_products"
+  },
+  "model.synthetic_shop.int_campaign_spend_daily": {
+   "columns": {
+    "channel": {
+     "comment": null,
+     "index": 2,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "click_through_rate": {
+     "comment": null,
+     "index": 6,
+     "name": "click_through_rate",
+     "type": "DOUBLE"
+    },
+    "clicks": {
+     "comment": null,
+     "index": 5,
+     "name": "clicks",
+     "type": "HUGEINT"
+    },
+    "impressions": {
+     "comment": null,
+     "index": 4,
+     "name": "impressions",
+     "type": "HUGEINT"
+    },
+    "spend_date": {
+     "comment": null,
+     "index": 1,
+     "name": "spend_date",
+     "type": "DATE"
+    },
+    "spend_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "spend_usd",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_campaign_spend_daily",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_campaign_spend_daily"
+  },
+  "model.synthetic_shop.int_customer_order_history": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "item_count": {
+     "comment": null,
+     "index": 5,
+     "name": "item_count",
+     "type": "HUGEINT"
+    },
+    "items_subtotal": {
+     "comment": null,
+     "index": 6,
+     "name": "items_subtotal",
+     "type": "DECIMAL(38,2)"
+    },
+    "net_paid_usd": {
+     "comment": null,
+     "index": 10,
+     "name": "net_paid_usd",
+     "type": "DECIMAL(38,2)"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_status_group": {
+     "comment": null,
+     "index": 4,
+     "name": "order_status_group",
+     "type": "VARCHAR"
+    },
+    "order_total": {
+     "comment": null,
+     "index": 8,
+     "name": "order_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "previous_order_date": {
+     "comment": null,
+     "index": 11,
+     "name": "previous_order_date",
+     "type": "DATE"
+    },
+    "refund_amount": {
+     "comment": null,
+     "index": 9,
+     "name": "refund_amount",
+     "type": "DECIMAL(38,2)"
+    },
+    "sales_tax": {
+     "comment": null,
+     "index": 7,
+     "name": "sales_tax",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_customer_order_history",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_customer_order_history"
+  },
+  "model.synthetic_shop.int_customer_sessions": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "first_session_at": {
+     "comment": null,
+     "index": 4,
+     "name": "first_session_at",
+     "type": "TIMESTAMP"
+    },
+    "last_session_at": {
+     "comment": null,
+     "index": 5,
+     "name": "last_session_at",
+     "type": "TIMESTAMP"
+    },
+    "paid_session_count": {
+     "comment": null,
+     "index": 3,
+     "name": "paid_session_count",
+     "type": "BIGINT"
+    },
+    "session_count": {
+     "comment": null,
+     "index": 2,
+     "name": "session_count",
+     "type": "BIGINT"
+    },
+    "total_page_views": {
+     "comment": null,
+     "index": 6,
+     "name": "total_page_views",
+     "type": "HUGEINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_customer_sessions",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_customer_sessions"
+  },
+  "model.synthetic_shop.int_inventory_daily": {
+   "columns": {
+    "inventory_value": {
+     "comment": null,
+     "index": 5,
+     "name": "inventory_value",
+     "type": "DECIMAL(18,2)"
+    },
+    "prior_qty_on_hand": {
+     "comment": null,
+     "index": 6,
+     "name": "prior_qty_on_hand",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "qty_change": {
+     "comment": null,
+     "index": 7,
+     "name": "qty_change",
+     "type": "INTEGER"
+    },
+    "qty_on_hand": {
+     "comment": null,
+     "index": 4,
+     "name": "qty_on_hand",
+     "type": "INTEGER"
+    },
+    "snapshot_date": {
+     "comment": null,
+     "index": 2,
+     "name": "snapshot_date",
+     "type": "DATE"
+    },
+    "warehouse_code": {
+     "comment": null,
+     "index": 3,
+     "name": "warehouse_code",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_inventory_daily",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_inventory_daily"
+  },
+  "model.synthetic_shop.int_order_adjustments": {
+   "columns": {
+    "adjustment_amount_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "adjustment_amount_usd",
+     "type": "DECIMAL(18,2)"
+    },
+    "adjustment_id": {
+     "comment": null,
+     "index": 1,
+     "name": "adjustment_id",
+     "type": "VARCHAR"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_adjustments",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_adjustments"
+  },
+  "model.synthetic_shop.int_order_attribution": {
+   "columns": {
+    "attributed_campaign": {
+     "comment": null,
+     "index": 6,
+     "name": "attributed_campaign",
+     "type": "VARCHAR"
+    },
+    "attributed_channel": {
+     "comment": null,
+     "index": 5,
+     "name": "attributed_channel",
+     "type": "VARCHAR"
+    },
+    "attributed_revenue": {
+     "comment": null,
+     "index": 7,
+     "name": "attributed_revenue",
+     "type": "DECIMAL(38,2)"
+    },
+    "attributed_session_id": {
+     "comment": null,
+     "index": 4,
+     "name": "attributed_session_id",
+     "type": "INTEGER"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "days_to_convert": {
+     "comment": null,
+     "index": 8,
+     "name": "days_to_convert",
+     "type": "BIGINT"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_attribution",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_attribution"
+  },
+  "model.synthetic_shop.int_order_financials": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "item_count": {
+     "comment": null,
+     "index": 5,
+     "name": "item_count",
+     "type": "HUGEINT"
+    },
+    "items_subtotal": {
+     "comment": null,
+     "index": 6,
+     "name": "items_subtotal",
+     "type": "DECIMAL(38,2)"
+    },
+    "net_paid_usd": {
+     "comment": null,
+     "index": 10,
+     "name": "net_paid_usd",
+     "type": "DECIMAL(38,2)"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_status_group": {
+     "comment": null,
+     "index": 4,
+     "name": "order_status_group",
+     "type": "VARCHAR"
+    },
+    "order_total": {
+     "comment": null,
+     "index": 8,
+     "name": "order_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "refund_amount": {
+     "comment": null,
+     "index": 9,
+     "name": "refund_amount",
+     "type": "DECIMAL(38,2)"
+    },
+    "sales_tax": {
+     "comment": null,
+     "index": 7,
+     "name": "sales_tax",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_financials",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_financials"
+  },
+  "model.synthetic_shop.int_order_item_margins": {
+   "columns": {
+    "is_discounted": {
+     "comment": null,
+     "index": 6,
+     "name": "is_discounted",
+     "type": "BOOLEAN"
+    },
+    "line_amount": {
+     "comment": null,
+     "index": 5,
+     "name": "line_amount",
+     "type": "DECIMAL(18,2)"
+    },
+    "line_cost": {
+     "comment": null,
+     "index": 9,
+     "name": "line_cost",
+     "type": "DECIMAL(18,2)"
+    },
+    "line_margin": {
+     "comment": null,
+     "index": 10,
+     "name": "line_margin",
+     "type": "DECIMAL(18,2)"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_item_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_item_id",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 3,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "quantity": {
+     "comment": null,
+     "index": 4,
+     "name": "quantity",
+     "type": "INTEGER"
+    },
+    "supplier_id": {
+     "comment": null,
+     "index": 8,
+     "name": "supplier_id",
+     "type": "INTEGER"
+    },
+    "unit_cost": {
+     "comment": null,
+     "index": 7,
+     "name": "unit_cost",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_item_margins",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_item_margins"
+  },
+  "model.synthetic_shop.int_order_items_enriched": {
+   "columns": {
+    "is_discounted": {
+     "comment": null,
+     "index": 8,
+     "name": "is_discounted",
+     "type": "BOOLEAN"
+    },
+    "line_amount": {
+     "comment": null,
+     "index": 7,
+     "name": "line_amount",
+     "type": "DECIMAL(18,2)"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_item_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_item_id",
+     "type": "INTEGER"
+    },
+    "product_category": {
+     "comment": null,
+     "index": 4,
+     "name": "product_category",
+     "type": "VARCHAR"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 3,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "quantity": {
+     "comment": null,
+     "index": 5,
+     "name": "quantity",
+     "type": "INTEGER"
+    },
+    "unit_price": {
+     "comment": null,
+     "index": 6,
+     "name": "unit_price",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_items_enriched",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_items_enriched"
+  },
+  "model.synthetic_shop.int_order_profit": {
+   "columns": {
+    "cogs_total": {
+     "comment": null,
+     "index": 5,
+     "name": "cogs_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "contribution_margin": {
+     "comment": null,
+     "index": 9,
+     "name": "contribution_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "discount_total": {
+     "comment": null,
+     "index": 8,
+     "name": "discount_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "gross_margin": {
+     "comment": null,
+     "index": 6,
+     "name": "gross_margin",
+     "type": "DECIMAL(38,2)"
+    },
+    "is_profitable": {
+     "comment": null,
+     "index": 10,
+     "name": "is_profitable",
+     "type": "BOOLEAN"
+    },
+    "net_revenue": {
+     "comment": null,
+     "index": 4,
+     "name": "net_revenue",
+     "type": "DECIMAL(38,2)"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "shipping_cost_total": {
+     "comment": null,
+     "index": 7,
+     "name": "shipping_cost_total",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_profit",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_profit"
+  },
+  "model.synthetic_shop.int_order_promotions": {
+   "columns": {
+    "discount_total": {
+     "comment": null,
+     "index": 3,
+     "name": "discount_total",
+     "type": "DECIMAL(38,2)"
+    },
+    "max_discount_pct": {
+     "comment": null,
+     "index": 4,
+     "name": "max_discount_pct",
+     "type": "DECIMAL(10,2)"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "promo_codes": {
+     "comment": null,
+     "index": 5,
+     "name": "promo_codes",
+     "type": "VARCHAR"
+    },
+    "promotion_count": {
+     "comment": null,
+     "index": 2,
+     "name": "promotion_count",
+     "type": "BIGINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_promotions",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_promotions"
+  },
+  "model.synthetic_shop.int_order_shipping": {
+   "columns": {
+    "first_shipped_at": {
+     "comment": null,
+     "index": 4,
+     "name": "first_shipped_at",
+     "type": "TIMESTAMP"
+    },
+    "last_delivered_at": {
+     "comment": null,
+     "index": 5,
+     "name": "last_delivered_at",
+     "type": "TIMESTAMP"
+    },
+    "late_shipment_count": {
+     "comment": null,
+     "index": 6,
+     "name": "late_shipment_count",
+     "type": "BIGINT"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "shipment_count": {
+     "comment": null,
+     "index": 2,
+     "name": "shipment_count",
+     "type": "BIGINT"
+    },
+    "shipping_cost_total": {
+     "comment": null,
+     "index": 3,
+     "name": "shipping_cost_total",
+     "type": "DECIMAL(38,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_order_shipping",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_order_shipping"
+  },
+  "model.synthetic_shop.int_orders_enriched": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "item_count": {
+     "comment": null,
+     "index": 6,
+     "name": "item_count",
+     "type": "HUGEINT"
+    },
+    "items_subtotal": {
+     "comment": null,
+     "index": 7,
+     "name": "items_subtotal",
+     "type": "DECIMAL(38,2)"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_status_group": {
+     "comment": null,
+     "index": 4,
+     "name": "order_status_group",
+     "type": "VARCHAR"
+    },
+    "order_tax": {
+     "comment": null,
+     "index": 5,
+     "name": "order_tax",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_orders_enriched",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_orders_enriched"
+  },
+  "model.synthetic_shop.int_payment_events": {
+   "columns": {
+    "event_amount_usd": {
+     "comment": null,
+     "index": 3,
+     "name": "event_amount_usd",
+     "type": "DECIMAL(18,2)"
+    },
+    "event_at": {
+     "comment": null,
+     "index": 4,
+     "name": "event_at",
+     "type": "TIMESTAMP"
+    },
+    "event_id": {
+     "comment": null,
+     "index": 1,
+     "name": "event_id",
+     "type": "VARCHAR"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_payment_events",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_payment_events"
+  },
+  "model.synthetic_shop.int_product_costs_current": {
+   "columns": {
+    "cost_valid_from": {
+     "comment": null,
+     "index": 4,
+     "name": "cost_valid_from",
+     "type": "DATE"
+    },
+    "lead_time_days": {
+     "comment": null,
+     "index": 7,
+     "name": "lead_time_days",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "supplier_country": {
+     "comment": null,
+     "index": 6,
+     "name": "supplier_country",
+     "type": "VARCHAR"
+    },
+    "supplier_id": {
+     "comment": null,
+     "index": 2,
+     "name": "supplier_id",
+     "type": "INTEGER"
+    },
+    "supplier_name": {
+     "comment": null,
+     "index": 5,
+     "name": "supplier_name",
+     "type": "VARCHAR"
+    },
+    "unit_cost": {
+     "comment": null,
+     "index": 3,
+     "name": "unit_cost",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_product_costs_current",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_product_costs_current"
+  },
+  "model.synthetic_shop.int_sessions_daily": {
+   "columns": {
+    "channel": {
+     "comment": null,
+     "index": 2,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "page_views": {
+     "comment": null,
+     "index": 5,
+     "name": "page_views",
+     "type": "HUGEINT"
+    },
+    "session_count": {
+     "comment": null,
+     "index": 3,
+     "name": "session_count",
+     "type": "BIGINT"
+    },
+    "session_date": {
+     "comment": null,
+     "index": 1,
+     "name": "session_date",
+     "type": "DATE"
+    },
+    "visitor_count": {
+     "comment": null,
+     "index": 4,
+     "name": "visitor_count",
+     "type": "BIGINT"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_sessions_daily",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_sessions_daily"
+  },
+  "model.synthetic_shop.int_shipments_enriched": {
+   "columns": {
+    "carrier": {
+     "comment": null,
+     "index": 3,
+     "name": "carrier",
+     "type": "VARCHAR"
+    },
+    "days_to_ship": {
+     "comment": null,
+     "index": 8,
+     "name": "days_to_ship",
+     "type": "BIGINT"
+    },
+    "delivered_at": {
+     "comment": null,
+     "index": 5,
+     "name": "delivered_at",
+     "type": "TIMESTAMP"
+    },
+    "delivery_days": {
+     "comment": null,
+     "index": 6,
+     "name": "delivery_days",
+     "type": "BIGINT"
+    },
+    "is_late_delivery": {
+     "comment": null,
+     "index": 9,
+     "name": "is_late_delivery",
+     "type": "BOOLEAN"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "shipment_id": {
+     "comment": null,
+     "index": 1,
+     "name": "shipment_id",
+     "type": "INTEGER"
+    },
+    "shipped_at": {
+     "comment": null,
+     "index": 4,
+     "name": "shipped_at",
+     "type": "TIMESTAMP"
+    },
+    "shipping_cost_usd": {
+     "comment": null,
+     "index": 7,
+     "name": "shipping_cost_usd",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_shipments_enriched",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_shipments_enriched"
+  },
+  "model.synthetic_shop.int_web_sessions_clean": {
+   "columns": {
+    "channel": {
+     "comment": null,
+     "index": 4,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "page_views": {
+     "comment": null,
+     "index": 6,
+     "name": "page_views",
+     "type": "INTEGER"
+    },
+    "session_date": {
+     "comment": null,
+     "index": 7,
+     "name": "session_date",
+     "type": "DATE"
+    },
+    "session_id": {
+     "comment": null,
+     "index": 1,
+     "name": "session_id",
+     "type": "INTEGER"
+    },
+    "session_number": {
+     "comment": null,
+     "index": 8,
+     "name": "session_number",
+     "type": "BIGINT"
+    },
+    "session_started_at": {
+     "comment": null,
+     "index": 3,
+     "name": "session_started_at",
+     "type": "TIMESTAMP"
+    },
+    "utm_campaign": {
+     "comment": null,
+     "index": 5,
+     "name": "utm_campaign",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "int_web_sessions_clean",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.int_web_sessions_clean"
+  },
+  "model.synthetic_shop.stg_customers": {
+   "columns": {
+    "country_code": {
+     "comment": null,
+     "index": 5,
+     "name": "country_code",
+     "type": "VARCHAR"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "email": {
+     "comment": null,
+     "index": 4,
+     "name": "email",
+     "type": "VARCHAR"
+    },
+    "first_name": {
+     "comment": null,
+     "index": 2,
+     "name": "first_name",
+     "type": "VARCHAR"
+    },
+    "last_name": {
+     "comment": null,
+     "index": 3,
+     "name": "last_name",
+     "type": "VARCHAR"
+    },
+    "signup_at": {
+     "comment": null,
+     "index": 6,
+     "name": "signup_at",
+     "type": "TIMESTAMP"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_customers",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_customers"
+  },
+  "model.synthetic_shop.stg_inventory_snapshots": {
+   "columns": {
+    "product_id": {
+     "comment": null,
+     "index": 2,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "qty_on_hand": {
+     "comment": null,
+     "index": 4,
+     "name": "qty_on_hand",
+     "type": "INTEGER"
+    },
+    "snapshot_date": {
+     "comment": null,
+     "index": 3,
+     "name": "snapshot_date",
+     "type": "DATE"
+    },
+    "snapshot_id": {
+     "comment": null,
+     "index": 1,
+     "name": "snapshot_id",
+     "type": "INTEGER"
+    },
+    "warehouse_code": {
+     "comment": null,
+     "index": 5,
+     "name": "warehouse_code",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_inventory_snapshots",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_inventory_snapshots"
+  },
+  "model.synthetic_shop.stg_marketing_spend": {
+   "columns": {
+    "campaign_name": {
+     "comment": null,
+     "index": 3,
+     "name": "campaign_name",
+     "type": "VARCHAR"
+    },
+    "channel": {
+     "comment": null,
+     "index": 2,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "clicks": {
+     "comment": null,
+     "index": 6,
+     "name": "clicks",
+     "type": "INTEGER"
+    },
+    "impressions": {
+     "comment": null,
+     "index": 5,
+     "name": "impressions",
+     "type": "INTEGER"
+    },
+    "spend_date": {
+     "comment": null,
+     "index": 1,
+     "name": "spend_date",
+     "type": "DATE"
+    },
+    "spend_usd": {
+     "comment": null,
+     "index": 4,
+     "name": "spend_usd",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_marketing_spend",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_marketing_spend"
+  },
+  "model.synthetic_shop.stg_order_items": {
+   "columns": {
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_item_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_item_id",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 3,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "quantity": {
+     "comment": null,
+     "index": 4,
+     "name": "quantity",
+     "type": "INTEGER"
+    },
+    "unit_price": {
+     "comment": null,
+     "index": 5,
+     "name": "unit_price",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_order_items",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_order_items"
+  },
+  "model.synthetic_shop.stg_order_promotions": {
+   "columns": {
+    "discount_usd": {
+     "comment": null,
+     "index": 4,
+     "name": "discount_usd",
+     "type": "DECIMAL(10,2)"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "order_promotion_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_promotion_id",
+     "type": "INTEGER"
+    },
+    "promotion_id": {
+     "comment": null,
+     "index": 3,
+     "name": "promotion_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_order_promotions",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_order_promotions"
+  },
+  "model.synthetic_shop.stg_orders": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 1,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "status": {
+     "comment": null,
+     "index": 4,
+     "name": "status",
+     "type": "VARCHAR"
+    },
+    "tax_amount": {
+     "comment": null,
+     "index": 5,
+     "name": "tax_amount",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_orders",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_orders"
+  },
+  "model.synthetic_shop.stg_payments": {
+   "columns": {
+    "amount_usd": {
+     "comment": null,
+     "index": 4,
+     "name": "amount_usd",
+     "type": "DECIMAL(10,2)"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "paid_at": {
+     "comment": null,
+     "index": 5,
+     "name": "paid_at",
+     "type": "TIMESTAMP"
+    },
+    "payment_id": {
+     "comment": null,
+     "index": 1,
+     "name": "payment_id",
+     "type": "INTEGER"
+    },
+    "payment_method": {
+     "comment": null,
+     "index": 3,
+     "name": "payment_method",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_payments",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_payments"
+  },
+  "model.synthetic_shop.stg_product_costs": {
+   "columns": {
+    "product_cost_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_cost_id",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 2,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "supplier_id": {
+     "comment": null,
+     "index": 3,
+     "name": "supplier_id",
+     "type": "INTEGER"
+    },
+    "unit_cost": {
+     "comment": null,
+     "index": 4,
+     "name": "unit_cost",
+     "type": "DECIMAL(10,2)"
+    },
+    "valid_from": {
+     "comment": null,
+     "index": 5,
+     "name": "valid_from",
+     "type": "DATE"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_product_costs",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_product_costs"
+  },
+  "model.synthetic_shop.stg_products": {
+   "columns": {
+    "category": {
+     "comment": null,
+     "index": 3,
+     "name": "category",
+     "type": "VARCHAR"
+    },
+    "list_price": {
+     "comment": null,
+     "index": 4,
+     "name": "list_price",
+     "type": "DECIMAL(10,2)"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 1,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "product_name": {
+     "comment": null,
+     "index": 2,
+     "name": "product_name",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_products",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_products"
+  },
+  "model.synthetic_shop.stg_promotions": {
+   "columns": {
+    "discount_pct": {
+     "comment": null,
+     "index": 3,
+     "name": "discount_pct",
+     "type": "DECIMAL(10,2)"
+    },
+    "ends_at": {
+     "comment": null,
+     "index": 5,
+     "name": "ends_at",
+     "type": "DATE"
+    },
+    "promo_channel": {
+     "comment": null,
+     "index": 6,
+     "name": "promo_channel",
+     "type": "VARCHAR"
+    },
+    "promo_code": {
+     "comment": null,
+     "index": 2,
+     "name": "promo_code",
+     "type": "VARCHAR"
+    },
+    "promotion_id": {
+     "comment": null,
+     "index": 1,
+     "name": "promotion_id",
+     "type": "INTEGER"
+    },
+    "starts_at": {
+     "comment": null,
+     "index": 4,
+     "name": "starts_at",
+     "type": "DATE"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_promotions",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_promotions"
+  },
+  "model.synthetic_shop.stg_refunds": {
+   "columns": {
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "refund_amt": {
+     "comment": null,
+     "index": 3,
+     "name": "refund_amt",
+     "type": "DECIMAL(10,2)"
+    },
+    "refund_id": {
+     "comment": null,
+     "index": 1,
+     "name": "refund_id",
+     "type": "INTEGER"
+    },
+    "refund_reason": {
+     "comment": null,
+     "index": 4,
+     "name": "refund_reason",
+     "type": "VARCHAR"
+    },
+    "refunded_at": {
+     "comment": null,
+     "index": 5,
+     "name": "refunded_at",
+     "type": "TIMESTAMP"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_refunds",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_refunds"
+  },
+  "model.synthetic_shop.stg_shipments": {
+   "columns": {
+    "carrier": {
+     "comment": null,
+     "index": 3,
+     "name": "carrier",
+     "type": "VARCHAR"
+    },
+    "delivered_at": {
+     "comment": null,
+     "index": 5,
+     "name": "delivered_at",
+     "type": "TIMESTAMP"
+    },
+    "delivery_days": {
+     "comment": null,
+     "index": 7,
+     "name": "delivery_days",
+     "type": "BIGINT"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "shipment_id": {
+     "comment": null,
+     "index": 1,
+     "name": "shipment_id",
+     "type": "INTEGER"
+    },
+    "shipped_at": {
+     "comment": null,
+     "index": 4,
+     "name": "shipped_at",
+     "type": "TIMESTAMP"
+    },
+    "shipping_cost_usd": {
+     "comment": null,
+     "index": 6,
+     "name": "shipping_cost_usd",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_shipments",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_shipments"
+  },
+  "model.synthetic_shop.stg_suppliers": {
+   "columns": {
+    "lead_time_days": {
+     "comment": null,
+     "index": 4,
+     "name": "lead_time_days",
+     "type": "INTEGER"
+    },
+    "supplier_country": {
+     "comment": null,
+     "index": 3,
+     "name": "supplier_country",
+     "type": "VARCHAR"
+    },
+    "supplier_id": {
+     "comment": null,
+     "index": 1,
+     "name": "supplier_id",
+     "type": "INTEGER"
+    },
+    "supplier_name": {
+     "comment": null,
+     "index": 2,
+     "name": "supplier_name",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_suppliers",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_suppliers"
+  },
+  "model.synthetic_shop.stg_web_sessions": {
+   "columns": {
+    "channel": {
+     "comment": null,
+     "index": 4,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "customer_id": {
+     "comment": null,
+     "index": 2,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "is_bot": {
+     "comment": null,
+     "index": 7,
+     "name": "is_bot",
+     "type": "BOOLEAN"
+    },
+    "page_views": {
+     "comment": null,
+     "index": 6,
+     "name": "page_views",
+     "type": "INTEGER"
+    },
+    "session_id": {
+     "comment": null,
+     "index": 1,
+     "name": "session_id",
+     "type": "INTEGER"
+    },
+    "session_started_at": {
+     "comment": null,
+     "index": 3,
+     "name": "session_started_at",
+     "type": "TIMESTAMP"
+    },
+    "utm_campaign": {
+     "comment": null,
+     "index": 5,
+     "name": "utm_campaign",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "stg_web_sessions",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.synthetic_shop.stg_web_sessions"
+  },
+  "seed.synthetic_shop.raw_customers": {
+   "columns": {
+    "country": {
+     "comment": null,
+     "index": 5,
+     "name": "country",
+     "type": "VARCHAR"
+    },
+    "email": {
+     "comment": null,
+     "index": 4,
+     "name": "email",
+     "type": "VARCHAR"
+    },
+    "first_name": {
+     "comment": null,
+     "index": 2,
+     "name": "first_name",
+     "type": "VARCHAR"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "last_name": {
+     "comment": null,
+     "index": 3,
+     "name": "last_name",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_customers",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_customers"
+  },
+  "seed.synthetic_shop.raw_inventory_snapshots": {
+   "columns": {
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 2,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "qty_on_hand": {
+     "comment": null,
+     "index": 4,
+     "name": "qty_on_hand",
+     "type": "INTEGER"
+    },
+    "snapshot_date": {
+     "comment": null,
+     "index": 3,
+     "name": "snapshot_date",
+     "type": "DATE"
+    },
+    "warehouse": {
+     "comment": null,
+     "index": 5,
+     "name": "warehouse",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_inventory_snapshots",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_inventory_snapshots"
+  },
+  "seed.synthetic_shop.raw_marketing_spend": {
+   "columns": {
+    "campaign": {
+     "comment": null,
+     "index": 3,
+     "name": "campaign",
+     "type": "VARCHAR"
+    },
+    "channel": {
+     "comment": null,
+     "index": 2,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "clicks": {
+     "comment": null,
+     "index": 6,
+     "name": "clicks",
+     "type": "INTEGER"
+    },
+    "impressions": {
+     "comment": null,
+     "index": 5,
+     "name": "impressions",
+     "type": "INTEGER"
+    },
+    "spend_day": {
+     "comment": null,
+     "index": 1,
+     "name": "spend_day",
+     "type": "DATE"
+    },
+    "spend_usd": {
+     "comment": null,
+     "index": 4,
+     "name": "spend_usd",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_marketing_spend",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_marketing_spend"
+  },
+  "seed.synthetic_shop.raw_order_items": {
+   "columns": {
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 3,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "quantity": {
+     "comment": null,
+     "index": 4,
+     "name": "quantity",
+     "type": "INTEGER"
+    },
+    "unit_price": {
+     "comment": null,
+     "index": 5,
+     "name": "unit_price",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_order_items",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_order_items"
+  },
+  "seed.synthetic_shop.raw_order_promotions": {
+   "columns": {
+    "discount_usd": {
+     "comment": null,
+     "index": 4,
+     "name": "discount_usd",
+     "type": "DECIMAL(10,2)"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "promotion_id": {
+     "comment": null,
+     "index": 3,
+     "name": "promotion_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_order_promotions",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_order_promotions"
+  },
+  "seed.synthetic_shop.raw_orders": {
+   "columns": {
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "order_date": {
+     "comment": null,
+     "index": 3,
+     "name": "order_date",
+     "type": "DATE"
+    },
+    "status": {
+     "comment": null,
+     "index": 4,
+     "name": "status",
+     "type": "VARCHAR"
+    },
+    "tax_usd": {
+     "comment": null,
+     "index": 5,
+     "name": "tax_usd",
+     "type": "DECIMAL(10,2)"
+    },
+    "user_id": {
+     "comment": null,
+     "index": 2,
+     "name": "user_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_orders",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_orders"
+  },
+  "seed.synthetic_shop.raw_payments": {
+   "columns": {
+    "amt": {
+     "comment": null,
+     "index": 4,
+     "name": "amt",
+     "type": "DECIMAL(10,2)"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "method": {
+     "comment": null,
+     "index": 3,
+     "name": "method",
+     "type": "VARCHAR"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_payments",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_payments"
+  },
+  "seed.synthetic_shop.raw_product_costs": {
+   "columns": {
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "product_id": {
+     "comment": null,
+     "index": 2,
+     "name": "product_id",
+     "type": "INTEGER"
+    },
+    "supplier_id": {
+     "comment": null,
+     "index": 3,
+     "name": "supplier_id",
+     "type": "INTEGER"
+    },
+    "unit_cost": {
+     "comment": null,
+     "index": 4,
+     "name": "unit_cost",
+     "type": "DECIMAL(10,2)"
+    },
+    "valid_from": {
+     "comment": null,
+     "index": 5,
+     "name": "valid_from",
+     "type": "DATE"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_product_costs",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_product_costs"
+  },
+  "seed.synthetic_shop.raw_products": {
+   "columns": {
+    "category": {
+     "comment": null,
+     "index": 3,
+     "name": "category",
+     "type": "VARCHAR"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "list_price": {
+     "comment": null,
+     "index": 4,
+     "name": "list_price",
+     "type": "DECIMAL(10,2)"
+    },
+    "name": {
+     "comment": null,
+     "index": 2,
+     "name": "name",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_products",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_products"
+  },
+  "seed.synthetic_shop.raw_promotions": {
+   "columns": {
+    "channel": {
+     "comment": null,
+     "index": 6,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "code": {
+     "comment": null,
+     "index": 2,
+     "name": "code",
+     "type": "VARCHAR"
+    },
+    "discount_pct": {
+     "comment": null,
+     "index": 3,
+     "name": "discount_pct",
+     "type": "DECIMAL(10,2)"
+    },
+    "ends_at": {
+     "comment": null,
+     "index": 5,
+     "name": "ends_at",
+     "type": "DATE"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "starts_at": {
+     "comment": null,
+     "index": 4,
+     "name": "starts_at",
+     "type": "DATE"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_promotions",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_promotions"
+  },
+  "seed.synthetic_shop.raw_refunds": {
+   "columns": {
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "reason": {
+     "comment": null,
+     "index": 4,
+     "name": "reason",
+     "type": "VARCHAR"
+    },
+    "refund_amt": {
+     "comment": null,
+     "index": 3,
+     "name": "refund_amt",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_refunds",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_refunds"
+  },
+  "seed.synthetic_shop.raw_shipments": {
+   "columns": {
+    "carrier": {
+     "comment": null,
+     "index": 3,
+     "name": "carrier",
+     "type": "VARCHAR"
+    },
+    "delivered_at": {
+     "comment": null,
+     "index": 5,
+     "name": "delivered_at",
+     "type": "TIMESTAMP"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "order_id": {
+     "comment": null,
+     "index": 2,
+     "name": "order_id",
+     "type": "INTEGER"
+    },
+    "shipped_at": {
+     "comment": null,
+     "index": 4,
+     "name": "shipped_at",
+     "type": "TIMESTAMP"
+    },
+    "shipping_cost_usd": {
+     "comment": null,
+     "index": 6,
+     "name": "shipping_cost_usd",
+     "type": "DECIMAL(10,2)"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_shipments",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_shipments"
+  },
+  "seed.synthetic_shop.raw_suppliers": {
+   "columns": {
+    "country": {
+     "comment": null,
+     "index": 3,
+     "name": "country",
+     "type": "VARCHAR"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "lead_time_days": {
+     "comment": null,
+     "index": 4,
+     "name": "lead_time_days",
+     "type": "INTEGER"
+    },
+    "name": {
+     "comment": null,
+     "index": 2,
+     "name": "name",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_suppliers",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_suppliers"
+  },
+  "seed.synthetic_shop.raw_web_sessions": {
+   "columns": {
+    "channel": {
+     "comment": null,
+     "index": 4,
+     "name": "channel",
+     "type": "VARCHAR"
+    },
+    "id": {
+     "comment": null,
+     "index": 1,
+     "name": "id",
+     "type": "INTEGER"
+    },
+    "is_bot": {
+     "comment": null,
+     "index": 7,
+     "name": "is_bot",
+     "type": "BOOLEAN"
+    },
+    "page_views": {
+     "comment": null,
+     "index": 6,
+     "name": "page_views",
+     "type": "INTEGER"
+    },
+    "started_at": {
+     "comment": null,
+     "index": 3,
+     "name": "started_at",
+     "type": "TIMESTAMP"
+    },
+    "user_id": {
+     "comment": null,
+     "index": 2,
+     "name": "user_id",
+     "type": "INTEGER"
+    },
+    "utm_campaign": {
+     "comment": null,
+     "index": 5,
+     "name": "utm_campaign",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "synthetic_shop",
+    "name": "raw_web_sessions",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "seed.synthetic_shop.raw_web_sessions"
+  }
+ },
+ "sources": {}
+}

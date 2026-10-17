@@ -1,0 +1,1847 @@
+{
+ "exposures": {
+  "exposure.synthetic_shop.finance_dashboard": {
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_monthly_finance",
+     "model.synthetic_shop.fct_daily_revenue"
+    ]
+   },
+   "name": "finance_dashboard",
+   "type": "dashboard",
+   "unique_id": "exposure.synthetic_shop.finance_dashboard"
+  },
+  "exposure.synthetic_shop.marketing_dashboard": {
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_marketing_attribution",
+     "model.synthetic_shop.fct_channel_performance_monthly"
+    ]
+   },
+   "name": "marketing_dashboard",
+   "type": "dashboard",
+   "unique_id": "exposure.synthetic_shop.marketing_dashboard"
+  }
+ },
+ "metadata": {
+  "adapter_type": "duckdb",
+  "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+  "dbt_version": "1.12.5",
+  "project_name": "synthetic_shop"
+ },
+ "nodes": {
+  "model.synthetic_shop.dim_customer_rfm": {
+   "alias": "dim_customer_rfm",
+   "columns": {
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    },
+    "recency_days": {
+     "data_type": null,
+     "name": "recency_days"
+    },
+    "rfm_score": {
+     "data_type": null,
+     "name": "rfm_score"
+    }
+   },
+   "compiled_code": "with rfm_base as (\n    select\n        customers.customer_id,\n        customers.order_count,\n        customers.lifetime_value,\n        date_diff(\n            'day',\n            customers.most_recent_order_date,\n            (select max(order_date) from \"synthetic_shop\".\"main\".\"fct_orders\")\n        ) as recency_days,\n        coalesce(sessions.session_count, 0) as web_session_count\n    from \"synthetic_shop\".\"main\".\"dim_customers\" as customers\n    left join \"synthetic_shop\".\"main\".\"int_customer_sessions\" as sessions\n        on customers.customer_id = sessions.customer_id\n),\n\nrfm_scores as (\n    select\n        customer_id,\n        recency_days,\n        case\n            when recency_days <= 30 then 3\n            when recency_days <= 90 then 2\n            else 1\n        end as rfm_recency_score,\n        case\n            when order_count >= 4 then 3\n            when order_count >= 2 then 2\n            else 1\n        end as rfm_frequency_score,\n        case\n            when lifetime_value >= 500 then 3\n            when lifetime_value >= 150 then 2\n            else 1\n        end as rfm_monetary_score,\n        web_session_count\n    from rfm_base\n)\n\nselect\n    customer_id,\n    recency_days,\n    rfm_recency_score,\n    rfm_frequency_score,\n    rfm_monetary_score,\n    rfm_recency_score * 100 + rfm_frequency_score * 10 + rfm_monetary_score as rfm_score,\n    web_session_count\nfrom rfm_scores",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_orders",
+     "model.synthetic_shop.dim_customers",
+     "model.synthetic_shop.int_customer_sessions"
+    ]
+   },
+   "name": "dim_customer_rfm",
+   "original_file_path": "models/marts/dim_customer_rfm.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"dim_customer_rfm\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.dim_customer_rfm"
+  },
+  "model.synthetic_shop.dim_customer_segments": {
+   "alias": "dim_customer_segments",
+   "columns": {
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    },
+    "customer_segment": {
+     "data_type": null,
+     "name": "customer_segment"
+    },
+    "is_high_value": {
+     "data_type": null,
+     "name": "is_high_value"
+    }
+   },
+   "compiled_code": "select\n    customer_id,\n    rfm_score,\n    recency_days,\n    case\n        when rfm_score >= 330 then 'champion'\n        when rfm_recency_score = 1 then 'hibernating'\n        when rfm_score >= 220 then 'loyal'\n        else 'at_risk'\n    end as customer_segment,\n    rfm_monetary_score = 3 as is_high_value\nfrom \"synthetic_shop\".\"main\".\"dim_customer_rfm\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.dim_customer_rfm"
+    ]
+   },
+   "name": "dim_customer_segments",
+   "original_file_path": "models/marts/dim_customer_segments.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"dim_customer_segments\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.dim_customer_segments"
+  },
+  "model.synthetic_shop.dim_customers": {
+   "alias": "dim_customers",
+   "columns": {
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    },
+    "lifetime_value": {
+     "data_type": null,
+     "name": "lifetime_value"
+    }
+   },
+   "compiled_code": "with order_agg as (\n    select\n        customer_id,\n        min(order_date) as first_order_date,\n        max(order_date) as most_recent_order_date,\n        count(order_id) as order_count,\n        sum(items_subtotal + sales_tax - refunded_amount) as lifetime_value\n    from \"synthetic_shop\".\"main\".\"fct_orders\"\n    group by customer_id\n)\n\nselect\n    customers.customer_id,\n    customers.first_name || ' ' || customers.last_name as full_name,\n    customers.email,\n    customers.country_code,\n    customers.signup_at,\n    order_agg.first_order_date,\n    order_agg.most_recent_order_date,\n    coalesce(order_agg.order_count, 0) as order_count,\n    coalesce(order_agg.lifetime_value, 0) as lifetime_value\nfrom \"synthetic_shop\".\"main\".\"stg_customers\" as customers\nleft join order_agg\n    on customers.customer_id = order_agg.customer_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_orders",
+     "model.synthetic_shop.stg_customers"
+    ]
+   },
+   "name": "dim_customers",
+   "original_file_path": "models/marts/dim_customers.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"dim_customers\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.dim_customers"
+  },
+  "model.synthetic_shop.fct_channel_performance_monthly": {
+   "alias": "fct_channel_performance_monthly",
+   "columns": {
+    "report_month": {
+     "data_type": null,
+     "name": "report_month"
+    },
+    "roas": {
+     "data_type": null,
+     "name": "roas"
+    }
+   },
+   "compiled_code": "select\n    date_trunc('month', report_date) as report_month,\n    channel,\n    sum(spend_usd) as spend_usd,\n    sum(attributed_revenue) as attributed_revenue,\n    sum(attributed_revenue) / nullif(sum(spend_usd), 0) as roas\nfrom \"synthetic_shop\".\"main\".\"fct_marketing_attribution\"\ngroup by date_trunc('month', report_date), channel",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_marketing_attribution"
+    ]
+   },
+   "name": "fct_channel_performance_monthly",
+   "original_file_path": "models/marts/fct_channel_performance_monthly.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_channel_performance_monthly\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_channel_performance_monthly"
+  },
+  "model.synthetic_shop.fct_customer_cohorts": {
+   "alias": "fct_customer_cohorts",
+   "columns": {
+    "cohort_month": {
+     "data_type": null,
+     "name": "cohort_month"
+    },
+    "cumulative_net_paid": {
+     "data_type": null,
+     "name": "cumulative_net_paid"
+    },
+    "repeat_customers": {
+     "data_type": null,
+     "name": "repeat_customers"
+    }
+   },
+   "compiled_code": "select\n    date_trunc('month', customers.signup_at) as cohort_month,\n    date_trunc('month', orders.order_date) as order_month,\n    date_diff(\n        'month',\n        date_trunc('month', customers.signup_at),\n        date_trunc('month', orders.order_date)\n    ) as months_since_signup,\n    count(distinct orders.customer_id) as cohort_customers,\n    count(distinct orders.customer_id)\n        filter (where orders.previous_order_date is not null) as repeat_customers,\n    sum(orders.net_paid_usd) as cohort_net_paid,\n    sum(sum(orders.net_paid_usd)) over (\n        partition by date_trunc('month', customers.signup_at)\n        order by date_trunc('month', orders.order_date)\n    ) as cumulative_net_paid\nfrom \"synthetic_shop\".\"main\".\"fct_orders\" as orders\ninner join \"synthetic_shop\".\"main\".\"dim_customers\" as customers\n    on orders.customer_id = customers.customer_id\ngroup by date_trunc('month', customers.signup_at), date_trunc('month', orders.order_date)",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_orders",
+     "model.synthetic_shop.dim_customers"
+    ]
+   },
+   "name": "fct_customer_cohorts",
+   "original_file_path": "models/marts/fct_customer_cohorts.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_customer_cohorts\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_customer_cohorts"
+  },
+  "model.synthetic_shop.fct_customer_leaderboard": {
+   "alias": "fct_customer_leaderboard",
+   "columns": {
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    },
+    "lifetime_value_usd": {
+     "data_type": null,
+     "name": "lifetime_value_usd"
+    }
+   },
+   "compiled_code": "select\n    customers.customer_id,\n    customers.full_name,\n    customers.lifetime_value as lifetime_value_usd,\n    segments.customer_segment\nfrom \"synthetic_shop\".\"main\".\"dim_customers\" as customers\ninner join \"synthetic_shop\".\"main\".\"dim_customer_segments\" as segments\n    on customers.customer_id = segments.customer_id\norder by customers.lifetime_value desc, customers.customer_id\nlimit 20",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.dim_customers",
+     "model.synthetic_shop.dim_customer_segments"
+    ]
+   },
+   "name": "fct_customer_leaderboard",
+   "original_file_path": "models/marts/fct_customer_leaderboard.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_customer_leaderboard\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_customer_leaderboard"
+  },
+  "model.synthetic_shop.fct_daily_revenue": {
+   "alias": "fct_daily_revenue",
+   "columns": {
+    "order_date": {
+     "data_type": null,
+     "name": "order_date"
+    }
+   },
+   "compiled_code": "select\n    order_date,\n    count(order_id) as order_count,\n    sum(revenue_finance) as revenue_finance,\n    sum(revenue_marketing) as revenue_marketing,\n    sum(refunded_amount) as refunded_amount\nfrom \"synthetic_shop\".\"main\".\"fct_orders\"\ngroup by order_date",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_orders"
+    ]
+   },
+   "name": "fct_daily_revenue",
+   "original_file_path": "models/marts/fct_daily_revenue.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_daily_revenue\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_daily_revenue"
+  },
+  "model.synthetic_shop.fct_inventory_status": {
+   "alias": "fct_inventory_status",
+   "columns": {
+    "as_of_date": {
+     "data_type": null,
+     "name": "as_of_date"
+    },
+    "days_of_cover": {
+     "data_type": null,
+     "name": "days_of_cover"
+    }
+   },
+   "compiled_code": "with latest_snapshots as (\n    select\n        product_id,\n        warehouse_code,\n        snapshot_date,\n        qty_on_hand,\n        inventory_value\n    from \"synthetic_shop\".\"main\".\"int_inventory_daily\"\n    qualify row_number() over (\n        partition by product_id, warehouse_code\n        order by snapshot_date desc\n    ) = 1\n)\n\nselect\n    latest_snapshots.product_id,\n    latest_snapshots.warehouse_code,\n    latest_snapshots.snapshot_date as as_of_date,\n    latest_snapshots.qty_on_hand,\n    latest_snapshots.inventory_value,\n    latest_snapshots.qty_on_hand / nullif(performance.units_sold / 365.0, 0) as days_of_cover\nfrom latest_snapshots\nleft join \"synthetic_shop\".\"main\".\"fct_product_performance\" as performance\n    on latest_snapshots.product_id = performance.product_id\norder by latest_snapshots.warehouse_code, latest_snapshots.product_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_inventory_daily",
+     "model.synthetic_shop.fct_product_performance"
+    ]
+   },
+   "name": "fct_inventory_status",
+   "original_file_path": "models/marts/fct_inventory_status.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_inventory_status\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_inventory_status"
+  },
+  "model.synthetic_shop.fct_marketing_attribution": {
+   "alias": "fct_marketing_attribution",
+   "columns": {
+    "report_date": {
+     "data_type": null,
+     "name": "report_date"
+    },
+    "roas": {
+     "data_type": null,
+     "name": "roas"
+    }
+   },
+   "compiled_code": "with attributed_daily as (\n    select\n        order_date,\n        attributed_channel,\n        count(order_id) as attributed_orders,\n        sum(attributed_revenue) as attributed_revenue\n    from \"synthetic_shop\".\"main\".\"int_order_attribution\"\n    group by order_date, attributed_channel\n)\n\nselect\n    spend.spend_date as report_date,\n    spend.channel,\n    spend.spend_usd,\n    coalesce(sessions.session_count, 0) as session_count,\n    coalesce(attributed_daily.attributed_orders, 0) as attributed_orders,\n    coalesce(attributed_daily.attributed_revenue, 0) as attributed_revenue,\n    spend.spend_usd / nullif(attributed_daily.attributed_orders, 0) as cost_per_order,\n    coalesce(attributed_daily.attributed_revenue, 0) / nullif(spend.spend_usd, 0) as roas\nfrom \"synthetic_shop\".\"main\".\"int_campaign_spend_daily\" as spend\nleft join \"synthetic_shop\".\"main\".\"int_sessions_daily\" as sessions\n    on spend.spend_date = sessions.session_date\n    and spend.channel = sessions.channel\nleft join attributed_daily\n    on spend.spend_date = attributed_daily.order_date\n    and spend.channel = attributed_daily.attributed_channel",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_attribution",
+     "model.synthetic_shop.int_campaign_spend_daily",
+     "model.synthetic_shop.int_sessions_daily"
+    ]
+   },
+   "name": "fct_marketing_attribution",
+   "original_file_path": "models/marts/fct_marketing_attribution.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_marketing_attribution\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_marketing_attribution"
+  },
+  "model.synthetic_shop.fct_monthly_finance": {
+   "alias": "fct_monthly_finance",
+   "columns": {
+    "finance_month": {
+     "data_type": null,
+     "name": "finance_month"
+    },
+    "revenue_finance_mom_change": {
+     "data_type": null,
+     "name": "revenue_finance_mom_change"
+    },
+    "revenue_marketing": {
+     "data_type": null,
+     "name": "revenue_marketing"
+    }
+   },
+   "compiled_code": "select\n    revenue_monthly.finance_month,\n    revenue_monthly.revenue_finance,\n    revenue_monthly.revenue_marketing,\n    revenue_monthly.refunded_amount,\n    margins_monthly.net_revenue,\n    margins_monthly.contribution_margin,\n    adjustments_monthly.adjustments_total,\n    revenue_monthly.revenue_finance_mom_change\nfrom (\n    select\n        date_trunc('month', order_date) as finance_month,\n        sum(revenue_finance) as revenue_finance,\n        sum(revenue_marketing) as revenue_marketing,\n        sum(refunded_amount) as refunded_amount,\n        sum(revenue_finance) - lag(sum(revenue_finance)) over (\n            order by date_trunc('month', order_date)\n        ) as revenue_finance_mom_change\n    from \"synthetic_shop\".\"main\".\"fct_daily_revenue\"\n    group by date_trunc('month', order_date)\n) as revenue_monthly\ninner join (\n    select\n        date_trunc('month', order_date) as margin_month,\n        sum(net_revenue) as net_revenue,\n        sum(contribution_margin) as contribution_margin\n    from \"synthetic_shop\".\"main\".\"fct_order_margins\"\n    group by date_trunc('month', order_date)\n) as margins_monthly\n    on revenue_monthly.finance_month = margins_monthly.margin_month\nleft join (\n    select\n        date_trunc('month', orders.order_date) as adjustment_month,\n        sum(adjustments.adjustment_amount_usd) as adjustments_total\n    from \"synthetic_shop\".\"main\".\"int_order_adjustments\" as adjustments\n    inner join \"synthetic_shop\".\"main\".\"fct_orders\" as orders\n        on adjustments.order_id = orders.order_id\n    group by date_trunc('month', orders.order_date)\n) as adjustments_monthly\n    on revenue_monthly.finance_month = adjustments_monthly.adjustment_month",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_daily_revenue",
+     "model.synthetic_shop.fct_order_margins",
+     "model.synthetic_shop.int_order_adjustments",
+     "model.synthetic_shop.fct_orders"
+    ]
+   },
+   "name": "fct_monthly_finance",
+   "original_file_path": "models/marts/fct_monthly_finance.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_monthly_finance\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_monthly_finance"
+  },
+  "model.synthetic_shop.fct_order_margins": {
+   "alias": "fct_order_margins",
+   "columns": {
+    "contribution_margin": {
+     "data_type": null,
+     "name": "contribution_margin"
+    },
+    "margin_pct": {
+     "data_type": null,
+     "name": "margin_pct"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    }
+   },
+   "compiled_code": "select\n    * exclude (is_profitable),\n    contribution_margin / nullif(net_revenue, 0) as margin_pct\nfrom \"synthetic_shop\".\"main\".\"int_order_profit\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_profit"
+    ]
+   },
+   "name": "fct_order_margins",
+   "original_file_path": "models/marts/fct_order_margins.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_order_margins\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_order_margins"
+  },
+  "model.synthetic_shop.fct_orders": {
+   "alias": "fct_orders",
+   "columns": {
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    },
+    "revenue_finance": {
+     "data_type": null,
+     "name": "revenue_finance"
+    },
+    "revenue_marketing": {
+     "data_type": null,
+     "name": "revenue_marketing"
+    }
+   },
+   "compiled_code": "select\n    order_id,\n    customer_id,\n    order_date,\n    previous_order_date,\n    order_status_group,\n    item_count,\n    items_subtotal,\n    sales_tax,\n    order_total,\n    refund_amount as refunded_amount,\n    net_paid_usd,\n    items_subtotal - refund_amount as revenue_finance,\n    items_subtotal + sales_tax as revenue_marketing,\n    order_date - previous_order_date as days_since_previous_order\nfrom \"synthetic_shop\".\"main\".\"int_customer_order_history\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_customer_order_history"
+    ]
+   },
+   "name": "fct_orders",
+   "original_file_path": "models/marts/fct_orders.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_orders\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_orders"
+  },
+  "model.synthetic_shop.fct_payment_events": {
+   "alias": "fct_payment_events",
+   "columns": {
+    "event_id": {
+     "data_type": null,
+     "name": "event_id"
+    }
+   },
+   "compiled_code": "select * from \"synthetic_shop\".\"main\".\"int_payment_events\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_payment_events"
+    ]
+   },
+   "name": "fct_payment_events",
+   "original_file_path": "models/marts/fct_payment_events.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_payment_events\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_payment_events"
+  },
+  "model.synthetic_shop.fct_product_performance": {
+   "alias": "fct_product_performance",
+   "columns": {
+    "discounted_units": {
+     "data_type": null,
+     "name": "discounted_units"
+    },
+    "gross_margin": {
+     "data_type": null,
+     "name": "gross_margin"
+    },
+    "product_id": {
+     "data_type": null,
+     "name": "product_id"
+    }
+   },
+   "compiled_code": "select\n    items.product_id,\n    products.product_name,\n    products.category as product_category,\n    sum(items.quantity) as units_sold,\n    sum(items.quantity) filter (where items.is_discounted) as discounted_units,\n    sum(items.line_amount) as gross_sales,\n    sum(items.line_margin) as gross_margin\nfrom \"synthetic_shop\".\"main\".\"int_order_item_margins\" as items\ninner join \"synthetic_shop\".\"main\".\"int_orders_enriched\" as orders\n    on items.order_id = orders.order_id\ninner join \"synthetic_shop\".\"main\".\"stg_products\" as products\n    on items.product_id = products.product_id\nwhere orders.order_status_group = 'complete'\ngroup by items.product_id, products.product_name, products.category",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_item_margins",
+     "model.synthetic_shop.int_orders_enriched",
+     "model.synthetic_shop.stg_products"
+    ]
+   },
+   "name": "fct_product_performance",
+   "original_file_path": "models/marts/fct_product_performance.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_product_performance\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_product_performance"
+  },
+  "model.synthetic_shop.fct_segment_monthly": {
+   "alias": "fct_segment_monthly",
+   "columns": {
+    "segment_order_count": {
+     "data_type": null,
+     "name": "segment_order_count"
+    },
+    "segment_revenue_finance": {
+     "data_type": null,
+     "name": "segment_revenue_finance"
+    }
+   },
+   "compiled_code": "select\n    date_trunc('month', orders.order_date) as order_month,\n    segments.customer_segment,\n    count(orders.order_id) as segment_order_count,\n    count(distinct orders.customer_id) as active_customers,\n    sum(orders.revenue_finance) as segment_revenue_finance\nfrom \"synthetic_shop\".\"main\".\"fct_orders\" as orders\ninner join \"synthetic_shop\".\"main\".\"dim_customer_segments\" as segments\n    on orders.customer_id = segments.customer_id\ngroup by segments.customer_segment, date_trunc('month', orders.order_date)",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_orders",
+     "model.synthetic_shop.dim_customer_segments"
+    ]
+   },
+   "name": "fct_segment_monthly",
+   "original_file_path": "models/marts/fct_segment_monthly.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_segment_monthly\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_segment_monthly"
+  },
+  "model.synthetic_shop.fct_shipping_performance": {
+   "alias": "fct_shipping_performance",
+   "columns": {
+    "late_shipment_count": {
+     "data_type": null,
+     "name": "late_shipment_count"
+    },
+    "shipping_costs_usd": {
+     "data_type": null,
+     "name": "shipping_costs_usd"
+    }
+   },
+   "compiled_code": "select\n    carrier,\n    date_trunc('month', shipped_at) as ship_month,\n    count(shipment_id) as shipment_count,\n    sum(case when is_late_delivery then 1 else 0 end) as late_shipment_count,\n    avg(delivery_days) as avg_delivery_days,\n    sum(shipping_cost_usd) as shipping_costs_usd\nfrom \"synthetic_shop\".\"main\".\"int_shipments_enriched\"\nwhere shipped_at is not null\ngroup by carrier, date_trunc('month', shipped_at)",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_shipments_enriched"
+    ]
+   },
+   "name": "fct_shipping_performance",
+   "original_file_path": "models/marts/fct_shipping_performance.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_shipping_performance\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_shipping_performance"
+  },
+  "model.synthetic_shop.fct_top_products": {
+   "alias": "fct_top_products",
+   "columns": {
+    "product_id": {
+     "data_type": null,
+     "name": "product_id"
+    }
+   },
+   "compiled_code": "select\n    product_id,\n    product_name,\n    units_sold,\n    gross_margin\nfrom \"synthetic_shop\".\"main\".\"fct_product_performance\"\norder by gross_margin desc, product_id\nlimit 10",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.fct_product_performance"
+    ]
+   },
+   "name": "fct_top_products",
+   "original_file_path": "models/marts/fct_top_products.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"fct_top_products\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.fct_top_products"
+  },
+  "model.synthetic_shop.int_campaign_spend_daily": {
+   "alias": "int_campaign_spend_daily",
+   "columns": {
+    "click_through_rate": {
+     "data_type": null,
+     "name": "click_through_rate"
+    },
+    "spend_date": {
+     "data_type": null,
+     "name": "spend_date"
+    }
+   },
+   "compiled_code": "select\n    spend_date,\n    channel,\n    sum(spend_usd) as spend_usd,\n    sum(impressions) as impressions,\n    sum(clicks) as clicks,\n    sum(clicks) / nullif(sum(impressions), 0) as click_through_rate\nfrom \"synthetic_shop\".\"main\".\"stg_marketing_spend\"\ngroup by spend_date, channel",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_marketing_spend"
+    ]
+   },
+   "name": "int_campaign_spend_daily",
+   "original_file_path": "models/intermediate/int_campaign_spend_daily.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_campaign_spend_daily\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_campaign_spend_daily"
+  },
+  "model.synthetic_shop.int_customer_order_history": {
+   "alias": "int_customer_order_history",
+   "columns": {
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    }
+   },
+   "compiled_code": "select\n    *,\n    lag(order_date) over (\n        partition by customer_id\n        order by order_date, order_id\n    ) as previous_order_date\nfrom \"synthetic_shop\".\"main\".\"int_order_financials\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_financials"
+    ]
+   },
+   "name": "int_customer_order_history",
+   "original_file_path": "models/intermediate/int_customer_order_history.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_customer_order_history\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_customer_order_history"
+  },
+  "model.synthetic_shop.int_customer_sessions": {
+   "alias": "int_customer_sessions",
+   "columns": {
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    },
+    "paid_session_count": {
+     "data_type": null,
+     "name": "paid_session_count"
+    }
+   },
+   "compiled_code": "select\n    customer_id,\n    count(session_id) as session_count,\n    count(session_id) filter (where channel <> 'direct') as paid_session_count,\n    min(session_started_at) as first_session_at,\n    max(session_started_at) as last_session_at,\n    sum(page_views) as total_page_views\nfrom \"synthetic_shop\".\"main\".\"int_web_sessions_clean\"\nwhere customer_id is not null\ngroup by customer_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_web_sessions_clean"
+    ]
+   },
+   "name": "int_customer_sessions",
+   "original_file_path": "models/intermediate/int_customer_sessions.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_customer_sessions\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_customer_sessions"
+  },
+  "model.synthetic_shop.int_inventory_daily": {
+   "alias": "int_inventory_daily",
+   "columns": {
+    "inventory_value": {
+     "data_type": null,
+     "name": "inventory_value"
+    },
+    "qty_change": {
+     "data_type": null,
+     "name": "qty_change"
+    }
+   },
+   "compiled_code": "select\n    snapshots.product_id,\n    snapshots.snapshot_date,\n    snapshots.warehouse_code,\n    snapshots.qty_on_hand,\n    snapshots.qty_on_hand * products.list_price as inventory_value,\n    lag(snapshots.qty_on_hand) over (\n        partition by snapshots.product_id, snapshots.warehouse_code\n        order by snapshots.snapshot_date\n    ) as prior_qty_on_hand,\n    snapshots.qty_on_hand - lag(snapshots.qty_on_hand) over (\n        partition by snapshots.product_id, snapshots.warehouse_code\n        order by snapshots.snapshot_date\n    ) as qty_change\nfrom \"synthetic_shop\".\"main\".\"stg_inventory_snapshots\" as snapshots\ninner join \"synthetic_shop\".\"main\".\"stg_products\" as products\n    on snapshots.product_id = products.product_id\nwhere snapshots.warehouse_code <> 'WH_TEST'",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_inventory_snapshots",
+     "model.synthetic_shop.stg_products"
+    ]
+   },
+   "name": "int_inventory_daily",
+   "original_file_path": "models/intermediate/int_inventory_daily.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_inventory_daily\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_inventory_daily"
+  },
+  "model.synthetic_shop.int_order_adjustments": {
+   "alias": "int_order_adjustments",
+   "columns": {
+    "adjustment_amount_usd": {
+     "data_type": null,
+     "name": "adjustment_amount_usd"
+    },
+    "adjustment_id": {
+     "data_type": null,
+     "name": "adjustment_id"
+    }
+   },
+   "compiled_code": "select\n    'promo_' || order_promotion_id as adjustment_id,\n    order_id,\n    -1 * discount_usd as adjustment_amount_usd\nfrom \"synthetic_shop\".\"main\".\"stg_order_promotions\"\n\nunion all\n\nselect\n    'ref_' || refund_id as adjustment_id,\n    order_id,\n    -1 * refund_amt as adjustment_amount_usd\nfrom \"synthetic_shop\".\"main\".\"stg_refunds\"\n\nunion all\n\nselect\n    'ship_' || shipment_id as adjustment_id,\n    order_id,\n    -1 * shipping_cost_usd as adjustment_amount_usd\nfrom \"synthetic_shop\".\"main\".\"stg_shipments\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_order_promotions",
+     "model.synthetic_shop.stg_refunds",
+     "model.synthetic_shop.stg_shipments"
+    ]
+   },
+   "name": "int_order_adjustments",
+   "original_file_path": "models/intermediate/int_order_adjustments.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_adjustments\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_adjustments"
+  },
+  "model.synthetic_shop.int_order_attribution": {
+   "alias": "int_order_attribution",
+   "columns": {
+    "attributed_channel": {
+     "data_type": null,
+     "name": "attributed_channel"
+    },
+    "attributed_revenue": {
+     "data_type": null,
+     "name": "attributed_revenue"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    }
+   },
+   "compiled_code": "select\n    orders.order_id,\n    orders.customer_id,\n    orders.order_date,\n    sessions.session_id as attributed_session_id,\n    coalesce(sessions.channel, 'direct') as attributed_channel,\n    sessions.utm_campaign as attributed_campaign,\n    orders.items_subtotal + orders.sales_tax as attributed_revenue,\n    date_diff('day', sessions.session_date, orders.order_date) as days_to_convert\nfrom \"synthetic_shop\".\"main\".\"int_customer_order_history\" as orders\nleft join \"synthetic_shop\".\"main\".\"int_web_sessions_clean\" as sessions\n    on orders.customer_id = sessions.customer_id\n    and sessions.session_date <= orders.order_date\nqualify row_number() over (\n    partition by orders.order_id\n    order by sessions.session_started_at desc, sessions.session_id desc\n) = 1",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_customer_order_history",
+     "model.synthetic_shop.int_web_sessions_clean"
+    ]
+   },
+   "name": "int_order_attribution",
+   "original_file_path": "models/intermediate/int_order_attribution.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_attribution\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_attribution"
+  },
+  "model.synthetic_shop.int_order_financials": {
+   "alias": "int_order_financials",
+   "columns": {
+    "net_paid_usd": {
+     "data_type": null,
+     "name": "net_paid_usd"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    },
+    "refund_amount": {
+     "data_type": null,
+     "name": "refund_amount"
+    }
+   },
+   "compiled_code": "with refunds_per_order as (\n    select\n        order_id,\n        sum(refund_amt) as refund_amount\n    from \"synthetic_shop\".\"main\".\"stg_refunds\"\n    group by order_id\n),\n\ncash_per_order as (\n    select\n        order_id,\n        sum(event_amount_usd) as net_paid_usd\n    from \"synthetic_shop\".\"main\".\"int_payment_events\"\n    group by order_id\n)\n\nselect\n    orders.order_id,\n    orders.customer_id,\n    orders.order_date,\n    orders.order_status_group,\n    orders.item_count,\n    orders.items_subtotal,\n    orders.order_tax as sales_tax,\n    orders.items_subtotal + orders.order_tax as order_total,\n    coalesce(refunds_per_order.refund_amount, 0) as refund_amount,\n    coalesce(cash_per_order.net_paid_usd, 0) as net_paid_usd\nfrom \"synthetic_shop\".\"main\".\"int_orders_enriched\" as orders\nleft join refunds_per_order\n    on orders.order_id = refunds_per_order.order_id\nleft join cash_per_order\n    on orders.order_id = cash_per_order.order_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_refunds",
+     "model.synthetic_shop.int_payment_events",
+     "model.synthetic_shop.int_orders_enriched"
+    ]
+   },
+   "name": "int_order_financials",
+   "original_file_path": "models/intermediate/int_order_financials.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_financials\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_financials"
+  },
+  "model.synthetic_shop.int_order_item_margins": {
+   "alias": "int_order_item_margins",
+   "columns": {
+    "line_cost": {
+     "data_type": null,
+     "name": "line_cost"
+    },
+    "line_margin": {
+     "data_type": null,
+     "name": "line_margin"
+    },
+    "order_item_id": {
+     "data_type": null,
+     "name": "order_item_id"
+    }
+   },
+   "compiled_code": "select\n    items.order_item_id,\n    items.order_id,\n    items.product_id,\n    items.quantity,\n    items.line_amount,\n    items.is_discounted,\n    costs.unit_cost,\n    costs.supplier_id,\n    items.quantity * costs.unit_cost as line_cost,\n    items.line_amount - items.quantity * costs.unit_cost as line_margin\nfrom \"synthetic_shop\".\"main\".\"int_order_items_enriched\" as items\ninner join \"synthetic_shop\".\"main\".\"int_product_costs_current\" as costs\n    on items.product_id = costs.product_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_items_enriched",
+     "model.synthetic_shop.int_product_costs_current"
+    ]
+   },
+   "name": "int_order_item_margins",
+   "original_file_path": "models/intermediate/int_order_item_margins.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_item_margins\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_item_margins"
+  },
+  "model.synthetic_shop.int_order_items_enriched": {
+   "alias": "int_order_items_enriched",
+   "columns": {
+    "is_discounted": {
+     "data_type": null,
+     "name": "is_discounted"
+    },
+    "line_amount": {
+     "data_type": null,
+     "name": "line_amount"
+    },
+    "order_item_id": {
+     "data_type": null,
+     "name": "order_item_id"
+    }
+   },
+   "compiled_code": "select\n    items.order_item_id,\n    items.order_id,\n    items.product_id,\n    products.category as product_category,\n    items.quantity,\n    items.unit_price,\n    items.quantity * items.unit_price as line_amount,\n    case when items.unit_price < products.list_price then true else false end as is_discounted\nfrom \"synthetic_shop\".\"main\".\"stg_order_items\" as items\ninner join \"synthetic_shop\".\"main\".\"stg_products\" as products\n    on items.product_id = products.product_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_order_items",
+     "model.synthetic_shop.stg_products"
+    ]
+   },
+   "name": "int_order_items_enriched",
+   "original_file_path": "models/intermediate/int_order_items_enriched.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_items_enriched\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_items_enriched"
+  },
+  "model.synthetic_shop.int_order_profit": {
+   "alias": "int_order_profit",
+   "columns": {
+    "contribution_margin": {
+     "data_type": null,
+     "name": "contribution_margin"
+    },
+    "is_profitable": {
+     "data_type": null,
+     "name": "is_profitable"
+    },
+    "net_revenue": {
+     "data_type": null,
+     "name": "net_revenue"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    }
+   },
+   "compiled_code": "with item_margins as (\n    select\n        order_id,\n        sum(line_cost) as cogs_total,\n        sum(line_margin) as gross_margin\n    from \"synthetic_shop\".\"main\".\"int_order_item_margins\"\n    group by order_id\n)\n\nselect\n    orders.order_id,\n    orders.customer_id,\n    orders.order_date,\n    orders.items_subtotal - orders.refund_amount - coalesce(promotions.discount_total, 0) as net_revenue,\n    coalesce(item_margins.cogs_total, 0) as cogs_total,\n    coalesce(item_margins.gross_margin, 0) as gross_margin,\n    coalesce(shipping.shipping_cost_total, 0) as shipping_cost_total,\n    coalesce(promotions.discount_total, 0) as discount_total,\n    coalesce(item_margins.gross_margin, 0)\n        - coalesce(shipping.shipping_cost_total, 0)\n        - coalesce(promotions.discount_total, 0) as contribution_margin,\n    case\n        when coalesce(item_margins.gross_margin, 0)\n            - coalesce(shipping.shipping_cost_total, 0)\n            - coalesce(promotions.discount_total, 0) > 0 then true\n        else false\n    end as is_profitable\nfrom \"synthetic_shop\".\"main\".\"int_customer_order_history\" as orders\nleft join item_margins\n    on orders.order_id = item_margins.order_id\nleft join \"synthetic_shop\".\"main\".\"int_order_shipping\" as shipping\n    on orders.order_id = shipping.order_id\nleft join \"synthetic_shop\".\"main\".\"int_order_promotions\" as promotions\n    on orders.order_id = promotions.order_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_item_margins",
+     "model.synthetic_shop.int_customer_order_history",
+     "model.synthetic_shop.int_order_shipping",
+     "model.synthetic_shop.int_order_promotions"
+    ]
+   },
+   "name": "int_order_profit",
+   "original_file_path": "models/intermediate/int_order_profit.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_profit\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_profit"
+  },
+  "model.synthetic_shop.int_order_promotions": {
+   "alias": "int_order_promotions",
+   "columns": {
+    "discount_total": {
+     "data_type": null,
+     "name": "discount_total"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    },
+    "promo_codes": {
+     "data_type": null,
+     "name": "promo_codes"
+    }
+   },
+   "compiled_code": "select\n    order_promotions.order_id,\n    count(distinct order_promotions.promotion_id) as promotion_count,\n    sum(order_promotions.discount_usd) as discount_total,\n    max(promotions.discount_pct) as max_discount_pct,\n    string_agg(promotions.promo_code, ',' order by promotions.discount_pct desc) as promo_codes\nfrom \"synthetic_shop\".\"main\".\"stg_order_promotions\" as order_promotions\ninner join \"synthetic_shop\".\"main\".\"stg_promotions\" as promotions\n    on order_promotions.promotion_id = promotions.promotion_id\nwhere order_promotions.promotion_id in (\n    select promotion_id\n    from \"synthetic_shop\".\"main\".\"stg_promotions\"\n    where promo_channel <> 'internal'\n)\ngroup by order_promotions.order_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_order_promotions",
+     "model.synthetic_shop.stg_promotions"
+    ]
+   },
+   "name": "int_order_promotions",
+   "original_file_path": "models/intermediate/int_order_promotions.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_promotions\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_promotions"
+  },
+  "model.synthetic_shop.int_order_shipping": {
+   "alias": "int_order_shipping",
+   "columns": {
+    "late_shipment_count": {
+     "data_type": null,
+     "name": "late_shipment_count"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    },
+    "shipping_cost_total": {
+     "data_type": null,
+     "name": "shipping_cost_total"
+    }
+   },
+   "compiled_code": "select\n    order_id,\n    count(shipment_id) as shipment_count,\n    sum(shipping_cost_usd) as shipping_cost_total,\n    min(shipped_at) as first_shipped_at,\n    max(delivered_at) as last_delivered_at,\n    count(shipment_id) filter (where is_late_delivery) as late_shipment_count\nfrom \"synthetic_shop\".\"main\".\"int_shipments_enriched\"\ngroup by order_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_shipments_enriched"
+    ]
+   },
+   "name": "int_order_shipping",
+   "original_file_path": "models/intermediate/int_order_shipping.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_order_shipping\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_order_shipping"
+  },
+  "model.synthetic_shop.int_orders_enriched": {
+   "alias": "int_orders_enriched",
+   "columns": {
+    "items_subtotal": {
+     "data_type": null,
+     "name": "items_subtotal"
+    },
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    },
+    "order_status_group": {
+     "data_type": null,
+     "name": "order_status_group"
+    }
+   },
+   "compiled_code": "with item_agg as (\n    select\n        order_id,\n        sum(quantity) as item_count,\n        sum(line_amount) as items_subtotal\n    from \"synthetic_shop\".\"main\".\"int_order_items_enriched\"\n    group by order_id\n)\n\nselect\n    orders.order_id,\n    orders.customer_id,\n    orders.order_date,\n    case orders.status\n        when 'completed' then 'complete'\n        when 'placed' then 'open'\n        when 'shipped' then 'open'\n        when 'return_pending' then 'returned'\n        when 'returned' then 'returned'\n        else 'other'\n    end as order_status_group,\n    orders.tax_amount as order_tax,\n    coalesce(item_agg.item_count, 0) as item_count,\n    coalesce(item_agg.items_subtotal, 0) as items_subtotal\nfrom \"synthetic_shop\".\"main\".\"stg_orders\" as orders\nleft join item_agg\n    on orders.order_id = item_agg.order_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_order_items_enriched",
+     "model.synthetic_shop.stg_orders"
+    ]
+   },
+   "name": "int_orders_enriched",
+   "original_file_path": "models/intermediate/int_orders_enriched.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_orders_enriched\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_orders_enriched"
+  },
+  "model.synthetic_shop.int_payment_events": {
+   "alias": "int_payment_events",
+   "columns": {
+    "event_id": {
+     "data_type": null,
+     "name": "event_id"
+    }
+   },
+   "compiled_code": "select\n    'pay_' || payment_id as event_id,\n    order_id,\n    amount_usd as event_amount_usd,\n    paid_at as event_at\nfrom \"synthetic_shop\".\"main\".\"stg_payments\"\n\nunion all\n\nselect\n    'ref_' || refund_id as event_id,\n    order_id,\n    -1 * refund_amt as event_amount_usd,\n    refunded_at as event_at\nfrom \"synthetic_shop\".\"main\".\"stg_refunds\"",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_payments",
+     "model.synthetic_shop.stg_refunds"
+    ]
+   },
+   "name": "int_payment_events",
+   "original_file_path": "models/intermediate/int_payment_events.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_payment_events\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_payment_events"
+  },
+  "model.synthetic_shop.int_product_costs_current": {
+   "alias": "int_product_costs_current",
+   "columns": {
+    "product_id": {
+     "data_type": null,
+     "name": "product_id"
+    },
+    "unit_cost": {
+     "data_type": null,
+     "name": "unit_cost"
+    }
+   },
+   "compiled_code": "select\n    costs.product_id,\n    costs.supplier_id,\n    costs.unit_cost,\n    costs.valid_from as cost_valid_from,\n    suppliers.supplier_name,\n    suppliers.supplier_country,\n    suppliers.lead_time_days\nfrom \"synthetic_shop\".\"main\".\"stg_product_costs\" as costs\ninner join \"synthetic_shop\".\"main\".\"stg_suppliers\" as suppliers\n    on costs.supplier_id = suppliers.supplier_id\nqualify row_number() over (\n    partition by costs.product_id\n    order by costs.valid_from desc\n) = 1",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_product_costs",
+     "model.synthetic_shop.stg_suppliers"
+    ]
+   },
+   "name": "int_product_costs_current",
+   "original_file_path": "models/intermediate/int_product_costs_current.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_product_costs_current\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_product_costs_current"
+  },
+  "model.synthetic_shop.int_sessions_daily": {
+   "alias": "int_sessions_daily",
+   "columns": {
+    "session_count": {
+     "data_type": null,
+     "name": "session_count"
+    },
+    "visitor_count": {
+     "data_type": null,
+     "name": "visitor_count"
+    }
+   },
+   "compiled_code": "select\n    session_date,\n    channel,\n    count(session_id) as session_count,\n    count(distinct customer_id) as visitor_count,\n    sum(page_views) as page_views\nfrom \"synthetic_shop\".\"main\".\"int_web_sessions_clean\"\ngroup by session_date, channel",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.int_web_sessions_clean"
+    ]
+   },
+   "name": "int_sessions_daily",
+   "original_file_path": "models/intermediate/int_sessions_daily.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_sessions_daily\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_sessions_daily"
+  },
+  "model.synthetic_shop.int_shipments_enriched": {
+   "alias": "int_shipments_enriched",
+   "columns": {
+    "days_to_ship": {
+     "data_type": null,
+     "name": "days_to_ship"
+    },
+    "is_late_delivery": {
+     "data_type": null,
+     "name": "is_late_delivery"
+    },
+    "shipment_id": {
+     "data_type": null,
+     "name": "shipment_id"
+    }
+   },
+   "compiled_code": "select\n    shipments.shipment_id,\n    shipments.order_id,\n    shipments.carrier,\n    shipments.shipped_at,\n    shipments.delivered_at,\n    shipments.delivery_days,\n    shipments.shipping_cost_usd,\n    date_diff('day', orders.order_date, shipments.shipped_at) as days_to_ship,\n    case when shipments.delivery_days > 5 then true else false end as is_late_delivery\nfrom \"synthetic_shop\".\"main\".\"stg_shipments\" as shipments\ninner join \"synthetic_shop\".\"main\".\"stg_orders\" as orders\n    on shipments.order_id = orders.order_id",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_shipments",
+     "model.synthetic_shop.stg_orders"
+    ]
+   },
+   "name": "int_shipments_enriched",
+   "original_file_path": "models/intermediate/int_shipments_enriched.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_shipments_enriched\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_shipments_enriched"
+  },
+  "model.synthetic_shop.int_web_sessions_clean": {
+   "alias": "int_web_sessions_clean",
+   "columns": {
+    "session_date": {
+     "data_type": null,
+     "name": "session_date"
+    },
+    "session_id": {
+     "data_type": null,
+     "name": "session_id"
+    },
+    "session_number": {
+     "data_type": null,
+     "name": "session_number"
+    }
+   },
+   "compiled_code": "select\n    session_id,\n    customer_id,\n    session_started_at,\n    channel,\n    utm_campaign,\n    page_views,\n    cast(session_started_at as date) as session_date,\n    row_number() over (\n        partition by customer_id\n        order by session_started_at, session_id\n    ) as session_number\nfrom \"synthetic_shop\".\"main\".\"stg_web_sessions\"\nwhere not is_bot\n    and page_views > 0",
+   "config": {
+    "materialized": "table"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "model.synthetic_shop.stg_web_sessions"
+    ]
+   },
+   "name": "int_web_sessions_clean",
+   "original_file_path": "models/intermediate/int_web_sessions_clean.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"int_web_sessions_clean\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.int_web_sessions_clean"
+  },
+  "model.synthetic_shop.stg_customers": {
+   "alias": "stg_customers",
+   "columns": {
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    }
+   },
+   "compiled_code": "select\n    id as customer_id,\n    first_name,\n    last_name,\n    lower(trim(email)) as email,\n    upper(country) as country_code,\n    created_at as signup_at\nfrom \"synthetic_shop\".\"main\".\"raw_customers\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_customers"
+    ]
+   },
+   "name": "stg_customers",
+   "original_file_path": "models/staging/stg_customers.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_customers\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_customers"
+  },
+  "model.synthetic_shop.stg_inventory_snapshots": {
+   "alias": "stg_inventory_snapshots",
+   "columns": {
+    "qty_on_hand": {
+     "data_type": null,
+     "name": "qty_on_hand"
+    },
+    "snapshot_id": {
+     "data_type": null,
+     "name": "snapshot_id"
+    },
+    "warehouse_code": {
+     "data_type": null,
+     "name": "warehouse_code"
+    }
+   },
+   "compiled_code": "select\n    id as snapshot_id,\n    product_id,\n    snapshot_date,\n    qty_on_hand,\n    upper(warehouse) as warehouse_code\nfrom \"synthetic_shop\".\"main\".\"raw_inventory_snapshots\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_inventory_snapshots"
+    ]
+   },
+   "name": "stg_inventory_snapshots",
+   "original_file_path": "models/staging/stg_inventory_snapshots.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_inventory_snapshots\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_inventory_snapshots"
+  },
+  "model.synthetic_shop.stg_marketing_spend": {
+   "alias": "stg_marketing_spend",
+   "columns": {
+    "channel": {
+     "data_type": null,
+     "name": "channel"
+    },
+    "spend_date": {
+     "data_type": null,
+     "name": "spend_date"
+    },
+    "spend_usd": {
+     "data_type": null,
+     "name": "spend_usd"
+    }
+   },
+   "compiled_code": "select\n    spend_day as spend_date,\n    lower(channel) as channel,\n    campaign as campaign_name,\n    spend_usd,\n    impressions,\n    clicks\nfrom \"synthetic_shop\".\"main\".\"raw_marketing_spend\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_marketing_spend"
+    ]
+   },
+   "name": "stg_marketing_spend",
+   "original_file_path": "models/staging/stg_marketing_spend.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_marketing_spend\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_marketing_spend"
+  },
+  "model.synthetic_shop.stg_order_items": {
+   "alias": "stg_order_items",
+   "columns": {
+    "order_item_id": {
+     "data_type": null,
+     "name": "order_item_id"
+    }
+   },
+   "compiled_code": "select\n    id as order_item_id,\n    order_id,\n    product_id,\n    quantity,\n    unit_price\nfrom \"synthetic_shop\".\"main\".\"raw_order_items\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_order_items"
+    ]
+   },
+   "name": "stg_order_items",
+   "original_file_path": "models/staging/stg_order_items.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_order_items\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_order_items"
+  },
+  "model.synthetic_shop.stg_order_promotions": {
+   "alias": "stg_order_promotions",
+   "columns": {
+    "discount_usd": {
+     "data_type": null,
+     "name": "discount_usd"
+    },
+    "order_promotion_id": {
+     "data_type": null,
+     "name": "order_promotion_id"
+    }
+   },
+   "compiled_code": "select\n    id as order_promotion_id,\n    order_id,\n    promotion_id,\n    discount_usd\nfrom \"synthetic_shop\".\"main\".\"raw_order_promotions\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_order_promotions"
+    ]
+   },
+   "name": "stg_order_promotions",
+   "original_file_path": "models/staging/stg_order_promotions.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_order_promotions\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_order_promotions"
+  },
+  "model.synthetic_shop.stg_orders": {
+   "alias": "stg_orders",
+   "columns": {
+    "order_id": {
+     "data_type": null,
+     "name": "order_id"
+    }
+   },
+   "compiled_code": "select\n    id as order_id,\n    user_id as customer_id,\n    order_date,\n    status,\n    tax_usd as tax_amount\nfrom \"synthetic_shop\".\"main\".\"raw_orders\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_orders"
+    ]
+   },
+   "name": "stg_orders",
+   "original_file_path": "models/staging/stg_orders.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_orders\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_orders"
+  },
+  "model.synthetic_shop.stg_payments": {
+   "alias": "stg_payments",
+   "columns": {
+    "payment_id": {
+     "data_type": null,
+     "name": "payment_id"
+    }
+   },
+   "compiled_code": "select\n    id as payment_id,\n    order_id,\n    method as payment_method,\n    amt as amount_usd,\n    created_at as paid_at\nfrom \"synthetic_shop\".\"main\".\"raw_payments\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_payments"
+    ]
+   },
+   "name": "stg_payments",
+   "original_file_path": "models/staging/stg_payments.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_payments\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_payments"
+  },
+  "model.synthetic_shop.stg_product_costs": {
+   "alias": "stg_product_costs",
+   "columns": {
+    "product_cost_id": {
+     "data_type": null,
+     "name": "product_cost_id"
+    },
+    "unit_cost": {
+     "data_type": null,
+     "name": "unit_cost"
+    },
+    "valid_from": {
+     "data_type": null,
+     "name": "valid_from"
+    }
+   },
+   "compiled_code": "select\n    id as product_cost_id,\n    product_id,\n    supplier_id,\n    unit_cost,\n    valid_from\nfrom \"synthetic_shop\".\"main\".\"raw_product_costs\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_product_costs"
+    ]
+   },
+   "name": "stg_product_costs",
+   "original_file_path": "models/staging/stg_product_costs.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_product_costs\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_product_costs"
+  },
+  "model.synthetic_shop.stg_products": {
+   "alias": "stg_products",
+   "columns": {
+    "product_id": {
+     "data_type": null,
+     "name": "product_id"
+    }
+   },
+   "compiled_code": "select\n    id as product_id,\n    name as product_name,\n    category,\n    list_price\nfrom \"synthetic_shop\".\"main\".\"raw_products\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_products"
+    ]
+   },
+   "name": "stg_products",
+   "original_file_path": "models/staging/stg_products.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_products\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_products"
+  },
+  "model.synthetic_shop.stg_promotions": {
+   "alias": "stg_promotions",
+   "columns": {
+    "promo_channel": {
+     "data_type": null,
+     "name": "promo_channel"
+    },
+    "promo_code": {
+     "data_type": null,
+     "name": "promo_code"
+    },
+    "promotion_id": {
+     "data_type": null,
+     "name": "promotion_id"
+    }
+   },
+   "compiled_code": "select\n    id as promotion_id,\n    upper(code) as promo_code,\n    discount_pct,\n    starts_at,\n    ends_at,\n    channel as promo_channel\nfrom \"synthetic_shop\".\"main\".\"raw_promotions\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_promotions"
+    ]
+   },
+   "name": "stg_promotions",
+   "original_file_path": "models/staging/stg_promotions.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_promotions\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_promotions"
+  },
+  "model.synthetic_shop.stg_refunds": {
+   "alias": "stg_refunds",
+   "columns": {
+    "refund_id": {
+     "data_type": null,
+     "name": "refund_id"
+    }
+   },
+   "compiled_code": "select\n    id as refund_id,\n    order_id,\n    refund_amt,\n    reason as refund_reason,\n    created_at as refunded_at\nfrom \"synthetic_shop\".\"main\".\"raw_refunds\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_refunds"
+    ]
+   },
+   "name": "stg_refunds",
+   "original_file_path": "models/staging/stg_refunds.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_refunds\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_refunds"
+  },
+  "model.synthetic_shop.stg_shipments": {
+   "alias": "stg_shipments",
+   "columns": {
+    "carrier": {
+     "data_type": null,
+     "name": "carrier"
+    },
+    "delivery_days": {
+     "data_type": null,
+     "name": "delivery_days"
+    },
+    "shipment_id": {
+     "data_type": null,
+     "name": "shipment_id"
+    },
+    "shipped_at": {
+     "data_type": null,
+     "name": "shipped_at"
+    },
+    "shipping_cost_usd": {
+     "data_type": null,
+     "name": "shipping_cost_usd"
+    }
+   },
+   "compiled_code": "select\n    id as shipment_id,\n    order_id,\n    lower(trim(carrier)) as carrier,\n    shipped_at,\n    delivered_at,\n    shipping_cost_usd,\n    date_diff('day', shipped_at, delivered_at) as delivery_days\nfrom \"synthetic_shop\".\"main\".\"raw_shipments\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_shipments"
+    ]
+   },
+   "name": "stg_shipments",
+   "original_file_path": "models/staging/stg_shipments.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_shipments\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_shipments"
+  },
+  "model.synthetic_shop.stg_suppliers": {
+   "alias": "stg_suppliers",
+   "columns": {
+    "supplier_id": {
+     "data_type": null,
+     "name": "supplier_id"
+    }
+   },
+   "compiled_code": "select\n    id as supplier_id,\n    name as supplier_name,\n    upper(country) as supplier_country,\n    lead_time_days\nfrom \"synthetic_shop\".\"main\".\"raw_suppliers\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_suppliers"
+    ]
+   },
+   "name": "stg_suppliers",
+   "original_file_path": "models/staging/stg_suppliers.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_suppliers\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_suppliers"
+  },
+  "model.synthetic_shop.stg_web_sessions": {
+   "alias": "stg_web_sessions",
+   "columns": {
+    "channel": {
+     "data_type": null,
+     "name": "channel"
+    },
+    "customer_id": {
+     "data_type": null,
+     "name": "customer_id"
+    },
+    "is_bot": {
+     "data_type": null,
+     "name": "is_bot"
+    },
+    "session_id": {
+     "data_type": null,
+     "name": "session_id"
+    }
+   },
+   "compiled_code": "select\n    id as session_id,\n    user_id as customer_id,\n    started_at as session_started_at,\n    lower(channel) as channel,\n    utm_campaign,\n    page_views,\n    is_bot\nfrom \"synthetic_shop\".\"main\".\"raw_web_sessions\"",
+   "config": {
+    "materialized": "view"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": [
+     "seed.synthetic_shop.raw_web_sessions"
+    ]
+   },
+   "name": "stg_web_sessions",
+   "original_file_path": "models/staging/stg_web_sessions.sql",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"stg_web_sessions\"",
+   "resource_type": "model",
+   "schema": "main",
+   "unique_id": "model.synthetic_shop.stg_web_sessions"
+  },
+  "seed.synthetic_shop.raw_customers": {
+   "alias": "raw_customers",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_customers",
+   "original_file_path": "seeds/raw_customers.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_customers\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_customers"
+  },
+  "seed.synthetic_shop.raw_inventory_snapshots": {
+   "alias": "raw_inventory_snapshots",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_inventory_snapshots",
+   "original_file_path": "seeds/raw_inventory_snapshots.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_inventory_snapshots\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_inventory_snapshots"
+  },
+  "seed.synthetic_shop.raw_marketing_spend": {
+   "alias": "raw_marketing_spend",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_marketing_spend",
+   "original_file_path": "seeds/raw_marketing_spend.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_marketing_spend\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_marketing_spend"
+  },
+  "seed.synthetic_shop.raw_order_items": {
+   "alias": "raw_order_items",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_order_items",
+   "original_file_path": "seeds/raw_order_items.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_order_items\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_order_items"
+  },
+  "seed.synthetic_shop.raw_order_promotions": {
+   "alias": "raw_order_promotions",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_order_promotions",
+   "original_file_path": "seeds/raw_order_promotions.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_order_promotions\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_order_promotions"
+  },
+  "seed.synthetic_shop.raw_orders": {
+   "alias": "raw_orders",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_orders",
+   "original_file_path": "seeds/raw_orders.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_orders\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_orders"
+  },
+  "seed.synthetic_shop.raw_payments": {
+   "alias": "raw_payments",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_payments",
+   "original_file_path": "seeds/raw_payments.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_payments\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_payments"
+  },
+  "seed.synthetic_shop.raw_product_costs": {
+   "alias": "raw_product_costs",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_product_costs",
+   "original_file_path": "seeds/raw_product_costs.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_product_costs\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_product_costs"
+  },
+  "seed.synthetic_shop.raw_products": {
+   "alias": "raw_products",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_products",
+   "original_file_path": "seeds/raw_products.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_products\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_products"
+  },
+  "seed.synthetic_shop.raw_promotions": {
+   "alias": "raw_promotions",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_promotions",
+   "original_file_path": "seeds/raw_promotions.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_promotions\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_promotions"
+  },
+  "seed.synthetic_shop.raw_refunds": {
+   "alias": "raw_refunds",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_refunds",
+   "original_file_path": "seeds/raw_refunds.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_refunds\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_refunds"
+  },
+  "seed.synthetic_shop.raw_shipments": {
+   "alias": "raw_shipments",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_shipments",
+   "original_file_path": "seeds/raw_shipments.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_shipments\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_shipments"
+  },
+  "seed.synthetic_shop.raw_suppliers": {
+   "alias": "raw_suppliers",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_suppliers",
+   "original_file_path": "seeds/raw_suppliers.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_suppliers\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_suppliers"
+  },
+  "seed.synthetic_shop.raw_web_sessions": {
+   "alias": "raw_web_sessions",
+   "columns": {},
+   "config": {
+    "materialized": "seed"
+   },
+   "database": "synthetic_shop",
+   "depends_on": {
+    "nodes": []
+   },
+   "name": "raw_web_sessions",
+   "original_file_path": "seeds/raw_web_sessions.csv",
+   "package_name": "synthetic_shop",
+   "relation_name": "\"synthetic_shop\".\"main\".\"raw_web_sessions\"",
+   "resource_type": "seed",
+   "schema": "main",
+   "unique_id": "seed.synthetic_shop.raw_web_sessions"
+  }
+ },
+ "sources": {}
+}

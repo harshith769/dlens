@@ -226,3 +226,6 @@ dbt_packages/
 eval/cache/
 *.duckdb
 *.duckdb.wal
+
+# Committed dbt artifacts for artifact-ingest tests (S06)
+!tests/fixtures/artifacts/*/target/

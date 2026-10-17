@@ -1,0 +1,17 @@
+version: 2
+
+# Columns are declared for two models only, so the catalog-less fallback has gaps to report.
+models:
+  - name: stg_customers
+    columns:
+      - name: customer_id
+        data_type: integer
+      - name: full_name
+        data_type: varchar
+  - name: customer_orders
+    columns:
+      - name: order_id
+      - name: customer_id
+      - name: order_date
+      - name: amount_usd
+      - name: order_seq

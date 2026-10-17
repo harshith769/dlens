@@ -1,0 +1,10 @@
+# Tiny project for artifact-only ingest tests (S06): two ephemeral models, one nested in the
+# other, a window function, a join and a GROUP BY. Rebuild the committed target/ with
+# `uv run python scripts/make_artifact_fixture.py eph_shop`.
+name: eph_shop
+version: "1.0"
+config-version: 2
+profile: eph_shop
+models:
+  eph_shop:
+    +materialized: table
