@@ -377,6 +377,12 @@ model bonus whenever surface + bonus + layer > 0.96 ("sales tax in fct_orders": 
 raw, both 0.96 printed). Ranking and the `ambiguous` flag use the uncapped sum, and the payload
 prints `min(sum, 0.96)`. The raw sum is in the side record (`parts.raw`).
 
+**Layer from the folder (owner, 18 Oct 2026).** The layer prior reads the model's folder under
+`models/` (dbt's fqn path: `marts`, `intermediate`, `staging`; seeds and sources are raw), nearest
+folder first, and falls back to the name prefix. synthetic_shop results are byte-identical before
+and after (all 247 cases + 20 dev mentions). dbt_jira is unchanged too: its marts sit directly in
+`models/` (no layer folder) and are named `jira__*` (no prefix), so they still get no marts bonus.
+
 ## Change log
 - 17 Oct 2026: first draft (S08 step 1).
 - 17 Oct 2026: amendments A, B, C (owner, after the case review, before measurement).

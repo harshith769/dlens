@@ -204,11 +204,32 @@ def fuzzy(q: list[str], c: list[str]) -> float:
     return FUZZY_MAX * (0.7 * _soft_dice(q, c) + 0.3 * seq)
 
 
-def layer(name: str, resource_type: str) -> str | None:
-    if resource_type == "seed" or name.startswith("raw_"):
+_FOLDER_LAYERS = {
+    "marts": "marts",
+    "mart": "marts",
+    "intermediate": "intermediate",
+    "staging": "staging",
+    "seeds": "raw",
+    "sources": "raw",
+}
+_PREFIX_LAYERS = {"stg": "staging", "int": "intermediate", "fct": "marts", "dim": "marts"}
+
+
+def layer(name: str, resource_type: str, file: str = "") -> str | None:
+    """The model's layer (owner, 18 Oct 2026): seeds and sources are raw; else the folder the file
+    sits in under ``models/`` (dbt's fqn path: ``marts``, ``intermediate``, ``staging``), nearest
+    folder first; else the name prefix (``raw_``, ``stg_``, ``int_``, ``fct_``, ``dim_``)."""
+    if resource_type in ("seed", "source"):
         return "raw"
-    prefix = name.split("_", 1)[0]
-    return {"stg": "staging", "int": "intermediate", "fct": "marts", "dim": "marts"}.get(prefix)
+    parts = file.replace("\\", "/").split("/")[:-1]
+    if "models" in parts:
+        parts = parts[len(parts) - parts[::-1].index("models") :]
+    for folder in reversed(parts):
+        if folder.lower() in _FOLDER_LAYERS:
+            return _FOLDER_LAYERS[folder.lower()]
+    if name.startswith("raw_"):
+        return "raw"
+    return _PREFIX_LAYERS.get(name.split("_", 1)[0])
 
 
 @dataclass
@@ -351,7 +372,7 @@ def _col_row(g: LineageGraph, cid: str, tier: Tier) -> dict[str, str]:
 def _layer_of(g: LineageGraph, cid: str) -> tuple[float, int]:
     info = g.model_info(g.model_of(cid)) or {}
     rtype = info.get("resource_type", "")
-    lay = layer(info.get("name", ""), rtype)
+    lay = layer(info.get("name", ""), rtype, info.get("file", ""))
     return (LAYER_PRIOR[lay] if lay else 0.0), int(rtype == "seed")
 
 

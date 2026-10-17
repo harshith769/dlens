@@ -283,3 +283,19 @@ def test_core_install_never_imports_retrieval() -> None:
         "assert not bad, bad\n"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
+
+
+def test_layer_comes_from_the_folder_then_the_name_prefix() -> None:
+    """Owner, 18 Oct 2026: folder (fqn path) first, nearest folder wins; name prefix fallback."""
+    from dlens.agent.tools.entity import layer
+
+    assert layer("customers", "model", "models/marts/core/customers.sql") == "marts"
+    assert (
+        layer("int_x", "model", "dbt_packages/jira/models/intermediate/f/int_x.sql")
+        == "intermediate"
+    )
+    assert layer("orders", "model", "models/staging/shop/orders.sql") == "staging"
+    assert layer("fct_x", "model", "models/fct_x.sql") == "marts"  # no layer folder: prefix
+    assert layer("jira__issue", "model", "models/jira__issue.sql") is None  # neither
+    assert layer("anything", "seed", "seeds/anything.csv") == "raw"
+    assert layer("stg_x", "model", "models/marts/stg_x.sql") == "marts"  # the folder wins
