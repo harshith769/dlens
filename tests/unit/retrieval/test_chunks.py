@@ -182,7 +182,7 @@ def test_compiled_basis_without_project_files(eph_graph: LineageGraph) -> None:
     models = [c for c in cs.chunks if c.kind == "model"]
     assert models and all(c.line_basis == "compiled" for c in models)
     for c in models:
-        assert c.file.startswith("compiled/eph_shop/")
+        assert c.file.startswith(("compiled/eph_shop/", "compiled/eph_pkg/"))
         lines = (EPH_TARGET / c.file).read_text().splitlines()
         assert c.text == "\n".join(lines[c.line_start - 1 : c.line_end])
     assert cs.stats["line_basis"]["compiled"] >= len(models)

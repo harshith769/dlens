@@ -229,3 +229,5 @@ eval/cache/
 
 # Committed dbt artifacts for artifact-ingest tests (S06)
 !tests/fixtures/artifacts/*/target/
+# The eph_shop fixture's local package (S06b)
+!tests/fixtures/artifacts/eph_shop/dbt_packages/

@@ -6,6 +6,74 @@
   "env": {}
  },
  "nodes": {
+  "model.eph_pkg.pkg_customer_names": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "name_upper": {
+     "comment": null,
+     "index": 2,
+     "name": "name_upper",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "eph_shop",
+    "name": "pkg_customer_names",
+    "owner": null,
+    "schema": "main",
+    "type": "VIEW"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.eph_pkg.pkg_customer_names"
+  },
+  "model.eph_shop.customer_names": {
+   "columns": {
+    "customer_id": {
+     "comment": null,
+     "index": 1,
+     "name": "customer_id",
+     "type": "INTEGER"
+    },
+    "display_name": {
+     "comment": null,
+     "index": 2,
+     "name": "display_name",
+     "type": "VARCHAR"
+    }
+   },
+   "metadata": {
+    "comment": null,
+    "database": "eph_shop",
+    "name": "customer_names",
+    "owner": null,
+    "schema": "main",
+    "type": "BASE TABLE"
+   },
+   "stats": {
+    "has_stats": {
+     "description": "Indicates whether there are statistics for this table",
+     "id": "has_stats",
+     "include": false,
+     "label": "Has Stats?",
+     "value": false
+    }
+   },
+   "unique_id": "model.eph_shop.customer_names"
+  },
   "model.eph_shop.customer_orders": {
    "columns": {
     "amount_usd": {

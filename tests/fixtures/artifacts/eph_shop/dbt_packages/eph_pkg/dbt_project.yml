@@ -1,0 +1,5 @@
+# A tiny local package for S06b: one model whose file lives under dbt_packages/eph_pkg/, so its
+# original_file_path is package-relative. Committed as a real directory (no `dbt deps`).
+name: eph_pkg
+version: "1.0"
+config-version: 2

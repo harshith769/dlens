@@ -1,0 +1,4 @@
+# dbt counts installed packages against this file. eph_pkg is committed in place under
+# dbt_packages/ (S06b); `dbt deps` is never run for this fixture.
+packages:
+  - local: dbt_packages/eph_pkg

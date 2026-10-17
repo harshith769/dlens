@@ -1,5 +1,9 @@
 {
  "child_map": {
+  "model.eph_pkg.pkg_customer_names": [
+   "model.eph_shop.customer_names"
+  ],
+  "model.eph_shop.customer_names": [],
   "model.eph_shop.customer_orders": [
    "model.eph_shop.customer_summary"
   ],
@@ -11,6 +15,7 @@
    "model.eph_shop.order_payments"
   ],
   "model.eph_shop.stg_customers": [
+   "model.eph_pkg.pkg_customer_names",
    "model.eph_shop.customer_summary"
   ],
   "seed.eph_shop.raw_customers": [
@@ -56,6 +61,232 @@
  },
  "metrics": {},
  "nodes": {
+  "model.eph_pkg.pkg_customer_names": {
+   "access": "protected",
+   "alias": "pkg_customer_names",
+   "build_path": null,
+   "checksum": {
+    "checksum": "f03644da7426677ac5b2684b9436d7cae023fc1071c90488ac0425ea5ee8fe2e",
+    "name": "sha256"
+   },
+   "columns": {},
+   "compiled": true,
+   "compiled_code": "\n\n-- eph_pkg: a package model; dbt records its path relative to the package.\nselect\n    customer_id,\n    upper(full_name) as name_upper\nfrom \"eph_shop\".\"main\".\"stg_customers\"\nwhere customer_id is not null",
+   "compiled_path": "target/compiled/eph_pkg/models/pkg_customer_names.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "view",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "model.eph_shop.stg_customers"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_pkg",
+    "pkg_customer_names"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "pkg_customer_names",
+   "original_file_path": "models/pkg_customer_names.sql",
+   "package_name": "eph_pkg",
+   "patch_path": null,
+   "path": "pkg_customer_names.sql",
+   "primary_key": [],
+   "raw_code": "{{ config(materialized='view') }}\n\n-- eph_pkg: a package model; dbt records its path relative to the package.\nselect\n    customer_id,\n    upper(full_name) as name_upper\nfrom {{ ref('stg_customers') }}\nwhere customer_id is not null",
+   "refs": [
+    {
+     "name": "stg_customers",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": "\"eph_shop\".\"main\".\"pkg_customer_names\"",
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_pkg.pkg_customer_names",
+   "unrendered_config": {
+    "materialized": "view"
+   },
+   "version": null
+  },
+  "model.eph_shop.customer_names": {
+   "access": "protected",
+   "alias": "customer_names",
+   "build_path": null,
+   "checksum": {
+    "checksum": "0cae37cb1221c4edcc5c6a340ba5a3c5d51bd9a1f6b75891b6bb9ee73a753f88",
+    "name": "sha256"
+   },
+   "columns": {},
+   "compiled": true,
+   "compiled_code": "select\n    n.customer_id,\n    n.name_upper as display_name\nfrom \"eph_shop\".\"main\".\"pkg_customer_names\" as n",
+   "compiled_path": "target/compiled/eph_shop/models/customer_names.sql",
+   "config": {
+    "access": "protected",
+    "alias": null,
+    "batch_size": null,
+    "begin": null,
+    "column_types": {},
+    "concurrent_batches": null,
+    "contract": {
+     "alias_types": true,
+     "enforced": false
+    },
+    "database": null,
+    "docs": {
+     "node_color": null,
+     "show": true
+    },
+    "enabled": true,
+    "event_time": null,
+    "freshness": null,
+    "full_refresh": null,
+    "grants": {},
+    "group": null,
+    "incremental_strategy": null,
+    "latest_version_pointer": {
+     "alias": null,
+     "enabled": null
+    },
+    "lookback": 1,
+    "materialized": "table",
+    "meta": {},
+    "on_configuration_change": "apply",
+    "on_error": null,
+    "on_schema_change": "ignore",
+    "packages": [],
+    "persist_docs": {},
+    "post-hook": [],
+    "pre-hook": [],
+    "quoting": {},
+    "schema": null,
+    "static_analysis": null,
+    "tags": [],
+    "unique_key": null
+   },
+   "constraints": [],
+   "contract": {
+    "alias_types": true,
+    "checksum": null,
+    "enforced": false
+   },
+   "database": "eph_shop",
+   "depends_on": {
+    "macros": [],
+    "nodes": [
+     "model.eph_pkg.pkg_customer_names"
+    ]
+   },
+   "deprecation_date": null,
+   "description": "",
+   "doc_blocks": [],
+   "docs": {
+    "node_color": null,
+    "show": true
+   },
+   "extra_ctes": [],
+   "extra_ctes_injected": true,
+   "fqn": [
+    "eph_shop",
+    "customer_names"
+   ],
+   "functions": [],
+   "group": null,
+   "language": "sql",
+   "latest_version": null,
+   "meta": {},
+   "metrics": [],
+   "name": "customer_names",
+   "original_file_path": "models/customer_names.sql",
+   "package_name": "eph_shop",
+   "patch_path": null,
+   "path": "customer_names.sql",
+   "primary_key": [],
+   "raw_code": "select\n    n.customer_id,\n    n.name_upper as display_name\nfrom {{ ref('pkg_customer_names') }} as n",
+   "refs": [
+    {
+     "name": "pkg_customer_names",
+     "package": null,
+     "version": null
+    }
+   ],
+   "relation_name": "\"eph_shop\".\"main\".\"customer_names\"",
+   "resource_type": "model",
+   "schema": "main",
+   "sources": [],
+   "tags": [],
+   "time_spine": null,
+   "unique_id": "model.eph_shop.customer_names",
+   "unrendered_config": {
+    "materialized": "table"
+   },
+   "version": null
+  },
   "model.eph_shop.customer_orders": {
    "access": "protected",
    "alias": "customer_orders",
@@ -997,6 +1228,12 @@
   }
  },
  "parent_map": {
+  "model.eph_pkg.pkg_customer_names": [
+   "model.eph_shop.stg_customers"
+  ],
+  "model.eph_shop.customer_names": [
+   "model.eph_pkg.pkg_customer_names"
+  ],
   "model.eph_shop.customer_orders": [
    "model.eph_shop.order_payments",
    "seed.eph_shop.raw_orders"

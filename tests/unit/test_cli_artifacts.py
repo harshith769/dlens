@@ -23,8 +23,8 @@ def test_ingest_artifacts_summary_and_cache(target: Path) -> None:
     assert r.exit_code == 0, r.output
     assert "v12 (dbt 1.12.5), adapter duckdb -> dialect duckdb" in r.output
     assert "catalog:     catalog.json" in r.output
-    assert "models:      5   seeds: 3" in r.output
-    assert "coverage:    5 FULL · 0 PARTIAL · 0 TABLE_ONLY · 0 FAILED" in r.output
+    assert "models:      7   seeds: 3" in r.output
+    assert "coverage:    7 FULL · 0 PARTIAL · 0 TABLE_ONLY · 0 FAILED" in r.output
     assert r.output.rstrip().endswith("(built)")
     again = runner.invoke(app, ["ingest", "--artifacts", str(target)])
     assert again.output.rstrip().endswith("(cache reused)")
@@ -35,7 +35,7 @@ def test_ingest_artifacts_catalog_less_explains_coverage(target: Path) -> None:
     r = runner.invoke(app, ["ingest", "--artifacts", str(target)])
     assert r.exit_code == 0, r.output
     assert "NONE (catalog-less fallback)" in r.output
-    assert "coverage:    4 FULL · 1 PARTIAL · 0 TABLE_ONLY · 0 FAILED" in r.output
+    assert "coverage:    6 FULL · 1 PARTIAL · 0 TABLE_ONLY · 0 FAILED" in r.output
     assert "PARTIAL     customer_orders  unexpanded * ×3" in r.output
 
 
@@ -75,7 +75,7 @@ def test_trace_impact_report_read_the_artifact_graph(target: Path) -> None:
     i = runner.invoke(app, ["impact", "raw_payments.amount_cents", "--artifacts", str(target)])
     assert i.exit_code == 0 and "customer_summary.lifetime_usd" in i.output
     rep = runner.invoke(app, ["report", "--artifacts", str(target)])
-    assert rep.exit_code == 0 and "Models: 5 FULL" in rep.output
+    assert rep.exit_code == 0 and "Models: 7 FULL" in rep.output
 
 
 def test_trace_without_ingest_or_after_change_says_to_ingest(target: Path) -> None:
