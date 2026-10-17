@@ -43,6 +43,10 @@ PER_LAYER_EXACT = 12
 N_BARE_SHARED, N_BARE_UNIQUE = 10, 10
 N_WORD_ORDER, N_TYPO, N_QUALIFIED = 20, 10, 8
 PER_ABBREVIATION = 2
+# Owner, 17 Oct 2026 (case review): drop cases with more than MAX_GOLD gold columns (too weak to
+# measure anything) and these mentions. Dropped cases are counted, never backfilled.
+MAX_GOLD = 5
+DROP_MENTIONS = {"marketing revenue"}  # also reads as attributed_revenue
 LAYERS = {"raw": "raw", "stg": "staging", "int": "intermediate", "fct": "marts", "dim": "marts"}
 
 # Design §2.1 (approved): abbreviation -> canonical. Only for collision checks and for making
@@ -118,6 +122,7 @@ class Builder:
         self.dev_targets = dev_targets
         self.cases: list[dict[str, Any]] = []
         self.skipped: list[str] = []
+        self.dropped: Counter[str] = Counter()
         self.unsure: list[dict[str, Any]] = []
         self.used: set[str] = set()
 
@@ -125,6 +130,10 @@ class Builder:
 
     def add(self, variant: str, mention: str, gold: list[str], **kw: Any) -> None:
         low = mention.lower()
+        if len(gold) > MAX_GOLD or low in DROP_MENTIONS:
+            self.dropped[variant] += 1
+            self.skipped.append(f"{variant}: {mention!r} dropped (owner rule: >5 gold or listed)")
+            return
         if low in self.used:
             self.skipped.append(f"{variant}: {mention!r} duplicates an earlier mention")
             return
@@ -277,7 +286,8 @@ class Builder:
         ):
             for row in variants[section]:
                 self.add(variant, row["mention"], row["gold"], ambiguous=row.get("ambiguous"), rule=row.get("rule"),
-                         note=row.get("note"), unsure=row.get("unsure"), source="variants.yml")  # fmt: skip
+                         note=row.get("note"), unsure=row.get("unsure"), limitation=row.get("limitation"),
+                         source="variants.yml")  # fmt: skip
         for row in variants["no_match"]:
             self.add("no_match", row["mention"], [], note=row.get("note"), unsure=row.get("unsure"),
                      source="variants.yml")  # fmt: skip
@@ -311,6 +321,7 @@ ORDER = [
     "rule",
     "source",
     "note",
+    "limitation",
     "unsure",
 ]
 
@@ -410,7 +421,8 @@ def main() -> int:
     for name, text in files.items():
         (OUT / name).write_text(text)
     print(summary(b))
-    print(f"\nskipped mechanical mentions: {len(b.skipped)}; unsure cases: {len(b.unsure)}")
+    print(f"\nskipped mentions: {len(b.skipped)}; unsure cases: {len(b.unsure)}")
+    print("dropped by owner rule: " + ", ".join(f"{v} {n}" for v, n in sorted(b.dropped.items())))
     if args.skipped:
         print("\n".join("  " + s for s in b.skipped))
     return 0

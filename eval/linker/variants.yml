@@ -16,7 +16,7 @@ description:
   - {mention: "days between ordering and shipping", gold: [int_shipments_enriched.days_to_ship]}
   - {mention: "whether a delivery arrived late", gold: [int_shipments_enriched.is_late_delivery]}
   - {mention: "how many days a delivery took", gold: [stg_shipments.delivery_days, int_shipments_enriched.delivery_days],
-     unsure: "'how many' triggers P2 (-> 'day delivery took count'); the intended reading is a duration, not a count"}
+     note: "owner 17 Oct: keep as written.'how many' triggers P2 (-> 'day delivery took count'); the intended reading is a duration, not a count"}
   - {mention: "average delivery time per carrier", gold: [fct_shipping_performance.avg_delivery_days]}
   - {mention: "clicks divided by impressions", gold: [int_campaign_spend_daily.click_through_rate]}
   - {mention: "return on ad spend", gold: [fct_marketing_attribution.roas, fct_channel_performance_monthly.roas]}
@@ -24,7 +24,7 @@ description:
   - {mention: "channel of the last web session before the order", gold: [int_order_attribution.attributed_channel]}
   - {mention: "days from web session to purchase", gold: [int_order_attribution.days_to_convert]}
   - {mention: "current unit cost of a product", gold: [int_product_costs_current.unit_cost],
-     unsure: "raw/stg_product_costs and int_order_item_margins also carry unit_cost; 'current' points to int_product_costs_current only through its model name"}
+     note: "owner 17 Oct: keep as written.raw/stg_product_costs and int_order_item_margins also carry unit_cost; 'current' points to int_product_costs_current only through its model name"}
   - {mention: "supplier lead time", gold: [raw_suppliers.lead_time_days, stg_suppliers.lead_time_days, int_product_costs_current.lead_time_days]}
   - {mention: "cost of an order line", gold: [int_order_item_margins.line_cost]}
   - {mention: "margin on an order line", gold: [int_order_item_margins.line_margin]}
@@ -40,7 +40,7 @@ description:
   - {mention: "profit after shipping and discounts", gold: [int_order_profit.contribution_margin, fct_order_margins.contribution_margin, fct_monthly_finance.contribution_margin]}
   - {mention: "contribution margin as a share of net revenue", gold: [fct_order_margins.margin_pct]}
   - {mention: "days since the customer's most recent order", gold: [dim_customer_rfm.recency_days, dim_customer_segments.recency_days],
-     unsure: "near fct_orders.days_since_previous_order (days between consecutive orders), a different column"}
+     note: "owner 17 Oct: keep as written.near fct_orders.days_since_previous_order (days between consecutive orders), a different column"}
   - {mention: "days between an order and the one before it", gold: [fct_orders.days_since_previous_order]}
   - {mention: "segment label such as champion or loyal", gold: [dim_customer_segments.customer_segment, fct_segment_monthly.customer_segment, fct_customer_leaderboard.customer_segment]}
   - {mention: "whether the customer is high value", gold: [dim_customer_segments.is_high_value]}
@@ -69,10 +69,10 @@ phrase:
   - {rule: P2, mention: "how many promotions an order used", gold: [int_order_promotions.promotion_count]}
   - {rule: P2, mention: "how many visitors per day", gold: [int_sessions_daily.visitor_count]}
   - {rule: P2, mention: "how many late shipments per order", gold: [int_order_shipping.late_shipment_count],
-     unsure: "fct_shipping_performance.late_shipment_count also matches; only a partial model-name bonus (order) separates them"}
+     note: "owner 17 Oct: keep as written.fct_shipping_performance.late_shipment_count also matches; only a partial model-name bonus (order) separates them"}
   - {rule: P2, mention: "how many paid sessions", gold: [int_customer_sessions.paid_session_count]}
-  - {rule: P3, mention: "count of sessions per channel", gold: [int_sessions_daily.session_count, int_customer_sessions.session_count, fct_marketing_attribution.session_count],
-     unsure: "'per channel' fits int_sessions_daily and fct_marketing_attribution (grain includes channel), not int_customer_sessions; gold is the name set"}
+  - {rule: P3, mention: "count of sessions per channel", gold: [int_sessions_daily.session_count, fct_marketing_attribution.session_count],
+     note: "owner 17 Oct: only session_count columns whose grain includes channel (DESIGN_v2: day x channel)"}
   - {rule: P3, mention: "count of visitors", gold: [int_sessions_daily.visitor_count]}
   - {rule: P3, mention: "count of promotions", gold: [int_order_promotions.promotion_count]}
   - {rule: P3, mention: "count of web sessions per customer", gold: [dim_customer_rfm.web_session_count]}
@@ -90,10 +90,10 @@ model_qualified:
   - {mention: "net revenue in monthly finance", gold: [fct_monthly_finance.net_revenue]}
   - {mention: "spend usd for channel performance", gold: [fct_channel_performance_monthly.spend_usd]}
   - {mention: "order total in customer order history", gold: [int_customer_order_history.order_total]}
-  - {mention: "lifetime value on the customer leaderboard", gold: [fct_customer_leaderboard.lifetime_value_usd],
-     unsure: "dim_customers.lifetime_value is a surface match (0.93); the leaderboard column is rewritten (0.87) + full model bonus (0.06) = 0.93: a designed tie, so expected ambiguous"}
-  - {mention: "order count per day", gold: [fct_daily_revenue.order_count],
-     unsure: "'day' does not match the model token 'daily' (no stemming), so no model bonus: expected ambiguous with dim_customers.order_count. Kept as a known limitation"}
+  - {mention: "lifetime value on the customer leaderboard", gold: [fct_customer_leaderboard.lifetime_value_usd], ambiguous: false,
+     note: "owner 17 Oct: gold is the correct answer; v2's designed 0.93 tie with dim_customers.lifetime_value is a reported miss if it happens"}
+  - {mention: "order count per day", gold: [fct_daily_revenue.order_count], ambiguous: false, limitation: true,
+     note: "owner 17 Oct: gold by meaning. Known limitation: 'day' does not match the model token 'daily' (no stemming)"}
 
 # Near-duplicate names (DESIGN_v2 §3 trap 8 and the other homonym families).
 near_duplicate:
@@ -106,11 +106,11 @@ near_duplicate:
   - {mention: "shipping_costs_usd", gold: [fct_shipping_performance.shipping_costs_usd]}
   - {mention: "shipping_cost_usd", gold: [raw_shipments.shipping_cost_usd, stg_shipments.shipping_cost_usd, int_shipments_enriched.shipping_cost_usd]}
   - {mention: "shipping cost usd", gold: [raw_shipments.shipping_cost_usd, stg_shipments.shipping_cost_usd, int_shipments_enriched.shipping_cost_usd],
-     unsure: "DESIGN FINDING: plural stripping is in the surface tier, so shipping_costs_usd also normalises to 'shipping cost usd' (0.93) and, with the marts prior, can rank first. The trap pair collapses"}
+     note: "after amendment A shipping_costs_usd is only a rewritten match (0.87), 0.06 below the surface match"}
   - {mention: "int_order_shipping.shipping_cost_usd", gold: [], note: "that model has shipping_cost_total"}
   - {mention: "fct_shipping_performance.shipping_cost_total", gold: [], note: "that model has shipping_costs_usd"}
   - {mention: "fct_shipping_performance.shipping_cost_usd", gold: [],
-     unsure: "one letter from the real shipping_costs_usd; plural stripping makes it a surface match in that model, so v2 will resolve it, but the loop's unknown-column check refuses it. Gold [] follows the loop"}
+     note: "after amendment C: a dotted id is rescued only by the abbreviation table, not by plural stripping; no-match, and the loop refuses it too"}
   - {mention: "revenue finance", gold: [fct_orders.revenue_finance, fct_daily_revenue.revenue_finance, fct_monthly_finance.revenue_finance]}
   - {mention: "revenue marketing", gold: [fct_orders.revenue_marketing, fct_daily_revenue.revenue_marketing, fct_monthly_finance.revenue_marketing]}
   - {mention: "segment revenue finance", gold: [fct_segment_monthly.segment_revenue_finance]}
@@ -174,7 +174,7 @@ jira:
   - {variant: word_order, mention: "name assignee", gold: [jira__issue_enhanced.assignee_name, jira__daily_sprint_issue_history.assignee_name]}
   - {variant: word_order, mention: "sprint left in days", gold: [jira__daily_sprint_issue_history.days_left_in_sprint]}
   - {variant: phrase, rule: P1, mention: "number of comments on an issue", gold: [jira__issue_enhanced.count_comments],
-     unsure: "P1 gives 'comment count'; the column is count_comments, reached only by word order on top of the rule"}
+     note: "owner 17 Oct: keep as written.P1 gives 'comment count'; the column is count_comments, reached only by word order on top of the rule"}
   - {variant: phrase, rule: P3, mention: "count of closed issues", gold: [jira__project_enhanced.count_closed_issues, jira__user_enhanced.count_closed_issues]}
   - {variant: description, mention: "when the sprint began", gold: [jira__sprint_enhanced.sprint_started_at, jira__daily_sprint_issue_history.sprint_started_at, jira__issue_enhanced.sprint_started_at]}
   - {variant: description, mention: "title of the parent epic", gold: [jira__issue_enhanced.parent_issue_name]}

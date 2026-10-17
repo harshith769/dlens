@@ -36,10 +36,11 @@ then the tie-break (§3.4). This rule fixes G1 directly, whatever the scorer doe
 
 ### Stage 2: normalised
 The text and every column name go through one normaliser:
-1. **Surface normalisation:** lower case; split on `_ . - space` and camelCase; strip a plural
-   `s` (length > 3, not `ss`; as in v1); drop stopwords (§2.3) from the text only.
-2. **Rewrites:** the abbreviation table (§2.1), the phrase rules (§2.2), dropping weak tokens
-   (`usd`), and comparing tokens as a multiset (word order).
+1. **Surface normalisation:** lower case; split on `_ . - space` and camelCase; drop stopwords
+   (§2.3) from the text only.
+2. **Rewrites:** plural stripping (`s`, length > 3, not `ss`; as in v1; amendment A), the
+   abbreviation table (§2.1), the phrase rules (§2.2), dropping weak tokens (`usd`), and
+   comparing tokens as a multiset (word order).
 
 | tier | rule | score |
 |---|---|---|
@@ -48,10 +49,8 @@ The text and every column name go through one normaliser:
 | `fuzzy` | bounded token similarity (§3.1), on rewritten tokens | ≤ 0.80 |
 
 `model.column` and "column of/on/in model" text: when the model part names a real model, the
-column part is matched only against that model's columns. A dotted text whose model exists but
-whose column part reaches no `surface` or `rewritten` match in that model gives **no-match**
-(§4.1), the same decision the loop's `_unknown_column` makes before the tool phase. Typos inside
-a dotted id are therefore no-match, which matches today's loop behaviour (it refuses them).
+column part is matched only against that model's columns. Dotted ids follow amendment C (below):
+no stage-2 tiers other than the abbreviation table, and no stage 3.
 
 Models are candidates too, as in v1: an exact name is stage 1, a surface or rewritten name is
 0.93 or 0.87, and a fuzzy name is ≤ 0.72 (0.9 × the column bound, as in v1). Stage 3 never
@@ -327,5 +326,43 @@ benchmark metrics: `eval/metrics.py` and metrics-design.md are not changed.
   and needs a bundle rebuild. It would fix dev-15 for the wrong reason.
 - **Letting the LLM pick among candidates:** against "code guarantees, the LLM narrates".
 
+## Pre-measurement amendments (owner, 17 Oct 2026, after the case review; before any v2 number)
+
+**A. Plural stripping moves to the rewritten tier.** The surface tier (0.93) is case,
+separators and camelCase only. Stripping a plural `s` is a rewrite (0.87), like an abbreviation.
+Why: `shipping_costs_usd` and `shipping_cost_usd` are different columns (trap 8). With the plural
+in the surface tier they both normalised to "shipping cost usd" at 0.93, and the marts bonus
+could rank the wrong one first.
+
+**B. Model-name coverage excludes layer prefixes.** `coverage` = matched model tokens / model
+tokens, with `raw stg int dim fct` removed from the count and from the match (`dim_customers` has
+1 token, `customer`; `fct_customer_leaderboard` has 2).
+
+**C. Dotted ids (narrowed by the owner).** For a text of the form `model.column` whose model
+exists:
+1. If the column exists exactly in that model, it is stage 1 (`exact_id`).
+2. Otherwise it is **no-match** (`closest` in the side record only), **unless** the column part
+   maps to **exactly one** column of that same model through the abbreviation table alone
+   (§2.1, including the weak-`usd` rule). Then that column is the candidate, with
+   `match: "normalised"`, tier `dotted_abbreviation`, score 0.87, and a payload note
+   `interpreted <model>.<text> as <model>.<column>`. If it maps to 2+ columns of that model, all
+   of them are returned and `ambiguous: true` (not resolved). Plural, word-order, phrase, fuzzy,
+   typo and hybrid rescue never apply to a dotted id.
+3. **One shared function** decides this for the linker and for the agent loop's unknown-column
+   refusal (`dlens.agent.tools.entity.dotted_column`), so they can never disagree. The loop
+   refuses (0 LLM calls) exactly when the function returns no column. A unit test pins the
+   agreement.
+4. **The interpretation must be surfaced.** When a question's dotted id resolved through rule 2,
+   code puts the sentence `Interpreted <text> as <column id>.` at the front of `answer_text`
+   (an existing field, no schema change). Clarification and refusal answers get it too. A test
+   pins it. The LLM is not trusted to say it.
+5. Guards: dev-17/18/19 and every false-premise id in dev.jsonl and the presets still refuse (or
+   resolve exactly) as before, with 0 LLM calls for the refusals. Reported.
+
+Consequence for the existing integration test: `stg_payments.amt` → `stg_payments.amount_usd`
+(amt → amount, usd weak, exactly one column) still holds. Typos inside dotted ids
+(`fct_orders.revnue_finance`) stay no-match, as the loop has always refused them.
+
 ## Change log
 - 17 Oct 2026: first draft (S08 step 1).
+- 17 Oct 2026: amendments A, B, C (owner, after the case review, before measurement).

@@ -73,3 +73,8 @@ def test_every_linker_gap_is_a_case():
 def test_collision_check_sees_weak_tokens():
     # bare "amount" reaches amt (abbreviation) and amount_usd (usd dropped): never a single gold
     assert B.collisions("amount", "amt") == ["amount_usd"]
+
+
+def test_owner_drop_rules():
+    assert all(len(c["gold"]) <= gl.MAX_GOLD for c in CASES)
+    assert not {c["mention"].lower() for c in CASES} & gl.DROP_MENTIONS
