@@ -1,0 +1,18 @@
+{
+  "edges": [
+    {"from": "orders.id", "to": "m.id", "kind": "IDENTITY"},
+    {"from": "orders.user_id", "to": "m.user_id", "kind": "IDENTITY"},
+    {"from": "orders.amt", "to": "m.amt", "kind": "IDENTITY"}
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "indirect": [
+    {"from": "orders.user_id", "to": "m.id", "type": "FILTER"},
+    {"from": "orders.user_id", "to": "m.amt", "type": "FILTER"},
+    {"from": "orders.order_date", "to": "m.id", "type": "FILTER"},
+    {"from": "orders.order_date", "to": "m.user_id", "type": "FILTER"},
+    {"from": "orders.order_date", "to": "m.amt", "type": "FILTER"}
+  ],
+  "notes": "Postgres-style dedupe: the FILTER key rn is a row_number() in the inner query, so its upstream is the window's PARTITION BY / ORDER BY columns; same edges as qualify_row_number (ADR 0020, S06 clarification)",
+  "xfail_indirect": "window-derived keys resolve to the window's columns only after the S06 engine fix (next commit)"
+}

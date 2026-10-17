@@ -1,0 +1,21 @@
+{
+  "edges": [
+    {"from": "customers.id", "to": "m.customer_id", "kind": "RENAME"},
+    {"from": "customers.name", "to": "m.name", "kind": "IDENTITY"},
+    {"from": "orders.amt", "to": "m.first_order_amt", "kind": "RENAME"}
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "indirect": [
+    {"from": "customers.id", "to": "m.name", "type": "JOIN"},
+    {"from": "customers.id", "to": "m.first_order_amt", "type": "JOIN"},
+    {"from": "orders.user_id", "to": "m.customer_id", "type": "JOIN"},
+    {"from": "orders.user_id", "to": "m.name", "type": "JOIN"},
+    {"from": "orders.user_id", "to": "m.first_order_amt", "type": "JOIN"},
+    {"from": "orders.order_date", "to": "m.customer_id", "type": "JOIN"},
+    {"from": "orders.order_date", "to": "m.name", "type": "JOIN"},
+    {"from": "orders.order_date", "to": "m.first_order_amt", "type": "JOIN"}
+  ],
+  "notes": "a JOIN key that is a window-derived column (order_seq = 1, first order per customer): its upstream is the window's PARTITION BY (user_id) and ORDER BY (order_date), as if the condition read them directly",
+  "xfail_indirect": "window-derived keys resolve to the window's columns only after the S06 engine fix (next commit)"
+}

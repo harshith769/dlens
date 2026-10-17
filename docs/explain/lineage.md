@@ -168,6 +168,9 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `indirect_union_branch_where` | yes | a WHERE in one branch of a top-level UNION is FILTER to every output column |
 | `indirect_where` | yes | WHERE columns are FILTER to every output; amt -> amt stays direct only |
 | `indirect_where_exists` | yes | every column in the correlated EXISTS subquery is FILTER (the outer WHERE decides); c.id -> m.id stays direct only |
+| `indirect_window_key_dedupe_subquery` | yes | Postgres-style dedupe: the FILTER key rn is a row_number() in the inner query, so its upstream is the window's PARTITION BY / ORDER BY columns; same edges as qualify_row_number (ADR 0020, S06 clarification) |
+| `indirect_window_key_join` | yes | a JOIN key that is a window-derived column (order_seq = 1, first order per customer): its upstream is the window's PARTITION BY (user_id) and ORDER BY (order_date), as if the condition read them directly |
+| `indirect_window_key_running_total` | yes | a filter on a windowed aggregate: the key's upstream is the value argument (amt) plus PARTITION BY / ORDER BY, as `qualify sum(amt) over (...) > 100` gives; the window keys stay WINDOW to running_total too |
 | `indirect_window_lag_suppressed` | yes | amt is the lag argument and the ORDER BY key: direct only (suppressed); user_id is WINDOW |
 | `join_aliases` | yes | join keys o.user_id / c.id are JOIN edges to every output column, never direct |
 | `kind_scalar_subquery_sibling` | yes | an input's kind is the strongest operation on its own path: the scalar subquery's max() makes refund_amt AGGREGATION, while the sibling amt is only TRANSFORMATION (dim_customer_rfm.recency_days) |
