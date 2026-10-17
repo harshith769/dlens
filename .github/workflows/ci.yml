@@ -32,6 +32,40 @@ jobs:
           uv run dlens --version
           uv run pytest -q -m "not integration" --ignore=tests/unit/agent
 
+  # Retrieval extra (S07, ADR 0021): bm25s + onnxruntime, no torch. The pinned embedding model
+  # is cached by revision, so it downloads once; the second `dlens search` runs offline.
+  retrieval:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra retrieval || { sleep 15; uv sync --extra retrieval; }
+      - name: no torch, nvidia or sentence-transformers in the install
+        run: |
+          if uv pip list --format freeze | grep -i -E '^(torch|nvidia-|triton|sentence-transformers)'; then
+            exit 1
+          fi
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-bge-small-en-v1.5-5c38ec7c405ec4b44b94cc5a9bb96e735b38267a
+      - name: retrieval tests (fake embedder, then the real model)
+        run: >
+          uv run pytest -q tests/unit/retrieval tests/unit/agent/tools/test_search_docs.py
+          tests/integration/test_retrieval_real.py
+      - name: dlens search on eph_shop, then again offline (index reused)
+        run: |
+          cp -r tests/fixtures/artifacts/eph_shop "$RUNNER_TEMP/eph_shop"
+          T="$RUNNER_TEMP/eph_shop/target"
+          uv run dlens ingest --artifacts "$T"
+          uv run dlens search "customer order number" --artifacts "$T"
+          HF_HUB_OFFLINE=1 uv run dlens search "customer order number" --artifacts "$T" \
+            | tee "$RUNNER_TEMP/search.txt"
+          grep -q "index reused" "$RUNNER_TEMP/search.txt"
+
   # Artifact-only ingest (ADR 0013) on macOS and Windows: core install (no extras), then
   # `dlens ingest --artifacts` on the committed eph_shop fixture. Never runs dbt.
   core-artifacts:
