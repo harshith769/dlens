@@ -85,3 +85,22 @@ def test_trace_without_ingest_or_after_change_says_to_ingest(target: Path) -> No
     (target / "catalog.json").unlink()
     r = runner.invoke(app, ["trace", "customer_orders.amount_usd", "--artifacts", str(target)])
     assert r.exit_code == 1 and "stale" in r.output
+
+
+def test_non_utf8_output_streams_switch_to_utf8() -> None:
+    """Windows CI: piped output was cp1252, and `trace`'s tree characters crashed it."""
+    import io
+
+    from dlens.cli import use_utf8
+
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="cp1252")
+    with pytest.raises(UnicodeEncodeError):
+        stream.write("└─ ·")
+        stream.flush()
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    use_utf8(stream)
+    stream.write("└─ · ×")
+    stream.flush()
+    assert stream.encoding == "utf-8"
+    use_utf8(object())  # not a text stream: left alone

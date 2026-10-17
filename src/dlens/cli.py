@@ -1,6 +1,8 @@
 """DLens command-line entry point."""
 
+import io
 import json
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -36,6 +38,20 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def use_utf8(stream: object) -> None:
+    """Switch a text stream that can't write UTF-8 to UTF-8. On Windows, output piped to a file
+    or another program uses the locale code page (cp1252), which can't encode the tree and
+    summary characters (└ · ×). Python 3.15 makes UTF-8 the default anyway (PEP 686)."""
+    if not isinstance(stream, io.TextIOWrapper):
+        return
+    if (stream.encoding or "").lower().replace("-", "").replace("_", "") in {"utf8", "utf8sig"}:
+        return
+    try:
+        stream.reconfigure(encoding="utf-8")
+    except (ValueError, OSError):  # already written to, or not reconfigurable
+        pass
+
+
 @app.callback()
 def main(
     version: bool = typer.Option(
@@ -43,6 +59,8 @@ def main(
     ),
 ) -> None:
     """DLens: column-level lineage and grounded Q&A for dbt projects."""
+    use_utf8(sys.stdout)
+    use_utf8(sys.stderr)
 
 
 DIALECTS = ", ".join(sorted(set(ADAPTER_DIALECTS.values())))
