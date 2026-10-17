@@ -1,7 +1,9 @@
 name: ci
 on:
   push:
-    branches: [main]
+    # main, plus session branches (e.g. s06-artifact-ingest) so a pushed branch gets CI
+    # without opening a PR.
+    branches: [main, "s[0-9][0-9]-*"]
   pull_request:
 
 jobs:
@@ -18,15 +20,54 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           enable-cache: true
-      - run: uv sync --extra agent --extra ui
+      # One retry: a transient download error (e.g. a release asset 404) passes on the second
+      # try; a real resolution error fails twice and still fails the job.
+      - run: uv sync --extra agent --extra ui || { sleep 15; uv sync --extra agent --extra ui; }
       - run: make lint
       - run: make test
       # Exact sync removes the extras: the base package must work without ollama/google-genai.
       - name: core install (no extras)
         run: |
-          uv sync
+          uv sync || { sleep 15; uv sync; }
           uv run dlens --version
           uv run pytest -q -m "not integration" --ignore=tests/unit/agent
+
+  # Artifact-only ingest (ADR 0013) on macOS and Windows: core install (no extras), then
+  # `dlens ingest --artifacts` on the committed eph_shop fixture. Never runs dbt.
+  core-artifacts:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync || { sleep 15; uv sync; }
+      - name: dlens ingest --artifacts (default cache dir, then reuse, then trace)
+        run: |
+          cp -r tests/fixtures/artifacts/eph_shop "$RUNNER_TEMP/eph_shop"
+          T="$RUNNER_TEMP/eph_shop/target"
+          uv run dlens ingest --artifacts "$T"
+          uv run dlens ingest --artifacts "$T" | tee "$RUNNER_TEMP/again.txt"
+          grep -q "cache reused" "$RUNNER_TEMP/again.txt"
+          uv run dlens trace customer_orders.amount_usd --artifacts "$T"
+      - name: dlens ingest --artifacts --out, catalog-less
+        run: |
+          rm "$RUNNER_TEMP/eph_shop/target/catalog.json"
+          uv run dlens ingest --artifacts "$RUNNER_TEMP/eph_shop/target" --out "$RUNNER_TEMP/graphs"
+          test -f "$RUNNER_TEMP/graphs/graph.json"
+      - name: artifact-ingest unit tests
+        run: >
+          uv run pytest -q tests/unit/test_artifact_target.py tests/unit/test_artifact_cache.py
+          tests/unit/test_cli_artifacts.py tests/unit/test_ephemeral_artifacts.py
+          tests/unit/test_catalog_less.py tests/unit/test_dialects.py
 
   # The Streamlit Cloud install: ONLY demo/requirements.txt (no dbt, no torch). Boots the demo
   # entrypoint and replays a preset, so a stray heavy import fails here, not on the live app.
