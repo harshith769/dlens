@@ -129,7 +129,10 @@ Remaining failures after the robustness fixes (3):
   cache (dev-10's answer call).
   Pass is now **18/20**.
 - **dev-15** (paraphrase "number of orders per customer"): the fuzzy v1 linker returns 5 mixed
-  candidates, so the agent asks for clarification. This is linker v2 work (v0.3).
+  candidates, so the agent asks for clarification. This is linker v2 work (v0.3). **Fixed in
+  S08** (`eval/reports/dev_s08.json`): phrase rule P1 plus the model bonus link
+  `dim_customers.order_count` (0.94, not ambiguous) and the answer passes; 19/20 against 18/20
+  for linker v1 on the same corpus (`dev_s08_v1_baseline.json`).
 - **dev-20** (star + union trap): it cites the payments branch only and misses `refunded_at`.
 
 None of the fixes looks at question text beyond generic patterns (dotted ids, effect wording);

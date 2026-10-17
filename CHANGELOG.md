@@ -6,7 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Entity linker v2** (`resolve_entity`, S08; ADR 0022, docs/plans/linker-design.md): stage 1
+  exact matches always rank first; stage 2 surface / rewritten (plural, an 18-entry abbreviation
+  table, phrase rules "number of / how many / count of / total X", weak `usd`, word order) /
+  bounded fuzzy, with a model-named-in-the-text bonus and a small layer prior; stage 3 hybrid over
+  column cards when the `retrieval` extra and a built index are present. No-match below 0.60
+  (`candidates: []`); ambiguity margin 0.05 unchanged. Payload additions: `match: "hybrid"` and an
+  optional `hybrid` key; score parts and `closest` stay in the side record.
+- **Dotted ids** (`model.column`): resolved exactly, or through the abbreviation table alone to
+  exactly one column of that model, by one function shared with the loop's unknown-column
+  refusal; code prefixes the answer with "Interpreted X as Y.".
+
 ### Added
+- **Linker test set** `eval/linker/` (247 owner-reviewed cases, split linker-dev / linker-test by
+  gold column; dev mentions; a 20-mention dbt_jira sample), `scripts/gen_linker_cases.py`,
+  `scripts/linker_report.py` (`eval/reports/linker.md`), `scripts/linker_preset_gate.py`, and
+  `scripts/dev_report.py --hybrid` with a run manifest.
 - **Agent rule `linked_evidence`** (S08, owner decision): for where-from / how-computed / impact
   questions, when resolve_entity linked exactly one unambiguous column and no trace/impact ran
   on it, code runs the matching tool (0 LLM calls). Every code-initiated tool call is now tagged
