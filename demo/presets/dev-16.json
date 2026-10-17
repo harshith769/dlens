@@ -13,19 +13,19 @@
   "clarification": null,
   "compactions": [],
   "draft": {
-   "answer_text": "The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The layer name for fct_orders.previous_order_date is fct_orders.",
+   "answer_text": "The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The final value is passed through an identity mapping to fct_orders.previous_order_date.",
    "claims": [
     {
      "ids": [
-      "e_81a3f_93"
+      "e_81a3f593"
      ],
-     "text": "fct_orders.previous_order_date is derived from int_customer_order_history.previous_order_date."
+     "text": "fct_orders.previous_order_date is directly derived from int_customer_order_history.previous_order_date through an identity mapping."
     },
     {
      "ids": [
       "e_291dfe36"
      ],
-     "text": "int_customer_order_history.previous_order_date is a transformation of int_order_financials.order_date using a lag function."
+     "text": "int_customer_order_history.previous_order_date is computed by lagging int_order_financials.order_date over a partition."
     },
     {
      "ids": [
@@ -37,20 +37,20 @@
      "ids": [
       "e_968657a0"
      ],
-     "text": "int_orders_enriched.order_date is derived from stg_orders.order_date."
+     "text": "int_orders_enriched.order_date is derived from stg_orders.order_date through an identity mapping."
     },
     {
      "ids": [
       "e_854343c4"
      ],
-     "text": "stg_orders.order_date is derived from raw_orders.order_date."
+     "text": "stg_orders.order_date is derived from raw_orders.order_date through an identity mapping."
     }
    ],
    "confidence": "high",
    "refusal_reason": null,
    "refused": false
   },
-  "draft_raw": "{\"answer_text\": \"The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The layer name for fct_orders.previous_order_date is fct_orders.\", \"claims\": [{\"ids\": [\"e_81a3f_93\"], \"text\": \"fct_orders.previous_order_date is derived from int_customer_order_history.previous_order_date.\"}, {\"ids\": [\"e_291dfe36\"], \"text\": \"int_customer_order_history.previous_order_date is a transformation of int_order_financials.order_date using a lag function.\"}, {\"ids\": [\"e_cac47598\"], \"text\": \"int_orders_enriched.order_date is identical to int_order_financials.order_date.\"}, {\"ids\": [\"e_968657a0\"], \"text\": \"int_orders_enriched.order_date is derived from stg_orders.order_date.\"}, {\"ids\": [\"e_854343c4\"], \"text\": \"stg_orders.order_date is derived from raw_orders.order_date.\"}], \"confidence\": \"high\", \"refused\": false}",
+  "draft_raw": "{\n  \"answer_text\": \"The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The final value is passed through an identity mapping to fct_orders.previous_order_date.\",\n  \"claims\": [\n    {\n      \"ids\": [\n        \"e_81a3f593\"\n      ],\n      \"text\": \"fct_orders.previous_order_date is directly derived from int_customer_order_history.previous_order_date through an identity mapping.\"\n    },\n    {\n      \"ids\": [\n        \"e_291dfe36\"\n      ],\n      \"text\": \"int_customer_order_history.previous_order_date is computed by lagging int_order_financials.order_date over a partition.\"\n    },\n    {\n      \"ids\": [\n        \"e_cac47598\"\n      ],\n      \"text\": \"int_orders_enriched.order_date is identical to int_order_financials.order_date.\"\n    },\n    {\n      \"ids\": [\n        \"e_968657a0\"\n      ],\n      \"text\": \"int_orders_enriched.order_date is derived from stg_orders.order_date through an identity mapping.\"\n    },\n    {\n      \"ids\": [\n        \"e_854343c4\"\n      ],\n      \"text\": \"stg_orders.order_date is derived from raw_orders.order_date through an identity mapping.\"\n    }\n  ],\n  \"confidence\": \"high\",\n  \"refused\": false\n}",
   "error": null,
   "evidence": {
    "dropped_ids": [],
@@ -64,7 +64,7 @@
    "partial_evidence": false
   },
   "final_answer": {
-   "answer_text": "The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The layer name for fct_orders.previous_order_date is fct_orders.",
+   "answer_text": "The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The final value is passed through an identity mapping to fct_orders.previous_order_date.",
    "citations": {
     "e_291dfe36": {
      "file": "models/intermediate/int_customer_order_history.sql",
@@ -103,14 +103,14 @@
      "edge_ids": [
       "e_81a3f693"
      ],
-     "text": "fct_orders.previous_order_date is derived from int_customer_order_history.previous_order_date."
+     "text": "fct_orders.previous_order_date is directly derived from int_customer_order_history.previous_order_date through an identity mapping."
     },
     {
      "chunk_ids": [],
      "edge_ids": [
       "e_291dfe36"
      ],
-     "text": "int_customer_order_history.previous_order_date is a transformation of int_order_financials.order_date using a lag function."
+     "text": "int_customer_order_history.previous_order_date is computed by lagging int_order_financials.order_date over a partition."
     },
     {
      "chunk_ids": [],
@@ -124,14 +124,14 @@
      "edge_ids": [
       "e_968657a0"
      ],
-     "text": "int_orders_enriched.order_date is derived from stg_orders.order_date."
+     "text": "int_orders_enriched.order_date is derived from stg_orders.order_date through an identity mapping."
     },
     {
      "chunk_ids": [],
      "edge_ids": [
       "e_854343c4"
      ],
-     "text": "stg_orders.order_date is derived from raw_orders.order_date."
+     "text": "stg_orders.order_date is derived from raw_orders.order_date through an identity mapping."
     }
    ],
    "clarification": null,
@@ -158,17 +158,17 @@
   "provider": "ollama",
   "question": "Where does previous order date come from?",
   "regenerate_draft_raw": null,
-  "run_id": "9f2328e6b7c7479aa40833f5ebbf05d5",
+  "run_id": "35660fa0ebb04d42bfc9b37d0b5133b9",
   "schema_version": 1,
-  "started_at": "2026-10-04T06:22:45+00:00",
+  "started_at": "2026-10-17T18:03:41+00:00",
   "steps": [
    {
-    "cached": false,
+    "cached": true,
     "error": null,
     "est_input_tokens": 764,
     "index": 0,
     "input_tokens": 648,
-    "latency_ms": 735.5,
+    "latency_ms": 0.3,
     "output_tokens": 22,
     "phase": "tool",
     "results": [
@@ -176,6 +176,7 @@
       "args": {
        "text": "previous order date"
       },
+      "code_initiated": false,
       "deduped": false,
       "duplicate_of": null,
       "llm_payload": {
@@ -185,42 +186,91 @@
          "id": "fct_orders.previous_order_date",
          "kind": "column",
          "match": "normalised",
-         "score": 0.93
+         "score": 0.94
         },
         {
          "id": "int_customer_order_history.previous_order_date",
          "kind": "column",
          "match": "normalised",
-         "score": 0.93
+         "score": 0.935
         },
         {
          "id": "fct_daily_revenue.order_date",
          "kind": "column",
          "match": "fuzzy",
-         "score": 0.689
+         "score": 0.629
         },
         {
          "id": "fct_orders.order_date",
          "kind": "column",
          "match": "fuzzy",
-         "score": 0.689
+         "score": 0.629
         },
         {
          "id": "int_customer_order_history.order_date",
          "kind": "column",
          "match": "fuzzy",
-         "score": 0.689
+         "score": 0.624
         }
        ],
+       "hybrid": "unavailable",
        "query": "previous order date"
       },
+      "rule": null,
       "side_records": {
+       "parts": {
+        "fct_daily_revenue.order_date": {
+         "base": 0.6194,
+         "layer": 0.01,
+         "model_bonus": 0.0,
+         "raw": 0.6294,
+         "rules": [],
+         "stage": 2,
+         "tier": "fuzzy"
+        },
+        "fct_orders.order_date": {
+         "base": 0.6194,
+         "layer": 0.01,
+         "model_bonus": 0.0,
+         "raw": 0.6294,
+         "rules": [],
+         "stage": 2,
+         "tier": "fuzzy"
+        },
+        "fct_orders.previous_order_date": {
+         "base": 0.93,
+         "layer": 0.01,
+         "model_bonus": 0.0,
+         "raw": 0.94,
+         "rules": [],
+         "stage": 2,
+         "tier": "surface"
+        },
+        "int_customer_order_history.order_date": {
+         "base": 0.6194,
+         "layer": 0.005,
+         "model_bonus": 0.0,
+         "raw": 0.6244,
+         "rules": [],
+         "stage": 2,
+         "tier": "fuzzy"
+        },
+        "int_customer_order_history.previous_order_date": {
+         "base": 0.93,
+         "layer": 0.005,
+         "model_bonus": 0.0,
+         "raw": 0.935,
+         "rules": [],
+         "stage": 2,
+         "tier": "surface"
+        }
+       },
        "scores": {
-        "fct_daily_revenue.order_date": 0.689,
-        "fct_orders.order_date": 0.689,
-        "fct_orders.previous_order_date": 0.93,
-        "int_customer_order_history.order_date": 0.689,
-        "int_customer_order_history.previous_order_date": 0.93
+        "fct_daily_revenue.order_date": 0.629,
+        "fct_orders.order_date": 0.629,
+        "fct_orders.previous_order_date": 0.94,
+        "int_customer_order_history.order_date": 0.624,
+        "int_customer_order_history.previous_order_date": 0.935
        }
       },
       "tool": "resolve_entity"
@@ -239,12 +289,12 @@
     ]
    },
    {
-    "cached": false,
+    "cached": true,
     "error": null,
-    "est_input_tokens": 1062,
+    "est_input_tokens": 1072,
     "index": 1,
-    "input_tokens": 825,
-    "latency_ms": 1331.8,
+    "input_tokens": 832,
+    "latency_ms": 0.2,
     "output_tokens": 44,
     "phase": "tool",
     "results": [],
@@ -265,6 +315,7 @@
       "args": {
        "column_id": "fct_orders.previous_order_date"
       },
+      "code_initiated": true,
       "deduped": false,
       "duplicate_of": null,
       "llm_payload": {
@@ -285,6 +336,7 @@
        ],
        "truncated": false
       },
+      "rule": "chain_trace",
       "side_records": {
        "column": "model.synthetic_shop.fct_orders.previous_order_date",
        "edges": {
@@ -374,31 +426,31 @@
     ]
    },
    {
-    "cached": false,
+    "cached": true,
     "error": null,
-    "est_input_tokens": 769,
+    "est_input_tokens": 770,
     "index": 3,
-    "input_tokens": 412,
-    "latency_ms": 7713.7,
-    "output_tokens": 305,
+    "input_tokens": 413,
+    "latency_ms": 0.2,
+    "output_tokens": 374,
     "phase": "answer",
     "results": [],
-    "text": "{\"answer_text\": \"The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The layer name for fct_orders.previous_order_date is fct_orders.\", \"claims\": [{\"ids\": [\"e_81a3f_93\"], \"text\": \"fct_orders.previous_order_date is derived from int_customer_order_history.previous_order_date.\"}, {\"ids\": [\"e_291dfe36\"], \"text\": \"int_customer_order_history.previous_order_date is a transformation of int_order_financials.order_date using a lag function.\"}, {\"ids\": [\"e_cac47598\"], \"text\": \"int_orders_enriched.order_date is identical to int_order_financials.order_date.\"}, {\"ids\": [\"e_968657a0\"], \"text\": \"int_orders_enriched.order_date is derived from stg_orders.order_date.\"}, {\"ids\": [\"e_854343c4\"], \"text\": \"stg_orders.order_date is derived from raw_orders.order_date.\"}], \"confidence\": \"high\", \"refused\": false}",
+    "text": "{\n  \"answer_text\": \"The previous order date in fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date through an identity mapping. This value is derived from the order_date column in int_order_financials via a lag transformation. The chain of origin traces from raw_orders.order_date through stg_orders.order_date to int_orders_enriched.order_date, then to int_order_financials.order_date. The final value is passed through an identity mapping to fct_orders.previous_order_date.\",\n  \"claims\": [\n    {\n      \"ids\": [\n        \"e_81a3f593\"\n      ],\n      \"text\": \"fct_orders.previous_order_date is directly derived from int_customer_order_history.previous_order_date through an identity mapping.\"\n    },\n    {\n      \"ids\": [\n        \"e_291dfe36\"\n      ],\n      \"text\": \"int_customer_order_history.previous_order_date is computed by lagging int_order_financials.order_date over a partition.\"\n    },\n    {\n      \"ids\": [\n        \"e_cac47598\"\n      ],\n      \"text\": \"int_orders_enriched.order_date is identical to int_order_financials.order_date.\"\n    },\n    {\n      \"ids\": [\n        \"e_968657a0\"\n      ],\n      \"text\": \"int_orders_enriched.order_date is derived from stg_orders.order_date through an identity mapping.\"\n    },\n    {\n      \"ids\": [\n        \"e_854343c4\"\n      ],\n      \"text\": \"stg_orders.order_date is derived from raw_orders.order_date through an identity mapping.\"\n    }\n  ],\n  \"confidence\": \"high\",\n  \"refused\": false\n}",
     "tool_calls": []
    }
   ],
   "stop_reason": "model_done",
   "timings": {
-   "answer_ms": 7717.0,
-   "tool_ms": 2083.8,
-   "total_ms": 9802.9
+   "answer_ms": 2.0,
+   "tool_ms": 10.3,
+   "total_ms": 13.7
   },
   "tokens": {
-   "cached_calls": 0,
+   "cached_calls": 3,
    "llm_calls": 3,
-   "max_est_input": 1062,
-   "sum_input": 1885,
-   "sum_output": 371
+   "max_est_input": 1072,
+   "sum_input": 1893,
+   "sum_output": 440
   },
   "validation": {
    "completions": [],
@@ -414,7 +466,7 @@
     "repairs": [
      {
       "claim_index": 0,
-      "from": "e_81a3f_93",
+      "from": "e_81a3f593",
       "to": "e_81a3f693"
      }
     ]
@@ -424,7 +476,7 @@
    "repairs": [
     {
      "claim_index": 0,
-     "from": "e_81a3f_93",
+     "from": "e_81a3f593",
      "to": "e_81a3f693"
     }
    ],

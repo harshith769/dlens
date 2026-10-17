@@ -25,7 +25,8 @@ from ..tools.conftest import FCT, RAW, STAR, STG, make_shop
 
 P = "model.p"
 
-# A 4-layer chain whose column names all tie for "refund amt" (like synthetic_shop's refunds).
+# A 4-layer chain whose column names all tie for "refunds amount" (linker v2: plural + amt are
+# both rewrites, 0.87; "refund amt" now prefers the literal refund_amt at the surface tier).
 CHAIN_SQL = {
     "models/r_stg.sql": "select\n    refund_amt\nfrom {{ ref('r_raw') }}\n",
     "models/r_int.sql": "select\n    sum(refund_amt) as refund_amount\nfrom {{ ref('r_stg') }}\n",

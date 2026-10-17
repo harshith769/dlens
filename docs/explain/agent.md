@@ -108,8 +108,14 @@ benchmark scoring never use it.
   whose model, seed or source exists but whose column does not, code refuses with
   "<model> has no column <col> (closest: a, b, c)". There are no LLM calls. Only real node names
   count, so CTE aliases (`order_agg.lifetime_value`), full unique_ids (`model.p.fct`) and file
-  names (`fct.sql`) are never refused. Live: the linker tied five `order_date` columns for
-  "stg_orders.ship_date", and chain mode answered for one of them.
+  names (`fct.sql`) are never refused. Live (v0.2): the linker tied five `order_date` columns for
+  "stg_orders.ship_date", and chain mode answered for one of them. **Since S08** the decision is
+  `entity.dotted_column`, the one function the linker also uses (amendment C): a column part
+  that maps through the abbreviation table alone to exactly one column of that model
+  (`stg_payments.amt` → `amount_usd`) is not refused, and code puts "Interpreted
+  stg_payments.amt as stg_payments.amount_usd." at the front of `answer_text`; 2+ columns are
+  ambiguous; anything else is refused. A unit test pins that the loop refuses exactly when the
+  linker has no match.
 - **Evidence guarantee.** If the tool phase emitted no citable id (no `e_`/`s_`), code looks for
   exact, existing `model.column` ids in the question (at most 2). For each it runs
   `impact_downstream` when the wording is about effects (affect / impact / change / break /
@@ -178,8 +184,8 @@ That is enough to replay the no-validator ablation offline.
 1. The tool phase compacted a `get_model_sql` result down to its `excerpt_id` and range. Why can
    the answer phase still quote the SQL, and why would that be impossible in a single-phase loop
    that answers from its own history?
-2. "Where does refund amt come from?" ties four candidates on synthetic_shop and gets no
-   clarification. Walk through the policy: which candidate is answered for, who made the extra
+2. "Where does refunds amount come from?" ties four candidates on synthetic_shop (all rewritten
+   matches, 0.87) and gets no clarification. Walk through the policy: which candidate is answered for, who made the extra
    tool call, and why it does not count toward the 8-call cap.
 3. In the live smoke, question b cited `e_4b2_403a`, an id no tool emitted. Which part of this
    design guarantees the id gets no citation, and which part (not yet written) must remove the

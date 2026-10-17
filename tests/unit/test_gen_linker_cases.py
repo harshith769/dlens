@@ -64,10 +64,10 @@ def test_every_linker_gap_is_a_case():
     import yaml
 
     gaps = yaml.safe_load(gl.GAPS.read_text())
+    done = gaps["resolved_s08"]
     mentions = {c["mention"] for c in CASES if c["variant"] == "linker_gap"}
-    assert {g["id"] for g in gaps["exact_id_top1"]} | {
-        f["query"] for f in gaps["fragile"]
-    } == mentions
+    want = {g["id"] for g in [*done["exact_id_top1"], *gaps["exact_id_top1"]]}
+    assert want | {f["query"] for f in done["fragile"]} == mentions
 
 
 def test_collision_check_sees_weak_tokens():

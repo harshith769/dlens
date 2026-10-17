@@ -5,40 +5,43 @@
   "clarification": null,
   "compactions": [],
   "draft": {
-   "answer_text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.",
+   "answer_text": "int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax. This calculation is defined in the transformation where orders.items_subtotal + orders.order_tax is assigned as order_total. The items_subtotal is derived from aggregating line amounts, which are computed as quantity multiplied by unit price. The order_tax is sourced from the tax amount in raw_orders and passed through a chain of renames and transformations.",
    "claims": [
     {
      "ids": [
-      "e_aeb8467a",
-      "e_0b3cfacd"
+      "e_aeb8467a"
      ],
-     "text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax."
+     "text": "int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax."
     },
     {
      "ids": [
-      "e_c3f01f72",
-      "e_40fc66b2",
-      "e_9fa09a73"
+      "e_c3f01f72"
      ],
-     "text": "int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price."
+     "text": "orders.items_subtotal is derived from aggregating line amounts."
     },
     {
      "ids": [
-      "e_2bd2a64c",
-      "e_63af580c"
+      "e_40fc66b2"
      ],
-     "text": "int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd."
+     "text": "line_amount is computed as quantity multiplied by unit price."
+    },
+    {
+     "ids": [
+      "e_2bd2a_64c"
+     ],
+     "text": "orders.order_tax is sourced from the tax amount in raw_orders."
     }
    ],
    "confidence": "high",
    "refusal_reason": null,
    "refused": false
   },
-  "draft_raw": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\", \"claims\": [{\"ids\": [\"e_aeb8467a\", \"e_0b3cfacd\"], \"text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax.\"}, {\"ids\": [\"e_c3f01f72\", \"e_40fc66b2\", \"e_9fa09a73\"], \"text\": \"int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price.\"}, {\"ids\": [\"e_2bd2a64c\", \"e_63af580c\"], \"text\": \"int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\"}], \"confidence\": \"high\", \"refused\": false}",
+  "draft_raw": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax. This calculation is defined in the transformation where orders.items_subtotal + orders.order_tax is assigned as order_total. The items_subtotal is derived from aggregating line amounts, which are computed as quantity multiplied by unit price. The order_tax is sourced from the tax amount in raw_orders and passed through a chain of renames and transformations.\", \"claims\": [{\"ids\": [\"e_aeb8467a\"], \"text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax.\"}, {\"ids\": [\"e_c3f01f72\"], \"text\": \"orders.items_subtotal is derived from aggregating line amounts.\"}, {\"ids\": [\"e_40fc66b2\"], \"text\": \"line_amount is computed as quantity multiplied by unit price.\"}, {\"ids\": [\"e_2bd2a_64c\"], \"text\": \"orders.order_tax is sourced from the tax amount in raw_orders.\"}], \"confidence\": \"high\", \"refused\": false}",
   "error": null,
   "evidence": {
    "dropped_ids": [],
    "ids": [
+    "s_db53dd1e",
     "e_aeb8467a",
     "e_c3f01f72",
     "e_40fc66b2",
@@ -52,33 +55,9 @@
    "partial_evidence": false
   },
   "final_answer": {
-   "answer_text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.",
+   "answer_text": "int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax. orders.items_subtotal is derived from aggregating line amounts. line_amount is computed as quantity multiplied by unit price.",
    "citations": {
-    "e_0b3cfacd": {
-     "file": "models/intermediate/int_order_financials.sql",
-     "level": "line",
-     "line_end": 25,
-     "line_start": 25
-    },
-    "e_2bd2a64c": {
-     "file": "models/intermediate/int_orders_enriched.sql",
-     "level": "line",
-     "line_end": 22,
-     "line_start": 22
-    },
     "e_40fc66b2": {
-     "file": "models/intermediate/int_order_items_enriched.sql",
-     "level": "line",
-     "line_end": 8,
-     "line_start": 8
-    },
-    "e_63af580c": {
-     "file": "models/staging/stg_orders.sql",
-     "level": "line",
-     "line_end": 6,
-     "line_start": 6
-    },
-    "e_9fa09a73": {
      "file": "models/intermediate/int_order_items_enriched.sql",
      "level": "line",
      "line_end": 8,
@@ -101,27 +80,23 @@
     {
      "chunk_ids": [],
      "edge_ids": [
-      "e_aeb8467a",
-      "e_0b3cfacd"
+      "e_aeb8467a"
      ],
-     "text": "int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax."
+     "text": "int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax."
     },
     {
      "chunk_ids": [],
      "edge_ids": [
-      "e_c3f01f72",
-      "e_40fc66b2",
-      "e_9fa09a73"
+      "e_c3f01f72"
      ],
-     "text": "int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price."
+     "text": "orders.items_subtotal is derived from aggregating line amounts."
     },
     {
      "chunk_ids": [],
      "edge_ids": [
-      "e_2bd2a64c",
-      "e_63af580c"
+      "e_40fc66b2"
      ],
-     "text": "int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd."
+     "text": "line_amount is computed as quantity multiplied by unit price."
     }
    ],
    "clarification": null,
@@ -131,14 +106,10 @@
    "refused": false,
    "subgraph": [
     "e_aeb8467a",
-    "e_0b3cfacd",
     "e_c3f01f72",
-    "e_40fc66b2",
-    "e_9fa09a73",
-    "e_2bd2a64c",
-    "e_63af580c"
+    "e_40fc66b2"
    ],
-   "validation_warning": false
+   "validation_warning": true
   },
   "model": "qwen3:4b-instruct-2507-q4_K_M",
   "params": {
@@ -149,18 +120,18 @@
   "project": "synthetic_shop",
   "provider": "ollama",
   "question": "How is int_order_financials.order_total computed?",
-  "regenerate_draft_raw": null,
-  "run_id": "8802e662333249ca970594a8900f0cd4",
+  "regenerate_draft_raw": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax. This calculation is defined in the transformation where orders.items_subtotal + orders.order_tax is assigned to order_total. The items_subtotal originates from aggregated line amounts, which are derived from the product of quantity and unit price. The order_tax comes from the tax amount in raw_orders, renamed through a series of transformations to reach int_order_financials.order_total.\", \"claims\": [{\"ids\": [\"e_aeb8467a\", \"e_0b3cfacd\"], \"text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax.\"}, {\"ids\": [\"e_c3f01f72\", \"e_40fc60b2\", \"e_9fa09a73\"], \"text\": \"orders.items_subtotal is derived from the aggregation of line amounts, which are computed as the product of quantity and unit price.\"}, {\"ids\": [\"e_63af580c\", \"e_2bd2a64c\"], \"text\": \"orders.order_tax originates from the tax amount in raw_orders, which is renamed through a series of transformations.\"}], \"confidence\": \"high\", \"refused\": false}",
+  "run_id": "7c3c5171ea5c4c31aef3ef3ae2855135",
   "schema_version": 1,
-  "started_at": "2026-10-04T06:24:55+00:00",
+  "started_at": "2026-10-17T18:03:27+00:00",
   "steps": [
    {
-    "cached": false,
+    "cached": true,
     "error": null,
     "est_input_tokens": 767,
     "index": 0,
     "input_tokens": 651,
-    "latency_ms": 1117.8,
+    "latency_ms": 0.2,
     "output_tokens": 26,
     "phase": "tool",
     "results": [
@@ -168,6 +139,7 @@
       "args": {
        "text": "int_order_financials.order_total"
       },
+      "code_initiated": false,
       "deduped": false,
       "duplicate_of": null,
       "llm_payload": {
@@ -178,40 +150,25 @@
          "kind": "column",
          "match": "exact",
          "score": 1.0
-        },
-        {
-         "id": "int_order_financials",
-         "kind": "model",
-         "match": "fuzzy",
-         "score": 0.801
-        },
-        {
-         "id": "fct_orders.order_total",
-         "kind": "column",
-         "match": "fuzzy",
-         "score": 0.778
-        },
-        {
-         "id": "int_customer_order_history.order_total",
-         "kind": "column",
-         "match": "fuzzy",
-         "score": 0.778
-        },
-        {
-         "id": "fct_orders",
-         "kind": "model",
-         "match": "fuzzy",
-         "score": 0.641
         }
        ],
+       "hybrid": "unavailable",
        "query": "int_order_financials.order_total"
       },
+      "rule": null,
       "side_records": {
+       "parts": {
+        "int_order_financials.order_total": {
+         "base": 1.0,
+         "layer": 0.0,
+         "model_bonus": 0.0,
+         "raw": 1.0,
+         "rules": [],
+         "stage": 1,
+         "tier": "exact_id"
+        }
+       },
        "scores": {
-        "fct_orders": 0.641,
-        "fct_orders.order_total": 0.778,
-        "int_customer_order_history.order_total": 0.778,
-        "int_order_financials": 0.801,
         "int_order_financials.order_total": 1.0
        }
       },
@@ -231,19 +188,117 @@
     ]
    },
    {
+    "cached": true,
+    "error": null,
+    "est_input_tokens": 943,
+    "index": 1,
+    "input_tokens": 737,
+    "latency_ms": 0.2,
+    "output_tokens": 36,
+    "phase": "tool",
+    "results": [
+     {
+      "args": {
+       "around_column": "order_total",
+       "model_id": "int_order_financials.order_total"
+      },
+      "code_initiated": false,
+      "deduped": false,
+      "duplicate_of": null,
+      "llm_payload": {
+       "dropped": {
+        "lines": 0,
+        "windows": 0
+       },
+       "excerpt": [
+        "22:     orders.item_count,",
+        "23:     orders.items_subtotal,",
+        "24:     orders.order_tax as sales_tax,",
+        "25:     orders.items_subtotal + orders.order_tax as order_total,",
+        "26:     coalesce(refunds_per_order.refund_amount, 0) as refund_amount,",
+        "27:     coalesce(cash_per_order.net_paid_usd, 0) as net_paid_usd",
+        "28: from {{ ref('int_orders_enriched') }} as orders"
+       ],
+       "file": "models/intermediate/int_order_financials.sql",
+       "model": "int_order_financials",
+       "total_lines": 32,
+       "truncated": false,
+       "windows": [
+        {
+         "excerpt_id": "s_db53dd1e",
+         "range": [
+          22,
+          28
+         ]
+        }
+       ]
+      },
+      "rule": null,
+      "side_records": {
+       "column_citation": {
+        "file": "models/intermediate/int_order_financials.sql",
+        "level": "line",
+        "line_end": 25,
+        "line_start": 25
+       },
+       "excerpts": {
+        "s_db53dd1e": {
+         "citation": {
+          "file": "models/intermediate/int_order_financials.sql",
+          "level": "line",
+          "line_end": 28,
+          "line_start": 22
+         },
+         "excerpt_id": "s_db53dd1e",
+         "text_sha1": "3a072dccfedfa419ccd6baa4421e85f13e86f324"
+        }
+       },
+       "model": "model.synthetic_shop.int_order_financials"
+      },
+      "tool": "get_model_sql"
+     }
+    ],
+    "text": "",
+    "tool_calls": [
+     {
+      "arguments": {
+       "around_column": "order_total",
+       "model_id": "int_order_financials.order_total"
+      },
+      "id": "call_0",
+      "name": "get_model_sql",
+      "provider_meta": {}
+     }
+    ]
+   },
+   {
+    "cached": true,
+    "error": null,
+    "est_input_tokens": 1270,
+    "index": 2,
+    "input_tokens": 964,
+    "latency_ms": 0.2,
+    "output_tokens": 41,
+    "phase": "tool",
+    "results": [],
+    "text": "The column `int_order_financials.order_total` is computed as `orders.items_subtotal + orders.order_tax` in the SQL file `models/intermediate/int_order_financials.sql`.",
+    "tool_calls": []
+   },
+   {
     "cached": false,
     "error": null,
-    "est_input_tokens": 1057,
-    "index": 1,
-    "input_tokens": 830,
-    "latency_ms": 1711.9,
-    "output_tokens": 61,
-    "phase": "tool",
+    "est_input_tokens": 0,
+    "index": 3,
+    "input_tokens": 0,
+    "latency_ms": 0.0,
+    "output_tokens": 0,
+    "phase": "code",
     "results": [
      {
       "args": {
        "column_id": "int_order_financials.order_total"
       },
+      "code_initiated": true,
       "deduped": false,
       "duplicate_of": null,
       "llm_payload": {
@@ -274,6 +329,7 @@
        ],
        "truncated": false
       },
+      "rule": "linked_evidence",
       "side_records": {
        "column": "model.synthetic_shop.int_order_financials.order_total",
        "edges": {
@@ -408,77 +464,127 @@
       "tool": "trace_upstream"
      }
     ],
-    "text": "The column `int_order_financials.order_total` is exactly matched in the dataset. I will now trace how it is computed by examining its upstream sources.",
+    "text": "",
     "tool_calls": [
      {
       "arguments": {
        "column_id": "int_order_financials.order_total"
       },
-      "id": "call_0",
-      "name": "trace_upstream",
-      "provider_meta": {}
+      "name": "trace_upstream"
      }
     ]
    },
    {
     "cached": false,
     "error": null,
-    "est_input_tokens": 1739,
-    "index": 2,
-    "input_tokens": 1355,
-    "latency_ms": 5353.1,
-    "output_tokens": 213,
-    "phase": "tool",
+    "est_input_tokens": 933,
+    "index": 4,
+    "input_tokens": 590,
+    "latency_ms": 9626.4,
+    "output_tokens": 248,
+    "phase": "answer",
     "results": [],
-    "text": "The column `int_order_financials.order_total` is computed through the following transformations:\n\n1. `int_orders_enriched.items_subtotal` is derived from `int_order_items_enriched.line_amount` via aggregation (`COALESCE(item_agg.items_subtotal, 0) AS items_subtotal`).\n2. `int_order_items_enriched.line_amount` is computed from `stg_order_items.quantity` and `stg_order_items.unit_price` via transformation (`items.quantity * items.unit_price AS line_amount`).\n3. `stg_order_items.quantity` and `stg_order_items.unit_price` are directly sourced from `raw_order_items.quantity` and `raw_order_items.unit_price` via identity transformations.\n\nAdditionally, an alternative path involves:\n- `int_orders_enriched.order_tax` being derived from `stg_orders.tax_amount`, which originates from `raw_orders.tax_usd`.\n\nThe final value of `int_order_financials.order_total` is computed as `orders.items_subtotal + orders.order_tax`.",
+    "text": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax. This calculation is defined in the transformation where orders.items_subtotal + orders.order_tax is assigned as order_total. The items_subtotal is derived from aggregating line amounts, which are computed as quantity multiplied by unit price. The order_tax is sourced from the tax amount in raw_orders and passed through a chain of renames and transformations.\", \"claims\": [{\"ids\": [\"e_aeb8467a\"], \"text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax.\"}, {\"ids\": [\"e_c3f01f72\"], \"text\": \"orders.items_subtotal is derived from aggregating line amounts.\"}, {\"ids\": [\"e_40fc66b2\"], \"text\": \"line_amount is computed as quantity multiplied by unit price.\"}, {\"ids\": [\"e_2bd2a_64c\"], \"text\": \"orders.order_tax is sourced from the tax amount in raw_orders.\"}], \"confidence\": \"high\", \"refused\": false}",
     "tool_calls": []
    },
    {
     "cached": false,
     "error": null,
-    "est_input_tokens": 798,
-    "index": 3,
-    "input_tokens": 454,
-    "latency_ms": 7984.7,
-    "output_tokens": 323,
-    "phase": "answer",
+    "est_input_tokens": 1064,
+    "index": 5,
+    "input_tokens": 661,
+    "latency_ms": 4915.0,
+    "output_tokens": 284,
+    "phase": "regenerate",
     "results": [],
-    "text": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax. int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount. int_order_items_enriched.line_amount is computed as the product of stg_order_items.quantity and stg_order_items.unit_price. int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\", \"claims\": [{\"ids\": [\"e_aeb8467a\", \"e_0b3cfacd\"], \"text\": \"int_order_financials.order_total is computed as the sum of int_orders_enriched.items_subtotal and int_orders_enriched.order_tax.\"}, {\"ids\": [\"e_c3f01f72\", \"e_40fc66b2\", \"e_9fa09a73\"], \"text\": \"int_orders_enriched.items_subtotal is derived from aggregating int_order_items_enriched.line_amount, which is computed as the product of stg_order_items.quantity and stg_order_items.unit_price.\"}, {\"ids\": [\"e_2bd2a64c\", \"e_63af580c\"], \"text\": \"int_orders_enriched.order_tax is derived from stg_orders.tax_amount, which comes from raw_orders.tax_usd.\"}], \"confidence\": \"high\", \"refused\": false}",
+    "text": "{\"answer_text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax. This calculation is defined in the transformation where orders.items_subtotal + orders.order_tax is assigned to order_total. The items_subtotal originates from aggregated line amounts, which are derived from the product of quantity and unit price. The order_tax comes from the tax amount in raw_orders, renamed through a series of transformations to reach int_order_financials.order_total.\", \"claims\": [{\"ids\": [\"e_aeb8467a\", \"e_0b3cfacd\"], \"text\": \"int_order_financials.order_total is computed as the sum of orders.items_subtotal and orders.order_tax.\"}, {\"ids\": [\"e_c3f01f72\", \"e_40fc60b2\", \"e_9fa09a73\"], \"text\": \"orders.items_subtotal is derived from the aggregation of line amounts, which are computed as the product of quantity and unit price.\"}, {\"ids\": [\"e_63af580c\", \"e_2bd2a64c\"], \"text\": \"orders.order_tax originates from the tax amount in raw_orders, which is renamed through a series of transformations.\"}], \"confidence\": \"high\", \"refused\": false}",
     "tool_calls": []
    }
   ],
-  "stop_reason": "model_done",
+  "stop_reason": "model_done+linked_evidence",
   "timings": {
-   "answer_ms": 7986.8,
-   "tool_ms": 8210.9,
-   "total_ms": 16197.8
+   "answer_ms": 14546.5,
+   "tool_ms": 4.2,
+   "total_ms": 14550.7
   },
   "tokens": {
-   "cached_calls": 0,
-   "llm_calls": 4,
-   "max_est_input": 1739,
-   "sum_input": 3290,
-   "sum_output": 623
+   "cached_calls": 3,
+   "llm_calls": 5,
+   "max_est_input": 1270,
+   "sum_input": 3603,
+   "sum_output": 635
   },
   "validation": {
    "completions": [],
-   "counts": {},
-   "dropped_claims": [],
+   "counts": {
+    "R7": 1
+   },
+   "dropped_claims": [
+    3
+   ],
    "first": {
+    "claims": 4,
+    "completions": [],
+    "counts": {
+     "R7": 1
+    },
+    "dropped_claims": [
+     3
+    ],
+    "failures": [
+     {
+      "claim_index": 3,
+      "item_id": "raw_orders",
+      "message": "none of the cited ids involves raw_orders",
+      "rule": "R7"
+     }
+    ],
+    "passed": false,
+    "repairs": [
+     {
+      "claim_index": 3,
+      "from": "e_2bd2a_64c",
+      "to": "e_2bd2a64c"
+     }
+    ]
+   },
+   "passed": false,
+   "regenerated": true,
+   "repairs": [
+    {
+     "claim_index": 3,
+     "from": "e_2bd2a_64c",
+     "to": "e_2bd2a64c"
+    }
+   ],
+   "second": {
     "claims": 3,
     "completions": [],
-    "counts": {},
-    "dropped_claims": [],
-    "failures": [],
-    "passed": true,
-    "repairs": []
+    "counts": {
+     "R5": 1
+    },
+    "dropped_claims": [
+     2
+    ],
+    "failures": [
+     {
+      "claim_index": 2,
+      "item_id": "transformations",
+      "message": "says 'transformations' (transformation) but cites only ['RENAME'] edges",
+      "rule": "R5"
+     }
+    ],
+    "passed": false,
+    "repairs": [
+     {
+      "claim_index": 1,
+      "from": "e_40fc60b2",
+      "to": "e_40fc66b2"
+     }
+    ]
    },
-   "passed": true,
-   "regenerated": false,
-   "repairs": [],
-   "second": null,
    "skipped": false,
-   "warning": false
+   "warning": true
   }
  },
  "subtype": "computed"

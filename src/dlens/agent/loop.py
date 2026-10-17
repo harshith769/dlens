@@ -13,7 +13,6 @@ is trimmed (``partial_evidence``) if it does not fit.
 
 from __future__ import annotations
 
-import difflib
 import re
 import time
 import uuid
@@ -47,9 +46,9 @@ from dlens.agent.llm.types import (
 )
 from dlens.agent.runlog import RunLogger, RunRecord, Step, StepResult, now_iso
 from dlens.agent.tools import Toolbox, ToolResult
-from dlens.agent.tools.entity import AMBIGUOUS_GAP
+from dlens.agent.tools.entity import AMBIGUOUS_GAP, dotted_column, model_uids_by_name
 from dlens.agent.validator import ValidationResult, salvage, validate
-from dlens.lineage import column_id, short_id
+from dlens.lineage import short_id
 
 MAX_LLM_CALLS = 8
 MAX_TOOL_PHASE_CALLS = 5
@@ -135,6 +134,7 @@ class Agent:
             params=dict(prov.params),
         )
         t0 = time.perf_counter()
+        self.interpretations: list[tuple[str, str]] = []
         try:
             answer = self._run(question, t0)
         except _Refuse as e:
@@ -144,6 +144,9 @@ class Agent:
             reason = f"{type(e).__name__}: {e}"
             answer = Answer.refusal(reason)
             self.record.error = reason
+        if self.interpretations:  # amendment C.4: code, not the LLM, says how an id was read
+            lead = " ".join(f"Interpreted {a} as {b}." for a, b in self.interpretations)
+            answer = answer.model_copy(update={"answer_text": f"{lead} {answer.answer_text}"})
         self.record.timings["total_ms"] = _ms(t0)
         self.record.final_answer = answer.model_dump(mode="json")
         self._totals()
@@ -464,22 +467,28 @@ class Agent:
     def _unknown_column(self, question: str) -> str | None:
         """A dotted ``model.column`` in the question whose model (or seed, or source) exists but
         whose column does not: the refusal reason, with up to 3 of that model's closest columns.
-        CTE aliases are never refused, because they are not node names in the graph."""
+        CTE aliases are never refused, because they are not node names in the graph.
+
+        Decided by ``entity.dotted_column``, the same function the linker uses (amendment C): a
+        column part that maps through the abbreviation table alone to columns of that model is
+        not refused. A single such mapping is recorded in ``self.interpretations`` and surfaced
+        at the front of ``answer_text`` by code."""
         g = self.toolbox.graph
-        by_name: dict[str, list[str]] = {}
-        for uid in g.model_ids():
-            by_name.setdefault((g.model_info(uid) or {}).get("name", "").lower(), []).append(uid)
+        by_name = model_uids_by_name(g)
         for m in _QUESTION_COLUMN.finditer(question):
             model, col = m.group(0).lower().split(".")
-            uids = by_name.get(model)
-            if not uids or col in _FILE_SUFFIXES:
+            if col in _FILE_SUFFIXES:
                 continue
-            if any(g.has_column(column_id(u, col)) for u in uids):
+            found = dotted_column(g, model, col, by_name)
+            if found is None or found.how == "exact":
                 continue
-            real = sorted(
-                {g.nx_graph.nodes[c]["name"] for c in g.columns() if g.model_of(c) in uids}
-            )
-            close = difflib.get_close_matches(col, real, n=UNKNOWN_COLUMN_SUGGESTIONS, cutoff=0.0)
+            if found.columns:
+                if len(found.columns) == 1:
+                    self.interpretations.append(
+                        (f"{model}.{col}", g.display_name(found.columns[0]))
+                    )
+                continue
+            close = [c.split(".", 1)[1] for c in found.closest]
             reason = f"{model} has no column {col}"
             return reason + (f" (closest: {', '.join(close)})" if close else "")
         return None

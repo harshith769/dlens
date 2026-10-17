@@ -94,6 +94,7 @@ class Hit:
     score: float
     bm25_rank: int | None
     dense_rank: int | None
+    cosine: float | None = None  # dense similarity to the query (None in bm25 mode); S08 linker
 
 
 class SearchIndex:
@@ -206,15 +207,18 @@ class SearchIndex:
         return [int(i) for i in order]
 
     def dense_ranked(self, query: str, kinds: list[str] | None = None) -> list[int]:
+        return self._dense(query, kinds)[0]
+
+    def _dense(self, query: str, kinds: list[str] | None) -> tuple[list[int], np.ndarray | None]:
         import numpy as np
 
         if not len(self.chunks):
-            return []
+            return [], None
         q = self.embedder.embed([query], query=True)[0]
         sims = self.vectors @ q
         idx = np.flatnonzero(self._mask(kinds))
         order = idx[np.argsort(-sims[idx], kind="stable")]
-        return [int(i) for i in order]
+        return [int(i) for i in order], sims
 
     def search(
         self, query: str, k: int = 8, kinds: list[str] | None = None, mode: Mode = "hybrid"
@@ -222,7 +226,7 @@ class SearchIndex:
         from dlens.retrieval.fusion import DEPTH, rrf
 
         bm = self.bm25_ranked(query, kinds) if mode in ("hybrid", "bm25") else []
-        de = self.dense_ranked(query, kinds) if mode in ("hybrid", "dense") else []
+        de, sims = self._dense(query, kinds) if mode in ("hybrid", "dense") else ([], None)
         bm_rank = {i: r for r, i in enumerate(bm[:DEPTH], 1)}
         de_rank = {i: r for r, i in enumerate(de[:DEPTH], 1)}
         if mode == "bm25":
@@ -235,7 +239,14 @@ class SearchIndex:
             fused = rrf([[ids[i] for i in bm], [ids[i] for i in de]])
             ranked = [(pos[cid], s) for cid, s in fused]
         return [
-            Hit(self.chunks[i], r, float(s), bm_rank.get(i), de_rank.get(i))
+            Hit(
+                self.chunks[i],
+                r,
+                float(s),
+                bm_rank.get(i),
+                de_rank.get(i),
+                None if sims is None else float(sims[i]),
+            )
             for r, (i, s) in enumerate(ranked[:k], 1)
         ]
 

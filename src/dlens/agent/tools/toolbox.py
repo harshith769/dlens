@@ -9,7 +9,7 @@ the LLM ever typing a file or line.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,9 @@ from dlens.agent.tools.specs import TOOL_SPECS
 from dlens.agent.tools.sql import get_model_sql
 from dlens.agent.tools.trace import trace_upstream
 from dlens.graph import LineageGraph
+
+if TYPE_CHECKING:
+    from dlens.retrieval.index import SearchIndex
 
 _TOOLS = {
     "resolve_entity": resolve_entity,
@@ -57,9 +60,15 @@ class ToolResult(BaseModel):
 
 
 class Toolbox:
-    def __init__(self, graph: LineageGraph, project_dir: Path) -> None:
+    def __init__(
+        self, graph: LineageGraph, project_dir: Path, index: SearchIndex | None = None
+    ) -> None:
+        """``index`` (an already-built S07 search index) enables the linker's hybrid stage; without
+        it resolve_entity runs stages 1-2 and says ``"hybrid": "unavailable"`` (ADR 0022). The
+        toolbox never builds an index and never imports ``dlens.retrieval`` itself."""
         self.graph = graph
         self.project_dir = project_dir
+        self.index = index
         self._prov = Provenance(graph, project_dir)
         self.log: list[ToolResult] = []
         self._emitted: dict[str, dict[str, Any]] = {}
@@ -102,7 +111,10 @@ class Toolbox:
         try:
             if tool is None:
                 raise ToolError("unknown_tool", f"no tool {name!r}", suggestions=sorted(_TOOLS))
-            out: ToolOutput = tool(self._prov, args)
+            if name == "resolve_entity":
+                out: ToolOutput = resolve_entity(self._prov, args, self.index)
+            else:
+                out = tool(self._prov, args)
         except ToolError as e:
             out = ToolOutput(e.payload())
         result = ToolResult(

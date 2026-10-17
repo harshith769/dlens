@@ -66,17 +66,17 @@
   "provider": "ollama",
   "question": "What is affected if stg_products.list_price changes?",
   "regenerate_draft_raw": null,
-  "run_id": "ef0238486c824be3ba3ce7fe2b2db143",
+  "run_id": "7e593ee333cf4a7db4a00042cbb40073",
   "schema_version": 1,
-  "started_at": "2026-10-04T06:22:22+00:00",
+  "started_at": "2026-10-17T18:03:27+00:00",
   "steps": [
    {
-    "cached": false,
+    "cached": true,
     "error": null,
     "est_input_tokens": 768,
     "index": 0,
     "input_tokens": 651,
-    "latency_ms": 808.2,
+    "latency_ms": 0.2,
     "output_tokens": 24,
     "phase": "tool",
     "results": [
@@ -84,6 +84,7 @@
       "args": {
        "text": "stg_products.list_price"
       },
+      "code_initiated": false,
       "deduped": false,
       "duplicate_of": null,
       "llm_payload": {
@@ -94,40 +95,25 @@
          "kind": "column",
          "match": "exact",
          "score": 1.0
-        },
-        {
-         "id": "raw_products.list_price",
-         "kind": "column",
-         "match": "fuzzy",
-         "score": 0.751
-        },
-        {
-         "id": "int_order_items_enriched.product_id",
-         "kind": "column",
-         "match": "fuzzy",
-         "score": 0.421
-        },
-        {
-         "id": "int_order_items_enriched.unit_price",
-         "kind": "column",
-         "match": "fuzzy",
-         "score": 0.421
-        },
-        {
-         "id": "stg_order_items.product_id",
-         "kind": "column",
-         "match": "fuzzy",
-         "score": 0.421
         }
        ],
+       "hybrid": "unavailable",
        "query": "stg_products.list_price"
       },
+      "rule": null,
       "side_records": {
+       "parts": {
+        "stg_products.list_price": {
+         "base": 1.0,
+         "layer": 0.0,
+         "model_bonus": 0.0,
+         "raw": 1.0,
+         "rules": [],
+         "stage": 1,
+         "tier": "exact_id"
+        }
+       },
        "scores": {
-        "int_order_items_enriched.product_id": 0.421,
-        "int_order_items_enriched.unit_price": 0.421,
-        "raw_products.list_price": 0.751,
-        "stg_order_items.product_id": 0.421,
         "stg_products.list_price": 1.0
        }
       },
@@ -147,19 +133,21 @@
     ]
    },
    {
-    "cached": false,
+    "cached": true,
     "error": null,
-    "est_input_tokens": 1059,
+    "est_input_tokens": 935,
     "index": 1,
-    "input_tokens": 831,
-    "latency_ms": 856.5,
-    "output_tokens": 26,
+    "input_tokens": 731,
+    "latency_ms": 0.2,
+    "output_tokens": 34,
     "phase": "tool",
     "results": [
      {
       "args": {
-       "column_id": "stg_products.list_price"
+       "column_id": "stg_products.list_price",
+       "max_depth": 10
       },
+      "code_initiated": false,
       "deduped": false,
       "duplicate_of": null,
       "llm_payload": {
@@ -186,6 +174,7 @@
        ],
        "truncated": false
       },
+      "rule": null,
       "side_records": {
        "column": "model.synthetic_shop.stg_products.list_price",
        "columns": {
@@ -223,7 +212,8 @@
     "tool_calls": [
      {
       "arguments": {
-       "column_id": "stg_products.list_price"
+       "column_id": "stg_products.list_price",
+       "max_depth": 10
       },
       "id": "call_0",
       "name": "impact_downstream",
@@ -232,12 +222,12 @@
     ]
    },
    {
-    "cached": false,
+    "cached": true,
     "error": null,
-    "est_input_tokens": 1289,
+    "est_input_tokens": 1171,
     "index": 2,
-    "input_tokens": 965,
-    "latency_ms": 792.6,
+    "input_tokens": 873,
+    "latency_ms": 0.2,
     "output_tokens": 26,
     "phase": "tool",
     "results": [],
@@ -245,12 +235,12 @@
     "tool_calls": []
    },
    {
-    "cached": false,
+    "cached": true,
     "error": null,
     "est_input_tokens": 524,
     "index": 3,
     "input_tokens": 208,
-    "latency_ms": 2821.3,
+    "latency_ms": 0.2,
     "output_tokens": 100,
     "phase": "answer",
     "results": [],
@@ -260,16 +250,16 @@
   ],
   "stop_reason": "model_done",
   "timings": {
-   "answer_ms": 2822.4,
-   "tool_ms": 2477.5,
-   "total_ms": 5299.9
+   "answer_ms": 0.8,
+   "tool_ms": 1.6,
+   "total_ms": 2.4
   },
   "tokens": {
-   "cached_calls": 0,
+   "cached_calls": 4,
    "llm_calls": 4,
-   "max_est_input": 1289,
-   "sum_input": 2655,
-   "sum_output": 176
+   "max_est_input": 1171,
+   "sum_input": 2463,
+   "sum_output": 184
   },
   "validation": {
    "completions": [],

@@ -102,14 +102,14 @@ text search, not a parser: it can only add context lines. Ids and edges still co
 graph. On both corpora every model column gives at most 2 windows and at most 321 tokens.
 
 ## `resolve_entity`
-Tiers, strongest first: exact id or model name (1.00), literal column name (0.97), normalised column
-name (0.93), fuzzy (< 0.90: soft token overlap plus `difflib` ratio over model and column tokens).
-Normalising lower-cases, splits on `_ . space` and camelCase, strips a plural `s`, maps abbreviations
-(`amt→amount`, `qty→quantity`, ...) and ignores `usd` when comparing. Ties break non-seed first,
-then by id, and `ambiguous: true` is set when the top two scores are within 0.05.
-Literal and normalised matches are separate tiers on purpose: `refund_amt`, `refund_amount` and
-`refunded_amount` are near-duplicates of different grain (trap `near_duplicate_names`) and must not
-collapse into one candidate.
+Linker v2 (S08). The full design, the evidence and the explain-back questions are in
+[linker.md](linker.md). In short: stage 1 exact (id / model name 1.00, literal column name 0.97,
+always ranked first); stage 2 normalised (surface 0.93, rewritten 0.87 via plural, abbreviations,
+phrase rules, weak `usd`, word order; fuzzy ≤ 0.80), plus a model-named-in-the-text bonus and a
+small layer prior; stage 3 hybrid over column cards, only when stage 2 is not confident and the
+toolbox has a search index. Nothing below 0.60 is a candidate. `ambiguous: true` when the top
+two are within 0.05. The payload shape is v1's plus an optional `hybrid` key (ADR 0022). Score
+parts and `closest` stay in the side record.
 
 ## Why this design
 - Out-of-band side records keep the 1,500-token budget for what the model reads, while the validator
@@ -122,8 +122,8 @@ collapse into one candidate.
 - A second source-line locator inside the tools: two scanners would drift apart.
 - Inline edge objects (with citations) in the payload: they roughly halve how many paths fit.
 - Sequential or random edge ids: they change between builds and break caching and replays.
-- Embeddings for `resolve_entity`: v0.3 adds hybrid search; v1 must be deterministic and
-  dependency-free.
+- Embeddings for `resolve_entity` in the core install: the hybrid stage needs the `retrieval`
+  extra and a built index, so the core and demo installs run stages 1-2 only (linker.md).
 - `rapidfuzz`: a new dependency for a corpus this small.
 
 ## Explain-back questions (for you)

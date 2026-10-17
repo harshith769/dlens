@@ -363,6 +363,21 @@ Consequence for the existing integration test: `stg_payments.amt` → `stg_payme
 (amt → amount, usd weak, exactly one column) still holds. Typos inside dotted ids
 (`fct_orders.revnue_finance`) stay no-match, as the loop has always refused them.
 
+**D. The model bonus needs an unmatched context (owner, 17 Oct 2026, during implementation).**
+The bonus applies only when **no** column matches the **whole** text (no token taken as model
+context) at the surface or rewritten tier. Found by the pre-S08 test "payment method" →
+`stg_payments.payment_method`: "payment" also names `raw_payments`, so `raw_payments.method` got
+the full bonus (0.985) and beat the column whose name *is* the text (0.93). With D, both read
+as surface matches without a bonus (0.93 vs 0.925), and the result is ambiguous: two honest
+readings. dev-15, dev-14, "sales tax in fct_orders" and "… on the customer leaderboard" keep the
+bonus, because no column matches their whole text.
+
+**E. The cap is on the printed score only (owner, 17 Oct 2026).** The 0.96 cap would erase the
+model bonus whenever surface + bonus + layer > 0.96 ("sales tax in fct_orders": 1.00 vs 0.965
+raw, both 0.96 printed). Ranking and the `ambiguous` flag use the uncapped sum, and the payload
+prints `min(sum, 0.96)`. The raw sum is in the side record (`parts.raw`).
+
 ## Change log
 - 17 Oct 2026: first draft (S08 step 1).
 - 17 Oct 2026: amendments A, B, C (owner, after the case review, before measurement).
+- 17 Oct 2026: amendments D, E (owner, during implementation, before measurement).

@@ -268,6 +268,12 @@ class Builder:
     # -- hand-drafted ----------------------------------------------------------------------------
 
     def hand(self, variants: dict[str, Any], gaps: dict[str, Any]) -> None:
+        # the S08 gap items, frozen in resolved_s08 once fixed (still open ones would follow)
+        done = gaps.get("resolved_s08", {})
+        gaps = {
+            "exact_id_top1": [*done.get("exact_id_top1", []), *gaps["exact_id_top1"]],
+            "fragile": done.get("fragile", []),
+        }
         for g in gaps["exact_id_top1"]:
             self.add("linker_gap", g["id"], [g["id"]], ambiguous=False, source="linker_gaps.yml")
         for f in gaps.get("fragile", []):
@@ -371,7 +377,8 @@ def build() -> tuple[dict[str, str], Builder]:
     b = Builder(models, dev_targets)
     b.hand(variants, gaps)  # hand rows first: they own their mentions
     avoid = {m["mention"] for sec in ("near_duplicate",) for m in variants[sec]}
-    b.exact_ids({g["id"] for g in gaps["exact_id_top1"]})
+    gap_ids = [*gaps.get("resolved_s08", {}).get("exact_id_top1", []), *gaps["exact_id_top1"]]
+    b.exact_ids({g["id"] for g in gap_ids})
     b.bare_names(avoid)
     b.abbreviations()
     b.word_order()

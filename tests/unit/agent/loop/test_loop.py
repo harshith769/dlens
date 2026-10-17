@@ -235,8 +235,8 @@ def test_provider_errors_become_refusals(box, make_client):
 
 def test_chain_mode_traces_the_downstream_candidate(shop_root, make_client):
     box = Toolbox(make_chain_shop(), shop_root)
-    client, prov = make_client([call("resolve_entity", text="refund amt"), done(), draft()])
-    run = ask("Where does refund amt come from?", client, box)
+    client, prov = make_client([call("resolve_entity", text="refunds amount"), done(), draft()])
+    run = ask("Where does refunds amount come from?", client, box)
     amb = run.record.ambiguity
     assert amb["mode"] == "chain" and len(amb["candidates"]) == 4
     assert amb["downstream"] == "r_hist.refund_amount"
@@ -252,13 +252,13 @@ def test_chain_mode_traces_the_downstream_candidate(shop_root, make_client):
 def test_chain_mode_reuses_an_existing_trace(shop_root, make_client):
     box = Toolbox(make_chain_shop(), shop_root)
     script = [
-        call("resolve_entity", text="refund amt"),
+        call("resolve_entity", text="refunds amount"),
         call("trace_upstream", column_id="r_hist.refund_amount"),
         done(),
         draft(),
     ]
     client, _ = make_client(script)
-    run = ask("Where does refund amt come from?", client, box)
+    run = ask("Where does refunds amount come from?", client, box)
     assert run.record.ambiguity["mode"] == "chain"
     assert not [s for s in run.record.steps if s.phase == "code"]
 
@@ -370,10 +370,33 @@ def test_unknown_column_of_a_real_model_is_refused_before_the_tool_phase(box, ma
 
 def test_unknown_column_of_a_seed_is_refused(box, make_client):
     client, _ = make_client([])
-    run = ask("Where does raw.amount come from?", client, box)  # raw is a seed: id, amt
+    run = ask("Where does raw.ship_date come from?", client, box)  # raw is a seed: id, amt
     assert run.answer.refused and (run.answer.refusal_reason or "").startswith(
-        "raw has no column amount"
+        "raw has no column ship_date"
     )
+    assert run.record.llm_calls == 0
+
+
+def test_abbreviated_dotted_id_is_interpreted_not_refused(box, make_client):
+    """Amendment C: raw.amount maps to exactly one column of raw (amt) through the abbreviation
+    table, so the loop does not refuse, and code says how it read the id."""
+    client, _ = make_client([done(), draft()])
+    run = ask("Where does raw.amount come from?", client, box)
+    assert run.record.stop_reason != "unknown_column" and run.record.llm_calls >= 1
+    assert run.answer.answer_text.startswith("Interpreted raw.amount as raw.amt.")
+
+
+def test_loop_refusal_and_linker_agree_on_dotted_ids(box):
+    """One shared function: the loop refuses a dotted id exactly when the linker has no match."""
+    from dlens.agent.loop import Agent
+
+    agent = Agent.__new__(Agent)
+    agent.toolbox = box
+    for text in ("raw.amount", "raw.amt", "raw.ship_date", "fct.total", "fct.totl", "stg.amt"):
+        agent.interpretations = []
+        refused = agent._unknown_column(f"Where does {text} come from?") is not None
+        empty = box.call("resolve_entity", {"text": text}).llm_payload["candidates"] == []
+        assert refused == empty, text
 
 
 def test_real_columns_model_names_ctes_and_files_are_not_refused(box, make_client):
