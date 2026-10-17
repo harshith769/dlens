@@ -100,3 +100,24 @@ def test_cli_summary(monkeypatch: pytest.MonkeyPatch) -> None:
         "db.main.stray",
     ):
         assert line in res.output
+
+
+def test_relation_map_source_over_seed_wins_either_order() -> None:
+    """A source declared over a seed's table (Fivetran integration projects do this): models
+    read it through source(), so the relation maps to the source (S06)."""
+    seed = {
+        "unique_id": "seed.p.raw",
+        "resource_type": "seed",
+        "name": "raw",
+        "relation_name": '"d"."s"."raw"',
+    }
+    source = {
+        "unique_id": "source.p.src.raw",
+        "resource_type": "source",
+        "name": "raw",
+        "relation_name": "d.s.raw",
+    }
+    for first, second in ((seed, source), (source, seed)):
+        nodes = {first["unique_id"]: first, second["unique_id"]: second}
+        m = Manifest.model_validate({"nodes": nodes, "exposures": {}})
+        assert build_relation_map(m) == {"d.s.raw": "source.p.src.raw"}

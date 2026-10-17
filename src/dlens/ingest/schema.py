@@ -33,14 +33,23 @@ def build_sqlglot_schema(catalog: Catalog) -> SqlglotSchema:
 
 
 def build_relation_map(manifest: Manifest) -> dict[str, str]:
-    """Normalised relation_name -> unique_id. Nodes without a relation (ephemeral) are skipped."""
+    """Normalised relation_name -> unique_id. Nodes without a relation (ephemeral) are skipped.
+
+    A source declared over a seed's table (common: the seed loads what the source describes)
+    shares its relation; the source wins, because models read the table through ``source()``
+    and depend on the source node (S06). Any other collision is an error."""
     mapping: dict[str, str] = {}
     for node in manifest.nodes.values():
         if not node.relation_name:
             continue
         key = normalize_relation(node.relation_name)
-        if key in mapping and mapping[key] != node.unique_id:
-            raise ValueError(f"relation {key!r} maps to both {mapping[key]} and {node.unique_id}")
+        old = mapping.get(key)
+        if old is not None and old != node.unique_id:
+            kinds = {manifest.nodes[old].resource_type: old, node.resource_type: node.unique_id}
+            if set(kinds) == {"seed", "source"}:
+                mapping[key] = kinds["source"]
+                continue
+            raise ValueError(f"relation {key!r} maps to both {old} and {node.unique_id}")
         mapping[key] = node.unique_id
     return mapping
 

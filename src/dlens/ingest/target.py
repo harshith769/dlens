@@ -200,7 +200,10 @@ def load_target(target_dir: Path, dialect: str | None = None) -> tuple[IngestRes
     else:
         catalog = catalog_from_manifest(manifest)
 
-    relation_map = build_relation_map(manifest)
+    try:
+        relation_map = build_relation_map(manifest)
+    except ValueError as e:
+        raise ArtifactError(f"{e}; two dbt nodes claim the same warehouse table.") from e
     ingested = IngestResult(
         manifest=manifest,
         catalog=catalog,
