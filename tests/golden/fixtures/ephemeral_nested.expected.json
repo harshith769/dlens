@@ -1,0 +1,12 @@
+{
+  "edges": [
+    {"from": "big.id", "to": "m.id", "kind": "IDENTITY"},
+    {"from": "big.amt", "to": "m.total_amt", "kind": "AGGREGATION"}
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "indirect": [
+    {"from": "big.id", "to": "m.total_amt", "type": "GROUP_BY"}
+  ],
+  "notes": "an ephemeral model reading another ephemeral: m's edges stop at the outer one (big); base is big's upstream, not m's"
+}

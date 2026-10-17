@@ -52,8 +52,18 @@ def run_sql(sql: str) -> Result:
         "compiled_code": sql,
         "depends_on": {"nodes": []},
     }
+    nodes = {MODEL: model}
+    for name in sorted(set(re.findall(r"__dbt__cte__(\w+)", sql))):
+        # dbt inlines an ephemeral model as a __dbt__cte__<name> CTE: register the model.
+        uid = f"model.p.{name}"
+        nodes[uid] = {
+            "unique_id": uid,
+            "resource_type": "model",
+            "name": name,
+            "config": {"materialized": "ephemeral"},
+        }
     ingest = IngestResult(
-        manifest=Manifest.model_validate({"nodes": {MODEL: model}, "exposures": {}}),
+        manifest=Manifest.model_validate({"nodes": nodes, "exposures": {}}),
         catalog=Catalog(tables=[]),
         schema=SCHEMA,
         relation_map=RELATIONS,

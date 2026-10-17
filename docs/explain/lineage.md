@@ -37,6 +37,16 @@ relation map) into:
      value and key, so it's a direct edge only.
    - Each step also records the child it descends into (`_Path.inputs`), so the kind can be judged
      for that input (step 5).
+   - **Ephemeral models (S06).** dbt inlines an ephemeral model as a CTE named
+     `__dbt__cte__<model name>`. When a child's `reference_node_name` has that prefix, the walk
+     stops there and the leaf becomes that ephemeral model's column (`_Path.ephemeral`). The CTE's
+     own projection, joins and WHERE belong to the ephemeral model, whose compiled SQL is parsed
+     like any other model's. So `raw_payments.amount_cents → paid_payments.amount_cents →
+     order_payments.amount_usd → customer_orders.amount_usd` (eph_shop), instead of one
+     anonymous jump from raw_payments to customer_orders. The indirect pass does the same thing:
+     a key read from an ephemeral CTE resolves to the ephemeral column (`_ephemeral_scope`), and the
+     CTE body is not visited. Ephemeral models have no relation, so no catalog entry either: the
+     graph adds column nodes for every edge endpoint the catalog doesn't list.
 4. **Leaf mapping**: a Table leaf's `db.schema.name` is normalised with the same
    `normalize_relation` that built the relation map, and looked up to get a dbt `unique_id`. Misses
    become gaps.
@@ -88,6 +98,11 @@ relation map) into:
   drift whenever Jinja expands to several lines.
 - **Recompiled SQL.** `build --empty` compiles refs as `(select * from x where false limit 0)`.
   Ingest now lets `docs generate` recompile, so no fake `SELECT *` hop appears (see ingest.md).
+- **Stop at ephemeral CTEs.** An ephemeral model is a model the user wrote and names in `ref()`.
+  Walking through it would hide it, and would credit its filters to every downstream model.
+  The `__dbt__cte__` prefix is dbt's fixed naming, so the check is exact and never fires on our
+  corpora (they have no ephemeral models). The graphs of both corpora were byte-identical
+  before and after this change.
 - **`short_id` only for gold comparison.** The short form collides across packages and sources, so
   it never becomes an identifier inside the graph.
 
@@ -107,6 +122,9 @@ relation map) into:
   scanner only needs item boundaries and names, and falls back honestly.
 - **Unwrapping the `--empty` subqueries in the AST**: works, but keeps a dbt quirk inside the
   engine. Recompiling removes it at the source.
+- **Rewriting compiled SQL to replace each `__dbt__cte__` CTE with a fake table**: needs SQL
+  regeneration, which breaks clause citations, plus a made-up relation for the ephemeral model.
+  Stopping the walk keeps the SQL untouched.
 - **Dropping ambiguous columns**: silent recall loss. LOW-confidence edges keep them visible.
 
 ## Construct support
@@ -124,6 +142,8 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `cast_and_coloncolon` | yes | a cast is an operation, not a bare column, so TRANSFORMATION even when the type is unchanged |
 | `cte_chain_3` | yes |  |
 | `distinct` | yes |  |
+| `ephemeral_cte` | yes | dbt inlines an ephemeral model as a __dbt__cte__<name> CTE; edges stop at the ephemeral model (paid), and its own WHERE and expressions belong to its lineage, not m's |
+| `ephemeral_nested` | yes | an ephemeral model reading another ephemeral: m's edges stop at the outer one (big); base is big's upstream, not m's |
 | `group_by_having` | yes | GROUP BY user_id targets every column but user_id (direct wins); HAVING tax is FILTER to all; count(*) reads no column, so it is recorded like a constant |
 | `indirect_agg_filter_vs_case` | yes | same logic, two classes: FILTER (WHERE) is CONDITIONAL; the CASE condition is a direct AGGREGATION input |
 | `indirect_group_by_all` | yes | GROUP BY ALL groups by the non-aggregate projections' columns |
@@ -181,3 +201,6 @@ constant in only some UNION branches still has edges and is not recorded.
    not be read as a named item?
 5. A model's parse report says TABLE_ONLY with gap `x <- table db.main.y is not a dbt node`. What
    edges does the graph still have for that model, and name two causes that would produce this gap.
+6. `customer_orders` joins `__dbt__cte__order_payments as p on orders.id = p.order_id`. Which
+   upstream column does the JOIN indirect edge for `p.order_id` come from, and why does
+   `paid_payments`' `where amount_cents > 0` give no FILTER edge on `customer_orders`?

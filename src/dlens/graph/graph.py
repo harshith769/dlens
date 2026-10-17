@@ -92,6 +92,14 @@ class LineageGraph:
             for t in ingested.catalog.tables
             for c in t.columns
         }
+        # Columns no catalog lists: an ephemeral model's (it has no relation), or any column when
+        # the catalog is synthesised from YAML (catalog-less ingest). Their model is the id minus
+        # the column name; their type is unknown.
+        ends = {c for e in result.edges for c in (e.from_column, e.to_column)}
+        ends |= {c for ie in result.indirect for c in (ie.from_column, ie.to_column)}
+        for cid in sorted(ends - columns.keys()):
+            model, name = cid.rsplit(".", 1)
+            columns[cid] = {"model": model, "name": name, "type": ""}
         models = {
             n.unique_id: {
                 "resource_type": n.resource_type,

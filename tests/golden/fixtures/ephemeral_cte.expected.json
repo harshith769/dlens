@@ -1,0 +1,18 @@
+{
+  "edges": [
+    {"from": "paid.id", "to": "m.order_id", "kind": "RENAME"},
+    {"from": "paid.amt2", "to": "m.total", "kind": "RENAME"},
+    {"from": "customers.name", "to": "m.name", "kind": "IDENTITY"}
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "indirect": [
+    {"from": "paid.user_id", "to": "m.order_id", "type": "JOIN"},
+    {"from": "paid.user_id", "to": "m.total", "type": "JOIN"},
+    {"from": "paid.user_id", "to": "m.name", "type": "JOIN"},
+    {"from": "customers.id", "to": "m.order_id", "type": "JOIN"},
+    {"from": "customers.id", "to": "m.total", "type": "JOIN"},
+    {"from": "customers.id", "to": "m.name", "type": "JOIN"}
+  ],
+  "notes": "dbt inlines an ephemeral model as a __dbt__cte__<name> CTE; edges stop at the ephemeral model (paid), and its own WHERE and expressions belong to its lineage, not m's"
+}

@@ -43,6 +43,10 @@ from dlens.lineage.provenance import Citation, line_map, locate, locate_clause
 
 Span = tuple[int, int]  # [start, end) character offsets in the compiled SQL
 
+# dbt inlines each ephemeral model as a CTE named __dbt__cte__<model name>. Lineage stops at such
+# a CTE and attributes columns to the ephemeral model, whose own SQL gives its upstream (S06).
+EPHEMERAL_CTE_PREFIX = "__dbt__cte__"
+
 
 @dataclass(frozen=True)
 class _Path:
@@ -53,6 +57,7 @@ class _Path:
     leaf: Node
     branch: int | None  # UNION branch index, if the path goes through a UNION
     scope: exp.Expr | None  # the SELECT of the last step (where an unresolved leaf was read)
+    ephemeral: str | None = None  # the leaf is a column of this ephemeral model's CTE
 
 
 @dataclass(frozen=True)
@@ -110,8 +115,16 @@ def _walk(
     keys = key_columns(node.expression)
     for child in node.downstream:
         name = column_key(child.name)
-        if name not in keys:
-            yield from _walk(child, [*steps, node.expression], [*inputs, name], branch, node.source)
+        if name in keys:
+            continue
+        ref = child.reference_node_name or ""
+        if ref.startswith(EPHEMERAL_CTE_PREFIX):
+            ephemeral = ref.removeprefix(EPHEMERAL_CTE_PREFIX)
+            yield _Path(
+                [*steps, node.expression], [*inputs, name], child, branch, node.source, ephemeral
+            )
+            continue
+        yield from _walk(child, [*steps, node.expression], [*inputs, name], branch, node.source)
 
 
 def _table_name(table: exp.Table) -> str:
@@ -142,11 +155,35 @@ def _is_constant(leaf: Node) -> bool:
     return not isinstance(expr, exp.Table | exp.Placeholder) and expr.find(exp.Column) is None
 
 
+def _ephemeral_uid(ingest: IngestResult, name: str) -> str | None:
+    """The unique_id of the ephemeral model behind ``__dbt__cte__<name>``, if exactly one."""
+    found = [
+        m.unique_id
+        for m in ingest.manifest.models
+        if m.name.lower() == name.lower() and m.config.materialized == "ephemeral"
+    ]
+    return found[0] if len(found) == 1 else None
+
+
+def _ephemeral_column(
+    name: str, column: str, ingest: IngestResult
+) -> tuple[list[tuple[str, Confidence]], str | None]:
+    col = column.split(".")[-1].replace('"', "").lower()
+    uid = _ephemeral_uid(ingest, name)
+    if uid is None:
+        return [], f"{col}: ephemeral model {name} is not a unique dbt node"
+    if col == "*":
+        return [], f"unexpanded * from ephemeral {name}"
+    return [(column_id(uid, col), Confidence.HIGH)], None
+
+
 def _resolve_leaf(
     path: _Path, ingest: IngestResult
 ) -> tuple[list[tuple[str, Confidence]], str | None]:
     """Upstream column ids for a leaf, or a gap description. Constants give neither."""
     leaf = path.leaf
+    if path.ephemeral is not None:
+        return _ephemeral_column(path.ephemeral, leaf.name, ingest)
     if _is_constant(leaf):
         return [], None
     col = leaf.name.split(".")[-1].replace('"', "").lower()
@@ -425,6 +462,14 @@ def _find_source(scope: Scope, table: str) -> exp.Table | Scope | None:
     return None
 
 
+def _ephemeral_scope(scope: Scope) -> str | None:
+    """The ephemeral model name if ``scope`` is the body of a ``__dbt__cte__<name>`` CTE."""
+    cte = scope.expression.parent
+    if scope.is_cte and isinstance(cte, exp.CTE) and cte.alias.startswith(EPHEMERAL_CTE_PREFIX):
+        return cte.alias.removeprefix(EPHEMERAL_CTE_PREFIX)
+    return None
+
+
 def _through(
     name: str, scope: Scope, ingest: IngestResult, schema: Schema, dialect: str
 ) -> list[tuple[str, Confidence]]:
@@ -451,6 +496,8 @@ def _resolve_key(
             uid = ingest.relation_map.get(_table_name(src))
             return [(column_id(uid, name), Confidence.HIGH)] if uid else []
         if isinstance(src, Scope):
+            if (ephemeral := _ephemeral_scope(src)) is not None:
+                return _ephemeral_column(ephemeral, name, ingest)[0]
             return _through(name, src, ingest, schema, dialect)
         return []
     select = scope.expression
@@ -546,6 +593,8 @@ def _indirect(
                         for col in proj.find_all(exp.Column):
                             emit(col, scope, IndirectKind.GROUP_BY, group, to, "ALL")
         for child in _children(scope):
+            if _ephemeral_scope(child) is not None:
+                continue  # the ephemeral model's own clauses belong to its lineage, not ours
             if inherited is not None or not isinstance(select, exp.Select):
                 visit(child, inherited)
             elif child in scope.subquery_scopes and (
