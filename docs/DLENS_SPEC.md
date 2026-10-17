@@ -306,6 +306,8 @@ class LineageGraph:
 
 Report top-1 and top-3 accuracy.
 
+*v0.3 note (additive, ADR 0022, S08):* linker v2 has three stages, exact → normalised (surface / rewritten: abbreviations, phrase rules, weak tokens, word order) → hybrid over column cards (only when no normalised match, only with the `retrieval` extra and a built index). An exact match is always top-1. No-match threshold τ = 0.60, ambiguity margin δ = 0.05 (unchanged). `resolve_entity` adds the `match` value `hybrid` and the optional payload key `hybrid` (`unavailable` / `used`); score parts and `closest` are side-record only. Design: docs/plans/linker-design.md.
+
 **Tools** (deterministic, JSON output with provenance, **each result capped at about 1,500 tokens** with a `truncated` flag)
 
 | Tool | Signature | Returns |
