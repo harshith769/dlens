@@ -133,12 +133,17 @@ VOLATILE_METADATA = {
 }
 
 
-def _drop_created_at(obj: Any) -> Any:
-    if isinstance(obj, dict):
-        return {k: _drop_created_at(v) for k, v in obj.items() if k != "created_at"}
-    if isinstance(obj, list):
-        return [_drop_created_at(v) for v in obj]
-    return obj
+def _drop_created_at(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Drop the per-node ``created_at`` build timestamp (only that key: a column may also be
+    called created_at, and the catalog is never touched)."""
+    out = dict(manifest)
+    for section in ("nodes", "sources", "exposures"):
+        if section in out:
+            out[section] = {
+                k: {f: v for f, v in node.items() if f != "created_at"}
+                for k, node in out[section].items()
+            }
+    return out
 
 
 def volatile_free(files: dict[str, Any]) -> dict[str, Any]:
@@ -146,7 +151,8 @@ def volatile_free(files: dict[str, Any]) -> dict[str, Any]:
     out = dict(files)
     for key in ("manifest.json", "catalog.json"):
         meta = {k: v for k, v in out[key]["metadata"].items() if k not in VOLATILE_METADATA}
-        out[key] = _drop_created_at({**out[key], "metadata": meta})
+        out[key] = {**out[key], "metadata": meta}
+    out["manifest.json"] = _drop_created_at(out["manifest.json"])
     return out
 
 

@@ -2997,6 +2997,12 @@
      "name": "country",
      "type": "VARCHAR"
     },
+    "created_at": {
+     "comment": null,
+     "index": 6,
+     "name": "created_at",
+     "type": "TIMESTAMP"
+    },
     "email": {
      "comment": null,
      "index": 4,
@@ -3309,6 +3315,12 @@
      "name": "amt",
      "type": "DECIMAL(10,2)"
     },
+    "created_at": {
+     "comment": null,
+     "index": 5,
+     "name": "created_at",
+     "type": "TIMESTAMP"
+    },
     "id": {
      "comment": null,
      "index": 1,
@@ -3505,6 +3517,12 @@
   },
   "seed.synthetic_shop.raw_refunds": {
    "columns": {
+    "created_at": {
+     "comment": null,
+     "index": 5,
+     "name": "created_at",
+     "type": "TIMESTAMP"
+    },
     "id": {
      "comment": null,
      "index": 1,
