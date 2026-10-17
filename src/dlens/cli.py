@@ -23,7 +23,14 @@ from dlens.graph import (
     load_or_build_artifacts,
 )
 from dlens.graph.cache import load_artifact_cache
-from dlens.graph.render import render_coverage, render_impact, render_report, render_trace
+from dlens.graph.citations import citation_coverage
+from dlens.graph.render import (
+    render_citations,
+    render_coverage,
+    render_impact,
+    render_report,
+    render_trace,
+)
 from dlens.graph.report import build_report, coverage_summary
 from dlens.ingest import ArtifactError, DbtError
 from dlens.ingest import ingest as run_ingest
@@ -153,6 +160,7 @@ def _ingest_artifacts(target: Path, dialect: str | None, out: Path | None, rebui
     typer.echo(f"columns:     {len(g.columns())}")
     typer.echo(f"edges:       {len(g.edges())} direct, {len(g.indirect_edges())} indirect")
     typer.echo(render_coverage(coverage_summary(g)))
+    typer.echo(render_citations(citation_coverage(g, info.project_dir)))
     state = "cache reused" if built.reused else "built"
     typer.echo(f"graph:       {built.cache_dir / 'graph.json'} ({state})")
 
@@ -186,6 +194,12 @@ def _graph(project: Path, rebuild: bool, artifacts: Path | None = None) -> Linea
     except (DbtError, ArtifactError) as e:
         typer.echo(f"graph build failed: {e}", err=True)
         raise typer.Exit(1) from e
+
+
+def _artifact_project(target: Path) -> Path | None:
+    """The dbt project around an artifact target (its source files), if there is one."""
+    parent = target.parent
+    return parent if (parent / "dbt_project.yml").is_file() else None
 
 
 def _open_graph(
@@ -238,8 +252,14 @@ def report(
     artifacts: ArtifactsOpt = None,
 ) -> None:
     """Parse quality per model (FULL / TABLE_ONLY / FAILED) with gaps, and edge totals."""
-    r = build_report(_graph(project, rebuild, artifacts))
-    typer.echo(r.model_dump_json(indent=2) if as_json else render_report(r))
+    graph = _graph(project, rebuild, artifacts)
+    r = build_report(graph)
+    files = project if artifacts is None else _artifact_project(artifacts)
+    r.citations = citation_coverage(graph, files)
+    if as_json:
+        typer.echo(r.model_dump_json(indent=2))
+    else:
+        typer.echo(render_report(r) + "\n\n" + render_citations(r.citations))
 
 
 KindOpt = Annotated[

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 
+from dlens.graph.citations import CitationCoverage, LevelCounts
 from dlens.graph.graph import LineageGraph
 from dlens.graph.models import Hop, ImpactResult, PathList, hop_rank
 from dlens.graph.report import Coverage, Report
@@ -146,4 +147,25 @@ def render_coverage(c: Coverage) -> str:
         lines.append(f"  {m.level:<10}  {_short_model(m.model):<{width}}  {why}")
     if c.models:
         lines.append("  (details per gap: dlens report --artifacts <target>)")
+    return "\n".join(lines)
+
+
+def render_citations(c: CitationCoverage) -> str:
+    """Line-level vs model-level citations, then why the model-level ones are (S06b)."""
+
+    def row(label: str, n: LevelCounts) -> str:
+        return f"  {label:<12} {n.line:>6} / {n.total:<6} {n.percent:5.1f}% line-level"
+
+    lines = [
+        "citations:   line-level / total",
+        row("columns", c.columns),
+        row("direct", c.direct),
+        row("indirect", c.indirect),
+        f"  {'seed/source':<12} {c.seed_source_columns.total:>6} columns cite a whole CSV or "
+        "YAML file (by design)",
+    ]
+    for label, n in (("columns", c.columns), ("direct", c.direct), ("indirect", c.indirect)):
+        if n.reasons:
+            why = " · ".join(f"{k} ×{v}" for k, v in n.reasons.items())
+            lines.append(f"  model-level {label}: {why}")
     return "\n".join(lines)

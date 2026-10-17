@@ -8,6 +8,7 @@ from typer.testing import CliRunner
 
 from dlens.cli import app
 from dlens.graph import LineageGraph
+from dlens.graph.citations import citation_coverage
 from dlens.graph.report import build_report
 
 pytestmark = pytest.mark.integration
@@ -29,6 +30,11 @@ def test_report_on_synthetic_shop(synthetic_project: Path, synthetic_graph: Line
     # retired, equals its pre-retirement value (14 pairs; checked equal pair by pair before).
     assert r.totals.deferred_indirect == 14
     assert r.totals.indirect_edges == 621 and r.totals.indirect_model_level_citations == 0
+    # S06b: the CLI adds citation coverage; synthetic_shop has no package models and every
+    # citation is line-level
+    r.citations = citation_coverage(synthetic_graph, synthetic_project)
+    for n in (r.citations.columns, r.citations.direct, r.citations.indirect):
+        assert n.line == n.total > 0
     out = runner.invoke(app, ["report", "-p", str(synthetic_project), "--json"])
     assert out.exit_code == 0, out.output
     assert json.loads(out.stdout) == json.loads(r.model_dump_json())

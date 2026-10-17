@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel
 
+from dlens.graph.citations import CitationCoverage
 from dlens.graph.graph import LineageGraph
 from dlens.lineage import Confidence, ParseQuality
 
@@ -32,6 +33,8 @@ class Totals(BaseModel):
 class Report(BaseModel):
     models: list[ModelReport]
     totals: Totals
+    citations: CitationCoverage | None = None
+    """Citation coverage (S06b); set by the CLI, which knows where the project files are."""
 
 
 def build_report(graph: LineageGraph) -> Report:
