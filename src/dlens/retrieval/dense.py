@@ -73,24 +73,37 @@ class Embedder(Protocol):
 
 
 def model_dir(local_files_only: bool | None = None) -> Path:
-    """The pinned model snapshot in the HF cache, downloading it once if allowed."""
+    """The pinned model snapshot in the HF cache. The cache is tried first (no network, no
+    progress bar); only a missing model is downloaded, and never when offline."""
     from huggingface_hub import snapshot_download
+
+    def get(local: bool) -> Path:
+        return Path(
+            snapshot_download(
+                MODEL_ID,
+                revision=MODEL_REVISION,
+                allow_patterns=list(MODEL_FILES),
+                local_files_only=local,
+            )
+        )
 
     offline = os.environ.get("HF_HUB_OFFLINE", "").lower() in ("1", "true", "yes")
     try:
-        path = snapshot_download(
-            MODEL_ID,
-            revision=MODEL_REVISION,
-            allow_patterns=list(MODEL_FILES),
-            local_files_only=offline if local_files_only is None else local_files_only,
-        )
-    except Exception as e:  # huggingface_hub raises several types for "not cached, offline"
+        return get(True)
+    except Exception:  # not cached (huggingface_hub raises several types)
+        if offline or local_files_only:
+            raise RetrievalUnavailable(
+                f"model {MODEL_ID}@{MODEL_REVISION[:12]} is not in the Hugging Face cache. "
+                "Run `dlens search` once with network access (unset HF_HUB_OFFLINE) to "
+                "download it (~133 MB, cached under $HF_HOME/hub)."
+            ) from None
+    try:
+        return get(False)
+    except Exception as e:
         raise RetrievalUnavailable(
-            f"model {MODEL_ID}@{MODEL_REVISION[:12]} is not in the Hugging Face cache and "
-            "cannot be downloaded now. Run `dlens search` once with network access (unset "
-            "HF_HUB_OFFLINE) to download it (~133 MB, cached under $HF_HOME/hub)."
+            f"could not download {MODEL_ID}@{MODEL_REVISION[:12]}: {e}. Check the network, "
+            "or copy an existing Hugging Face cache and set HF_HOME."
         ) from e
-    return Path(path)
 
 
 class OnnxEmbedder:

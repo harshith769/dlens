@@ -7,8 +7,9 @@ Layout (written only inside the index dir):
   ``dense.npy``    float32 (n, dim), L2-normalised
 
 The key holds the sha256 of graph.json, manifest.json, catalog.json and every chunked file, plus
-the model id and revision, CHUNKER_VERSION, the embedding runtime and versions, max length and
-thread count. A rebuild names the first part that changed ("rebuilt: manifest changed").
+the model id and revision, CHUNKER_VERSION, the embedding runtime and versions, max length,
+thread count, and a hash of all chunk ids (content hashes, so any chunker change rebuilds).
+A rebuild names the first part that changed ("rebuilt: manifest changed").
 """
 
 from __future__ import annotations
@@ -62,6 +63,7 @@ _KEY_ORDER = (
     ("manifest_sha256", "manifest"),
     ("catalog_sha256", "catalog"),
 )
+_AFTER_FILES = (("chunks_sha256", "chunks"),)
 
 
 def rebuild_reason(old: dict[str, Any] | None, new: dict[str, Any]) -> str | None:
@@ -79,6 +81,9 @@ def rebuild_reason(old: dict[str, Any] | None, new: dict[str, Any]) -> str | Non
             return f"{f} removed"
         if of[f] != nf[f]:
             return f"{f} changed"
+    for part, label in _AFTER_FILES:
+        if old.get(part) != new.get(part):
+            return f"{label} changed"
     return None
 
 
@@ -137,6 +142,10 @@ class SearchIndex:
             "manifest_sha256": _sha256(target_dir / "manifest.json"),
             "catalog_sha256": _sha256(target_dir / "catalog.json"),
             "files": cs.files,
+            # chunk ids hash their content: catches a chunker change even without a version bump
+            "chunks_sha256": hashlib.sha256(
+                "\n".join(sorted(c.id for c in cs.chunks)).encode()
+            ).hexdigest(),
         }
         old = None
         try:

@@ -100,6 +100,7 @@ def test_reasons_follow_a_fixed_order() -> None:
     assert rebuild_reason(base, {**base, "model": "m@2"}) == "model revision changed"
     assert rebuild_reason(base, {**base, "files": {}}) == "x.sql removed"
     assert rebuild_reason(base, {**base, "files": {"x.sql": "1", "y.md": "2"}}) == "y.md added"
+    assert rebuild_reason(base, {**base, "chunks_sha256": "z"}) == "chunks changed"
 
 
 def test_writes_only_inside_the_index_dir(project: Path) -> None:

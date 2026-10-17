@@ -242,6 +242,91 @@ def report(
     typer.echo(r.model_dump_json(indent=2) if as_json else render_report(r))
 
 
+KindOpt = Annotated[
+    list[str] | None,
+    typer.Option("--kind", help="Only these chunk kinds: model, column, doc (repeatable)."),
+]
+
+
+@app.command()
+def search(
+    query: Annotated[str, typer.Argument(help="Free text, e.g. 'refund amount'.")],
+    project: ProjectOpt = Path("."),
+    artifacts: ArtifactsOpt = None,
+    k: Annotated[int, typer.Option("--k", min=1, max=50, help="Number of hits.")] = 8,
+    kind: KindOpt = None,
+    mode: Annotated[
+        str, typer.Option("--mode", help="hybrid (BM25 + dense, RRF), bm25 or dense.")
+    ] = "hybrid",
+    rebuild: Annotated[bool, typer.Option("--rebuild", help="Rebuild the search index.")] = False,
+) -> None:
+    """Search model SQL, column cards and docs (needs the retrieval extra). The first run
+    downloads the embedding model once; set HF_HUB_OFFLINE=1 afterwards to stay offline."""
+    import os
+    import time
+
+    from dlens.retrieval.dense import FAKE_WARNING, RetrievalUnavailable, require_extra
+
+    if os.environ.get("DLENS_EMBEDDER") == "fake":
+        typer.echo(FAKE_WARNING, err=True)
+    if mode not in ("hybrid", "bm25", "dense"):
+        typer.echo("error: --mode must be hybrid, bm25 or dense.", err=True)
+        raise typer.Exit(2)
+    bad = sorted(set(kind or []) - {"model", "column", "doc"})
+    if bad:
+        typer.echo(f"error: unknown --kind {', '.join(bad)} (model, column, doc).", err=True)
+        raise typer.Exit(2)
+    try:
+        require_extra()
+        from dlens.graph.cache import artifact_cache_dir, cache_path
+        from dlens.retrieval.dense import get_embedder
+        from dlens.retrieval.index import SearchIndex, artifact_index_dir, project_index_dir
+
+        graph = _graph(project, False, artifacts)
+        if artifacts is not None:
+            cache = artifact_cache_dir(artifacts)
+            meta = json.loads((cache / "meta.json").read_text(encoding="utf-8"))
+            parent = artifacts.parent
+            proj = parent if (parent / "dbt_project.yml").is_file() else None
+            where = dict(
+                graph_file=cache / "graph.json",
+                target_dir=artifacts,
+                project_dir=proj,
+                index_dir=artifact_index_dir(cache),
+                dialect=str(meta["dialect"]),
+            )
+        else:
+            where = dict(
+                graph_file=cache_path(project),
+                target_dir=project / "target",
+                project_dir=project,
+                index_dir=project_index_dir(project),
+            )
+        t0 = time.perf_counter()
+        index, status = SearchIndex.open(
+            graph=graph,
+            embedder=get_embedder(),
+            rebuild=rebuild,
+            **where,  # type: ignore[arg-type]
+        )
+        took = time.perf_counter() - t0
+        hits = index.search(query, k=k, kinds=kind or None, mode=mode)  # type: ignore[arg-type]
+    except RetrievalUnavailable as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2) from e
+    typer.echo(f"index:  {status} ({len(index.chunks)} chunks, {took:.1f}s)")
+    if not hits:
+        typer.echo("no hits")
+        return
+    for h in hits:
+        c = h.chunk
+        basis = " [compiled]" if c.line_basis == "compiled" else ""
+        lines = "" if c.level == "model" else f":{c.line_start}-{c.line_end}"
+        first = " | ".join(ln.strip() for ln in c.text.splitlines() if ln.strip())
+        typer.echo(f"{h.rank:>2}. {c.id}  {c.kind:<6} {c.file}{lines}{basis}  · {c.title}")
+        typer.echo(f"      {first[:100]}")
+
+
 def trace_summary(run: AgentRun) -> dict[str, object]:
     rec = run.record
     results = [r for s in rec.steps if s.phase != "code" for r in s.results]

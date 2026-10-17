@@ -593,13 +593,15 @@ def _model_chunks(ctx: _Ctx, node: dict[str, Any]) -> None:
     segs = cte_segments(text, names)
     if segs is None:
         ctx.bump("models_window_fallback" if names else "models_without_ctes")
-        segs = [
-            (
-                a,
-                min(a + WINDOW_LINES - 1, len(lines)),
-                f"lines {a}-{min(a + WINDOW_LINES - 1, len(lines))}",
-            )
+        # One title for every window ("<model> · sql (part k)"): line numbers in a title would
+        # only add noise tokens, and the chunk carries its lines anyway.
+        windows = [
+            (a, min(a + WINDOW_LINES - 1, len(lines)))
             for a in range(1, len(lines) + 1, WINDOW_LINES)
+        ]
+        segs = [
+            (a, b, "sql" if len(windows) == 1 else f"sql (part {k})")
+            for k, (a, b) in enumerate(windows, 1)
         ]
     else:
         ctx.bump("models_cte_split")
