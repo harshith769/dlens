@@ -280,7 +280,10 @@ templates (dev-15 is already one).
 - **Input:** the template question text only. It never sees gold, the target field, the type or
   the corpus.
 - **Prompt:** "Rewrite this question in different words. Keep every identifier written like
-  `name.name` exactly as written. Do not add or remove information. Reply with the question only."
+  `name.name` exactly as written. Do not add or remove information. Do not repeat the original
+  sentence: change its wording or structure. Reply with the question only." (The "do not repeat"
+  sentence was added in step 6: without it, qwen at temperature 0 returned the template verbatim for
+  most identifier questions.)
   It is sent with 3 fixed style hints (plain, short, conversational), so there are 3 candidates.
   The cache makes reruns free and identical.
 - **Automatic flags** (any flag means the candidate is not auto-picked):
@@ -294,6 +297,8 @@ templates (dev-15 is already one).
 | `part_dropped` | multi-part: the out-of-scope part's key words are missing |
 | `premise_dropped` | false premise: the premise column is missing |
 | `length` | candidate / template length ratio outside 0.6–2.0 |
+| `unchanged` / `near_unchanged` | the candidate equals the template (ignoring case and punctuation), or differs only by a filler word in front ("Hey, …") |
+| `lineage_dropped` / `value_wording` | a lineage-worded template ("… in the lineage") lost the lineage sense, or gained value words (affect / change / impact) |
 | `format` | more than one line, more than one question mark (single-part questions), quotes or commentary |
 
 - **Pick:** the first unflagged candidate in style order. If all 3 are flagged, the question keeps
