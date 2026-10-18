@@ -39,13 +39,7 @@ resolved_s08:
          matches above names with extra tokens.",
        target: S08}
 
-# Conflicts between linker v2 and the gold design, to be decided in the S09 re-check (before the
-# pilot). Not asserted by a test; no rule change until then (owner, 18 Oct 2026).
-conflicts_s09:
-  - {query: "stg_shipments.shipping_cost", observed: stg_shipments.shipping_cost_usd,
-     expected: no-match (refuse),
-     note: "conflict with DESIGN_v2 near-miss (must refuse): trap 8 lists shipping_cost as an
-       unanswerable near-miss, but the one-directional usd rule for dotted ids (a dotted id may
-       omit a unit the column has) resolves it to shipping_cost_usd. Seen on linker-test
-       (lk-no_match-026).",
-     target: S09}
+# Conflicts between linker v2 and the gold design, decided in S09 (owner, 18 Oct 2026).
+# stg_shipments.shipping_cost: resolved by the DESIGN_v2 trap-8 near-miss policy (interpreted
+# visibly as shipping_cost_usd); lk-no_match-026 re-golded in eval/linker/variants.yml.
+conflicts_s09: []

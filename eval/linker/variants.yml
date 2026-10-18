@@ -8,7 +8,8 @@
 #
 # Row fields: mention, gold (list of model.column ids; [] = must be no-match), optional rule
 # (phrase rule id), ambiguous (default: len(gold) > 1), note, unsure (why the drafter was not sure;
-# listed for the owner's review).
+# listed for the owner's review). no_match rows may carry `interpreted: <id>` (S09 trap-8 policy):
+# the gold becomes [id]; the variant and id stay, and the case is split by its gold column.
 
 description:
   - {mention: "date the customer signed up", gold: [stg_customers.signup_at, dim_customers.signup_at]}
@@ -146,7 +147,11 @@ no_match:
   - {mention: "stg_products.color"}
   - {mention: "int_order_shipping.tracking_number"}
   - {mention: "fct_daily_revenue.profit"}
-  - {mention: "stg_shipments.shipping_cost", note: "DESIGN_v2 trap 8 unanswerable near-miss"}
+  - {mention: "stg_shipments.shipping_cost", interpreted: stg_shipments.shipping_cost_usd,
+     note: "re-golded by the owner (18 Oct 2026, S09) from no-match to the interpreted column under
+       the DESIGN_v2 trap-8 near-miss policy (a dotted near-miss that only omits a unit the real
+       column has is interpreted visibly). The change followed a seen linker-test result; the case
+       moved from linker-test to linker-dev (split by gold column)."}
   - {mention: "raw_orders.customer_id", note: "raw_orders has user_id; customer_id starts in stg_orders"}
   - {mention: "stg_customers.customer_name"}
   - {mention: "dim_customers.lifetime_value_usd", note: "exists only in fct_customer_leaderboard"}

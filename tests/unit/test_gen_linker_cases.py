@@ -34,8 +34,17 @@ def test_mentions_are_unique_and_ids_stable():
     assert len({c["id"] for c in CASES}) == len(CASES)
 
 
-def test_no_match_cases_have_empty_gold():
-    assert all(c["gold"] == [] for c in CASES if c["variant"] == "no_match")
+def test_no_match_cases_have_empty_gold_except_interpreted_ones():
+    # The one exception is the owner's S09 trap-8 re-gold: an interpreted dotted near-miss.
+    regolded = {c["id"]: c["gold"] for c in CASES if c["variant"] == "no_match" and c["gold"]}
+    assert regolded == {"lk-no_match-026": ["stg_shipments.shipping_cost_usd"]}
+
+
+def test_interpreted_no_match_follows_its_gold_column_split():
+    # S09: the re-golded case moves to linker-dev, where its gold column's other cases are.
+    case = next(c for c in CASES if c["id"] == "lk-no_match-026")
+    same_gold = {c["split"] for c in CASES if c["gold"] == case["gold"]}
+    assert case["split"] == "linker-dev" and same_gold == {"linker-dev"}
 
 
 def test_dev_targets_never_in_linker_test():

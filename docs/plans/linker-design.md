@@ -419,3 +419,8 @@ the post-change linker-test result is not a blind estimate, and it is reported o
 - 18 Oct 2026: design frozen until S09's 96-dev re-check. Open finding (seen on linker-test, so
   not acted on): `stg_shipments.shipping_cost`, the DESIGN_v2 trap-8 unanswerable near-miss,
   resolves to `shipping_cost_usd` through the one-way `usd` rule.
+- 18 Oct 2026 (S09, owner): the shipping_cost conflict is decided by the DESIGN_v2 trap-8 near-miss
+  policy: a dotted near-miss that only omits a unit the real column has is interpreted visibly; any
+  other near-miss is refused. No linker change. lk-no_match-026 is re-golded to
+  `stg_shipments.shipping_cost_usd`; this followed a seen linker-test result. Split by its gold
+  column like every case, it moves from linker-test to linker-dev (linker-test 129 → 128).

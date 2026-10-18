@@ -295,7 +295,11 @@ class Builder:
                          note=row.get("note"), unsure=row.get("unsure"), limitation=row.get("limitation"),
                          source="variants.yml")  # fmt: skip
         for row in variants["no_match"]:
-            self.add("no_match", row["mention"], [], note=row.get("note"), unsure=row.get("unsure"),
+            # `interpreted`: a no-match row re-golded under the DESIGN_v2 trap-8 near-miss policy
+            # (owner, S09). It keeps its variant (so its id); like every case with gold, it is
+            # split by its gold column.
+            gold = [row["interpreted"]] if "interpreted" in row else []
+            self.add("no_match", row["mention"], gold, note=row.get("note"), unsure=row.get("unsure"),
                      source="variants.yml")  # fmt: skip
 
     # -- split -----------------------------------------------------------------------------------
