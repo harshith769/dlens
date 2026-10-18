@@ -295,6 +295,7 @@ def tags(ctx: Ctx, cols: Iterable[str], edges: Iterable[tuple[str, str]], deep: 
     cols, edges = set(cols), set(edges)
     out = {t for t, cs in ctx.trap_cols.items() if cs & cols}
     out |= {t for t, es in ctx.trap_edges.items() if es & edges}
+    out.discard("deep_chain")  # decided by depth alone (>= 6 hops), not by sharing a path edge
     if deep:
         out.add("deep_chain")
     if exposures:
