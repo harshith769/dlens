@@ -37,14 +37,17 @@ def ans(*claims, text="c.x comes from a.x.", **kw):
 REC = {"validation": {"passed": True, "repairs": []}, "tokens": {"llm_calls": 3}}
 
 
-def test_dev_questions_are_twenty_with_unique_ids_and_spec_lines():
+def test_dev_questions_are_96_with_unique_ids_and_spec_lines():
     qs = dr.load_questions()
-    assert len(qs) == 20 and len({x["id"] for x in qs}) == 20
+    assert len(qs) == 96 and len({x["id"] for x in qs}) == 96
     for x in qs:
-        assert x["source_lines"] and x["split"] == "dev"
-        assert all("line" in e for e in x["gold"]["edges"])
+        assert x["split"] == "dev"
+        assert all("line" in e for e in x["gold"].get("edges", []))
+        if x["gold"].get("edges"):
+            assert x["source_lines"]
     refusal_ok = {x["id"] for x in qs if x["expect"].get("or_refused")}
-    assert refusal_ok == {"dev-17", "dev-18"}  # dev-10's "no" is answerable: no refusal
+    premises = {x["id"] for x in qs if x["subtype"] == "false_premise"}
+    assert refusal_ok == premises and {"dev-17", "dev-18"} <= premises  # dev-10's "no": answerable
 
 
 def test_recall_extra_and_pass():

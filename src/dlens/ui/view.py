@@ -50,17 +50,26 @@ class ExampleGroup:
     questions: tuple[str, ...]
 
 
-# Dev-set subtypes grouped by what the question asks; order = order shown in the UI.
+# Dev-set subtypes grouped by what the question asks; order = order shown in the UI. Both the v0.2
+# subtype names and the S09 ones (ambiguous, yesno, multi_part, unanswerable kinds) are listed.
 _GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "Where a column comes from",
         "Traces the column back to its sources.",
-        ("upstream", "paraphrase", "abbreviation", "ambiguous_chain", "trap"),
+        (
+            "upstream",
+            "paraphrase",
+            "abbreviation",
+            "ambiguous_chain",
+            "ambiguous",
+            "trap",
+            "multi_part",
+        ),
     ),
     (
         "What a column affects",
         "Follows the column downstream; yes/no questions get a graph check.",
-        ("downstream", "reachability"),
+        ("downstream", "reachability", "yesno"),
     ),
     ("How a column is computed", "Shows the expression with its file and line.", ("computed",)),
     (
@@ -71,7 +80,14 @@ _GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "Should refuse",
         "The column does not exist, so the agent refuses.",
-        ("nonexistent_column",),
+        (
+            "nonexistent_column",
+            "dotted_near_miss",
+            "dotted_typo",
+            "unknown_model",
+            "bare",
+            "out_of_domain",
+        ),
     ),
 )
 

@@ -56,10 +56,14 @@ def final(
 
     def apply(q: dict[str, Any], entry: dict[str, Any], new_id: str) -> dict[str, Any]:
         r = {**q, "id": new_id}
-        if entry.get("wording"):
-            r["wording"] = entry["wording"]
+        for key in ("wording", "source"):  # owner re-labels
+            if entry.get(key):
+                r[key] = entry[key]
         if entry["decision"] == "fix":
             r["question"] = entry["text"]
+            if r["type"] != "unanswerable" and r["target"] not in entry["text"]:
+                model, column = r["target"].split(".")
+                r["mention"] = f"{column} in {model}"  # the worded entity, for dev_mentions
             ident = r["wording"] == "identifier" and r["type"] != "unanswerable"
             if ident and r["target"] not in entry["text"]:
                 problems.append(f"{new_id}: fixed identifier question must name {r['target']}")

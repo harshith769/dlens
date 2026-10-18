@@ -1,105 +1,106 @@
 # Owner decisions for the dev questions (S09). One entry per question id.
 # decision: accept | fix (add text: new question text) | drop (add replacement: dev-sNN)
 # Spares stay `unused` unless they replace a dropped question (then accept or fix).
-# Optional per entry: note, wording (re-label). `make check-review` enforces the rules.
+# Optional per entry: note, wording, source (re-labels). `make check-review` enforces the
+# rules.
 
 decisions:
-  dev-01: {decision: pending}
-  dev-02: {decision: pending}
-  dev-03: {decision: pending}
-  dev-04: {decision: pending}
-  dev-05: {decision: pending}
-  dev-06: {decision: pending}
-  dev-07: {decision: pending}
-  dev-08: {decision: pending}
-  dev-09: {decision: pending}
-  dev-10: {decision: pending}
-  dev-11: {decision: pending}
-  dev-12: {decision: pending}
-  dev-13: {decision: pending}
-  dev-14: {decision: pending}
-  dev-15: {decision: pending}
-  dev-16: {decision: pending}
-  dev-17: {decision: pending}
-  dev-18: {decision: pending}
-  dev-19: {decision: pending}
-  dev-20: {decision: pending}
-  dev-21: {decision: pending}
-  dev-22: {decision: pending}
-  dev-23: {decision: pending}
-  dev-24: {decision: pending}
-  dev-25: {decision: pending}
-  dev-26: {decision: pending}
-  dev-27: {decision: pending}
-  dev-28: {decision: pending}
-  dev-29: {decision: pending}
-  dev-30: {decision: pending}
-  dev-31: {decision: pending}
-  dev-32: {decision: pending}
-  dev-33: {decision: pending}
-  dev-34: {decision: pending}
-  dev-35: {decision: pending}
-  dev-36: {decision: pending}
-  dev-37: {decision: pending}
-  dev-38: {decision: pending}
-  dev-39: {decision: pending}
-  dev-40: {decision: pending}
-  dev-41: {decision: pending}
-  dev-42: {decision: pending}
-  dev-43: {decision: pending}
-  dev-44: {decision: pending}
-  dev-45: {decision: pending}
-  dev-46: {decision: pending}
-  dev-47: {decision: pending}
-  dev-48: {decision: pending}
-  dev-49: {decision: pending}
-  dev-50: {decision: pending}
-  dev-51: {decision: pending}
-  dev-52: {decision: pending}
-  dev-53: {decision: pending}
-  dev-54: {decision: pending}
-  dev-55: {decision: pending}
-  dev-56: {decision: pending}
-  dev-57: {decision: pending}
-  dev-58: {decision: pending}
-  dev-59: {decision: pending}
-  dev-60: {decision: pending}
-  dev-61: {decision: pending}
-  dev-62: {decision: pending}
-  dev-63: {decision: pending}
-  dev-64: {decision: pending}
-  dev-65: {decision: pending}
-  dev-66: {decision: pending}
-  dev-67: {decision: pending}
-  dev-68: {decision: pending}
-  dev-69: {decision: pending}
-  dev-70: {decision: pending}
-  dev-71: {decision: pending}
-  dev-72: {decision: pending}
-  dev-73: {decision: pending}
-  dev-74: {decision: pending}
-  dev-75: {decision: pending}
-  dev-76: {decision: pending}
-  dev-77: {decision: pending}
-  dev-78: {decision: pending}
-  dev-79: {decision: pending}
-  dev-80: {decision: pending}
-  dev-81: {decision: pending}
-  dev-82: {decision: pending}
-  dev-83: {decision: pending}
-  dev-84: {decision: pending}
-  dev-85: {decision: pending}
-  dev-86: {decision: pending}
-  dev-87: {decision: pending}
-  dev-88: {decision: pending}
-  dev-89: {decision: pending}
-  dev-90: {decision: pending}
-  dev-91: {decision: pending}
-  dev-92: {decision: pending}
-  dev-93: {decision: pending}
-  dev-94: {decision: pending}
-  dev-95: {decision: pending}
-  dev-96: {decision: pending}
+  dev-01: {decision: accept}
+  dev-02: {decision: accept}
+  dev-03: {decision: accept}
+  dev-04: {decision: accept}
+  dev-05: {decision: accept}
+  dev-06: {decision: accept}
+  dev-07: {decision: accept}
+  dev-08: {decision: accept}
+  dev-09: {decision: accept}
+  dev-10: {decision: accept}
+  dev-11: {decision: accept}
+  dev-12: {decision: accept}
+  dev-13: {decision: accept}
+  dev-14: {decision: accept}
+  dev-15: {decision: accept}
+  dev-16: {decision: accept}
+  dev-17: {decision: accept}
+  dev-18: {decision: accept}
+  dev-19: {decision: accept}
+  dev-20: {decision: accept}
+  dev-21: {decision: accept}
+  dev-22: {decision: accept}
+  dev-23: {decision: accept}
+  dev-24: {decision: accept}
+  dev-25: {decision: accept}
+  dev-26: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Which raw column does stg_order_items.order_item_id get its value from?', wording: paraphrase}
+  dev-27: {decision: accept}
+  dev-28: {decision: accept}
+  dev-29: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'What goes into the calculation of line_margin in int_order_item_margins?', wording: paraphrase}
+  dev-30: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'How does int_shipments_enriched work out days_to_ship?', wording: paraphrase}
+  dev-31: {decision: accept}
+  dev-32: {decision: accept}
+  dev-33: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'How is the spend_usd figure in fct_channel_performance_monthly put together?', wording: paraphrase}
+  dev-34: {decision: accept}
+  dev-35: {decision: accept}
+  dev-36: {decision: accept}
+  dev-37: {decision: accept}
+  dev-38: {decision: accept}
+  dev-39: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Where does the refunded_amount in fct_orders originally come from?', wording: paraphrase}
+  dev-40: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Which upstream column feeds order_id in int_order_profit?', wording: paraphrase}
+  dev-41: {decision: accept}
+  dev-42: {decision: accept}
+  dev-43: {decision: accept}
+  dev-44: {decision: accept}
+  dev-45: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: Walk me through how contribution_margin in fct_monthly_finance gets calculated., wording: paraphrase}
+  dev-46: {decision: accept}
+  dev-47: {decision: accept}
+  dev-48: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'What feeds item_count in fct_orders?', wording: paraphrase}
+  dev-49: {decision: accept}
+  dev-50: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Why does the active_customers count in fct_segment_monthly depend on fct_orders.net_paid_usd?', wording: paraphrase}
+  dev-51: {decision: accept}
+  dev-52: {decision: accept}
+  dev-53: {decision: accept}
+  dev-54: {decision: accept}
+  dev-55: {decision: accept}
+  dev-56: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'What depends on revenue_marketing in fct_daily_revenue?', wording: paraphrase}
+  dev-57: {decision: accept}
+  dev-58: {decision: accept}
+  dev-59: {decision: accept}
+  dev-60: {decision: accept}
+  dev-61: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Which columns would I need to check if I changed stg_order_items.order_item_id?', wording: paraphrase}
+  dev-62: {decision: accept}
+  dev-63: {decision: accept}
+  dev-64: {decision: accept}
+  dev-65: {decision: accept}
+  dev-66: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'What uses the sales_tax column from int_customer_order_history further down the pipeline?', wording: paraphrase}
+  dev-67: {decision: accept}
+  dev-68: {decision: accept}
+  dev-69: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Which downstream columns are built from line_amount in int_order_items_enriched?', wording: paraphrase}
+  dev-70: {decision: accept}
+  dev-71: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'What depends on customer_id in int_customer_sessions?', wording: paraphrase}
+  dev-72: {decision: accept}
+  dev-73: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Would a change to raw_payments.created_at show up in fct_payment_events.event_at?', wording: paraphrase}
+  dev-74: {decision: accept}
+  dev-75: {decision: accept}
+  dev-76: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Does stg_marketing_spend.impressions feed into int_campaign_spend_daily.clicks at all?', wording: paraphrase}
+  dev-77: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Does the roas in fct_channel_performance_monthly use the finance or the marketing definition of revenue?', wording: paraphrase}
+  dev-78: {decision: accept}
+  dev-79: {decision: accept}
+  dev-80: {decision: accept}
+  dev-81: {decision: accept}
+  dev-82: {decision: accept}
+  dev-83: {decision: accept}
+  dev-84: {decision: accept}
+  dev-85: {decision: accept}
+  dev-86: {decision: accept}
+  dev-87: {decision: accept}
+  dev-88: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'How does fct_shipping_performance decide which shipments count as late in late_shipment_count?', wording: paraphrase}
+  dev-89: {decision: accept}
+  dev-90: {decision: accept}
+  dev-91: {decision: accept}
+  dev-92: {decision: accept}
+  dev-93: {decision: accept}
+  dev-94: {decision: accept}
+  dev-95: {decision: fix, note: owner review 18 Oct 2026; grammar fix only, text: 'What is affected if loyalty points change?', wording: name_words}
+  dev-96: {decision: fix, note: owner review 18 Oct 2026, source: hand, text: 'Where would payroll.employee_salary come from?', wording: paraphrase}
   dev-s01: {decision: unused}
   dev-s02: {decision: unused}
   dev-s03: {decision: unused}

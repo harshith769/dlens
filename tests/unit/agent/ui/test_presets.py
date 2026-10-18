@@ -70,8 +70,10 @@ def test_preset_ids_passed_in_dev_r9_and_cover_every_kind():
     qs = {q["id"]: q for q in map(json.loads, view.DEV_QUESTIONS.read_text().splitlines())}
     chosen = [qs[i] for i in demo.PRESET_IDS]
     subtypes = {q["subtype"] for q in chosen}
-    assert {"upstream", "downstream", "reachability", "computed"} <= subtypes
-    assert {"ambiguous_chain", "nonexistent_column"} <= subtypes
+    # S09 re-tags: reachability -> yesno, ambiguous_chain -> ambiguous,
+    # nonexistent_column -> dotted_near_miss (same questions, same ids).
+    assert {"upstream", "downstream", "yesno", "computed"} <= subtypes
+    assert {"ambiguous", "dotted_near_miss"} <= subtypes
     assert any(q["expect"].get("yes_no") == "no" for q in chosen)
     assert {q["corpus"] for q in chosen} == {demo.PROJECT}
 

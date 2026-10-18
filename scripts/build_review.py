@@ -160,7 +160,8 @@ def render_decisions(d: dict[str, Any]) -> str:
         "# Owner decisions for the dev questions (S09). One entry per question id.\n"
         "# decision: accept | fix (add text: new question text) | drop (add replacement: dev-sNN)\n"
         "# Spares stay `unused` unless they replace a dropped question (then accept or fix).\n"
-        "# Optional per entry: note, wording (re-label). `make check-review` enforces the rules.\n"
+        "# Optional per entry: note, wording, source (re-labels). `make check-review` enforces the\n"
+        "# rules.\n"
     )
     lines = [head, "decisions:"]
     for qid, entry in d["decisions"].items():

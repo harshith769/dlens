@@ -21,7 +21,8 @@ def all_accept() -> dict:
 
 
 def test_pending_file_fails_and_all_accept_passes():
-    _, problems = cr.final(QUESTIONS, br.decisions(QUESTIONS))
+    pending = {"decisions": {q["id"]: {"decision": "pending"} for q in MAIN}}
+    _, problems = cr.final(QUESTIONS, pending)
     assert len(problems) == 96 and all("pending" in p for p in problems)
     out, problems = cr.final(QUESTIONS, all_accept())
     assert problems == [] and len(out) == 96
@@ -76,8 +77,7 @@ def test_wording_shift_needs_a_relabel_or_the_flag():
 def test_rebuild_keeps_decisions_the_owner_set(tmp_path, monkeypatch):
     f = tmp_path / "dev_decisions.yml"
     monkeypatch.setattr(br, "DECISIONS", f)
-    doc = br.decisions(QUESTIONS)
-    doc["decisions"]["dev-01"] = {"decision": "accept", "note": "ok"}
+    doc = {"decisions": {"dev-01": {"decision": "accept", "note": "ok"}}}
     f.write_text(br.render_decisions(doc))
     again = br.decisions(QUESTIONS)
     assert again["decisions"]["dev-01"] == {"decision": "accept", "note": "ok"}
@@ -86,3 +86,22 @@ def test_rebuild_keeps_decisions_the_owner_set(tmp_path, monkeypatch):
 
 def test_review_files_on_disk_are_fresh():
     assert br.OUT_MD.read_text() == br.render(QUESTIONS), "run scripts/build_review.py"
+
+
+def test_fix_can_relabel_source_and_keeps_gold():
+    doc = all_accept()
+    q = next(q for q in MAIN if q["wording"] == "paraphrase" and q["source"] == "template")
+    doc["decisions"][q["id"]] = {"decision": "fix", "text": "Owner text?", "source": "hand"}
+    out, problems = cr.final(QUESTIONS, doc)
+    new = next(x for x in out if x["id"] == q["id"])
+    assert problems == [] and new["source"] == "hand" and new["question"] == "Owner text?"
+    assert new["gold"] == q["gold"] and new["target"] == q["target"]
+
+
+def test_fix_without_the_dotted_id_records_the_worded_mention():
+    doc = all_accept()
+    q = next(q for q in MAIN if q["wording"] == "paraphrase" and q["type"] == "trace")
+    model, column = q["target"].split(".")
+    doc["decisions"][q["id"]] = {"decision": "fix", "text": f"What feeds {column} in {model}?"}
+    out, _ = cr.final(QUESTIONS, doc)
+    assert next(x for x in out if x["id"] == q["id"])["mention"] == f"{column} in {model}"
