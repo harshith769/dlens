@@ -14,7 +14,7 @@ See docs/explain/gold-spec.md.
 
 import argparse
 import sys
-from collections import Counter, defaultdict, deque
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -22,7 +22,16 @@ from typing import Any
 
 import yaml
 
-from dlens.gold_spec import ALL_TARGETS, INDIRECT_TYPES, IndirectPair, expand_indirect
+from dlens.gold_spec import (
+    ALL_TARGETS,
+    INDIRECT_TYPES,
+    View,
+    build_view,
+    compute_depths,
+    downstream,
+)
+from dlens.gold_spec import is_column_id as _is_id
+from dlens.gold_spec import rows as _rows
 
 ROOT = Path(__file__).parents[1]
 DEFAULT_SPEC = ROOT / "corpora" / "synthetic_shop" / "lineage_spec.yml"
@@ -51,82 +60,8 @@ def layer(model: str) -> str:
     return "stg" if model.startswith("stg_") else "int" if model.startswith("int_") else "mart"
 
 
-def _is_id(value: object) -> bool:
-    return isinstance(value, str) and len(value.split(".")) == 2 and all(value.split("."))
-
-
 def _check(name: str, problems: list[str], gated: bool = True) -> Check:
     return Check(name, not problems, problems, gated)
-
-
-# ----------------------------------------------------------------------------- loaded spec view
-@dataclass
-class View:
-    """A spec with derived lookups. Inventory-less specs (v1) derive columns from edge endpoints."""
-
-    raw: Mapping[str, Any]
-    has_inventory: bool
-    seeds: dict[str, list[str]]
-    models: dict[str, list[str]]
-    depends_on: dict[str, list[str]]
-    direct: list[Mapping[str, Any]]
-    indirect_rows: list[Mapping[str, Any]]
-    pairs: list[IndirectPair] = field(default_factory=list)
-    suppressed: list[tuple[str, str, str]] = field(default_factory=list)
-    conflicts: list[tuple[str, str, str]] = field(default_factory=list)
-    expand_errors: list[str] = field(default_factory=list)
-
-    @property
-    def seed_columns(self) -> set[str]:
-        return {f"{s}.{c}" for s, cs in self.seeds.items() for c in cs}
-
-    @property
-    def model_columns(self) -> set[str]:
-        return {f"{m}.{c}" for m, cs in self.models.items() for c in cs}
-
-    @property
-    def direct_pairs(self) -> set[tuple[str, str]]:
-        return {(str(e["from"]), str(e["to"])) for e in self.direct}
-
-
-def _rows(spec: Mapping[str, Any], key: str) -> list[Mapping[str, Any]]:
-    rows = spec.get(key) or []
-    return [r for r in rows if isinstance(r, Mapping)] if isinstance(rows, list) else []
-
-
-def build_view(spec: Mapping[str, Any]) -> View:
-    direct = _rows(spec, "edges")
-    indirect_rows = _rows(spec, "indirect_edges")
-    has_inventory = isinstance(spec.get("models"), Mapping) and isinstance(
-        spec.get("seeds"), Mapping
-    )
-    if has_inventory:
-        seeds = {s: list(cs or []) for s, cs in spec["seeds"].items()}
-        models = {m: list((v or {}).get("columns") or []) for m, v in spec["models"].items()}
-        depends_on = {m: list((v or {}).get("depends_on") or []) for m, v in spec["models"].items()}
-    else:
-        seeds, models, depends_on = defaultdict(list), defaultdict(list), {}
-        for e in direct:
-            for end, inv in ((e.get("from"), None), (e.get("to"), models)):
-                if not _is_id(end):
-                    continue
-                t, c = str(end).split(".")
-                target = inv if inv is not None else (seeds if t.startswith("raw_") else models)
-                if c not in target[t]:
-                    target[t].append(c)
-        seeds, models = dict(seeds), dict(models)
-    view = View(spec, has_inventory, seeds, models, depends_on, direct, indirect_rows)
-    direct_pairs = view.direct_pairs
-    for row in indirect_rows:  # row by row, so one bad row does not hide the others
-        try:
-            exp = expand_indirect([row], models, direct_pairs)
-        except (KeyError, ValueError) as err:
-            view.expand_errors.append(f"{row.get('from')} -> {row.get('model')}: {err}")
-            continue
-        view.pairs += exp.pairs
-        view.suppressed += exp.suppressed
-        view.conflicts += exp.conflicts
-    return view
 
 
 # ---------------------------------------------------------------------------- structural checks
@@ -284,43 +219,6 @@ def check_incoming(v: View) -> Check:
 
 
 # -------------------------------------------------------------------------------------- depth
-def compute_depths(v: View) -> dict[str, int | None]:
-    """Longest direct-edge path from a seed column; None (n/a) when no direct path reaches a seed.
-
-    Indirect edges never count (DESIGN_v2 §1). Raises ValueError on a cycle.
-    """
-    inputs: dict[str, list[str]] = defaultdict(list)
-    for f, t in v.direct_pairs:
-        inputs[t].append(f)
-    seeds = v.seed_columns
-    depth: dict[str, int | None] = {}
-    state: dict[str, int] = {}  # 1 = on stack, 2 = done
-    for start in sorted(v.model_columns):
-        stack = [start]
-        while stack:
-            col = stack[-1]
-            if col in depth:
-                stack.pop()
-                continue
-            if col in seeds:
-                depth[col] = 0
-                stack.pop()
-                continue
-            state[col] = 1
-            todo = [f for f in inputs.get(col, []) if f not in depth]
-            for f in todo:
-                if state.get(f) == 1:
-                    raise ValueError(f"cycle through {f}")
-            if todo:
-                stack.extend(todo)
-                continue
-            ds = [d for d in (depth[f] for f in inputs.get(col, [])) if d is not None]
-            depth[col] = max(ds) + 1 if ds else None
-            state[col] = 2
-            stack.pop()
-    return {c: depth[c] for c in v.model_columns}
-
-
 def check_depth(v: View, exp: Mapping[str, Any]) -> list[Check]:
     try:
         depth = compute_depths(v)
@@ -413,22 +311,6 @@ def check_absent(v: View, exp: Mapping[str, Any]) -> Check:
         if x["column"] in present
     ]
     return _check("absent columns (DESIGN_v2 §1, §3)", p)
-
-
-def downstream(v: View, source: str, with_indirect: bool) -> set[str]:
-    nxt: dict[str, set[str]] = defaultdict(set)
-    for f, t in v.direct_pairs:
-        nxt[f].add(t)
-    if with_indirect:
-        for x in v.pairs:
-            nxt[x.from_column].add(x.to_column)
-    seen: set[str] = set()
-    todo = deque([source])
-    while todo:
-        for t in nxt[todo.popleft()] - seen:
-            seen.add(t)
-            todo.append(t)
-    return seen
 
 
 def check_reachability(v: View, exp: Mapping[str, Any]) -> Check:

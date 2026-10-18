@@ -1,6 +1,6 @@
 # Explain: the gold spec format, the D7 expansion and the spec checker
 
-Files: `src/dlens/gold_spec.py` (D7 expansion), `scripts/check_gold_spec.py` (checker),
+Files: `src/dlens/gold_spec.py` (D7 expansion, spec view, gold answers), `scripts/check_gold_spec.py` (checker),
 `corpora/synthetic_shop/lineage_spec.yml` (v2 gold), `corpora/synthetic_shop/spec_expected.yml`
 (the design's numbers), `corpora/synthetic_shop/traps.yml` (v2 traps). Corpus guards (S02b):
 `corpora/synthetic_shop/tests/*.sql` (data guarantees), `v1_frozen.sha256`, `engine_gaps.yml`, `linker_gaps.yml`.
@@ -79,6 +79,25 @@ the source of truth for question stratification; tags are informational).
 Depth: longest direct-edge path from a seed column (`docs/explain/eval-dev.md`). A column with no
 direct path to a seed has depth n/a; in v2 that is only `int_web_sessions_clean.session_number`
 (`row_number()` with no argument).
+
+### Gold answers from the spec (`dlens.gold_spec`, S09)
+The spec view and the answer helpers moved from the checker into the package in S09, so the
+checker and the question generator (`scripts/gen_dev_questions.py`) compute gold with one
+implementation:
+- `build_view(spec)`: the inventory, direct edges and expanded indirect pairs of a parsed spec;
+- `compute_depths`: hop depth, direct edges only;
+- `upstream` / `downstream(v, column, with_indirect)`: closures over direct edges, or over direct
+  edges plus indirect pairs. Both forms go into question gold; S10 picks which one is scored;
+- `reaches`: reachability (the yes/no verdict);
+- `direct_inputs` / `indirect_inputs`: a column's one-hop inputs;
+- `downstream_depth`: the longest direct path leaving a column (impact strata);
+- `longest_path`: one longest seed → column path. Of all longest paths it takes the
+  lexicographically largest, compared seed first. That is the tie-break DESIGN_v2 Appendix B used.
+  A test checks all 55 Appendix B paths;
+- `exposures_reached`: the dashboards that depend on any of a set of models;
+- `edge_lines`: each direct edge's line in the spec file, for citations.
+
+The module still reads no files: callers pass parsed YAML or file text.
 
 ### After the swap: guards on the corpus itself (S02b)
 S02a checked the gold against the design with no SQL. S02b wrote the SQL and the data, then renamed
@@ -165,3 +184,11 @@ orders) and `raw_products` (product 16); DESIGN_v2 §1 item 4 records it.
    aggregate `FILTER (WHERE ...)` gap?
 3. Why are the §7.2 data checks safe as dbt singular tests for the graph, and which two code paths
    in `dlens ingest` guarantee it?
+4. A yes/no question asks whether `stg_suppliers.supplier_id` affects
+   `int_product_costs_current.unit_cost`. What do `reaches(..., with_indirect=False)` and
+   `reaches(..., with_indirect=True)` return, and why does the question's gold store both?
+5. Appendix B lists one path per 6+ column even where several longest paths exist. Which rule
+   picks it, and why does the S09 generator use that rule instead of "any longest path"?
+6. Why do the view and the closures live in `src/dlens/gold_spec.py` rather than in
+   `scripts/check_gold_spec.py`, and which rule in CLAUDE.md would be at risk if the question
+   generator computed gold from the lineage graph instead?
