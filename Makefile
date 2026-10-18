@@ -26,11 +26,7 @@ oracle:
 eval-full:
 	@echo "eval-full spends free cloud quota. Check the quota counter first."
 	@read -p "Type 'yes' to continue: " ans; [ "$$ans" = "yes" ] || { echo "Aborted."; exit 1; }
-	@echo "# Perturbation oracle (S05): offline, free; writes eval/oracle/results/ and ORACLE_REPORT.md.
-oracle:
-	uv run python scripts/run_oracle.py
-
-eval-full: not implemented yet"
+	@echo "eval-full: not implemented yet"
 
 # Local UI on Ollama: Ask | Explore lineage | How it works (needs: uv sync --extra agent --extra ui).
 ui:
