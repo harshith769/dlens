@@ -234,6 +234,20 @@ def gold_impact(ctx: Ctx, s: str) -> dict[str, Any]:
     }
 
 
+def gold_premise(ctx: Ctx, p: str, t: str) -> dict[str, Any]:
+    """False premise: the target's inputs, plus the premise's real path when it is upstream."""
+    gold = gold_computed(ctx, t)
+    up_d = p in ctx.up(t, False)
+    gold["premise"] = {"edge": {"from": p, "to": t}, "direct_edge": (p, t) in ctx.v.direct_pairs,
+                       "reaches_all": p in ctx.up(t, True)}  # fmt: skip
+    if up_d:
+        path = shortest_path(ctx, p, t, indirect=False)
+        gold["premise"]["path"] = path
+        extra = [ctx.edge(a, b) for a, b in zip(path, path[1:], strict=False)]
+        gold["edges"] += [e for e in extra if e not in gold["edges"]]
+    return gold
+
+
 def shortest_path(ctx: Ctx, s: str, t: str, indirect: bool) -> list[str]:
     nxt: dict[str, set[str]] = defaultdict(set)
     for f, to in ctx.v.direct_pairs:
@@ -528,9 +542,7 @@ class Builder:
             p = premises[0]
             mention = self.mention_for(slot, c)
             assert mention is not None
-            gold = gold_computed(ctx, c)
-            gold["premise"] = {"edge": {"from": p, "to": c}, "direct_edge": False,
-                               "reaches_all": p in up_all}  # fmt: skip
+            gold = gold_premise(ctx, p, c)
             inputs = gold["inputs"]["direct"]
             expect = {"verdict": "answered", "or_refused": True,
                       "must_cite": [[{"from": i, "to": c} for i in inputs]],
@@ -724,10 +736,7 @@ def regold_v02(b: Builder, old: dict[str, Any]) -> dict[str, Any]:
         gold, traps, hop = gold_computed(ctx, t), trace_tags(ctx, t), ctx.depth(t)
     elif subtype == "false_premise":
         p = old["expect"]["forbid_edges"][0]["from"]
-        gold = gold_computed(ctx, t)
-        gold["premise"] = {"edge": {"from": p, "to": t},
-                           "direct_edge": (p, t) in ctx.v.direct_pairs,
-                           "reaches_all": p in ctx.up(t, True)}  # fmt: skip
+        gold = gold_premise(ctx, p, t)
         traps, hop = trace_tags(ctx, t, [p]), ctx.depth(t)
     elif subtype == "downstream":
         gold = gold_impact(ctx, t)

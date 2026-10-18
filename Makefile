@@ -1,4 +1,4 @@
-.PHONY: test test-fast lint ingest eval-smoke eval-full oracle ui demo-bundle demo-requirements
+.PHONY: test test-fast lint ingest eval-smoke eval-full oracle ui demo-bundle demo-requirements check-review
 
 test:
 	uv run pytest
@@ -18,6 +18,10 @@ ingest:
 # Dev-set report on local Ollama; the LLM cache in eval/cache makes re-runs free (no quota).
 eval-smoke:
 	DLENS_PROVIDER=ollama DLENS_CACHE_DIR=eval/cache uv run python scripts/dev_report.py
+
+# Dev question review gate (S09): every owner decision set, counts match the table.
+check-review:
+	uv run python scripts/check_review.py
 
 # Perturbation oracle (S05): offline, free; writes eval/oracle/results/ and ORACLE_REPORT.md.
 oracle:
