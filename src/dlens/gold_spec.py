@@ -207,10 +207,10 @@ def compute_depths(v: View) -> dict[str, int | None]:
     return {c: depth[c] for c in v.model_columns}
 
 
-def _adjacency(v: View, with_indirect: bool, reverse: bool) -> dict[str, set[str]]:
+def _adjacency(v: View, include_indirect: bool, reverse: bool) -> dict[str, set[str]]:
     nxt: dict[str, set[str]] = defaultdict(set)
     pairs: list[tuple[str, str]] = list(v.direct_pairs)
-    if with_indirect:
+    if include_indirect:
         pairs += [(x.from_column, x.to_column) for x in v.pairs]
     for f, t in pairs:
         if reverse:
@@ -230,18 +230,18 @@ def _closure(nxt: Mapping[str, set[str]], start: str) -> set[str]:
     return seen
 
 
-def downstream(v: View, source: str, with_indirect: bool) -> set[str]:
+def downstream(v: View, source: str, *, include_indirect: bool) -> set[str]:
     """Every column reachable from ``source`` (direct edges, plus indirect pairs if asked)."""
-    return _closure(_adjacency(v, with_indirect, reverse=False), source)
+    return _closure(_adjacency(v, include_indirect, reverse=False), source)
 
 
-def upstream(v: View, target: str, with_indirect: bool) -> set[str]:
+def upstream(v: View, target: str, *, include_indirect: bool) -> set[str]:
     """Every column ``target`` is reachable from (direct edges, plus indirect pairs if asked)."""
-    return _closure(_adjacency(v, with_indirect, reverse=True), target)
+    return _closure(_adjacency(v, include_indirect, reverse=True), target)
 
 
-def reaches(v: View, source: str, target: str, with_indirect: bool) -> bool:
-    return target in downstream(v, source, with_indirect)
+def reaches(v: View, source: str, target: str, *, include_indirect: bool) -> bool:
+    return target in downstream(v, source, include_indirect=include_indirect)
 
 
 def direct_inputs(v: View, target: str) -> list[Mapping[str, Any]]:
@@ -258,7 +258,7 @@ def indirect_inputs(v: View, target: str) -> list[IndirectPair]:
 
 def downstream_depth(v: View, column: str) -> int:
     """Longest direct-edge path leaving ``column`` (0: no direct edge reads it)."""
-    nxt = _adjacency(v, with_indirect=False, reverse=False)
+    nxt = _adjacency(v, include_indirect=False, reverse=False)
     memo: dict[str, int] = {}
 
     def walk(c: str) -> int:

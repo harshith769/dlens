@@ -117,24 +117,27 @@ which traps fall short in test.
 `scripts/question_pools.py` writes `eval/questions/pools.yml`. It is deterministic, and reruns give
 the same file byte for byte.
 
-- **Candidates:** every column in `lineage_spec.yml`: 84 seed columns and 318 model columns.
+- **Candidates:** every column in `lineage_spec.yml`: 73 seed columns and 318 model columns (391).
   Non-existent columns (unanswerable questions) use no supply.
-- **Stratum** = (hop bucket, rarest trap):
+- **Stratum** = (hop bucket, rarest trap). A small trap (one that names ≤ 5 columns:
+  rename_chain, join_key_only, fan_in_aggregate, stale_doc, doc_injection) forms one stratum across
+  buckets (`any|<trap>`), so its columns split between dev and test (owner Q5):
   - hop bucket: `1`, `2-3`, `4-5`, `6+`, `seed` (depth 0) or `n/a` (`session_number`);
   - rarest trap: the trap with the fewest columns among those that name the column (the 8
     column-level traps plus `doc_injection`), or `none`. A trap "names" a column when the column is
     in its `columns`, is the `to` end of one of its `edges`, or is the first or last column of one
     of its `paths`.
 - **Ordering:** inside each stratum, columns are sorted by `sha256("s09-pools-v1:" + column_id)`.
-- **Forced dev:** the 19 existing targets (dev-19's target does not exist) go to dev first and
-  count toward their stratum's dev quota.
+- **Forced dev:** the 18 existing distinct targets go to dev first and count toward their
+  stratum's dev quota. (20 questions have 19 distinct targets, because dev-11 and dev-17 share
+  `fct_orders.revenue_finance`, and dev-19's target does not exist.)
 - **Dev quota** per stratum = `max(forced, round(0.30 × n))`, and at least 1 when `n ≥ 2`.
   - `n = 1`: dev when the hash's first 8 hex digits / 2³² < 0.30.
   - Strata of size 2 split 1/1.
   - The rest of each stratum goes to test.
 - **File contents:** `{salt, share, columns: {id: {split, stratum}}}` and a per-stratum summary.
   It lists column ids only and holds no question text for either split.
-- **Checks (unit tests):** deterministic; dev ∩ test = ∅; all 19 forced columns in dev; every
+- **Checks (unit tests):** deterministic; dev ∩ test = ∅; all 18 forced columns in dev; every
   stratum's quota met; with the expected share, the dev pool covers the count table (≥ 11 targets
   in each trace bucket, ≥ 3 at 8–10 hops, ≥ 24 impact sources by downstream bucket, and the trap
   minimums of §1.2). If a requirement is short, the script fails and names the stratum. **It never
@@ -368,3 +371,8 @@ stg_shipments.shipping_cost changes?" (trap 8 lists `shipping_cost` as an unansw
 
 ## Change log
 - 18 Oct 2026: first draft (S09 step 1), with the owner's answers to the plan questions.
+- 18 Oct 2026 (step 4): small traps stratified across buckets. With (bucket, trap) strata, the two
+  stale_doc columns fell into two 1-column strata and both hashed to test. Seed-column count
+  corrected (73, not 84). 18 forced targets, not 19. A D5 conflict was found and flagged for the
+  owner: dev-11 (re-tagged trace/computed) and dev-17 (false premise) are both Trace questions
+  on `fct_orders.revenue_finance`.

@@ -96,24 +96,24 @@ TOY = {
 }
 
 
-def test_closures_direct_vs_with_indirect() -> None:
+def test_closures_direct_vs_include_indirect() -> None:
     v = gs.build_view(TOY)
-    assert gs.downstream(v, "raw_a.k", with_indirect=False) == {"stg_a.k"}
-    assert gs.downstream(v, "raw_a.k", with_indirect=True) == {
+    assert gs.downstream(v, "raw_a.k", include_indirect=False) == {"stg_a.k"}
+    assert gs.downstream(v, "raw_a.k", include_indirect=True) == {
         "stg_a.k",
         "int_b.total",
         "fct_c.total",
     }
-    assert gs.upstream(v, "fct_c.total", with_indirect=False) == {
+    assert gs.upstream(v, "fct_c.total", include_indirect=False) == {
         "int_b.total",
         "stg_a.x",
         "stg_a.y",
         "raw_a.x",
         "raw_a.y",
     }
-    assert "raw_a.k" in gs.upstream(v, "fct_c.total", with_indirect=True)
-    assert not gs.reaches(v, "raw_a.k", "fct_c.total", with_indirect=False)
-    assert gs.reaches(v, "raw_a.k", "fct_c.total", with_indirect=True)
+    assert "raw_a.k" in gs.upstream(v, "fct_c.total", include_indirect=True)
+    assert not gs.reaches(v, "raw_a.k", "fct_c.total", include_indirect=False)
+    assert gs.reaches(v, "raw_a.k", "fct_c.total", include_indirect=True)
 
 
 def test_inputs_depths_and_paths() -> None:

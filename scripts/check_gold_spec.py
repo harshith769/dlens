@@ -319,7 +319,7 @@ def check_reachability(v: View, exp: Mapping[str, Any]) -> Check:
         for mode in x["modes"]:
             if mode not in ("direct", "direct+indirect"):
                 p.append(f"unknown mode {mode}")
-            elif x["to"] in downstream(v, x["from"], mode == "direct+indirect"):
+            elif x["to"] in downstream(v, x["from"], include_indirect=mode == "direct+indirect"):
                 p.append(f"{x['from']} reaches {x['to']} ({mode}; {x['why']})")
     return _check("unreachable pairs (DESIGN_v2 §1, §9 dev-10)", p)
 

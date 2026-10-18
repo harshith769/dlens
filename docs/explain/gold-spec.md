@@ -86,7 +86,7 @@ checker and the question generator (`scripts/gen_dev_questions.py`) compute gold
 implementation:
 - `build_view(spec)`: the inventory, direct edges and expanded indirect pairs of a parsed spec;
 - `compute_depths`: hop depth, direct edges only;
-- `upstream` / `downstream(v, column, with_indirect)`: closures over direct edges, or over direct
+- `upstream` / `downstream(v, column, include_indirect)`: closures over direct edges, or over direct
   edges plus indirect pairs. Both forms go into question gold; S10 picks which one is scored;
 - `reaches`: reachability (the yes/no verdict);
 - `direct_inputs` / `indirect_inputs`: a column's one-hop inputs;
@@ -185,8 +185,8 @@ orders) and `raw_products` (product 16); DESIGN_v2 §1 item 4 records it.
 3. Why are the §7.2 data checks safe as dbt singular tests for the graph, and which two code paths
    in `dlens ingest` guarantee it?
 4. A yes/no question asks whether `stg_suppliers.supplier_id` affects
-   `int_product_costs_current.unit_cost`. What do `reaches(..., with_indirect=False)` and
-   `reaches(..., with_indirect=True)` return, and why does the question's gold store both?
+   `int_product_costs_current.unit_cost`. What do `reaches(..., include_indirect=False)` and
+   `reaches(..., include_indirect=True)` return, and why does the question's gold store both?
 5. Appendix B lists one path per 6+ column even where several longest paths exist. Which rule
    picks it, and why does the S09 generator use that rule instead of "any longest path"?
 6. Why do the view and the closures live in `src/dlens/gold_spec.py` rather than in
