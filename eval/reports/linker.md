@@ -9,15 +9,15 @@ Constants: tau (NO_MATCH) 0.6, delta (AMBIGUOUS_GAP) 0.05, COS_MIN 0.695.
 
 | set | system | top-1 | top-3 | no-match | ambiguous (all pos.) | ambiguous recall | false ambiguous |
 |---|---|---|---|---|---|---|---|
-| linker-dev | v1 | 82/103 = 0.80 | 92/103 = 0.89 | 2/15 = 0.13 | 53/103 = 0.51 | 29/32 = 0.91 | 24/71 = 0.34 |
-| linker-dev | v2 (no hybrid) | 84/103 = 0.82 | 87/103 = 0.84 | 15/15 = 1.00 | 37/103 = 0.36 | 27/32 = 0.84 | 10/71 = 0.14 |
-| linker-dev | v2 (hybrid) | 87/103 = 0.84 | 94/103 = 0.91 | 15/15 = 1.00 | 50/103 = 0.49 | 30/32 = 0.94 | 20/71 = 0.28 |
-| linker-test | v1 | 86/109 = 0.79 | 94/109 = 0.86 | 3/20 = 0.15 | 36/109 = 0.33 | 21/23 = 0.91 | 15/86 = 0.17 |
-| linker-test | v2 (no hybrid) | 89/109 = 0.82 | 90/109 = 0.83 | 19/20 = 0.95 | 20/109 = 0.18 | 17/23 = 0.74 | 3/86 = 0.03 |
-| linker-test | v2 (hybrid) | 95/109 = 0.87 | 101/109 = 0.93 | 18/20 = 0.90 | 32/109 = 0.29 | 20/23 = 0.87 | 12/86 = 0.14 |
-| dev mentions | v1 | 19/19 = 1.00 | 19/19 = 1.00 | 0/1 = 0.00 | 3/19 = 0.16 | 1/1 = 1.00 | 2/18 = 0.11 |
-| dev mentions | v2 (no hybrid) | 19/19 = 1.00 | 19/19 = 1.00 | 1/1 = 1.00 | 1/19 = 0.05 | 1/1 = 1.00 | 0/18 = 0.00 |
-| dev mentions | v2 (hybrid) | 19/19 = 1.00 | 19/19 = 1.00 | 1/1 = 1.00 | 1/19 = 0.05 | 1/1 = 1.00 | 0/18 = 0.00 |
+| linker-dev | v1 | 83/104 = 0.80 | 93/104 = 0.89 | 2/15 = 0.13 | 53/104 = 0.51 | 29/32 = 0.91 | 24/72 = 0.33 |
+| linker-dev | v2 (no hybrid) | 85/104 = 0.82 | 88/104 = 0.85 | 15/15 = 1.00 | 37/104 = 0.36 | 27/32 = 0.84 | 10/72 = 0.14 |
+| linker-dev | v2 (hybrid) | 88/104 = 0.85 | 95/104 = 0.91 | 15/15 = 1.00 | 50/104 = 0.48 | 30/32 = 0.94 | 20/72 = 0.28 |
+| linker-test | v1 | 86/109 = 0.79 | 94/109 = 0.86 | 3/19 = 0.16 | 36/109 = 0.33 | 21/23 = 0.91 | 15/86 = 0.17 |
+| linker-test | v2 (no hybrid) | 89/109 = 0.82 | 90/109 = 0.83 | 19/19 = 1.00 | 20/109 = 0.18 | 17/23 = 0.74 | 3/86 = 0.03 |
+| linker-test | v2 (hybrid) | 95/109 = 0.87 | 101/109 = 0.93 | 18/19 = 0.95 | 32/109 = 0.29 | 20/23 = 0.87 | 12/86 = 0.14 |
+| dev mentions | v1 | 78/87 = 0.90 | 80/87 = 0.92 | 3/9 = 0.33 | 14/87 = 0.16 | 3/3 = 1.00 | 11/84 = 0.13 |
+| dev mentions | v2 (no hybrid) | 77/87 = 0.89 | 78/87 = 0.90 | 9/9 = 1.00 | 8/87 = 0.09 | 3/3 = 1.00 | 5/84 = 0.06 |
+| dev mentions | v2 (hybrid) | 78/87 = 0.90 | 84/87 = 0.97 | 8/9 = 0.89 | 18/87 = 0.21 | 3/3 = 1.00 | 15/84 = 0.18 |
 | dbt_jira sample | v1 | 13/17 = 0.76 | 13/17 = 0.76 | 1/3 = 0.33 | 10/17 = 0.59 | 8/8 = 1.00 | 2/9 = 0.22 |
 | dbt_jira sample | v2 (no hybrid) | 13/17 = 0.76 | 13/17 = 0.76 | 3/3 = 1.00 | 6/17 = 0.35 | 6/8 = 0.75 | 0/9 = 0.00 |
 | dbt_jira sample | v2 (hybrid) | 15/17 = 0.88 | 16/17 = 0.94 | 3/3 = 1.00 | 8/17 = 0.47 | 7/8 = 0.88 | 1/9 = 0.11 |
@@ -33,7 +33,7 @@ Constants: tau (NO_MATCH) 0.6, delta (AMBIGUOUS_GAP) 0.05, COS_MIN 0.695.
 | linker_gap | 2 | 1/2 = 0.50 | 2/2 = 1.00 | 2/2 = 1.00 | 2/2 = 1.00 | 2/2 = 1.00 | 2/2 = 1.00 |
 | model_qualified | 9 | 6/9 = 0.67 | 9/9 = 1.00 | 6/9 = 0.67 | 8/9 = 0.89 | 6/9 = 0.67 | 7/9 = 0.78 |
 | near_duplicate | 9 | 8/8 = 1.00 | 8/8 = 1.00 | 8/8 = 1.00 | 8/8 = 1.00 | 8/8 = 1.00 | 8/8 = 1.00 |
-| no_match | 14 | 2/14 = 0.14 | – | 14/14 = 1.00 | – | 14/14 = 1.00 | – |
+| no_match | 15 | 2/14 = 0.14 | – | 14/14 = 1.00 | – | 14/14 = 1.00 | – |
 | phrase | 6 | 3/6 = 0.50 | 5/6 = 0.83 | 6/6 = 1.00 | 6/6 = 1.00 | 5/6 = 0.83 | 5/6 = 0.83 |
 | typo | 5 | 5/5 = 1.00 | 5/5 = 1.00 | 4/5 = 0.80 | 5/5 = 1.00 | 3/5 = 0.60 | 4/5 = 0.80 |
 | word_order | 7 | 6/7 = 0.86 | 7/7 = 1.00 | 7/7 = 1.00 | 7/7 = 1.00 | 7/7 = 1.00 | 7/7 = 1.00 |
@@ -49,7 +49,7 @@ Constants: tau (NO_MATCH) 0.6, delta (AMBIGUOUS_GAP) 0.05, COS_MIN 0.695.
 | linker_gap | 2 | 0/2 = 0.00 | 1/2 = 0.50 | 2/2 = 1.00 | 2/2 = 1.00 | 2/2 = 1.00 | 2/2 = 1.00 |
 | model_qualified | 8 | 8/8 = 1.00 | 8/8 = 1.00 | 7/8 = 0.88 | 8/8 = 1.00 | 7/8 = 0.88 | 8/8 = 1.00 |
 | near_duplicate | 10 | 4/6 = 0.67 | 6/6 = 1.00 | 6/6 = 1.00 | 6/6 = 1.00 | 6/6 = 1.00 | 6/6 = 1.00 |
-| no_match | 16 | 3/16 = 0.19 | – | 15/16 = 0.94 | – | 14/16 = 0.88 | – |
+| no_match | 15 | 3/15 = 0.20 | – | 15/15 = 1.00 | – | 14/15 = 0.93 | – |
 | phrase | 11 | 10/11 = 0.91 | 10/11 = 0.91 | 11/11 = 1.00 | 11/11 = 1.00 | 10/11 = 0.91 | 11/11 = 1.00 |
 | typo | 5 | 5/5 = 1.00 | 5/5 = 1.00 | 5/5 = 1.00 | 5/5 = 1.00 | 4/5 = 0.80 | 5/5 = 1.00 |
 | word_order | 10 | 10/10 = 1.00 | 10/10 = 1.00 | 10/10 = 1.00 | 10/10 = 1.00 | 10/10 = 1.00 | 10/10 = 1.00 |
@@ -58,7 +58,7 @@ Constants: tau (NO_MATCH) 0.6, delta (AMBIGUOUS_GAP) 0.05, COS_MIN 0.695.
 
 | stage / tier | n | top-1 correct |
 |---|---|---|
-| dotted_abbreviation | 11 | 11 |
+| dotted_abbreviation | 12 | 12 |
 | exact_id | 51 | 51 |
 | exact_name | 22 | 22 |
 | fuzzy | 7 | 6 |
@@ -100,12 +100,88 @@ Constants: tau (NO_MATCH) 0.6, delta (AMBIGUOUS_GAP) 0.05, COS_MIN 0.695.
 | dev-18 | int_order_financials.net_paid_usd | int_order_financials.net_paid_usd | int_order_financials.net_paid_usd | int_order_financials.net_paid_usd | False |
 | dev-19 | stg_orders.ship_date | (none) | fct_daily_revenue.order_date | (none) | False |
 | dev-20 | fct_payment_events.event_at | fct_payment_events.event_at | fct_payment_events.event_at | fct_payment_events.event_at | False |
+| dev-21 | the column documented as 'When the parcel left the warehouse; null while not yet shipped' | stg_shipments.shipped_at | (none) | (none) | False |
+| dev-22 | stg_shipments.carrier | stg_shipments.carrier | stg_shipments.carrier | stg_shipments.carrier | False |
+| dev-23 | stg_product_costs.product_id | stg_product_costs.product_id | stg_product_costs.product_id | stg_product_costs.product_id | False |
+| dev-24 | stg_order_items.quantity | stg_order_items.quantity | stg_order_items.quantity | stg_order_items.quantity | False |
+| dev-25 | refund reason | stg_refunds.refund_reason | stg_refunds.refund_reason | stg_refunds.refund_reason | False |
+| dev-26 | stg_order_items.order_item_id | stg_order_items.order_item_id | stg_order_items.order_item_id | stg_order_items.order_item_id | False |
+| dev-27 | the column documented as 'Promotion codes used, highest discount first' | int_order_promotions.promo_codes | (none) | (none) | False |
+| dev-28 | the column documented as 'Event key, prefixed by its source' | int_payment_events.event_id | (none) | (none) | False |
+| dev-29 | line_margin in int_order_item_margins | int_order_item_margins.line_margin | int_order_item_margins.line_margin | int_order_item_margins.line_margin | False |
+| dev-30 | days_to_ship in int_shipments_enriched | int_shipments_enriched.days_to_ship | int_shipments_enriched.days_to_ship | int_shipments_enriched.days_to_ship | False |
+| dev-31 | session started at | int_web_sessions_clean.session_started_at, stg_web_sessions.session_started_at | int_web_sessions_clean.session_started_at | int_web_sessions_clean.session_started_at | True |
+| dev-32 | int_order_items_enriched.product_id | int_order_items_enriched.product_id | int_order_items_enriched.product_id | int_order_items_enriched.product_id | False |
+| dev-33 | spend_usd in fct_channel_performance_monthly | fct_channel_performance_monthly.spend_usd | fct_channel_performance_monthly.spend_usd | fct_channel_performance_monthly.spend_usd | False |
+| dev-34 | int_customer_order_history.sales_tax | int_customer_order_history.sales_tax | int_customer_order_history.sales_tax | int_customer_order_history.sales_tax | False |
+| dev-35 | dim_customer_segments.customer_id | dim_customer_segments.customer_id | dim_customer_segments.customer_id | dim_customer_segments.customer_id | False |
+| dev-36 | fct_order_margins.cogs_total | fct_order_margins.cogs_total | fct_order_margins.cogs_total | fct_order_margins.cogs_total | False |
+| dev-37 | order status group in orders | fct_orders.order_status_group | fct_orders.order_status_group | fct_orders.order_status_group | True |
+| dev-38 | items subtotal in order financials | int_order_financials.items_subtotal | int_order_financials.items_subtotal | int_order_financials.items_subtotal | False |
+| dev-39 | refunded_amount in fct_orders | fct_orders.refunded_amount | fct_orders.refunded_amount | fct_orders.refunded_amount | False |
+| dev-40 | order_id in int_order_profit | int_order_profit.order_id | int_order_profit.order_id | int_order_profit.order_id | False |
+| dev-41 | the column documented as 'One of champion, loyal, at_risk or hibernating' | dim_customer_segments.customer_segment | (none) | (none) | False |
+| dev-42 | fct_monthly_finance.revenue_marketing | fct_monthly_finance.revenue_marketing | fct_monthly_finance.revenue_marketing | fct_monthly_finance.revenue_marketing | False |
+| dev-43 | fct_channel_performance_monthly.roas | fct_channel_performance_monthly.roas | fct_channel_performance_monthly.roas | fct_channel_performance_monthly.roas | False |
+| dev-44 | dim_customer_segments.rfm_score | dim_customer_segments.rfm_score | dim_customer_segments.rfm_score | dim_customer_segments.rfm_score | False |
+| dev-45 | contribution_margin in fct_monthly_finance | fct_monthly_finance.contribution_margin | fct_monthly_finance.contribution_margin | fct_monthly_finance.contribution_margin | False |
+| dev-46 | order month | fct_customer_cohorts.order_month, fct_segment_monthly.order_month | fct_customer_cohorts.order_month | fct_customer_cohorts.order_month | True |
+| dev-47 | segment order count | fct_segment_monthly.segment_order_count | fct_segment_monthly.segment_order_count | fct_segment_monthly.segment_order_count | False |
+| dev-48 | item_count in fct_orders | fct_orders.item_count | fct_orders.item_count | fct_orders.item_count | True |
+| dev-49 | int_customer_sessions.customer_id | int_customer_sessions.customer_id | int_customer_sessions.customer_id | int_customer_sessions.customer_id | False |
+| dev-50 | active_customers in fct_segment_monthly | fct_segment_monthly.active_customers | fct_segment_monthly.active_customers | fct_segment_monthly.active_customers | False |
+| dev-51 | the column documented as 'True when the line was sold below list price' | int_order_items_enriched.is_discounted | (none) | (none) | False |
+| dev-52 | int_web_sessions_clean.session_started_at | int_web_sessions_clean.session_started_at | int_web_sessions_clean.session_started_at | int_web_sessions_clean.session_started_at | False |
+| dev-53 | stg_product_costs.product_id | stg_product_costs.product_id | stg_product_costs.product_id | stg_product_costs.product_id | False |
+| dev-54 | fct_orders.net_paid_usd | fct_orders.net_paid_usd | fct_orders.net_paid_usd | fct_orders.net_paid_usd | False |
+| dev-55 | id in raw product costs | raw_product_costs.id | stg_product_costs.product_cost_id | stg_product_costs.product_cost_id | True |
+| dev-56 | revenue_marketing in fct_daily_revenue | fct_daily_revenue.revenue_marketing | fct_daily_revenue.revenue_marketing | fct_daily_revenue.revenue_marketing | False |
+| dev-57 | the column documented as 'Order status mapped to complete, open, returned or other' | int_orders_enriched.order_status_group | (none) | (none) | False |
+| dev-58 | int_order_item_margins.line_margin | int_order_item_margins.line_margin | int_order_item_margins.line_margin | int_order_item_margins.line_margin | False |
+| dev-59 | raw_products.list_price | raw_products.list_price | raw_products.list_price | raw_products.list_price | False |
+| dev-60 | product id in order items enriched | int_order_items_enriched.product_id | int_order_items_enriched.product_id | int_order_items_enriched.product_id | False |
+| dev-61 | stg_order_items.order_item_id | stg_order_items.order_item_id | stg_order_items.order_item_id | stg_order_items.order_item_id | False |
+| dev-62 | the column documented as 'Current purchase cost of one unit' | int_product_costs_current.unit_cost | int_product_costs_current.unit_cost | (none) | False |
+| dev-63 | the column documented as 'Discount granted on the order by this promotion, in USD' | stg_order_promotions.discount_usd | stg_order_promotions.discount_usd | (none) | False |
+| dev-64 | int_order_items_enriched.quantity | int_order_items_enriched.quantity | int_order_items_enriched.quantity | int_order_items_enriched.quantity | False |
+| dev-65 | fct_orders.refunded_amount | fct_orders.refunded_amount | fct_orders.refunded_amount | fct_orders.refunded_amount | False |
+| dev-66 | sales_tax in int_customer_order_history | int_customer_order_history.sales_tax | int_customer_order_history.sales_tax | int_customer_order_history.sales_tax | False |
+| dev-67 | stg_order_items.quantity | stg_order_items.quantity | stg_order_items.quantity | stg_order_items.quantity | False |
+| dev-68 | sales tax in order financials | int_order_financials.sales_tax | int_order_financials.sales_tax | int_order_financials.sales_tax | False |
+| dev-69 | line_amount in int_order_items_enriched | int_order_items_enriched.line_amount | int_order_items_enriched.line_amount | int_order_items_enriched.line_amount | False |
+| dev-70 | dim_customer_segments.customer_id | dim_customer_segments.customer_id | dim_customer_segments.customer_id | dim_customer_segments.customer_id | False |
+| dev-71 | customer_id in int_customer_sessions | int_customer_sessions.customer_id | int_customer_sessions.customer_id | int_customer_sessions.customer_id | True |
+| dev-72 | int_order_financials.items_subtotal | int_order_financials.items_subtotal | int_order_financials.items_subtotal | int_order_financials.items_subtotal | False |
+| dev-73 | raw_payments.created_at | raw_payments.created_at | raw_payments.created_at | raw_payments.created_at | False |
+| dev-74 | int_product_costs_current.product_id | int_product_costs_current.product_id | int_product_costs_current.product_id | int_product_costs_current.product_id | False |
+| dev-75 | last name in raw customers | raw_customers.last_name | stg_customers.last_name | stg_customers.last_name | True |
+| dev-76 | stg_marketing_spend.impressions | stg_marketing_spend.impressions | stg_marketing_spend.impressions | stg_marketing_spend.impressions | False |
+| dev-77 | roas in fct_channel_performance_monthly | fct_channel_performance_monthly.roas | fct_channel_performance_monthly.roas | fct_channel_performance_monthly.roas | False |
+| dev-78 | fct_daily_revenue.revenue_marketing | fct_daily_revenue.revenue_marketing | fct_daily_revenue.revenue_marketing | fct_daily_revenue.revenue_marketing | False |
+| dev-79 | dim_customers.lifetime_value | dim_customers.lifetime_value | dim_customers.lifetime_value | dim_customers.lifetime_value | False |
+| dev-80 | fct_monthly_finance.revenue_marketing | fct_monthly_finance.revenue_marketing | fct_monthly_finance.revenue_marketing | fct_monthly_finance.revenue_marketing | False |
+| dev-81 | int_order_item_margins.line_margin | int_order_item_margins.line_margin | int_order_item_margins.line_margin | int_order_item_margins.line_margin | False |
+| dev-82 | int_order_financials.refund_amount | int_order_financials.refund_amount | int_order_financials.refund_amount | int_order_financials.refund_amount | False |
+| dev-83 | stg_shipments.shipping_cost_usd | stg_shipments.shipping_cost_usd | stg_shipments.shipping_cost_usd | stg_shipments.shipping_cost_usd | False |
+| dev-84 | int_orders_enriched.order_status_group | int_orders_enriched.order_status_group | int_orders_enriched.order_status_group | int_orders_enriched.order_status_group | False |
+| dev-85 | dim_customer_segments.customer_segment | dim_customer_segments.customer_segment | dim_customer_segments | dim_customer_segments.customer_segment | False |
+| dev-86 | fct_order_margins.order_id | fct_order_margins.order_id | fct_order_margins.order_id | fct_order_margins.order_id | False |
+| dev-87 | int_web_sessions_clean.session_id | int_web_sessions_clean.session_id | int_web_sessions_clean.session_id | int_web_sessions_clean.session_id | False |
+| dev-88 | late_shipment_count in fct_shipping_performance | fct_shipping_performance.late_shipment_count | fct_shipping_performance.late_shipment_count | fct_shipping_performance.late_shipment_count | False |
+| dev-89 | int_order_shipping.shipping_cost | (none) | int_order_shipping | (none) | False |
+| dev-90 | fct_orders.discount_total | (none) | fct_order_margins.discount_total | (none) | False |
+| dev-91 | dim_customers.segment | (none) | dim_customer_segments | (none) | False |
+| dev-92 | fct_daily_revenue.revnue_finance | (none) | fct_daily_revenue.revenue_finance | (none) | False |
+| dev-93 | fct_returns.return_amount | (none) | stg_payments.amount_usd | (none) | False |
+| dev-94 | gift card balance | (none) | (none) | (none) | False |
+| dev-95 | loyalty points | (none) | (none) | (none) | False |
+| dev-96 | payroll.employee_salary | (none) | (none) | (none) | False |
 
 ## Evidence for tau (linker-dev, v2 without hybrid, threshold off)
 
 Top raw score, no-match cases (n=15): [0.0, 0.0, 0.0, 0.0, 0.0, 0.126, 0.143, 0.29, 0.423, 0.439, 0.451, 0.456, 0.462, 0.463, 0.481]
 
-Top raw score, positive cases (n=103): min 0.335, below tau: 14
+Top raw score, positive cases (n=104): min 0.335, below tau: 14
 
 ## Evidence for COS_MIN (linker-dev description and no-match cases)
 
@@ -145,6 +221,7 @@ Top raw score, positive cases (n=103): min 0.335, below tau: 14
 | lk-no_match-022 | no_match | dim_customers.phone | None | 0.733 |
 | lk-no_match-023 | no_match | stg_products.color | None | 0.762 |
 | lk-no_match-025 | no_match | fct_daily_revenue.profit | None | 0.811 |
+| lk-no_match-026 | no_match | stg_shipments.shipping_cost | 0.831 | 0.748 |
 | lk-no_match-029 | no_match | dim_customers.lifetime_value_usd | None | 0.862 |
 
 ## dev-15 in full
@@ -191,6 +268,15 @@ Ambiguous: False
 | lk-description-042 | description | when the customer last ordered | dim_customers.most_recent_order_date | dim_customer_rfm.recency_days 0.797, int_customer_order_history.order_date 0.769, int_customer_order_history.previous_order_date 0.761 | True |
 | lk-phrase-010 | phrase | count of sessions per channel | fct_marketing_attribution.session_count, int_sessions_daily.session_count | int_sessions_daily.visitor_count 0.828, int_sessions_daily.session_count 0.805, int_customer_sessions.paid_session_count 0.798 | True |
 | lk-no_match-016 | no_match | exchange rate | (none) | stg_payments.amount_usd 0.65 | False |
-| lk-no_match-026 | no_match | stg_shipments.shipping_cost | (none) | stg_shipments.shipping_cost_usd 0.87 | False |
 | lk-typo-001 | typo | segent_revenue_finance | fct_segment_monthly.segment_revenue_finance | fct_daily_revenue.revenue_finance 0.805, fct_segment_monthly.segment_revenue_finance 0.79, fct_monthly_finance.revenue_finance 0.653 | True |
 | lk-model_qualified-012 | model_qualified | shipping cost total in int_order_shipping | int_order_shipping.shipping_cost_total | int_order_shipping.shipment_count 0.853, int_order_shipping.shipping_cost_total 0.835, int_order_shipping.first_shipped_at 0.834 | True |
+| dev-27 | description | the column documented as 'Promotion codes used, highest discount first' | int_order_promotions.promo_codes | stg_promotions.discount_pct 0.836, raw_promotions.discount_pct 0.82, int_order_promotions.promo_codes 0.805 | True |
+| dev-29 | paraphrase | line_margin in int_order_item_margins | int_order_item_margins.line_margin | int_order_item_margins.line_amount 0.856, int_order_item_margins.quantity 0.851, int_order_item_margins.line_margin 0.843 | True |
+| dev-37 | name_words | order status group in orders | fct_orders.order_status_group | stg_orders.status 0.844, raw_orders.status 0.834, fct_orders.order_status_group 0.81 | True |
+| dev-40 | paraphrase | order_id in int_order_profit | int_order_profit.order_id | int_order_profit.customer_id 0.86, int_order_profit.order_id 0.835, int_order_profit.is_profitable 0.827 | True |
+| dev-41 | description | the column documented as 'One of champion, loyal, at_risk or hibernating' | dim_customer_segments.customer_segment |  | False |
+| dev-55 | name_words | id in raw product costs | raw_product_costs.id | stg_product_costs.product_cost_id 0.87, int_product_costs_current.product_id 0.869, stg_product_costs.product_id 0.869 | True |
+| dev-56 | paraphrase | revenue_marketing in fct_daily_revenue | fct_daily_revenue.revenue_marketing | fct_daily_revenue.order_count 0.854, fct_daily_revenue.order_date 0.852, fct_daily_revenue.revenue_marketing 0.84 | True |
+| dev-57 | description | the column documented as 'Order status mapped to complete, open, returned or other' | int_orders_enriched.order_status_group | stg_orders.status 0.846, raw_orders.status 0.841, fct_inventory_status.warehouse_code 0.809 | True |
+| dev-75 | name_words | last name in raw customers | raw_customers.last_name | stg_customers.last_name 0.93, raw_customers.last_name 0.925 | True |
+| dev-93 | identifier | fct_returns.return_amount | (none) | fct_daily_revenue.refunded_amount 0.805, fct_monthly_finance.refunded_amount 0.805, fct_orders.refunded_amount 0.805 | True |

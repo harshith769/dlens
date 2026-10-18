@@ -83,14 +83,14 @@
  "metrics": {
   "v1": {
    "linker-dev": {
-    "n": 118,
+    "n": 119,
     "top1": [
-     82,
-     103
+     83,
+     104
     ],
     "top3": [
-     92,
-     103
+     93,
+     104
     ],
     "no_match": [
      2,
@@ -98,7 +98,7 @@
     ],
     "ambiguous_rate": [
      53,
-     103
+     104
     ],
     "ambiguous_recall": [
      29,
@@ -106,11 +106,11 @@
     ],
     "false_ambiguous": [
      24,
-     71
+     72
     ]
    },
    "linker-test": {
-    "n": 129,
+    "n": 128,
     "top1": [
      86,
      109
@@ -121,7 +121,7 @@
     ],
     "no_match": [
      3,
-     20
+     19
     ],
     "ambiguous_rate": [
      36,
@@ -137,30 +137,30 @@
     ]
    },
    "dev mentions": {
-    "n": 20,
+    "n": 96,
     "top1": [
-     19,
-     19
+     78,
+     87
     ],
     "top3": [
-     19,
-     19
+     80,
+     87
     ],
     "no_match": [
-     0,
-     1
+     3,
+     9
     ],
     "ambiguous_rate": [
-     3,
-     19
+     14,
+     87
     ],
     "ambiguous_recall": [
-     1,
-     1
+     3,
+     3
     ],
     "false_ambiguous": [
-     2,
-     18
+     11,
+     84
     ]
    },
    "dbt_jira sample": {
@@ -193,14 +193,14 @@
   },
   "v2 (no hybrid)": {
    "linker-dev": {
-    "n": 118,
+    "n": 119,
     "top1": [
-     84,
-     103
+     85,
+     104
     ],
     "top3": [
-     87,
-     103
+     88,
+     104
     ],
     "no_match": [
      15,
@@ -208,7 +208,7 @@
     ],
     "ambiguous_rate": [
      37,
-     103
+     104
     ],
     "ambiguous_recall": [
      27,
@@ -216,11 +216,11 @@
     ],
     "false_ambiguous": [
      10,
-     71
+     72
     ]
    },
    "linker-test": {
-    "n": 129,
+    "n": 128,
     "top1": [
      89,
      109
@@ -231,7 +231,7 @@
     ],
     "no_match": [
      19,
-     20
+     19
     ],
     "ambiguous_rate": [
      20,
@@ -247,30 +247,30 @@
     ]
    },
    "dev mentions": {
-    "n": 20,
+    "n": 96,
     "top1": [
-     19,
-     19
+     77,
+     87
     ],
     "top3": [
-     19,
-     19
+     78,
+     87
     ],
     "no_match": [
-     1,
-     1
+     9,
+     9
     ],
     "ambiguous_rate": [
-     1,
-     19
+     8,
+     87
     ],
     "ambiguous_recall": [
-     1,
-     1
+     3,
+     3
     ],
     "false_ambiguous": [
-     0,
-     18
+     5,
+     84
     ]
    },
    "dbt_jira sample": {
@@ -303,14 +303,14 @@
   },
   "v2 (hybrid)": {
    "linker-dev": {
-    "n": 118,
+    "n": 119,
     "top1": [
-     87,
-     103
+     88,
+     104
     ],
     "top3": [
-     94,
-     103
+     95,
+     104
     ],
     "no_match": [
      15,
@@ -318,7 +318,7 @@
     ],
     "ambiguous_rate": [
      50,
-     103
+     104
     ],
     "ambiguous_recall": [
      30,
@@ -326,11 +326,11 @@
     ],
     "false_ambiguous": [
      20,
-     71
+     72
     ]
    },
    "linker-test": {
-    "n": 129,
+    "n": 128,
     "top1": [
      95,
      109
@@ -341,7 +341,7 @@
     ],
     "no_match": [
      18,
-     20
+     19
     ],
     "ambiguous_rate": [
      32,
@@ -357,30 +357,30 @@
     ]
    },
    "dev mentions": {
-    "n": 20,
+    "n": 96,
     "top1": [
-     19,
-     19
+     78,
+     87
     ],
     "top3": [
-     19,
-     19
+     84,
+     87
     ],
     "no_match": [
-     1,
-     1
+     8,
+     9
     ],
     "ambiguous_rate": [
-     1,
-     19
+     18,
+     87
     ],
     "ambiguous_recall": [
-     1,
-     1
+     3,
+     3
     ],
     "false_ambiguous": [
-     0,
-     18
+     15,
+     84
     ]
    },
    "dbt_jira sample": {
@@ -1963,6 +1963,36 @@
      "stage": "fuzzy",
      "top1": false,
      "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "lk-no_match-026",
+     "variant": "no_match",
+     "rule": null,
+     "mention": "stg_shipments.shipping_cost",
+     "gold": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipping_cost_usd",
+      "raw_shipments.shipping_cost_usd",
+      "fct_shipping_performance.shipping_costs_usd",
+      "int_shipments_enriched.shipping_cost_usd",
+      "fct_order_margins.shipping_cost_total"
+     ],
+     "scores": [
+      0.93,
+      0.759,
+      0.697,
+      0.697,
+      0.585
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "normalised",
+     "top1": true,
+     "top3": true,
      "no_match_ok": false
     },
     {
@@ -5709,34 +5739,6 @@
      "no_match_ok": false
     },
     {
-     "id": "lk-no_match-026",
-     "variant": "no_match",
-     "rule": null,
-     "mention": "stg_shipments.shipping_cost",
-     "gold": [],
-     "expect_ambiguous": false,
-     "top": [
-      "stg_shipments.shipping_cost_usd",
-      "raw_shipments.shipping_cost_usd",
-      "fct_shipping_performance.shipping_costs_usd",
-      "int_shipments_enriched.shipping_cost_usd",
-      "fct_order_margins.shipping_cost_total"
-     ],
-     "scores": [
-      0.93,
-      0.759,
-      0.697,
-      0.697,
-      0.585
-     ],
-     "ambiguous": false,
-     "hybrid": null,
-     "stage": "normalised",
-     "top1": false,
-     "top3": false,
-     "no_match_ok": false
-    },
-    {
      "id": "lk-no_match-027",
      "variant": "no_match",
      "rule": null,
@@ -8056,7 +8058,7 @@
     },
     {
      "id": "dev-14",
-     "variant": "description",
+     "variant": "name_words",
      "rule": null,
      "mention": "prod category on order items",
      "gold": [
@@ -8086,7 +8088,7 @@
     },
     {
      "id": "dev-15",
-     "variant": "description",
+     "variant": "paraphrase",
      "rule": null,
      "mention": "number of orders per customer",
      "gold": [
@@ -8116,7 +8118,7 @@
     },
     {
      "id": "dev-16",
-     "variant": "description",
+     "variant": "name_words",
      "rule": null,
      "mention": "previous order date",
      "gold": [
@@ -8262,6 +8264,2154 @@
      "top1": true,
      "top3": true,
      "no_match_ok": false
+    },
+    {
+     "id": "dev-21",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'When the parcel left the warehouse; null while not yet shipped'",
+     "gold": [
+      "stg_shipments.shipped_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-22",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_shipments.carrier",
+     "gold": [
+      "stg_shipments.carrier"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.carrier",
+      "raw_shipments.carrier",
+      "int_shipments_enriched.carrier",
+      "fct_shipping_performance.carrier",
+      "stg_shipments"
+     ],
+     "scores": [
+      1.0,
+      0.723,
+      0.611,
+      0.578,
+      0.534
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-23",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_product_costs.product_id",
+     "gold": [
+      "stg_product_costs.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_id",
+      "stg_product_costs.product_cost_id",
+      "raw_product_costs.product_id",
+      "stg_product_costs",
+      "raw_product_costs.id"
+     ],
+     "scores": [
+      1.0,
+      0.923,
+      0.803,
+      0.801,
+      0.793
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-24",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_order_items.quantity",
+     "gold": [
+      "stg_order_items.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.quantity",
+      "raw_order_items.quantity",
+      "stg_order_items",
+      "int_order_item_margins.quantity",
+      "int_order_items_enriched.quantity"
+     ],
+     "scores": [
+      1.0,
+      0.719,
+      0.641,
+      0.639,
+      0.639
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-25",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "refund reason",
+     "gold": [
+      "stg_refunds.refund_reason"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_refunds.refund_reason",
+      "raw_refunds.reason",
+      "stg_refunds",
+      "int_customer_order_history.refund_amount",
+      "int_order_financials.refund_amount"
+     ],
+     "scores": [
+      0.93,
+      0.729,
+      0.534,
+      0.517,
+      0.517
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "normalised",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-26",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_order_items.order_item_id",
+     "gold": [
+      "stg_order_items.order_item_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.order_item_id",
+      "int_order_item_margins.order_item_id",
+      "int_order_items_enriched.order_item_id",
+      "stg_order_items",
+      "stg_order_items.order_id"
+     ],
+     "scores": [
+      1.0,
+      0.966,
+      0.966,
+      0.915,
+      0.87
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-27",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Promotion codes used, highest discount first'",
+     "gold": [
+      "int_order_promotions.promo_codes"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-28",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Event key, prefixed by its source'",
+     "gold": [
+      "int_payment_events.event_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-29",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "line_margin in int_order_item_margins",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin",
+      "int_order_item_margins",
+      "int_order_item_margins.line_amount",
+      "int_order_item_margins.line_cost",
+      "int_order_item_margins.quantity"
+     ],
+     "scores": [
+      0.756,
+      0.712,
+      0.707,
+      0.697,
+      0.606
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-30",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "days_to_ship in int_shipments_enriched",
+     "gold": [
+      "int_shipments_enriched.days_to_ship"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_shipments_enriched.days_to_ship",
+      "int_shipments_enriched.delivery_days",
+      "int_shipments_enriched.carrier",
+      "int_shipments_enriched.shipped_at",
+      "int_shipments_enriched.shipping_cost_usd"
+     ],
+     "scores": [
+      0.738,
+      0.499,
+      0.418,
+      0.409,
+      0.407
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-31",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "session started at",
+     "gold": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at"
+     ],
+     "expect_ambiguous": true,
+     "top": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at",
+      "raw_web_sessions.started_at",
+      "stg_promotions.starts_at",
+      "raw_promotions.starts_at"
+     ],
+     "scores": [
+      0.93,
+      0.93,
+      0.689,
+      0.621,
+      0.621
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "normalised",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-32",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_items_enriched.product_id",
+     "gold": [
+      "int_order_items_enriched.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.product_id",
+      "int_order_items_enriched.order_id",
+      "int_order_items_enriched.order_item_id",
+      "stg_order_items.product_id",
+      "raw_order_items.product_id"
+     ],
+     "scores": [
+      1.0,
+      0.674,
+      0.674,
+      0.632,
+      0.632
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-33",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "spend_usd in fct_channel_performance_monthly",
+     "gold": [
+      "fct_channel_performance_monthly.spend_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.spend_usd",
+      "fct_channel_performance_monthly.channel",
+      "fct_channel_performance_monthly",
+      "fct_channel_performance_monthly.roas",
+      "fct_channel_performance_monthly.report_month"
+     ],
+     "scores": [
+      0.728,
+      0.626,
+      0.601,
+      0.575,
+      0.526
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-34",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_customer_order_history.sales_tax",
+     "gold": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_order_history.sales_tax",
+      "int_customer_order_history",
+      "int_customer_order_history.customer_id",
+      "fct_orders.sales_tax",
+      "int_customer_order_history.order_id"
+     ],
+     "scores": [
+      1.0,
+      0.601,
+      0.563,
+      0.53,
+      0.511
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-35",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_id",
+     "gold": [
+      "dim_customer_segments.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_id",
+      "dim_customer_segments.customer_segment",
+      "fct_customer_leaderboard.customer_segment",
+      "fct_segment_monthly.customer_segment",
+      "dim_customer_segments"
+     ],
+     "scores": [
+      1.0,
+      0.817,
+      0.817,
+      0.817,
+      0.801
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-36",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_order_margins.cogs_total",
+     "gold": [
+      "fct_order_margins.cogs_total"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.cogs_total",
+      "fct_orders.order_total",
+      "int_customer_order_history.order_total",
+      "int_order_financials.order_total",
+      "int_order_profit.cogs_total"
+     ],
+     "scores": [
+      1.0,
+      0.593,
+      0.593,
+      0.593,
+      0.576
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-37",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "order status group in orders",
+     "gold": [
+      "fct_orders.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.order_status_group",
+      "int_customer_order_history.order_status_group",
+      "int_order_financials.order_status_group",
+      "int_orders_enriched.order_status_group",
+      "stg_orders.status"
+     ],
+     "scores": [
+      0.834,
+      0.834,
+      0.834,
+      0.834,
+      0.623
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-38",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "items subtotal in order financials",
+     "gold": [
+      "int_order_financials.items_subtotal"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.items_subtotal",
+      "fct_orders.items_subtotal",
+      "int_order_financials.item_count",
+      "int_orders_enriched.items_subtotal",
+      "int_customer_order_history.items_subtotal"
+     ],
+     "scores": [
+      0.727,
+      0.6,
+      0.564,
+      0.55,
+      0.511
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-39",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "refunded_amount in fct_orders",
+     "gold": [
+      "fct_orders.refunded_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.refunded_amount",
+      "fct_daily_revenue.refunded_amount",
+      "fct_monthly_finance.refunded_amount",
+      "int_order_financials.refund_amount",
+      "int_customer_order_history.refund_amount"
+     ],
+     "scores": [
+      0.705,
+      0.621,
+      0.621,
+      0.588,
+      0.573
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-40",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "order_id in int_order_profit",
+     "gold": [
+      "int_order_profit.order_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_profit.order_id",
+      "int_order_profit.customer_id",
+      "int_order_profit",
+      "int_order_promotions.order_id",
+      "stg_order_promotions.order_id"
+     ],
+     "scores": [
+      0.746,
+      0.689,
+      0.687,
+      0.683,
+      0.683
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-41",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'One of champion, loyal, at_risk or hibernating'",
+     "gold": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-42",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_monthly_finance.revenue_marketing",
+     "gold": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.revenue_marketing",
+      "fct_daily_revenue.revenue_marketing",
+      "fct_orders.revenue_marketing",
+      "fct_monthly_finance.revenue_finance",
+      "fct_segment_monthly.segment_revenue_finance"
+     ],
+     "scores": [
+      1.0,
+      0.597,
+      0.597,
+      0.584,
+      0.554
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-43",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_channel_performance_monthly.roas",
+     "gold": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.roas",
+      "fct_channel_performance_monthly.channel",
+      "fct_channel_performance_monthly",
+      "fct_channel_performance_monthly.spend_usd",
+      "fct_channel_performance_monthly.report_month"
+     ],
+     "scores": [
+      1.0,
+      0.704,
+      0.687,
+      0.623,
+      0.557
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-44",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.rfm_score",
+     "gold": [
+      "dim_customer_segments.rfm_score"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.rfm_score",
+      "dim_customer_segments.customer_segment",
+      "fct_customer_leaderboard.customer_segment",
+      "fct_segment_monthly.customer_segment",
+      "dim_customer_rfm.rfm_score"
+     ],
+     "scores": [
+      1.0,
+      0.619,
+      0.619,
+      0.619,
+      0.618
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-45",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "contribution_margin in fct_monthly_finance",
+     "gold": [
+      "fct_monthly_finance.contribution_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.contribution_margin",
+      "fct_order_margins.contribution_margin",
+      "int_order_profit.contribution_margin",
+      "fct_monthly_finance",
+      "fct_monthly_finance.finance_month"
+     ],
+     "scores": [
+      0.729,
+      0.534,
+      0.534,
+      0.458,
+      0.424
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-46",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "order month",
+     "gold": [
+      "fct_customer_cohorts.order_month",
+      "fct_segment_monthly.order_month"
+     ],
+     "expect_ambiguous": true,
+     "top": [
+      "fct_customer_cohorts.order_month",
+      "fct_segment_monthly.order_month",
+      "fct_orders",
+      "stg_orders",
+      "dim_customers.order_count"
+     ],
+     "scores": [
+      0.93,
+      0.93,
+      0.534,
+      0.534,
+      0.53
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "normalised",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-47",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "segment order count",
+     "gold": [
+      "fct_segment_monthly.segment_order_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_segment_monthly.segment_order_count",
+      "dim_customers.order_count",
+      "fct_daily_revenue.order_count",
+      "fct_orders.item_count",
+      "int_order_promotions.promotion_count"
+     ],
+     "scores": [
+      0.93,
+      0.694,
+      0.694,
+      0.521,
+      0.499
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "normalised",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-48",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "item_count in fct_orders",
+     "gold": [
+      "fct_orders.item_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.item_count",
+      "int_order_financials.item_count",
+      "int_orders_enriched.item_count",
+      "int_customer_order_history.item_count",
+      "dim_customers.order_count"
+     ],
+     "scores": [
+      0.7,
+      0.605,
+      0.605,
+      0.599,
+      0.551
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-49",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_customer_sessions.customer_id",
+     "gold": [
+      "int_customer_sessions.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_sessions.customer_id",
+      "int_customer_sessions",
+      "dim_customer_rfm.customer_id",
+      "dim_customer_segments.customer_id",
+      "dim_customers.customer_id"
+     ],
+     "scores": [
+      1.0,
+      0.801,
+      0.774,
+      0.774,
+      0.774
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-50",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "active_customers in fct_segment_monthly",
+     "gold": [
+      "fct_segment_monthly.active_customers"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_segment_monthly.active_customers",
+      "fct_segment_monthly.customer_segment",
+      "dim_customer_segments.customer_segment",
+      "fct_customer_leaderboard.customer_segment",
+      "dim_customer_segments"
+     ],
+     "scores": [
+      0.728,
+      0.619,
+      0.527,
+      0.527,
+      0.458
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-51",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'True when the line was sold below list price'",
+     "gold": [
+      "int_order_items_enriched.is_discounted"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-52",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_web_sessions_clean.session_started_at",
+     "gold": [
+      "int_web_sessions_clean.session_started_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at",
+      "int_web_sessions_clean",
+      "raw_web_sessions.started_at",
+      "stg_web_sessions"
+     ],
+     "scores": [
+      1.0,
+      0.739,
+      0.712,
+      0.677,
+      0.601
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-53",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_product_costs.product_id",
+     "gold": [
+      "stg_product_costs.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_id",
+      "stg_product_costs.product_cost_id",
+      "raw_product_costs.product_id",
+      "stg_product_costs",
+      "raw_product_costs.id"
+     ],
+     "scores": [
+      1.0,
+      0.923,
+      0.803,
+      0.801,
+      0.793
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-54",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.net_paid_usd",
+     "gold": [
+      "fct_orders.net_paid_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.net_paid_usd",
+      "int_customer_order_history.net_paid_usd",
+      "int_order_financials.net_paid_usd",
+      "fct_customer_cohorts.cohort_net_paid",
+      "fct_customer_cohorts.cumulative_net_paid"
+     ],
+     "scores": [
+      1.0,
+      0.693,
+      0.693,
+      0.618,
+      0.577
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-55",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "id in raw product costs",
+     "gold": [
+      "raw_product_costs.id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_cost_id",
+      "raw_product_costs.id",
+      "stg_product_costs.product_id",
+      "raw_product_costs.product_id",
+      "stg_product_costs.supplier_id"
+     ],
+     "scores": [
+      0.728,
+      0.699,
+      0.655,
+      0.655,
+      0.592
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-56",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "revenue_marketing in fct_daily_revenue",
+     "gold": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.revenue_marketing",
+      "fct_monthly_finance.revenue_marketing",
+      "fct_orders.revenue_marketing",
+      "fct_daily_revenue",
+      "fct_daily_revenue.revenue_finance"
+     ],
+     "scores": [
+      0.755,
+      0.712,
+      0.712,
+      0.687,
+      0.569
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-57",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Order status mapped to complete, open, returned or other'",
+     "gold": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-58",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_item_margins.line_margin",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin",
+      "int_order_item_margins",
+      "int_order_item_margins.line_cost",
+      "int_order_item_margins.line_amount",
+      "fct_order_margins"
+     ],
+     "scores": [
+      1.0,
+      0.801,
+      0.707,
+      0.702,
+      0.687
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-59",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "raw_products.list_price",
+     "gold": [
+      "raw_products.list_price"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "raw_products.list_price",
+      "stg_products.list_price",
+      "fct_inventory_status.product_id",
+      "fct_product_performance.product_id",
+      "fct_top_products.product_id"
+     ],
+     "scores": [
+      1.0,
+      0.751,
+      0.421,
+      0.421,
+      0.421
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-60",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "product id in order items enriched",
+     "gold": [
+      "int_order_items_enriched.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.product_id",
+      "stg_order_items.product_id",
+      "raw_order_items.product_id",
+      "int_order_items_enriched.order_id",
+      "int_order_items_enriched.order_item_id"
+     ],
+     "scores": [
+      0.739,
+      0.635,
+      0.635,
+      0.615,
+      0.615
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-61",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_order_items.order_item_id",
+     "gold": [
+      "stg_order_items.order_item_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.order_item_id",
+      "int_order_item_margins.order_item_id",
+      "int_order_items_enriched.order_item_id",
+      "stg_order_items",
+      "stg_order_items.order_id"
+     ],
+     "scores": [
+      1.0,
+      0.966,
+      0.966,
+      0.915,
+      0.87
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-62",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Current purchase cost of one unit'",
+     "gold": [
+      "int_product_costs_current.unit_cost"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_product_costs_current.unit_cost"
+     ],
+     "scores": [
+      0.327
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-63",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Discount granted on the order by this promotion, in USD'",
+     "gold": [
+      "stg_order_promotions.discount_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_promotions.discount_usd",
+      "raw_order_promotions.discount_usd",
+      "int_order_promotions.max_discount_pct",
+      "int_order_promotions.discount_total"
+     ],
+     "scores": [
+      0.328,
+      0.328,
+      0.318,
+      0.318
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-64",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_items_enriched.quantity",
+     "gold": [
+      "int_order_items_enriched.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.quantity",
+      "int_order_items_enriched",
+      "int_order_items_enriched.order_id",
+      "int_order_items_enriched.order_item_id",
+      "stg_order_items.quantity"
+     ],
+     "scores": [
+      1.0,
+      0.687,
+      0.603,
+      0.603,
+      0.599
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-65",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.refunded_amount",
+     "gold": [
+      "fct_orders.refunded_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.refunded_amount",
+      "fct_daily_revenue.refunded_amount",
+      "fct_monthly_finance.refunded_amount",
+      "int_customer_order_history.refund_amount",
+      "int_order_financials.refund_amount"
+     ],
+     "scores": [
+      1.0,
+      0.721,
+      0.721,
+      0.667,
+      0.667
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-66",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "sales_tax in int_customer_order_history",
+     "gold": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_order_history.sales_tax",
+      "int_customer_order_history",
+      "int_customer_order_history.customer_id",
+      "fct_orders.sales_tax",
+      "int_customer_order_history.order_id"
+     ],
+     "scores": [
+      0.739,
+      0.534,
+      0.516,
+      0.514,
+      0.499
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-67",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_order_items.quantity",
+     "gold": [
+      "stg_order_items.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.quantity",
+      "raw_order_items.quantity",
+      "stg_order_items",
+      "int_order_item_margins.quantity",
+      "int_order_items_enriched.quantity"
+     ],
+     "scores": [
+      1.0,
+      0.719,
+      0.641,
+      0.639,
+      0.639
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-68",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "sales tax in order financials",
+     "gold": [
+      "int_order_financials.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.sales_tax",
+      "fct_orders.sales_tax",
+      "int_customer_order_history.sales_tax",
+      "int_orders_enriched.order_tax",
+      "int_order_financials"
+     ],
+     "scores": [
+      0.725,
+      0.585,
+      0.497,
+      0.46,
+      0.458
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-69",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "line_amount in int_order_items_enriched",
+     "gold": [
+      "int_order_items_enriched.line_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.line_amount",
+      "int_order_item_margins.line_amount",
+      "int_order_items_enriched",
+      "int_order_items_enriched.quantity",
+      "int_orders_enriched.item_count"
+     ],
+     "scores": [
+      0.739,
+      0.591,
+      0.534,
+      0.522,
+      0.516
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-70",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_id",
+     "gold": [
+      "dim_customer_segments.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_id",
+      "dim_customer_segments.customer_segment",
+      "fct_customer_leaderboard.customer_segment",
+      "fct_segment_monthly.customer_segment",
+      "dim_customer_segments"
+     ],
+     "scores": [
+      1.0,
+      0.817,
+      0.817,
+      0.817,
+      0.801
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-71",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "customer_id in int_customer_sessions",
+     "gold": [
+      "int_customer_sessions.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_sessions.customer_id",
+      "stg_web_sessions.customer_id",
+      "int_web_sessions_clean.customer_id",
+      "fct_order_margins.customer_id",
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      0.743,
+      0.721,
+      0.702,
+      0.691,
+      0.688
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-72",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_financials.items_subtotal",
+     "gold": [
+      "int_order_financials.items_subtotal"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.items_subtotal",
+      "fct_orders.items_subtotal",
+      "int_orders_enriched.items_subtotal",
+      "int_customer_order_history.items_subtotal",
+      "int_order_financials.item_count"
+     ],
+     "scores": [
+      1.0,
+      0.646,
+      0.586,
+      0.581,
+      0.552
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-73",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "raw_payments.created_at",
+     "gold": [
+      "raw_payments.created_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "raw_payments.created_at",
+      "raw_customers.created_at",
+      "raw_refunds.created_at",
+      "stg_payments.paid_at",
+      "fct_payment_events.event_at"
+     ],
+     "scores": [
+      1.0,
+      0.689,
+      0.689,
+      0.502,
+      0.497
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-74",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_product_costs_current.product_id",
+     "gold": [
+      "int_product_costs_current.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_product_costs_current.product_id",
+      "int_product_costs_current",
+      "stg_product_costs.product_cost_id",
+      "int_product_costs_current.supplier_id",
+      "stg_product_costs.product_id"
+     ],
+     "scores": [
+      1.0,
+      0.801,
+      0.797,
+      0.713,
+      0.691
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-75",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "last name in raw customers",
+     "gold": [
+      "raw_customers.last_name"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_customers.last_name",
+      "raw_customers.last_name",
+      "stg_customers.first_name",
+      "raw_customers.first_name",
+      "dim_customers.full_name"
+     ],
+     "scores": [
+      0.702,
+      0.702,
+      0.513,
+      0.513,
+      0.505
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-76",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_marketing_spend.impressions",
+     "gold": [
+      "stg_marketing_spend.impressions"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_marketing_spend.impressions",
+      "raw_marketing_spend.impressions",
+      "stg_marketing_spend",
+      "stg_marketing_spend.spend_usd",
+      "raw_marketing_spend.spend_usd"
+     ],
+     "scores": [
+      1.0,
+      0.709,
+      0.641,
+      0.554,
+      0.554
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-77",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "roas in fct_channel_performance_monthly",
+     "gold": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.roas",
+      "fct_channel_performance_monthly.channel",
+      "fct_channel_performance_monthly",
+      "fct_channel_performance_monthly.spend_usd",
+      "fct_channel_performance_monthly.report_month"
+     ],
+     "scores": [
+      0.728,
+      0.633,
+      0.601,
+      0.582,
+      0.544
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-78",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "fct_daily_revenue.revenue_marketing",
+     "gold": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.revenue_marketing",
+      "fct_monthly_finance.revenue_marketing",
+      "fct_orders.revenue_marketing",
+      "fct_daily_revenue",
+      "fct_daily_revenue.revenue_finance"
+     ],
+     "scores": [
+      1.0,
+      0.812,
+      0.812,
+      0.801,
+      0.601
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-79",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customers.lifetime_value",
+     "gold": [
+      "dim_customers.lifetime_value"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customers.lifetime_value",
+      "fct_customer_leaderboard.lifetime_value_usd",
+      "dim_customer_segments.is_high_value",
+      "dim_customer_segments.customer_segment",
+      "fct_customer_leaderboard.customer_segment"
+     ],
+     "scores": [
+      1.0,
+      0.7,
+      0.414,
+      0.414,
+      0.414
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-80",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_monthly_finance.revenue_marketing",
+     "gold": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.revenue_marketing",
+      "fct_daily_revenue.revenue_marketing",
+      "fct_orders.revenue_marketing",
+      "fct_monthly_finance.revenue_finance",
+      "fct_segment_monthly.segment_revenue_finance"
+     ],
+     "scores": [
+      1.0,
+      0.597,
+      0.597,
+      0.584,
+      0.554
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-81",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_item_margins.line_margin",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin",
+      "int_order_item_margins",
+      "int_order_item_margins.line_cost",
+      "int_order_item_margins.line_amount",
+      "fct_order_margins"
+     ],
+     "scores": [
+      1.0,
+      0.801,
+      0.707,
+      0.702,
+      0.687
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-82",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_order_financials.refund_amount",
+     "gold": [
+      "int_order_financials.refund_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.refund_amount",
+      "fct_orders.refunded_amount",
+      "int_customer_order_history.refund_amount",
+      "stg_refunds.refund_amt",
+      "raw_refunds.refund_amt"
+     ],
+     "scores": [
+      1.0,
+      0.615,
+      0.581,
+      0.581,
+      0.581
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-83",
+     "variant": "description",
+     "rule": null,
+     "mention": "stg_shipments.shipping_cost_usd",
+     "gold": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipping_cost_usd",
+      "raw_shipments.shipping_cost_usd",
+      "fct_shipping_performance.shipping_costs_usd",
+      "int_shipments_enriched.shipping_cost_usd",
+      "fct_order_margins.shipping_cost_total"
+     ],
+     "scores": [
+      1.0,
+      0.759,
+      0.697,
+      0.697,
+      0.585
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-84",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_orders_enriched.order_status_group",
+     "gold": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_orders_enriched.order_status_group",
+      "fct_orders.order_status_group",
+      "int_customer_order_history.order_status_group",
+      "int_order_financials.order_status_group",
+      "int_orders_enriched"
+     ],
+     "scores": [
+      1.0,
+      0.808,
+      0.808,
+      0.808,
+      0.687
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-85",
+     "variant": "description",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_segment",
+     "gold": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments",
+      "fct_customer_leaderboard.customer_segment",
+      "fct_segment_monthly.customer_segment",
+      "dim_customer_segments.customer_segment",
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      1.068,
+      1.005,
+      1.005,
+      1.0,
+      0.798
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-86",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_order_margins.order_id",
+     "gold": [
+      "fct_order_margins.order_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.order_id",
+      "fct_order_margins",
+      "fct_orders.order_id",
+      "fct_payment_events.order_id",
+      "int_customer_order_history.order_id"
+     ],
+     "scores": [
+      1.0,
+      0.801,
+      0.77,
+      0.77,
+      0.77
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-87",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_web_sessions_clean.session_id",
+     "gold": [
+      "int_web_sessions_clean.session_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_web_sessions_clean.session_id",
+      "int_web_sessions_clean",
+      "int_web_sessions_clean.customer_id",
+      "stg_web_sessions.session_id",
+      "stg_web_sessions"
+     ],
+     "scores": [
+      1.0,
+      0.801,
+      0.704,
+      0.701,
+      0.687
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-88",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "late_shipment_count in fct_shipping_performance",
+     "gold": [
+      "fct_shipping_performance.late_shipment_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_shipping_performance.late_shipment_count",
+      "fct_shipping_performance.shipment_count",
+      "int_order_shipping.late_shipment_count",
+      "int_order_shipping.shipment_count",
+      "fct_shipping_performance.ship_month"
+     ],
+     "scores": [
+      0.741,
+      0.664,
+      0.596,
+      0.497,
+      0.406
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-89",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_shipping.shipping_cost",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_shipping",
+      "fct_shipping_performance.shipping_costs_usd",
+      "int_shipments_enriched.shipping_cost_usd",
+      "stg_shipments.shipping_cost_usd",
+      "raw_shipments.shipping_cost_usd"
+     ],
+     "scores": [
+      0.801,
+      0.792,
+      0.792,
+      0.792,
+      0.792
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-90",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.discount_total",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.discount_total",
+      "int_order_profit.discount_total",
+      "int_order_promotions.discount_total",
+      "fct_orders.order_total",
+      "int_customer_order_history.order_total"
+     ],
+     "scores": [
+      0.718,
+      0.718,
+      0.718,
+      0.688,
+      0.688
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-91",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customers.segment",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments",
+      "dim_customer_segments.customer_segment",
+      "fct_customer_leaderboard.customer_segment",
+      "fct_segment_monthly.customer_segment",
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      0.93,
+      0.89,
+      0.89,
+      0.89,
+      0.668
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "normalised",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-92",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_daily_revenue.revnue_finance",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.revenue_finance",
+      "fct_monthly_finance.revenue_finance",
+      "fct_orders.revenue_finance",
+      "fct_daily_revenue",
+      "fct_segment_monthly.segment_revenue_finance"
+     ],
+     "scores": [
+      0.815,
+      0.793,
+      0.793,
+      0.78,
+      0.688
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-93",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_returns.return_amount",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_payments.amount_usd",
+      "raw_payments.amt",
+      "fct_daily_revenue.refunded_amount",
+      "fct_monthly_finance.refunded_amount",
+      "fct_orders.refunded_amount"
+     ],
+     "scores": [
+      0.435,
+      0.435,
+      0.432,
+      0.432,
+      0.432
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "fuzzy",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-94",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "gift card balance",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-95",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "loyalty points",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-96",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "payroll.employee_salary",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
     }
    ],
    "dbt_jira sample": [
@@ -10037,6 +12187,28 @@
      "top1": false,
      "top3": false,
      "no_match_ok": true
+    },
+    {
+     "id": "lk-no_match-026",
+     "variant": "no_match",
+     "rule": null,
+     "mention": "stg_shipments.shipping_cost",
+     "gold": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "scores": [
+      0.87
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "dotted_abbreviation",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
     },
     {
      "id": "lk-no_match-029",
@@ -12926,26 +15098,6 @@
      "no_match_ok": true
     },
     {
-     "id": "lk-no_match-026",
-     "variant": "no_match",
-     "rule": null,
-     "mention": "stg_shipments.shipping_cost",
-     "gold": [],
-     "expect_ambiguous": false,
-     "top": [
-      "stg_shipments.shipping_cost_usd"
-     ],
-     "scores": [
-      0.87
-     ],
-     "ambiguous": false,
-     "hybrid": "unavailable",
-     "stage": "dotted_abbreviation",
-     "top1": false,
-     "top3": false,
-     "no_match_ok": false
-    },
-    {
      "id": "lk-no_match-027",
      "variant": "no_match",
      "rule": null,
@@ -14727,7 +16879,7 @@
     },
     {
      "id": "dev-14",
-     "variant": "description",
+     "variant": "name_words",
      "rule": null,
      "mention": "prod category on order items",
      "gold": [
@@ -14749,7 +16901,7 @@
     },
     {
      "id": "dev-15",
-     "variant": "description",
+     "variant": "paraphrase",
      "rule": null,
      "mention": "number of orders per customer",
      "gold": [
@@ -14773,7 +16925,7 @@
     },
     {
      "id": "dev-16",
-     "variant": "description",
+     "variant": "name_words",
      "rule": null,
      "mention": "previous order date",
      "gold": [
@@ -14883,6 +17035,1676 @@
      "top1": true,
      "top3": true,
      "no_match_ok": false
+    },
+    {
+     "id": "dev-21",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'When the parcel left the warehouse; null while not yet shipped'",
+     "gold": [
+      "stg_shipments.shipped_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-22",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_shipments.carrier",
+     "gold": [
+      "stg_shipments.carrier"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.carrier"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-23",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_product_costs.product_id",
+     "gold": [
+      "stg_product_costs.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-24",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_order_items.quantity",
+     "gold": [
+      "stg_order_items.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.quantity"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-25",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "refund reason",
+     "gold": [
+      "stg_refunds.refund_reason"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_refunds.refund_reason",
+      "raw_refunds.reason"
+     ],
+     "scores": [
+      0.93,
+      0.865
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-26",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_order_items.order_item_id",
+     "gold": [
+      "stg_order_items.order_item_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.order_item_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-27",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Promotion codes used, highest discount first'",
+     "gold": [
+      "int_order_promotions.promo_codes"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-28",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Event key, prefixed by its source'",
+     "gold": [
+      "int_payment_events.event_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-29",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "line_margin in int_order_item_margins",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin"
+     ],
+     "scores": [
+      0.675
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-30",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "days_to_ship in int_shipments_enriched",
+     "gold": [
+      "int_shipments_enriched.days_to_ship"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_shipments_enriched.days_to_ship"
+     ],
+     "scores": [
+      0.935
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-31",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "session started at",
+     "gold": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at"
+     ],
+     "expect_ambiguous": true,
+     "top": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at",
+      "raw_web_sessions.started_at"
+     ],
+     "scores": [
+      0.935,
+      0.93,
+      0.865
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-32",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_items_enriched.product_id",
+     "gold": [
+      "int_order_items_enriched.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-33",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "spend_usd in fct_channel_performance_monthly",
+     "gold": [
+      "fct_channel_performance_monthly.spend_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.spend_usd"
+     ],
+     "scores": [
+      0.94
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-34",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_customer_order_history.sales_tax",
+     "gold": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-35",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_id",
+     "gold": [
+      "dim_customer_segments.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-36",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_order_margins.cogs_total",
+     "gold": [
+      "fct_order_margins.cogs_total"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.cogs_total"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-37",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "order status group in orders",
+     "gold": [
+      "fct_orders.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.order_status_group",
+      "int_customer_order_history.order_status_group",
+      "int_order_financials.order_status_group",
+      "int_orders_enriched.order_status_group"
+     ],
+     "scores": [
+      0.694,
+      0.689,
+      0.689,
+      0.689
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-38",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "items subtotal in order financials",
+     "gold": [
+      "int_order_financials.items_subtotal"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.items_subtotal",
+      "fct_orders.items_subtotal",
+      "int_orders_enriched.items_subtotal",
+      "int_customer_order_history.items_subtotal"
+     ],
+     "scores": [
+      0.935,
+      0.691,
+      0.656,
+      0.646
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-39",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "refunded_amount in fct_orders",
+     "gold": [
+      "fct_orders.refunded_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.refunded_amount",
+      "int_order_financials.refund_amount",
+      "int_customer_order_history.refund_amount",
+      "fct_daily_revenue.refunded_amount",
+      "fct_monthly_finance.refunded_amount"
+     ],
+     "scores": [
+      0.94,
+      0.778,
+      0.768,
+      0.658,
+      0.658
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-40",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "order_id in int_order_profit",
+     "gold": [
+      "int_order_profit.order_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_profit.order_id"
+     ],
+     "scores": [
+      0.658
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-41",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'One of champion, loyal, at_risk or hibernating'",
+     "gold": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-42",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_monthly_finance.revenue_marketing",
+     "gold": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-43",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_channel_performance_monthly.roas",
+     "gold": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-44",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.rfm_score",
+     "gold": [
+      "dim_customer_segments.rfm_score"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.rfm_score"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-45",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "contribution_margin in fct_monthly_finance",
+     "gold": [
+      "fct_monthly_finance.contribution_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.contribution_margin"
+     ],
+     "scores": [
+      0.94
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-46",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "order month",
+     "gold": [
+      "fct_customer_cohorts.order_month",
+      "fct_segment_monthly.order_month"
+     ],
+     "expect_ambiguous": true,
+     "top": [
+      "fct_customer_cohorts.order_month",
+      "fct_segment_monthly.order_month"
+     ],
+     "scores": [
+      0.94,
+      0.94
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-47",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "segment order count",
+     "gold": [
+      "fct_segment_monthly.segment_order_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_segment_monthly.segment_order_count",
+      "dim_customers.order_count",
+      "fct_daily_revenue.order_count"
+     ],
+     "scores": [
+      0.94,
+      0.634,
+      0.634
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-48",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "item_count in fct_orders",
+     "gold": [
+      "fct_orders.item_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.item_count",
+      "int_order_financials.item_count",
+      "int_orders_enriched.item_count",
+      "int_customer_order_history.item_count"
+     ],
+     "scores": [
+      0.94,
+      0.905,
+      0.905,
+      0.895
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-49",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_customer_sessions.customer_id",
+     "gold": [
+      "int_customer_sessions.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_sessions.customer_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-50",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "active_customers in fct_segment_monthly",
+     "gold": [
+      "fct_segment_monthly.active_customers"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_segment_monthly.active_customers",
+      "fct_segment_monthly.customer_segment"
+     ],
+     "scores": [
+      0.94,
+      0.685
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-51",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'True when the line was sold below list price'",
+     "gold": [
+      "int_order_items_enriched.is_discounted"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-52",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_web_sessions_clean.session_started_at",
+     "gold": [
+      "int_web_sessions_clean.session_started_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_web_sessions_clean.session_started_at"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-53",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_product_costs.product_id",
+     "gold": [
+      "stg_product_costs.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-54",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.net_paid_usd",
+     "gold": [
+      "fct_orders.net_paid_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.net_paid_usd"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-55",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "id in raw product costs",
+     "gold": [
+      "raw_product_costs.id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_cost_id",
+      "int_product_costs_current.product_id",
+      "stg_product_costs.product_id",
+      "raw_product_costs.id",
+      "raw_product_costs.product_id"
+     ],
+     "scores": [
+      0.87,
+      0.869,
+      0.869,
+      0.865,
+      0.865
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-56",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "revenue_marketing in fct_daily_revenue",
+     "gold": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "scores": [
+      0.682
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-57",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Order status mapped to complete, open, returned or other'",
+     "gold": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-58",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_item_margins.line_margin",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-59",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "raw_products.list_price",
+     "gold": [
+      "raw_products.list_price"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "raw_products.list_price"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-60",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "product id in order items enriched",
+     "gold": [
+      "int_order_items_enriched.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.product_id",
+      "stg_order_items.product_id",
+      "raw_order_items.product_id",
+      "int_order_item_margins.product_id",
+      "int_order_items_enriched.order_item_id"
+     ],
+     "scores": [
+      0.935,
+      0.674,
+      0.669,
+      0.659,
+      0.646
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-61",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_order_items.order_item_id",
+     "gold": [
+      "stg_order_items.order_item_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.order_item_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-62",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Current purchase cost of one unit'",
+     "gold": [
+      "int_product_costs_current.unit_cost"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-63",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Discount granted on the order by this promotion, in USD'",
+     "gold": [
+      "stg_order_promotions.discount_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-64",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_items_enriched.quantity",
+     "gold": [
+      "int_order_items_enriched.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.quantity"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-65",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.refunded_amount",
+     "gold": [
+      "fct_orders.refunded_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.refunded_amount"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-66",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "sales_tax in int_customer_order_history",
+     "gold": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "scores": [
+      0.935
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-67",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_order_items.quantity",
+     "gold": [
+      "stg_order_items.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.quantity"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-68",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "sales tax in order financials",
+     "gold": [
+      "int_order_financials.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.sales_tax",
+      "fct_orders.sales_tax",
+      "int_customer_order_history.sales_tax"
+     ],
+     "scores": [
+      0.935,
+      0.666,
+      0.621
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-69",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "line_amount in int_order_items_enriched",
+     "gold": [
+      "int_order_items_enriched.line_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.line_amount",
+      "int_order_item_margins.line_amount"
+     ],
+     "scores": [
+      0.935,
+      0.663
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-70",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_id",
+     "gold": [
+      "dim_customer_segments.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-71",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "customer_id in int_customer_sessions",
+     "gold": [
+      "int_customer_sessions.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_sessions.customer_id",
+      "stg_web_sessions.customer_id",
+      "int_web_sessions_clean.customer_id"
+     ],
+     "scores": [
+      0.653,
+      0.648,
+      0.643
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "fuzzy",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-72",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_financials.items_subtotal",
+     "gold": [
+      "int_order_financials.items_subtotal"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.items_subtotal"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-73",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "raw_payments.created_at",
+     "gold": [
+      "raw_payments.created_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "raw_payments.created_at"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-74",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_product_costs_current.product_id",
+     "gold": [
+      "int_product_costs_current.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_product_costs_current.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-75",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "last name in raw customers",
+     "gold": [
+      "raw_customers.last_name"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_customers.last_name",
+      "raw_customers.last_name"
+     ],
+     "scores": [
+      0.93,
+      0.925
+     ],
+     "ambiguous": true,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-76",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_marketing_spend.impressions",
+     "gold": [
+      "stg_marketing_spend.impressions"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_marketing_spend.impressions"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-77",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "roas in fct_channel_performance_monthly",
+     "gold": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.roas",
+      "fct_channel_performance_monthly",
+      "fct_channel_performance_monthly.channel"
+     ],
+     "scores": [
+      0.94,
+      0.633,
+      0.61
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-78",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "fct_daily_revenue.revenue_marketing",
+     "gold": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-79",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customers.lifetime_value",
+     "gold": [
+      "dim_customers.lifetime_value"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customers.lifetime_value"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-80",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_monthly_finance.revenue_marketing",
+     "gold": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-81",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_item_margins.line_margin",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-82",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_order_financials.refund_amount",
+     "gold": [
+      "int_order_financials.refund_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.refund_amount"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-83",
+     "variant": "description",
+     "rule": null,
+     "mention": "stg_shipments.shipping_cost_usd",
+     "gold": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-84",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_orders_enriched.order_status_group",
+     "gold": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-85",
+     "variant": "description",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_segment",
+     "gold": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-86",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_order_margins.order_id",
+     "gold": [
+      "fct_order_margins.order_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.order_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-87",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_web_sessions_clean.session_id",
+     "gold": [
+      "int_web_sessions_clean.session_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_web_sessions_clean.session_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-88",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "late_shipment_count in fct_shipping_performance",
+     "gold": [
+      "fct_shipping_performance.late_shipment_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_shipping_performance.late_shipment_count",
+      "fct_shipping_performance.shipment_count",
+      "int_order_shipping.late_shipment_count"
+     ],
+     "scores": [
+      0.94,
+      0.722,
+      0.697
+     ],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-89",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_shipping.shipping_cost",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-90",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.discount_total",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-91",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customers.segment",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-92",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_daily_revenue.revnue_finance",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-93",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_returns.return_amount",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-94",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "gift card balance",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-95",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "loyalty points",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-96",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "payroll.employee_salary",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "unavailable",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
     }
    ],
    "dbt_jira sample": [
@@ -16652,6 +20474,28 @@
      "top1": false,
      "top3": false,
      "no_match_ok": true
+    },
+    {
+     "id": "lk-no_match-026",
+     "variant": "no_match",
+     "rule": null,
+     "mention": "stg_shipments.shipping_cost",
+     "gold": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "scores": [
+      0.87
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "dotted_abbreviation",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
     },
     {
      "id": "lk-no_match-029",
@@ -19691,26 +23535,6 @@
      "no_match_ok": true
     },
     {
-     "id": "lk-no_match-026",
-     "variant": "no_match",
-     "rule": null,
-     "mention": "stg_shipments.shipping_cost",
-     "gold": [],
-     "expect_ambiguous": false,
-     "top": [
-      "stg_shipments.shipping_cost_usd"
-     ],
-     "scores": [
-      0.87
-     ],
-     "ambiguous": false,
-     "hybrid": null,
-     "stage": "dotted_abbreviation",
-     "top1": false,
-     "top3": false,
-     "no_match_ok": false
-    },
-    {
      "id": "lk-no_match-027",
      "variant": "no_match",
      "rule": null,
@@ -21504,7 +25328,7 @@
     },
     {
      "id": "dev-14",
-     "variant": "description",
+     "variant": "name_words",
      "rule": null,
      "mention": "prod category on order items",
      "gold": [
@@ -21526,7 +25350,7 @@
     },
     {
      "id": "dev-15",
-     "variant": "description",
+     "variant": "paraphrase",
      "rule": null,
      "mention": "number of orders per customer",
      "gold": [
@@ -21550,7 +25374,7 @@
     },
     {
      "id": "dev-16",
-     "variant": "description",
+     "variant": "name_words",
      "rule": null,
      "mention": "previous order date",
      "gold": [
@@ -21660,6 +25484,1802 @@
      "top1": true,
      "top3": true,
      "no_match_ok": false
+    },
+    {
+     "id": "dev-21",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'When the parcel left the warehouse; null while not yet shipped'",
+     "gold": [
+      "stg_shipments.shipped_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipped_at",
+      "int_order_shipping.first_shipped_at",
+      "raw_shipments.shipped_at",
+      "int_shipments_enriched.shipped_at",
+      "fct_inventory_status.warehouse_code"
+     ],
+     "scores": [
+      0.8,
+      0.791,
+      0.79,
+      0.787,
+      0.783
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-22",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_shipments.carrier",
+     "gold": [
+      "stg_shipments.carrier"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.carrier"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-23",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_product_costs.product_id",
+     "gold": [
+      "stg_product_costs.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-24",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_order_items.quantity",
+     "gold": [
+      "stg_order_items.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.quantity"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-25",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "refund reason",
+     "gold": [
+      "stg_refunds.refund_reason"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_refunds.refund_reason",
+      "raw_refunds.reason"
+     ],
+     "scores": [
+      0.93,
+      0.865
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-26",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_order_items.order_item_id",
+     "gold": [
+      "stg_order_items.order_item_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.order_item_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-27",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Promotion codes used, highest discount first'",
+     "gold": [
+      "int_order_promotions.promo_codes"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_promotions.discount_pct",
+      "raw_promotions.discount_pct",
+      "int_order_promotions.promo_codes",
+      "int_order_promotions.max_discount_pct",
+      "stg_promotions.promotion_id"
+     ],
+     "scores": [
+      0.836,
+      0.82,
+      0.805,
+      0.796,
+      0.771
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-28",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Event key, prefixed by its source'",
+     "gold": [
+      "int_payment_events.event_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_payment_events.event_id",
+      "fct_payment_events.event_id",
+      "int_order_adjustments.adjustment_id",
+      "fct_payment_events.event_at",
+      "int_payment_events.event_at"
+     ],
+     "scores": [
+      0.805,
+      0.803,
+      0.798,
+      0.794,
+      0.782
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-29",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "line_margin in int_order_item_margins",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_amount",
+      "int_order_item_margins.quantity",
+      "int_order_item_margins.line_margin",
+      "int_order_item_margins.is_discounted",
+      "int_order_item_margins.line_cost"
+     ],
+     "scores": [
+      0.856,
+      0.851,
+      0.843,
+      0.84,
+      0.839
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-30",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "days_to_ship in int_shipments_enriched",
+     "gold": [
+      "int_shipments_enriched.days_to_ship"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_shipments_enriched.days_to_ship"
+     ],
+     "scores": [
+      0.935
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-31",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "session started at",
+     "gold": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at"
+     ],
+     "expect_ambiguous": true,
+     "top": [
+      "int_web_sessions_clean.session_started_at",
+      "stg_web_sessions.session_started_at",
+      "raw_web_sessions.started_at"
+     ],
+     "scores": [
+      0.935,
+      0.93,
+      0.865
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-32",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_items_enriched.product_id",
+     "gold": [
+      "int_order_items_enriched.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-33",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "spend_usd in fct_channel_performance_monthly",
+     "gold": [
+      "fct_channel_performance_monthly.spend_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.spend_usd"
+     ],
+     "scores": [
+      0.94
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-34",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_customer_order_history.sales_tax",
+     "gold": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-35",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_id",
+     "gold": [
+      "dim_customer_segments.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-36",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_order_margins.cogs_total",
+     "gold": [
+      "fct_order_margins.cogs_total"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.cogs_total"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-37",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "order status group in orders",
+     "gold": [
+      "fct_orders.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_orders.status",
+      "raw_orders.status",
+      "fct_orders.order_status_group",
+      "int_orders_enriched.order_status_group",
+      "int_order_financials.order_status_group"
+     ],
+     "scores": [
+      0.844,
+      0.834,
+      0.81,
+      0.8,
+      0.793
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-38",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "items subtotal in order financials",
+     "gold": [
+      "int_order_financials.items_subtotal"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.items_subtotal",
+      "fct_orders.items_subtotal",
+      "int_orders_enriched.items_subtotal",
+      "int_customer_order_history.items_subtotal"
+     ],
+     "scores": [
+      0.935,
+      0.691,
+      0.656,
+      0.646
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-39",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "refunded_amount in fct_orders",
+     "gold": [
+      "fct_orders.refunded_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.refunded_amount",
+      "int_order_financials.refund_amount",
+      "int_customer_order_history.refund_amount",
+      "fct_daily_revenue.refunded_amount",
+      "fct_monthly_finance.refunded_amount"
+     ],
+     "scores": [
+      0.94,
+      0.778,
+      0.768,
+      0.658,
+      0.658
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-40",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "order_id in int_order_profit",
+     "gold": [
+      "int_order_profit.order_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_profit.customer_id",
+      "int_order_profit.order_id",
+      "int_order_profit.is_profitable",
+      "int_order_profit.order_date",
+      "int_order_promotions.order_id"
+     ],
+     "scores": [
+      0.86,
+      0.835,
+      0.827,
+      0.825,
+      0.771
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-41",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'One of champion, loyal, at_risk or hibernating'",
+     "gold": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "used",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-42",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_monthly_finance.revenue_marketing",
+     "gold": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-43",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_channel_performance_monthly.roas",
+     "gold": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-44",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.rfm_score",
+     "gold": [
+      "dim_customer_segments.rfm_score"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.rfm_score"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-45",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "contribution_margin in fct_monthly_finance",
+     "gold": [
+      "fct_monthly_finance.contribution_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.contribution_margin"
+     ],
+     "scores": [
+      0.94
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-46",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "order month",
+     "gold": [
+      "fct_customer_cohorts.order_month",
+      "fct_segment_monthly.order_month"
+     ],
+     "expect_ambiguous": true,
+     "top": [
+      "fct_customer_cohorts.order_month",
+      "fct_segment_monthly.order_month"
+     ],
+     "scores": [
+      0.94,
+      0.94
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-47",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "segment order count",
+     "gold": [
+      "fct_segment_monthly.segment_order_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_segment_monthly.segment_order_count",
+      "dim_customers.order_count",
+      "fct_daily_revenue.order_count"
+     ],
+     "scores": [
+      0.94,
+      0.634,
+      0.634
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "surface",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-48",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "item_count in fct_orders",
+     "gold": [
+      "fct_orders.item_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.item_count",
+      "int_order_financials.item_count",
+      "int_orders_enriched.item_count",
+      "int_customer_order_history.item_count"
+     ],
+     "scores": [
+      0.94,
+      0.905,
+      0.905,
+      0.895
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-49",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_customer_sessions.customer_id",
+     "gold": [
+      "int_customer_sessions.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_sessions.customer_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-50",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "active_customers in fct_segment_monthly",
+     "gold": [
+      "fct_segment_monthly.active_customers"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_segment_monthly.active_customers",
+      "fct_segment_monthly.customer_segment"
+     ],
+     "scores": [
+      0.94,
+      0.685
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-51",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'True when the line was sold below list price'",
+     "gold": [
+      "int_order_items_enriched.is_discounted"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.is_discounted",
+      "fct_product_performance.discounted_units",
+      "stg_products.list_price",
+      "raw_products.list_price",
+      "int_order_item_margins.line_cost"
+     ],
+     "scores": [
+      0.805,
+      0.798,
+      0.793,
+      0.781,
+      0.774
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-52",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_web_sessions_clean.session_started_at",
+     "gold": [
+      "int_web_sessions_clean.session_started_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_web_sessions_clean.session_started_at"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-53",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_product_costs.product_id",
+     "gold": [
+      "stg_product_costs.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-54",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.net_paid_usd",
+     "gold": [
+      "fct_orders.net_paid_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.net_paid_usd"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-55",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "id in raw product costs",
+     "gold": [
+      "raw_product_costs.id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_product_costs.product_cost_id",
+      "int_product_costs_current.product_id",
+      "stg_product_costs.product_id",
+      "raw_product_costs.id",
+      "raw_product_costs.product_id"
+     ],
+     "scores": [
+      0.87,
+      0.869,
+      0.869,
+      0.865,
+      0.865
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-56",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "revenue_marketing in fct_daily_revenue",
+     "gold": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.order_count",
+      "fct_daily_revenue.order_date",
+      "fct_daily_revenue.revenue_marketing",
+      "fct_daily_revenue.refunded_amount",
+      "fct_daily_revenue.revenue_finance"
+     ],
+     "scores": [
+      0.854,
+      0.852,
+      0.84,
+      0.84,
+      0.835
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-57",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Order status mapped to complete, open, returned or other'",
+     "gold": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_orders.status",
+      "raw_orders.status",
+      "fct_inventory_status.warehouse_code",
+      "fct_inventory_status.product_id",
+      "int_orders_enriched.order_status_group"
+     ],
+     "scores": [
+      0.846,
+      0.841,
+      0.809,
+      0.807,
+      0.805
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-58",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_item_margins.line_margin",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-59",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "raw_products.list_price",
+     "gold": [
+      "raw_products.list_price"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "raw_products.list_price"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-60",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "product id in order items enriched",
+     "gold": [
+      "int_order_items_enriched.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.product_id",
+      "stg_order_items.product_id",
+      "raw_order_items.product_id",
+      "int_order_item_margins.product_id",
+      "int_order_items_enriched.order_item_id"
+     ],
+     "scores": [
+      0.935,
+      0.674,
+      0.669,
+      0.659,
+      0.646
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-61",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_order_items.order_item_id",
+     "gold": [
+      "stg_order_items.order_item_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.order_item_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-62",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Current purchase cost of one unit'",
+     "gold": [
+      "int_product_costs_current.unit_cost"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_product_costs_current.unit_cost",
+      "int_product_costs_current.supplier_id",
+      "int_product_costs_current.supplier_country",
+      "int_product_costs_current.supplier_name",
+      "int_product_costs_current.cost_valid_from"
+     ],
+     "scores": [
+      0.825,
+      0.821,
+      0.818,
+      0.818,
+      0.805
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-63",
+     "variant": "description",
+     "rule": null,
+     "mention": "the column documented as 'Discount granted on the order by this promotion, in USD'",
+     "gold": [
+      "stg_order_promotions.discount_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_promotions.discount_usd",
+      "int_order_promotions.discount_total",
+      "raw_order_promotions.discount_usd",
+      "int_order_promotions.max_discount_pct",
+      "stg_promotions.discount_pct"
+     ],
+     "scores": [
+      0.86,
+      0.858,
+      0.848,
+      0.825,
+      0.82
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-64",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_items_enriched.quantity",
+     "gold": [
+      "int_order_items_enriched.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.quantity"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-65",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.refunded_amount",
+     "gold": [
+      "fct_orders.refunded_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_orders.refunded_amount"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-66",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "sales_tax in int_customer_order_history",
+     "gold": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_order_history.sales_tax"
+     ],
+     "scores": [
+      0.935
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-67",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "stg_order_items.quantity",
+     "gold": [
+      "stg_order_items.quantity"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_order_items.quantity"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-68",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "sales tax in order financials",
+     "gold": [
+      "int_order_financials.sales_tax"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.sales_tax",
+      "fct_orders.sales_tax",
+      "int_customer_order_history.sales_tax"
+     ],
+     "scores": [
+      0.935,
+      0.666,
+      0.621
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-69",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "line_amount in int_order_items_enriched",
+     "gold": [
+      "int_order_items_enriched.line_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_items_enriched.line_amount",
+      "int_order_item_margins.line_amount"
+     ],
+     "scores": [
+      0.935,
+      0.663
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-70",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_id",
+     "gold": [
+      "dim_customer_segments.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-71",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "customer_id in int_customer_sessions",
+     "gold": [
+      "int_customer_sessions.customer_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_customer_sessions.customer_id",
+      "int_customer_sessions.session_count",
+      "int_web_sessions_clean.customer_id",
+      "stg_web_sessions.customer_id",
+      "int_customer_sessions.first_session_at"
+     ],
+     "scores": [
+      0.835,
+      0.823,
+      0.811,
+      0.808,
+      0.805
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-72",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_financials.items_subtotal",
+     "gold": [
+      "int_order_financials.items_subtotal"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.items_subtotal"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-73",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "raw_payments.created_at",
+     "gold": [
+      "raw_payments.created_at"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "raw_payments.created_at"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-74",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_product_costs_current.product_id",
+     "gold": [
+      "int_product_costs_current.product_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_product_costs_current.product_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-75",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "last name in raw customers",
+     "gold": [
+      "raw_customers.last_name"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_customers.last_name",
+      "raw_customers.last_name"
+     ],
+     "scores": [
+      0.93,
+      0.925
+     ],
+     "ambiguous": true,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": false,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-76",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "stg_marketing_spend.impressions",
+     "gold": [
+      "stg_marketing_spend.impressions"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_marketing_spend.impressions"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-77",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "roas in fct_channel_performance_monthly",
+     "gold": [
+      "fct_channel_performance_monthly.roas"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_channel_performance_monthly.roas",
+      "fct_channel_performance_monthly",
+      "fct_channel_performance_monthly.channel"
+     ],
+     "scores": [
+      0.94,
+      0.633,
+      0.61
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-78",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "fct_daily_revenue.revenue_marketing",
+     "gold": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.revenue_marketing"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-79",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customers.lifetime_value",
+     "gold": [
+      "dim_customers.lifetime_value"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customers.lifetime_value"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-80",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_monthly_finance.revenue_marketing",
+     "gold": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_monthly_finance.revenue_marketing"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-81",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_item_margins.line_margin",
+     "gold": [
+      "int_order_item_margins.line_margin"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_item_margins.line_margin"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-82",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_order_financials.refund_amount",
+     "gold": [
+      "int_order_financials.refund_amount"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_order_financials.refund_amount"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-83",
+     "variant": "description",
+     "rule": null,
+     "mention": "stg_shipments.shipping_cost_usd",
+     "gold": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "stg_shipments.shipping_cost_usd"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-84",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_orders_enriched.order_status_group",
+     "gold": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_orders_enriched.order_status_group"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-85",
+     "variant": "description",
+     "rule": null,
+     "mention": "dim_customer_segments.customer_segment",
+     "gold": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "dim_customer_segments.customer_segment"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-86",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_order_margins.order_id",
+     "gold": [
+      "fct_order_margins.order_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_order_margins.order_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-87",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "int_web_sessions_clean.session_id",
+     "gold": [
+      "int_web_sessions_clean.session_id"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "int_web_sessions_clean.session_id"
+     ],
+     "scores": [
+      1.0
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "exact_id",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-88",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "late_shipment_count in fct_shipping_performance",
+     "gold": [
+      "fct_shipping_performance.late_shipment_count"
+     ],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_shipping_performance.late_shipment_count",
+      "fct_shipping_performance.shipment_count",
+      "int_order_shipping.late_shipment_count"
+     ],
+     "scores": [
+      0.94,
+      0.722,
+      0.697
+     ],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "rewritten",
+     "top1": true,
+     "top3": true,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-89",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "int_order_shipping.shipping_cost",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-90",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_orders.discount_total",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-91",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "dim_customers.segment",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-92",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_daily_revenue.revnue_finance",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": null,
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-93",
+     "variant": "identifier",
+     "rule": null,
+     "mention": "fct_returns.return_amount",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [
+      "fct_daily_revenue.refunded_amount",
+      "fct_monthly_finance.refunded_amount",
+      "fct_orders.refunded_amount",
+      "fct_payment_events.event_amount_usd",
+      "fct_daily_revenue.order_count"
+     ],
+     "scores": [
+      0.805,
+      0.805,
+      0.805,
+      0.786,
+      0.734
+     ],
+     "ambiguous": true,
+     "hybrid": "used",
+     "stage": "hybrid",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": false
+    },
+    {
+     "id": "dev-94",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "gift card balance",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "used",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-95",
+     "variant": "name_words",
+     "rule": null,
+     "mention": "loyalty points",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "used",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
+    },
+    {
+     "id": "dev-96",
+     "variant": "paraphrase",
+     "rule": null,
+     "mention": "payroll.employee_salary",
+     "gold": [],
+     "expect_ambiguous": false,
+     "top": [],
+     "scores": [],
+     "ambiguous": false,
+     "hybrid": "used",
+     "stage": "none",
+     "top1": false,
+     "top3": false,
+     "no_match_ok": true
     }
    ],
    "dbt_jira sample": [
@@ -22229,6 +27849,7 @@
     0.94,
     0.94,
     0.94,
+    0.87,
     1.0,
     1.0,
     1.0,
@@ -22532,6 +28153,13 @@
     "mention": "fct_daily_revenue.profit",
     "gold_cos": null,
     "best_wrong_cos": 0.811
+   },
+   {
+    "id": "lk-no_match-026",
+    "variant": "no_match",
+    "mention": "stg_shipments.shipping_cost",
+    "gold_cos": 0.831,
+    "best_wrong_cos": 0.748
    },
    {
     "id": "lk-no_match-029",
