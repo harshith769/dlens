@@ -1,5 +1,9 @@
 """No absolute local paths in committed fixtures, reports, docs or corpora (CLAUDE.md rule).
 
+Scans what is (or is about to be) committed: tracked and staged files, plus untracked files that
+are not ignored, so a new doc is checked before its first `git add` (the commit hook runs this
+suite before the commit command adds anything).
+
 The patterns are never loosened. A known-safe mention is allowed only through ALLOWED: an
 exact (file, substring) pair, so a new absolute path in the same file still fails.
 """
@@ -26,18 +30,24 @@ ALLOWED = {
 }
 
 
-def _tracked() -> list[str]:
+def _git_files(root: Path, *extra: str) -> list[str]:
+    out = subprocess.run(
+        ["git", "ls-files", *extra, "--", *SCANNED],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return out.splitlines()
+
+
+def _to_commit(root: Path = ROOT) -> list[str]:
+    """Tracked or staged files, plus untracked non-ignored ones, under SCANNED."""
     try:
-        out = subprocess.run(
-            ["git", "ls-files", "--", *SCANNED],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        files = _git_files(root) + _git_files(root, "--others", "--exclude-standard")
     except (OSError, subprocess.CalledProcessError):
         pytest.skip("git is not available")
-    return [f for f in out.splitlines() if Path(f).suffix in SUFFIXES]
+    return sorted({f for f in files if Path(f).suffix in SUFFIXES})
 
 
 def _violations(rel: str, text: str) -> list[str]:
@@ -50,7 +60,7 @@ def _violations(rel: str, text: str) -> list[str]:
 
 def test_no_absolute_paths_in_committed_files() -> None:
     bad: list[str] = []
-    for rel in _tracked():
+    for rel in _to_commit():
         path = ROOT / rel
         if path.is_file():
             bad += _violations(rel, path.read_text(encoding="utf-8", errors="replace"))
@@ -80,3 +90,19 @@ def test_allowlist_is_exact_per_file() -> None:
     line = "    /Users/dbeatty/.pyenv/shims/dbt"
     assert not _violations("corpora/jaffle_shop/README.md", line)
     assert _violations("corpora/synthetic_shop/README.md", line)
+
+
+def _git(root: Path, *args: str) -> None:
+    subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+
+
+def test_scan_includes_staged_and_untracked_but_not_ignored(tmp_path: Path) -> None:
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / ".gitignore").write_text("docs/ignored.md\n")
+    for name in ("tracked.md", "staged.md", "untracked.md", "ignored.md"):
+        (tmp_path / "docs" / name).write_text("x\n")
+    _git(tmp_path, "add", "docs/tracked.md")
+    _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "t")
+    _git(tmp_path, "add", "docs/staged.md")
+    assert _to_commit(tmp_path) == ["docs/staged.md", "docs/tracked.md", "docs/untracked.md"]

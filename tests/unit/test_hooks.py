@@ -1,8 +1,12 @@
+import importlib.util
 import json
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
+
+import pytest
 
 HOOK = Path(__file__).parents[2] / ".claude" / "hooks" / "format.py"
 
@@ -109,3 +113,48 @@ def test_other_commands_do_not_run_make(tmp_path: Path) -> None:
         assert _commit_gate(project, cmd).returncode == 0, cmd
     assert _commit_gate(project, "git commit", tool="Read").returncode == 0
     assert not (tmp_path / "ran_test").exists()
+
+
+def _runs_git_commit() -> Callable[[str], bool]:
+    spec = importlib.util.spec_from_file_location("precommit_hook", PRECOMMIT)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    fn: Callable[[str], bool] = mod.runs_git_commit
+    return fn
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "git commit -m x",
+        "cd repo && git commit -q -m 'msg with ; and && inside'",
+        "make lint; git commit --amend --no-edit",
+        "true || git commit",
+        "git -C some/dir -c user.name=x commit",
+        "GIT_AUTHOR_DATE=now git commit -m x",
+        "cat > f <<'EOF'\nhello\nEOF\ngit commit -m x",
+        "(git commit -m x)",
+        'git commit -m "unbalanced',  # untokenisable: falls back to a text match
+    ],
+)
+def test_gate_fires_on_a_real_commit_command(cmd: str) -> None:
+    assert _runs_git_commit()(cmd)
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "git status",
+        "git commit-tree abc",
+        "echo git commit",
+        "echo 'run git commit later'",
+        "python3 -c \"print('git commit')\"",
+        "cat > /tmp/r.md <<'EOF'\nthe hook blocked a git commit\ngit commit -m x\nEOF",
+        "cat <<EOF > f\n  git commit\nEOF\necho done",
+        "grep -n 'git commit' file.py",
+        "git log --grep commit",
+    ],
+)
+def test_gate_ignores_commit_text_in_strings_and_heredocs(cmd: str) -> None:
+    assert not _runs_git_commit()(cmd)
