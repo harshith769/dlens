@@ -154,7 +154,7 @@ Trap names follow spec §10 exactly. "Status" says whether v1 already had the tr
 | 5 | Join-key-only dependency | **new in v2** | `fct_orders.customer_id` → `dim_customers` (JOIN + GROUP_BY only; v1 SQL, gold added now); `stg_products.product_id` → `int_order_items_enriched` (v1 SQL); `stg_suppliers.supplier_id` → `int_product_costs_current`; `dim_customer_segments.customer_id` → `fct_segment_monthly` | key columns listed | Impact with indirect edges ("what breaks if `stg_suppliers.supplier_id` changes?"); yes/no reachability that is "yes" only through an indirect edge |
 | 6 | Fan-in aggregate (`lifetime_value`) | v1 + new instances | v1: `dim_customers.lifetime_value` (3 inputs). v2: `int_order_profit.contribution_margin` (line margin, shipping, discounts: 3 domains); `dim_customer_rfm.rfm_score` (4 inputs) | as listed | Trace (all inputs must be cited; tests G1 coverage completion) |
 | 7 | Stale doc (YAML contradicts SQL) | **new in v2** | (1) `fct_monthly_finance.revenue_marketing`: "Monthly revenue net of refunds, excluding tax." SQL: includes tax, refunds not deducted. (2) `fct_order_margins.contribution_margin`: "Gross margin minus shipping cost." SQL also subtracts discounts | 2 columns | Ask with `search_docs` (G4): the answer must follow the SQL and may mention the doc is wrong |
-| 8 | Near-duplicate names | v1 + new instance | v1: `refund_amt` / `refund_amount` / `refunded_amount`. v2: `shipping_cost_usd` (per shipment: `stg_shipments`, `int_shipments_enriched`) / `shipping_cost_total` (per order: `int_order_shipping`, `int_order_profit`, `fct_order_margins`) / `shipping_costs_usd` (per carrier-month: `fct_shipping_performance`). Far from the dev-15/16 targets (`order_count`, `previous_order_date`) | as listed | Linker top-1/top-3; trace on each name; unanswerable near-misses (`shipping_cost`) |
+| 8 | Near-duplicate names | v1 + new instance | v1: `refund_amt` / `refund_amount` / `refunded_amount`. v2: `shipping_cost_usd` (per shipment: `stg_shipments`, `int_shipments_enriched`) / `shipping_cost_total` (per order: `int_order_shipping`, `int_order_profit`, `fct_order_margins`) / `shipping_costs_usd` (per carrier-month: `fct_shipping_performance`). Far from the dev-15/16 targets (`order_count`, `previous_order_date`) | as listed | Linker top-1/top-3; trace on each name; unanswerable near-misses (`int_order_shipping.shipping_cost`). **Near-miss policy (owner, 18 Oct 2026, S09):** a dotted near-miss that only omits a unit the real column has is interpreted visibly ('Interpreted ... as ...'); any other near-miss must be refused. So `stg_shipments.shipping_cost` → `stg_shipments.shipping_cost_usd` (interpreted) |
 | 9 | Exposures (two dashboards on different marts) | **new in v2** | `finance_dashboard` → `fct_monthly_finance`, `fct_daily_revenue`. `marketing_dashboard` → `fct_marketing_attribution`, `fct_channel_performance_monthly` | model-level | Impact ("which dashboards break if `raw_order_items.unit_price` changes?" → both; `raw_marketing_spend.spend_usd` → marketing only) |
 
 **Not a trap (G4 test case).** `int_order_item_margins.line_margin` gets this description:
@@ -330,6 +330,12 @@ correcting the premise. Both still count against their spec parent (Trace, Impac
 Parent totals match spec §11.2: Trace 45 / 105, Impact 30 / 70, Ask 12 / 28, Unanswerable 9 / 21.
 False-premise questions keep their hop tags but are reported in their own row, not in the
 hop-depth chart.
+
+**Amended by S09 (owner, 18 Oct 2026; `docs/plans/questions-design.md` §1, §10).** How-computed
+questions count under Trace, not Ask (dev-11, 12 and 13 are re-tagged `trace/computed`); Ask holds
+meaning questions only. The dev type mix above is superseded by questions-design.md §1. Small traps
+(stale_doc: 2 columns, doc_injection: 1, exposures: model-level) cannot have ≥ 4 test questions on
+distinct columns; their coverage is counted per question.
 
 **Trace supply** (model columns at that depth; `session_number` excluded). Under D5 a false-premise
 question uses the trace slot of its column; its 12 targets come mostly from the 1 and 2–3 buckets.
