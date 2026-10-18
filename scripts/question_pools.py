@@ -6,7 +6,8 @@ uv run python scripts/question_pools.py --check  # exit 1 if the file on disk is
 Every column of lineage_spec.yml (seeds and models) goes to the dev or the test pool BEFORE any
 question is generated. Stratum = (hop bucket, rarest trap); a small trap (<= SMALL_TRAP columns)
 is one stratum across buckets, so its columns split between dev and test (owner Q5: 1/1). Inside a stratum, columns are ordered
-by sha256(SALT + id); the 18 existing v0.2 dev targets go to dev first and count toward the stratum's
+by sha256(SALT + id); the 18 existing v0.2 dev targets (and the 3 other columns their texts
+name) go to dev first and count toward the stratum's
 dev quota, max(forced, round(0.30 n)), at least 1 when n >= 2; a 1-column stratum goes to dev when
 its hash fraction is below 0.30. The file lists column ids and splits only, never question text.
 
@@ -52,6 +53,11 @@ V02_TARGETS = (
     "dim_customers.order_count", "fct_orders.previous_order_date", "int_order_financials.net_paid_usd",
     "stg_orders.ship_date", "fct_payment_events.event_at",
 )  # fmt: skip
+# Other column ids named in the v0.2 question texts (dev-10's second column, dev-17's and dev-18's
+# premises). Their text is kept verbatim, so these columns are forced into dev too.
+V02_MENTIONS = (
+    "dim_customers.lifetime_value", "int_customer_order_history.sales_tax", "stg_payments.amount_usd",
+)  # fmt: skip
 # Dev-pool supply the count table needs (questions-design.md §1), with room for spares.
 NEED_TRACE = {"1": 10, "2-3": 13, "4-5": 13, "6+": 13}
 NEED_DEEP_8 = 3  # trace targets at 8-10 hops
@@ -96,7 +102,7 @@ def build(spec: Mapping[str, Any], traps: Mapping[str, Any]) -> dict[str, Any]:
         trap = hits[0][1] if hits else "none"
         small = trap != "none" and size[trap] <= SMALL_TRAP
         strata[("any" if small else bucket(depths[col]), trap)].append(col)
-    forced = {c for c in V02_TARGETS if c in depths}
+    forced = {c for c in (*V02_TARGETS, *V02_MENTIONS) if c in depths}
     columns: dict[str, dict[str, str]] = {}
     summary = []
     for (b, trap), cols in sorted(strata.items()):
@@ -131,7 +137,7 @@ def coverage(pools: Mapping[str, Any], spec: Mapping[str, Any]) -> list[str]:
         elif gs.downstream(v, c, include_indirect=True):
             imp["indirect-only"] += 1
     short += [f"impact {b}: {imp[b]} < {n}" for b, n in NEED_IMPACT.items() if imp[b] < n]
-    missing = [c for c in V02_TARGETS if c in pools["columns"] and c not in dev]
+    missing = [c for c in (*V02_TARGETS, *V02_MENTIONS) if c in pools["columns"] and c not in dev]
     short += [f"forced dev target in test: {c}" for c in missing]
     return short
 

@@ -36,7 +36,7 @@ def test_v02_targets_are_forced_into_dev():
     # 20 questions, 19 distinct targets (dev-11 and dev-17 share fct_orders.revenue_finance);
     # dev-19's target, stg_orders.ship_date, does not exist.
     assert len(existing) == 18
-    assert all(COLS[c]["split"] == "dev" for c in existing)
+    assert all(COLS[c]["split"] == "dev" for c in [*existing, *qp.V02_MENTIONS])
 
 
 def test_quota_per_stratum():

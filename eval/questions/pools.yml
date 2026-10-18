@@ -35,7 +35,7 @@ strata:
 - stratum: 4-5|select_star
   n: 12
   dev: 4
-  forced: 0
+  forced: 1
 - stratum: 6+|deep_chain
   n: 5
   dev: 2
@@ -59,7 +59,7 @@ strata:
 - stratum: any|fan_in_aggregate
   n: 3
   dev: 1
-  forced: 0
+  forced: 1
 - stratum: any|join_key_only
   n: 4
   dev: 1
@@ -808,6 +808,9 @@ columns:
   int_order_attribution.days_to_convert:
     split: test
     stratum: 4-5|none
+  int_customer_order_history.sales_tax:
+    split: dev
+    stratum: 4-5|select_star
   fct_order_margins.cogs_total:
     split: dev
     stratum: 4-5|select_star
@@ -818,7 +821,7 @@ columns:
     split: dev
     stratum: 4-5|select_star
   int_customer_order_history.order_total:
-    split: dev
+    split: test
     stratum: 4-5|select_star
   int_customer_order_history.item_count:
     split: test
@@ -839,9 +842,6 @@ columns:
     split: test
     stratum: 4-5|select_star
   fct_order_margins.discount_total:
-    split: test
-    stratum: 4-5|select_star
-  int_customer_order_history.sales_tax:
     split: test
     stratum: 4-5|select_star
   fct_customer_leaderboard.customer_segment:

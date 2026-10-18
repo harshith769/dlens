@@ -201,3 +201,11 @@ def test_code_rules_lists_code_steps_only():
         ]
     }
     assert dr.code_rules(record) == ["linked_evidence", "reachability_fact"]
+
+
+def test_hand_scored_questions_have_no_automatic_pass():
+    row = dr.score(q(hand_scored=True), ans(["e_2"]), REC, edge_of)
+    assert row["pass"] is None
+    s = dr.summary([row, dr.score(q(), ans(["e_1", "e_2"]), REC, edge_of)])
+    assert (s["pass"], s["hand_scored"]) == (1, 1)
+    assert "| n/a |" in dr.table([row])

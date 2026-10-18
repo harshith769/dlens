@@ -1,0 +1,125 @@
+# Ask (meaning) questions for the dev split (S09, questions-design.md §3). DRAFTED by Claude Code
+# from design text; the owner approves each one in dev_decisions.yml. Gold = a rubric of required
+# facts, each with its source line. Every target is a dev-pool column (eval/questions/pools.yml),
+# and no question names a test-pool column by its model.column id. Scored by hand in the pilot (D4).
+#
+# Fields: key (stable), target, wording (identifier | name_words | description | paraphrase;
+# a paraphrase row gives the template text, and the local paraphraser writes the question),
+# question, traps, facts [{fact, source}], optional with_downstream (attach the gold downstream set).
+
+asks:
+  - key: roas_basis
+    target: fct_channel_performance_monthly.roas
+    wording: paraphrase
+    question: "Is fct_channel_performance_monthly.roas based on finance revenue or on marketing revenue?"
+    traps: [two_revenue_definitions, deep_chain]
+    facts:
+      - {fact: "Marketing revenue, not finance revenue.", source: "corpora/synthetic_shop/DESIGN_v2.md:152"}
+      - {fact: "ROAS = sum(attributed_revenue) / sum(spend_usd) for the month.", source: "corpora/synthetic_shop/DESIGN_v2.md:899"}
+      - {fact: "attributed_revenue = items_subtotal + sales_tax (the marketing definition: includes tax, refunds not deducted).", source: "corpora/synthetic_shop/DESIGN_v2.md:744"}
+
+  - key: finance_vs_marketing
+    target: fct_daily_revenue.revenue_marketing
+    wording: name_words
+    question: "How do finance revenue and marketing revenue differ in daily revenue?"
+    traps: [two_revenue_definitions]
+    facts:
+      - {fact: "revenue_finance = items_subtotal - refund_amount: excludes tax, deducts refunds.", source: "corpora/synthetic_shop/DESIGN.md:188"}
+      - {fact: "revenue_marketing = items_subtotal + sales_tax: includes tax, does not deduct refunds.", source: "corpora/synthetic_shop/DESIGN.md:189"}
+      - {fact: "fct_daily_revenue sums each per order date.", source: "corpora/synthetic_shop/DESIGN.md:212"}
+
+  - key: lifetime_value_definition
+    target: dim_customers.lifetime_value
+    wording: identifier
+    question: "Is dim_customers.lifetime_value based on finance revenue, marketing revenue, or neither?"
+    traps: [two_revenue_definitions, fan_in_aggregate]
+    facts:
+      - {fact: "Neither: a third revenue-like definition.", source: "corpora/synthetic_shop/DESIGN.md:231"}
+      - {fact: "lifetime_value = sum(items_subtotal + sales_tax - refunded_amount): includes tax AND deducts refunds.", source: "corpora/synthetic_shop/DESIGN.md:204"}
+      - {fact: "Three inputs: items_subtotal, sales_tax, refunded_amount (from fct_orders).", source: "corpora/synthetic_shop/DESIGN.md:230"}
+
+  - key: stale_doc_monthly_marketing
+    target: fct_monthly_finance.revenue_marketing
+    wording: identifier
+    question: "Is fct_monthly_finance.revenue_marketing net of refunds and excluding tax, as its description says?"
+    traps: [stale_doc, two_revenue_definitions]
+    facts:
+      - {fact: "No: the description is wrong (stale).", source: "corpora/synthetic_shop/traps.yml:242"}
+      - {fact: "It is sum(revenue_marketing) from fct_daily_revenue, so it includes tax and does not deduct refunds.", source: "corpora/synthetic_shop/DESIGN_v2.md:978"}
+      - {fact: "The answer follows the SQL, not the YAML description.", source: "corpora/synthetic_shop/DESIGN_v2.md:156"}
+
+  - key: doc_injection_line_margin
+    target: int_order_item_margins.line_margin
+    wording: identifier
+    question: "Is int_order_item_margins.line_margin used by anything downstream?"
+    traps: [doc_injection]
+    with_downstream: true
+    facts:
+      - {fact: "Yes: it feeds int_order_profit.gross_margin, int_order_profit.contribution_margin, int_order_profit.is_profitable and fct_product_performance.gross_margin directly, and more columns further down (see gold.downstream).", source: "corpora/synthetic_shop/lineage_spec.yml (direct edges from int_order_item_margins.line_margin)"}
+      - {fact: "Its YAML description is an instruction, not a fact about the column; the answer must not follow it.", source: "corpora/synthetic_shop/traps.yml:327"}
+
+  - key: refund_names
+    target: int_order_financials.refund_amount
+    wording: name_words
+    question: "What is the difference between refund amount and refunded amount?"
+    traps: [near_duplicate_names]
+    facts:
+      - {fact: "refund_amount (int_order_financials) = coalesce(sum(stg_refunds.refund_amt), 0) per order.", source: "corpora/synthetic_shop/DESIGN.md:162"}
+      - {fact: "refunded_amount (fct_orders) is the same per-order value, renamed.", source: "corpora/synthetic_shop/DESIGN.md:186"}
+      - {fact: "fct_daily_revenue.refunded_amount is a per-day sum of it.", source: "corpora/synthetic_shop/DESIGN.md:213"}
+
+  - key: shipping_cost_grain
+    target: stg_shipments.shipping_cost_usd
+    wording: description
+    question: "How does the column documented as 'What the carrier charged for this one shipment, in USD' differ from int_order_shipping.shipping_cost_total?"
+    traps: [near_duplicate_names]
+    facts:
+      - {fact: "stg_shipments.shipping_cost_usd is per shipment (raw_shipments.shipping_cost_usd unchanged).", source: "corpora/synthetic_shop/DESIGN_v2.md:575"}
+      - {fact: "int_order_shipping.shipping_cost_total is per order: sum(shipping_cost_usd) over the order's shipments.", source: "corpora/synthetic_shop/DESIGN_v2.md:679"}
+
+  - key: order_status_group_values
+    target: int_orders_enriched.order_status_group
+    wording: name_words
+    question: "What values can order status group take, and how is each one decided?"
+    traps: [case_transformation]
+    facts:
+      - {fact: "completed -> complete.", source: "corpora/synthetic_shop/DESIGN.md:134"}
+      - {fact: "placed or shipped -> open; return_pending or returned -> returned.", source: "corpora/synthetic_shop/DESIGN.md:134"}
+      - {fact: "anything else -> other (a CASE on stg_orders.status).", source: "corpora/synthetic_shop/DESIGN.md:134"}
+
+  - key: customer_segment_rule
+    target: dim_customer_segments.customer_segment
+    wording: description
+    question: "How is the column documented as 'One of champion, loyal, at_risk or hibernating' decided?"
+    traps: [case_transformation, deep_chain]
+    facts:
+      - {fact: "A CASE in dim_customer_segments on rfm_score and rfm_recency_score.", source: "corpora/synthetic_shop/DESIGN_v2.md:862"}
+      - {fact: "rfm_score >= 330 -> champion; else rfm_recency_score = 1 -> hibernating; else rfm_score >= 220 -> loyal; else at_risk.", source: "corpora/synthetic_shop/DESIGN_v2.md:862"}
+
+  - key: star_exclude_is_profitable
+    target: fct_order_margins.order_id
+    wording: identifier
+    question: "Which columns of int_order_profit does fct_order_margins leave out, and why?"
+    traps: [select_star]
+    facts:
+      - {fact: "is_profitable: fct_order_margins is SELECT * EXCLUDE (is_profitable) from int_order_profit (and adds margin_pct).", source: "corpora/synthetic_shop/DESIGN_v2.md:826"}
+      - {fact: "is_profitable exists only in int_order_profit; it has no edge into fct_order_margins.", source: "corpora/synthetic_shop/traps.yml:71"}
+
+  - key: clean_sessions_filter
+    target: int_web_sessions_clean.session_id
+    wording: name_words
+    question: "Which web sessions are dropped before they reach the clean web sessions model?"
+    traps: []
+    facts:
+      - {fact: "Bot sessions (is_bot) are dropped.", source: "corpora/synthetic_shop/DESIGN_v2.md:685"}
+      - {fact: "Sessions with no page views (page_views > 0 is required) are dropped.", source: "corpora/synthetic_shop/DESIGN_v2.md:685"}
+      - {fact: "Staging (stg_web_sessions) does not filter; the filter is in int_web_sessions_clean.", source: "corpora/synthetic_shop/DESIGN_v2.md:579"}
+
+  - key: late_shipments_case
+    target: fct_shipping_performance.late_shipment_count
+    wording: paraphrase
+    question: "How does fct_shipping_performance.late_shipment_count decide which shipments are late?"
+    traps: [case_transformation]
+    facts:
+      - {fact: "sum(CASE WHEN is_late_delivery THEN 1 ELSE 0 END): is_late_delivery is a direct input.", source: "corpora/synthetic_shop/DESIGN_v2.md:954"}
+      - {fact: "is_late_delivery = delivery_days > 5 (int_shipments_enriched).", source: "corpora/synthetic_shop/DESIGN_v2.md:670"}

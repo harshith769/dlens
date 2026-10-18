@@ -14,8 +14,9 @@ abbreviation table) detects collisions: a generated mention that also names anot
 SKIPPED and listed with a reason, never given a guessed gold.
 
 Split (owner, Q4): a stable hash of the case's first gold id (no-match: of the mention) puts about
-40% in linker-dev and 60% in linker-test. Gold columns that are dev.jsonl targets always go to
-linker-dev.
+40% in linker-dev and 60% in linker-test. Gold columns that are targets of the 20 v0.2 dev
+questions (V02_DEV_TARGETS, pinned in S09) always go to linker-dev. dev_mentions.jsonl covers every
+question in dev.jsonl, with the question's worded `mention`.
 """
 
 from __future__ import annotations
@@ -35,6 +36,17 @@ SPEC = ROOT / "corpora" / "synthetic_shop" / "lineage_spec.yml"
 GAPS = ROOT / "corpora" / "synthetic_shop" / "linker_gaps.yml"
 JIRA_MODELS = ROOT / "corpora" / "dbt_jira" / "models"  # gold checked against its YAML files
 DEV = ROOT / "eval" / "questions" / "dev.jsonl"
+# The 19 targets of the 20 v0.2 dev questions. The split pins them to linker-dev; frozen here (owner,
+# S09 Q2) so growing dev.jsonl to 96 never moves a linker-dev / linker-test case.
+V02_DEV_TARGETS = (
+    "stg_payments.amount_usd", "stg_customers.country_code", "int_order_items_enriched.line_amount",
+    "int_order_financials.sales_tax", "fct_orders.net_paid_usd", "fct_daily_revenue.revenue_marketing",
+    "stg_products.list_price", "raw_refunds.refund_amt", "int_order_financials.order_date",
+    "raw_payments.amt", "fct_orders.revenue_finance", "int_orders_enriched.order_status_group",
+    "int_order_financials.order_total", "int_order_items_enriched.product_category",
+    "dim_customers.order_count", "fct_orders.previous_order_date", "int_order_financials.net_paid_usd",
+    "stg_orders.ship_date", "fct_payment_events.event_at",
+)  # fmt: skip
 OUT = ROOT / "eval" / "linker"
 VARIANTS = OUT / "variants.yml"
 
@@ -347,10 +359,17 @@ def dev_mentions(variants: dict[str, Any], models: dict[str, list[str]]) -> list
     for line in DEV.read_text().splitlines():
         q = json.loads(line)
         o = over.get(q["id"], {})
-        gold = o.get("gold", [q["target"]])
+        if q["type"] == "unanswerable":
+            default = []
+        elif q["subtype"] == "ambiguous" and q["gold"].get("candidates"):
+            default = q["gold"]["candidates"]
+        else:
+            default = [q["target"]]
+        gold = o.get("gold", default)
         assert all(g in ids for g in gold), q["id"]
+        mention = o.get("mention", q.get("mention") or q["target"])
         out.append({
-            "id": q["id"], "corpus": "synthetic_shop", "split": "dev", "mention": o.get("mention", q["target"]),
+            "id": q["id"], "corpus": "synthetic_shop", "split": "dev", "mention": mention,
             "gold": sorted(gold), "expect_ambiguous": len(gold) > 1, "wording": q["wording"],
             **({"note": o["note"]} if "note" in o else {}),
         })  # fmt: skip
@@ -383,8 +402,7 @@ def build() -> tuple[dict[str, str], Builder]:
     models = load_spec()
     variants = yaml.safe_load(VARIANTS.read_text())
     gaps = yaml.safe_load(GAPS.read_text())
-    dev_targets = {json.loads(line)["target"] for line in DEV.read_text().splitlines()}
-    b = Builder(models, dev_targets)
+    b = Builder(models, set(V02_DEV_TARGETS))
     b.hand(variants, gaps)  # hand rows first: they own their mentions
     avoid = {m["mention"] for sec in ("near_duplicate",) for m in variants[sec]}
     gap_ids = [*gaps.get("resolved_s08", {}).get("exact_id_top1", []), *gaps["exact_id_top1"]]

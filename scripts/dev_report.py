@@ -143,7 +143,8 @@ def score(
         "id": q["id"],
         "verdict": verdict,
         "verdict_ok": v_ok,
-        "pass": not reasons,
+        # Ask (meaning) questions are scored by hand in the pilot (D4): no automatic pass.
+        "pass": None if exp.get("hand_scored") else not reasons,
         "reasons": reasons,
         "recall": recall,
         "cited_edges": sorted(cited),
@@ -279,7 +280,7 @@ def table(rows: list[dict[str, Any]]) -> str:
         rec = "-" if r["recall"] is None else f"{r['recall']:.2f}"
         lines.append(
             f"| {r['id']} | {r['verdict']} | {'y' if r['verdict_ok'] else 'n'} | "
-            f"{'y' if r['pass'] else 'n'} | {rec} | {len(r['extra_edges'])} | {r['outcome']} | "
+            f"{'n/a' if r['pass'] is None else 'y' if r['pass'] else 'n'} | {rec} | {len(r['extra_edges'])} | {r['outcome']} | "
             f"{_fmt_counts(r['first_counts'])} | {r['completions']} | {r['llm_calls']} | "
             f"{r['max_in']} | {r['latency_ms']:.0f} |"
         )
@@ -294,7 +295,8 @@ def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "questions": len(rows),
         "verdict_ok": sum(r["verdict_ok"] for r in rows),
-        "pass": sum(r["pass"] for r in rows),
+        "pass": sum(r["pass"] is True for r in rows),
+        "hand_scored": sum(r["pass"] is None for r in rows),
         "mean_recall": round(sum(recalls) / len(recalls), 3) if recalls else None,
         "extra_edges": sum(len(r["extra_edges"]) for r in rows),
         "outcomes": dict(Counter(r["outcome"] for r in rows)),

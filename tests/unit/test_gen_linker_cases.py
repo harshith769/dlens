@@ -47,9 +47,15 @@ def test_interpreted_no_match_follows_its_gold_column_split():
     assert case["split"] == "linker-dev" and same_gold == {"linker-dev"}
 
 
-def test_dev_targets_never_in_linker_test():
-    dev = {json.loads(line)["target"] for line in gl.DEV.read_text().splitlines()}
+def test_v02_dev_targets_never_in_linker_test():
+    dev = set(gl.V02_DEV_TARGETS)
     assert not [c for c in CASES if c["split"] == "linker-test" and set(c["gold"]) & dev]
+
+
+def test_v02_dev_targets_are_the_pinned_twenty():
+    v02 = gl.ROOT / "eval" / "questions" / "review" / "v02_dev.jsonl"
+    targets = {json.loads(x)["target"] for x in v02.read_text().splitlines()}
+    assert targets == set(gl.V02_DEV_TARGETS)
 
 
 def test_split_is_by_gold_column():

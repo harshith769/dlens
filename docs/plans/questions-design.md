@@ -25,24 +25,30 @@ Spec §11.2 parent totals are unchanged: Trace 45, Impact 30, Ask 12, Unanswerab
 Trace. dev-11, 12 and 13 are re-tagged `type: trace, subtype: computed`. Ask holds meaning
 questions only, all scored by hand in the pilot (D4).
 
-| Row | Parent | Dev | Subtypes | Existing |
+| Row | Parent | Dev | Subtypes | Existing (v2 bucket) |
 |---|---|---|---|---|
-| Trace 1 hop | Trace | 8 | upstream 3 · computed 4 · multi-part 1 | dev-01, 02, 11, 12, 13 |
-| Trace 2–3 | Trace | 11 | upstream 6 · computed 3 · ambiguous 1 · multi-part 1 | dev-03, 04, 14, 20 |
-| Trace 4–5 | Trace | 11 | upstream 7 · computed 2 · ambiguous 1 · multi-part 1 | dev-05, 16 |
-| Trace 6+ | Trace | 11 | upstream 8 · computed 2 · ambiguous 1 | dev-06, 15 |
-| False premise | Trace | 4 | 2 targets at 1–3 hops · 2 at 4+ | dev-17, 18 |
-| Impact (downstream set) | Impact | 24 | downstream depth 1: 6 · 2–3: 6 · 4–5: 5 · 6+: 5 · indirect-only source: 2 | dev-07, 08, 09 |
-| Yes/no reachability | Impact | 6 | 3 yes / 3 no (direct+indirect); ≥ 1 is "no" direct-only but "yes" with indirect edges | dev-10 |
-| Ask (meaning) | Ask | 12 | revenue definitions 3 · stale doc 1 · grain / near-duplicate 2 · CASE meaning 2 · star exclusion 1 · doc injection 0–1 · other semantics 2–3 | — |
+| Trace 1 hop | Trace | 8 | upstream 6 · computed 1 · multi-part 1 | dev-01, 02 |
+| Trace 2–3 | Trace | 11 | upstream 5 · computed 4 · ambiguous 1 · multi-part 1 | dev-03, 04, 14, 20; dev-12 (computed) |
+| Trace 4–5 | Trace | 11 | upstream 7 · computed 2 · ambiguous 1 · multi-part 1 | dev-05, 16 (ambiguous); dev-13 (computed) |
+| Trace 6+ | Trace | 11 | upstream 6 · computed 4 · ambiguous 1 | dev-06, 15; dev-11 (computed) |
+| False premise | Trace | 4 | 2 targets at 1–3 hops · 2 at 4+ | dev-17 (6), dev-18 (3) |
+| Impact (downstream set) | Impact | 24 | downstream depth 1: 6 · 2–3: 6 · 4–5: 5 · 6+: 5 · indirect-only source: 2 | dev-07 (2–3), 08 (6+), 09 (6+) |
+| Yes/no reachability | Impact | 6 | direct + indirect: 3 yes / 3 no; direct-only: 2 yes / 4 no (1 question is yes only with indirect edges) | dev-10 (no) |
+| Ask (meaning) | Ask | 12 | revenue definitions 3 · stale doc 1 · doc injection 1 · near-duplicate grain 2 · CASE meaning 3 · star exclusion 1 · filter semantics 1 | — |
 | Unanswerable | Unanswerable | 9 | dotted near-miss 4 (incl. `int_order_shipping.shipping_cost`) · bare non-existent 2 · typo in a dotted id 1 · unknown model 1 · out of domain 1 | dev-19 |
 | **Total** | | **96** | Trace 45 · Impact 30 · Ask 12 · Unanswerable 9 | 20 |
+
+Hop buckets are the **v2 depths**. A trace, computed or false-premise question takes the target's
+depth. An impact or yes/no question takes the source's longest direct downstream path. The v0.2
+tags differ (for example dev-11's "1" meant "one-hop question"; its target is at depth 6), and every
+change is flagged in the review. Only 2 dev-pool columns at 1 hop and 2 at 4–5 have a computed
+(TRANSFORMATION / AGGREGATION) input, so computed questions sit mostly at 2–3 and 6+.
 
 Subtype totals: upstream 24, computed 11, ambiguous 3, multi-part 3, false premise 4, impact 24,
 yes/no 6, ask 12, unanswerable 9.
 
-The 6+ bucket must include at least 3 targets at 8–10 hops (for example on the RFM / segment and
-marketing paths), drawn from the dev pool.
+The 6+ trace row has 3 new targets at 8–10 hops (only 5 dev-pool columns are that deep), and the
+false-premise row adds a fourth at 10 hops.
 
 ### 1.1 Wording mix (owner amendment 1)
 
@@ -57,14 +63,17 @@ marketing paths), drawn from the dev pool.
 |---|---|---|---|---|---|
 | Trace 1 | 5 | 1 | 1 | 1 | 8 |
 | Trace 2–3 | 5 | 2 | 2 | 2 | 11 |
-| Trace 4–5 | 5 | 2 | 1 | 3 | 11 |
+| Trace 4–5 | 5 | 3 | 0 | 3 | 11 |
 | Trace 6+ | 5 | 2 | 1 | 3 | 11 |
 | False premise | 3 | 0 | 0 | 1 | 4 |
-| Impact | 12 | 4 | 3 | 5 | 24 |
+| Impact | 12 | 3 | 4 | 5 | 24 |
 | Yes/no | 3 | 1 | 0 | 2 | 6 |
 | Ask | 4 | 4 | 2 | 2 | 12 |
 | Unanswerable | 6 | 2 | 0 | 1 | 9 |
 | **Total** | **48** | **18** | **10** | **20** | **96** |
+
+No dev-pool column at 4–5 hops has a usable description for a trace question, so that row's slot
+went to name_words, and the impact 4–5 row took the extra description.
 
 Re-labels of the existing 20: the 17 identifier questions stay `identifier`. dev-14 ("prod category
 on order items") and dev-16 ("previous order date") become `name_words`. dev-15 ("number of orders
@@ -128,7 +137,7 @@ the same file byte for byte.
     in its `columns`, is the `to` end of one of its `edges`, or is the first or last column of one
     of its `paths`.
 - **Ordering:** inside each stratum, columns are sorted by `sha256("s09-pools-v1:" + column_id)`.
-- **Forced dev:** the 18 existing distinct targets go to dev first and count toward their
+- **Forced dev:** the 18 existing distinct targets, and the 3 other columns their texts name, go to dev first and count toward their
   stratum's dev quota. (20 questions have 19 distinct targets, because dev-11 and dev-17 share
   `fct_orders.revenue_finance`, and dev-19's target does not exist.)
 - **Dev quota** per stratum = `max(forced, round(0.30 × n))`, and at least 1 when `n ≥ 2`.
@@ -371,6 +380,12 @@ stg_shipments.shipping_cost changes?" (trap 8 lists `shipping_cost` as an unansw
 
 ## Change log
 - 18 Oct 2026: first draft (S09 step 1), with the owner's answers to the plan questions.
+- 18 Oct 2026 (step 5): count table rebalanced around the v2 buckets of the existing 20 and the
+  computed / description supply (§1, §1.1). Row, subtype and wording totals are unchanged. The
+  pools also force into dev the 3 other columns that v0.2 question texts name (dev-10's
+  `dim_customers.lifetime_value`, dev-17's premise `int_customer_order_history.sales_tax`, dev-18's
+  `stg_payments.amount_usd`). The pool had put dev-17's premise in test, so its frozen text named a
+  test-pool column.
 - 18 Oct 2026 (step 4): small traps stratified across buckets. With (bucket, trap) strata, the two
   stale_doc columns fell into two 1-column strata and both hashed to test. Seed-column count
   corrected (73, not 84). 18 forced targets, not 19. A D5 conflict was found and flagged for the
