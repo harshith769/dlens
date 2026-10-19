@@ -1,9 +1,9 @@
 # Metrics design (S10, v0.3 D3)
 
-**Metrics-design version:** 1.0-draft (becomes 1.0 when every Decision below is set). Every scored
+**Metrics-design version:** 1.0 (every Decision set by the owner, 19 Oct 2026). Every scored
 report names this version and `eval/metrics.py`'s `__version__`.
-**Status:** draft, 19 Oct 2026. **Every definition is the owner's decision.** `eval/metrics.py` is
-not written until every `Decision:` line below is set.
+**Status:** approved, 19 Oct 2026. **Every definition is the owner's decision**, recorded on each
+`Decision:` line. `eval/metrics.py` implements exactly this document.
 **Inputs:** spec §8 (answer schema, validator, S4 views) and §11.2–11.5;
 `docs/plans/v0.3-plan.md` D2–D4; `docs/plans/questions-design.md` §1, §5, §7;
 `eval/questions/dev.jsonl` (96); `dlens.gold_spec`; the run-record format (`RunRecord`,
@@ -130,7 +130,7 @@ dev-64 ("Which dashboards are affected…", exposures headline).
 **Consequence.** S0 is exact on every field it can compute (M14). S1 and S4 are scored on the same
 fields through the same extractor (M3). Ask is outside every automatic number.
 
-`Decision: PENDING` (trace upstream (a)/(b)/(c); impact (a)/(b); inputs-scored (s)/(t))
+`Decision (owner, 19 Oct 2026):` trace upstream (a) closure F1; impact (a) columns, models, exposures scored separately; inputs-scored questions (s) strict inputs F1 as the headline, (t) closure-tolerant as a diagnostic.
 
 ---
 
@@ -154,7 +154,7 @@ and exposures apart (dev.jsonl). Mixing levels (b) would let "fct_orders" count 
 **Consequence.** Structural only: S4 records carry fully-qualified ids in side records and short
 ids in prose; both normalise to the same key.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a) short ids, separate model and exposure sets, target excluded.
 
 ---
 
@@ -240,8 +240,7 @@ prediction {items_subtotal, refund_amount} with sales_tax as a negated mention (
 `model.column` ids. **S11 requirement:** the S1 prompt asks for `model.column` identifiers exactly
 as S4's prompt does, so the shared extractor treats both the same.
 
-`Decision: PENDING` (rules 1–5 incl. the identifier filter (Appendix C) and the negation rule
-with the relative-clause addition (Appendix B); bare names (i) or (ii))
+`Decision (owner, 19 Oct 2026):` rules 1–5 as revised, including the identifier filter (Appendix C), the relative-clause rule and the value-word exemption narrowed to "before the next mention" (Appendix B rows 28–31); bare names (i) never counted.
 
 ---
 
@@ -285,7 +284,7 @@ columns. dev-74: direct "no", all "yes"; under (a) the correct verdict is "yes".
 indirect-only gold until its tools traverse indirect edges (S12 requirement, §18). S0 computes
 both modes. S1 has no mode; it is scored on the same primary set.
 
-`Decision: PENDING` (and approve Appendix A)
+`Decision (owner, 19 Oct 2026):` (a) wording rule; Appendix A approved (45 direct, 30 direct + indirect).
 
 ---
 
@@ -321,7 +320,7 @@ scored by a parser and another by a field.
 yes/no rows are "not scorable (no structured verdict, S12)", with the heuristic as a labelled
 diagnostic.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a) structured `reach_verdict` only; prose heuristic a labelled diagnostic.
 
 ---
 
@@ -351,7 +350,7 @@ dev-01 path: raw_payments.amt → stg_payments.amount_usd.
 
 **Consequence.** Structural: S1 can be scored on (a) both times.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a) path node coverage; ordered exact match an S0/S4 diagnostic; McNemar on (a) "question fully correct".
 
 ---
 
@@ -424,8 +423,7 @@ excluded instead of invalid.
 **Consequence.** S4-validated passed R3 by construction, so disagreements there are expected to be
 few and each one is listed. S1 has no validator; the same check applies.
 
-`Decision: PENDING` (required column (i)/(ii)/(iii)/(iv); none / (iv-k) / (iv-k+); per-answer
-rule (a)/(b))
+`Decision (owner, 19 Oct 2026):` (iv) by edge kind with (iv-k+); per-answer rule (a). Guard, checked by metrics itself: the clause key's model part is either a CTE (`<name> as (`) or a derived-table alias (`) as <name>` **and** used as `<name>.` elsewhere in the same file), **and** the key appears on the cited lines. Required test: a cast alias such as `cast(x as int) as amount`, with no `amount.` qualifier anywhere in the file, does **not** pass the guard.
 
 ---
 
@@ -466,7 +464,7 @@ naming `fct_daily_revenue.revnue_finance` is not a hallucination; one naming
 **Consequence.** Structural: S4's R4 rule already rejects some of these in validated answers; S4-raw
 and S1 have no such filter.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a+): CTE names and derived-table aliases (same test as M7 (iv-k+)) form the "CTE reference" list; neither nodes nor hallucinations.
 
 ---
 
@@ -499,7 +497,7 @@ fct_segment_monthly.order_month.
 **Consequence.** S0-gold refuses unanswerable questions trivially (its target does not exist);
 S0-linked refuses only on a linker no-match.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` rules as drafted; `closest` not scored (diagnostic only); `or_refused` not honoured.
 
 ---
 
@@ -546,7 +544,7 @@ dev-23: "…and who owns it?" (out of scope: "who owns it").
 **Consequence.** Structural: S0 answers a false-premise question with the inputs and a sentence
 "The answer does not use X." (rejected by construction).
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a) cases O / U, headline = explicit rejection rate over 4; multi-part uncovered part unscored until G2.
 
 ---
 
@@ -568,7 +566,7 @@ dev-23: "…and who owns it?" (out of scope: "who owns it").
 
 **Consequence.** S0 has no Ask answers (n/a). Ask results are reported in their own table.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a) 0 / 0.5 / 1 per fact, blind sheet, scored by the owner.
 
 ---
 
@@ -596,7 +594,7 @@ dev-23: "…and who owns it?" (out of scope: "who owns it").
 **Dev examples.** dev-70 (direct gold ∅), dev-71 (direct gold ∅), dev-94 (unanswerable, every set
 metric n/a).
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` (a) as drafted.
 
 ---
 
@@ -618,7 +616,7 @@ metric n/a).
   flagged in breakdowns. Options: (a) target only (recommended; 19); (b) also yes/no endpoints
   (21: + dev-74, 88).
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` CI shown only for n ≥ 10; linker-test flag (b): target **and** yes/no endpoints, 21 questions (the 19 plus dev-74, dev-88). Rest as drafted.
 
 ---
 
@@ -656,7 +654,7 @@ metric n/a).
 templated `Answer` citing real edge ids with their side records. Only what metrics needs is kept
 (target < 2 MB for both variants).
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` S0-gold + S0-linked as drafted (S10's S0-linked hybrid off, labelled).
 
 ---
 
@@ -671,7 +669,7 @@ templated `Answer` citing real edge ids with their side records. Only what metri
   metrics.py refuses to score a records file without a manifest, except the pre-S10 S4 smoke
   records, for which a manifest is written once from the records' own fields.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` as drafted.
 
 ---
 
@@ -706,7 +704,7 @@ only through M10.
 - Losses: every question where S4 < S1 listed.
 - The metrics-design version and `metrics.py` `__version__`.
 
-`Decision: PENDING`
+`Decision (owner, 19 Oct 2026):` as drafted: pooled node-set F1 over 68 (trace F1 44 including false premise, impact F1 24).
 
 ---
 
@@ -945,3 +943,7 @@ Notes:
   the 23 key-only citations use derived-table aliases, so option (iv-k+) is added. M8: CTE-name
   list from a plain regex over the corpus SQL, its own diagnostic; option (a+) adds derived-table
   aliases; plain-word model-part gap documented as an undercount.
+- 19 Oct 2026: **version 1.0.** Every Decision set by the owner in four multiple-choice rounds.
+  Differences from the recommendations: M7 takes (iv-k+) (derived-table aliases, with the
+  cast-alias test); M8 takes (a+); M13's linker-test flag covers 21 questions (target and yes/no
+  endpoints).
