@@ -1,4 +1,4 @@
-.PHONY: test test-fast lint ingest eval-smoke eval-full oracle ui demo-bundle demo-requirements check-review
+.PHONY: test test-fast lint ingest eval-smoke eval-s0 eval-full oracle ui demo-bundle demo-requirements check-review
 
 test:
 	uv run pytest
@@ -18,6 +18,15 @@ ingest:
 # Dev-set report on local Ollama; the LLM cache in eval/cache makes re-runs free (no quota).
 eval-smoke:
 	DLENS_PROVIDER=ollama DLENS_CACHE_DIR=eval/cache uv run python scripts/dev_report.py
+
+# S0 graph oracle (S10): no LLM. Writes eval/runs/s0/ (S0-gold, S0-linked hybrid off) and scores
+# both with eval/metrics.py into eval/reports/s0_*_dev.{json,md}.
+eval-s0:
+	uv run python eval/systems/s0.py
+	uv run python eval/metrics.py --records eval/runs/s0/s0-gold-dev.jsonl --system s0-gold \
+	  --out eval/reports/s0_gold_dev --title "S0-gold on the 96 dev questions"
+	uv run python eval/metrics.py --records eval/runs/s0/s0-linked-dev.jsonl --system s0-linked \
+	  --out eval/reports/s0_linked_dev --title "S0-linked (hybrid off) on the 96 dev questions"
 
 # Dev question review gate (S09): every owner decision set, counts match the table.
 check-review:

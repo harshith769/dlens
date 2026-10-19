@@ -71,7 +71,7 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src/dlens", "eval/oracle/dlens_oracle", "eval/metrics.py"]
+files = ["src/dlens", "eval/oracle/dlens_oracle", "eval/metrics.py", "eval/systems"]
 mypy_path = ["src", "eval", "eval/oracle"]
 ignore_missing_imports = true
 
