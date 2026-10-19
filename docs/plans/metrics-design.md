@@ -90,18 +90,34 @@ metric scores it, and in which mode (mode rule: M4)?
 - (a) **Columns, models and exposures scored separately**, columns as the headline.
 - (b) One combined set (columns ∪ models ∪ exposures).
 
+**Options for inputs-scored questions** (computed 11, false premise 4):
+- (s) **Strict inputs F1**: precision and recall both against the gold one-hop inputs.
+- (t) **Closure-tolerant inputs F1**: recall over the gold inputs; precision counts a predicted
+  mention as wrong only if it is **outside the target's upstream closure** in the primary mode
+  (computed by `dlens.gold_spec.upstream` from `lineage_spec.yml`, since computed and
+  false-premise gold carry no `upstream` field).
+- Whichever is chosen is the headline; the other is reported as a diagnostic.
+- Trade-off: (t) does not punish correct context ("quantity comes from raw_order_items.quantity"
+  in a "how is line_amount computed?" answer), but an answer that lists the whole closure scores
+  well on it. (s) rewards exactly the one-hop answer the question asks for, and punishes true but
+  extra context.
+- Upstream and impact questions keep **strict** precision either way: their gold is already the
+  full closure, so nothing true lies outside it.
+
 **Recommendation.** Trace upstream: (a) closure F1 as the headline, with sources-F1 and inputs-F1
 as diagnostics. "Where does X come from?" asks for the whole chain; sources alone would reward
 skipping every hop, and inputs alone would reward stopping after one. Impact: (a) separately; a
-combined set lets 60 columns drown 2 dashboards.
+combined set lets 60 columns drown 2 dashboards. Inputs-scored questions: (s) strict as the
+headline, (t) as a diagnostic: "How is X computed?" asks for the formula's inputs, and (t) cannot
+tell a precise answer from a closure dump.
 
 | Type / subtype | n | Gold field | Headline metric | Diagnostics |
 |---|---|---|---|---|
 | trace / upstream | 24 | `upstream[mode]` | node-set F1 | sources F1, inputs F1, path node coverage (M6) |
-| trace / computed | 11 | `inputs.direct` (+ indirect `from`s in all mode) | node-set F1 | — |
+| trace / computed | 11 | `inputs.direct` (+ indirect `from`s in all mode) | inputs F1, strict (s) or closure-tolerant (t) | the other of (s) / (t) |
 | trace / ambiguous | 3 | `verdict`, `candidates`, `upstream` | verdict correct (M9); chain: upstream F1 of the gold target | candidate recall |
 | trace / multi-part | 3 | `upstream`, `out_of_scope` | upstream F1 (as upstream) | uncovered part named (M10, after G2) |
-| trace / false premise | 4 | `inputs`, `premise` | inputs F1 + premise rejection (M10) | silent / asserted counts |
+| trace / false premise | 4 | `inputs`, `premise` | inputs F1 ((s) or (t)) + premise rejection (M10) | silent / asserted counts |
 | impact / downstream | 24 | `downstream[mode]`, `models[mode]`, `exposures[mode]` | columns F1 (dev-64, `focus: exposures`: exposures F1) | models F1, exposures F1 |
 | impact / yes-no | 6 | `reach[mode]` | verdict accuracy (M5) | heuristic prose verdict (labelled) |
 | ask / meaning | 12 | `facts` | hand rubric (M11) | — |
@@ -114,7 +130,7 @@ dev-64 ("Which dashboards are affected…", exposures headline).
 **Consequence.** S0 is exact on every field it can compute (M14). S1 and S4 are scored on the same
 fields through the same extractor (M3). Ask is outside every automatic number.
 
-`Decision: PENDING`
+`Decision: PENDING` (trace upstream (a)/(b)/(c); impact (a)/(b); inputs-scored (s)/(t))
 
 ---
 
@@ -164,11 +180,19 @@ diagnostics (cited-edge endpoints, where the format has them). Every scorer read
 to S1 and S4 identically. (b) is reported as a labelled diagnostic for S0 and S4 only.
 
 **Mention rules (for (a)).**
-1. **Dotted ids.** Tokens of the form `name.name` (also the 3–4 part fully-qualified form, cut per
-   M2), letters/digits/underscore, first character a letter or underscore. Tokens ending in a
-   file extension (`.sql`, `.yml`, `.yaml`, `.csv`, `.py`, `.md`, `.json`) are not mentions.
-   A dotted id counts toward a node set if it is in the gold inventory (M8); otherwise it is a
-   hallucination candidate (M8).
+1. **Dotted ids (identifier filter).**
+   - *Paths first:* any token containing `/`, or ending in a file extension (`.sql`, `.yml`,
+     `.yaml`, `.csv`, `.py`, `.md`, `.json`, `.txt`), is removed whole before matching, including
+     any bare model name inside it (`models/marts/fct_orders.sql` yields no mention at all).
+   - *Candidates:* tokens of the form `name.name` (also the 3–4 part fully-qualified form, cut per
+     M2), letters/digits/underscore, first character a letter or underscore.
+   - *Stop list:* `e.g`, `i.e`, `etc`, `vs`, `cf`, `al` (as in "et al.") never match.
+   - A candidate is a **mention** only if (a) it is in the gold inventory (M8), or (b) its model
+     part is a known model or seed name, or (c) its model part looks dbt-style: contains `_`, or
+     starts with `stg_`, `int_`, `fct_`, `dim_`, `raw_`, `mart_` or `base_`.
+   - A mention in the inventory counts toward the node sets; a mention outside it is a
+     hallucination candidate (M8). Anything else (`github.com`, `v0.3`, `3.5`) is plain text.
+   - The test rows for this filter are Appendix C.
 2. **Bare names.** Two options, owner decides:
    - (i) **never counted** (recommended): `order_date` alone exists in many models; counting it
      guesses which one the system meant;
@@ -181,12 +205,22 @@ to S1 and S4 identically. (b) is reported as a labelled diagnostic for S0 and S4
 4. **Negated mentions.** A negated mention is removed from every predicted node set (it still
    counts for M8 and M10).
    - *Clause*: text between sentence ends (`.` `!` `?` `;`) and the connectives "but", "however",
-     "whereas", "while", "instead" (a comma before them is part of the boundary). A leading answer
-     particle "Yes," / "No," is removed before the analysis.
-   - *Cue*: inside the clause and **before** the mention: "not", "n't", "no", "never", "without",
-     "rather than", "instead of", "except", "excluding", "other than", "neither", "nor",
-     "no longer". The two-word phrase "not only" is **not** a cue.
-   - Every cue word is matched as a whole word, case-insensitive.
+     "whereas", "while", "instead", "including", "plus" (a comma before them is part of the
+     boundary). A relative clause opened by ", which", ", that" or ", who" and closed by the next
+     comma (or the sentence end) is its own clause, so a cue inside it does not reach the main
+     clause (Appendix B row 23). A leading answer particle "Yes," / "No," is removed before the
+     analysis.
+   - *Pre-mention cue*: inside the clause and **before** the mention: "not", "n't", "no",
+     "never", "without", "rather than", "instead of", "except", "excluding", "other than",
+     "neither", "nor", "no longer". The two-word phrase "not only" is **not** a cue.
+   - *Post-mention cue*: the mention is **immediately** followed (optionally after the word
+     "itself" or "column") by "is not", "isn't", "are not", "aren't", "was not", "wasn't",
+     "does not", "doesn't", "did not", "didn't", "is never", "never", "no longer" or "has no".
+     Adjacency is required: a comma or a relative word ("which", "that", "who") between the
+     mention and the cue breaks it.
+   - A mention is negated if either cue applies. Every cue word is matched as a whole word,
+     case-insensitive.
+   - A node mentioned once negated and once not is **kept** (any non-negated mention keeps it).
    - The fixed sentence list in Appendix B is the test of this rule (≥ 15 sentences with the
      expected result for each). Each report shows, per system, how many mentions the rule removed.
 5. **Views.** S4-raw = the record's `draft` (pre-validation). S4-validated = `final_answer`.
@@ -202,7 +236,8 @@ prediction {items_subtotal, refund_amount} with sales_tax as a negated mention (
 `model.column` ids. **S11 requirement:** the S1 prompt asks for `model.column` identifiers exactly
 as S4's prompt does, so the shared extractor treats both the same.
 
-`Decision: PENDING` (rules 1–5, and bare names (i) or (ii))
+`Decision: PENDING` (rules 1–5 incl. the identifier filter (Appendix C) and the negation rule
+with the relative-clause addition (Appendix B); bare names (i) or (ii))
 
 ---
 
@@ -326,8 +361,30 @@ answer's `citations`:
    it);
 2. `1 ≤ line_start ≤ line_end ≤` the file's line count;
 3. the cited lines contain the **required column**, matched as a whole word, case-insensitive:
-   - edge citation (`e_`), options: (i) the edge's `to` column (recommended: an edge citation
-     points at the line that writes the output column); (ii) its `from` column; (iii) either;
+   - edge citation (`e_`), options: (i) the edge's `to` column; (ii) its `from` column;
+     (iii) either; (iv) **by edge kind**: a direct edge → its `to` column (the line that writes
+     the output column); an indirect edge (JOIN, FILTER, GROUP_BY, WINDOW, SORT, CONDITIONAL)
+     → its `from` column (a clause-level citation names the key, not the output).
+     **Recommended: (iv).**
+     *Evidence (DLens graph of synthetic_shop, read-only, 19 Oct 2026; a fact about where
+     citations point, not a system result).* All 621 indirect edges have line-level citations.
+     Their cited lines name the `from` column in 598 (70 of them also name `to`), only the `to`
+     column in 2, and neither in 21. Under (i), 549 of 621 indirect citations would be invalid.
+     Three examples:
+     - GROUP_BY `fct_orders.customer_id → dim_customers.first_order_date`,
+       `models/marts/dim_customers.sql:9` `group by customer_id`: names `from`, not `to`.
+     - FILTER `int_inventory_daily.product_id → fct_inventory_status.as_of_date`,
+       `models/marts/fct_inventory_status.sql:9-12` `qualify row_number() over (partition by
+       product_id, …) = 1`: names `from`, not `to`.
+     - SORT `dim_customers.lifetime_value → fct_customer_leaderboard.customer_id`,
+       `models/marts/fct_customer_leaderboard.sql:9` `order by customers.lifetime_value desc,
+       customers.customer_id`: names `from` (and `to`, only because the sort list holds it).
+     The 23 indirect citations without the `from` name are JOINs whose clause names a CTE column
+     (`margins_monthly.margin_month` ×8, `adjustments_monthly.adjustment_month` ×8,
+     `revenue_monthly.finance_month` ×7). Under (iv) these fail unless the record carries the
+     edge's clause key as written; sub-option (iv-k): for indirect edges, accept the clause key
+     when the record's side record has one. S4's tools return no indirect edges today, so this
+     matters once indirect traversal lands (S12).
    - `star` level: the lines contain `*`;
    - excerpt citation (`s_`, and S1 chunk citations): range in bounds and the lines contain at
      least one column the claim names;
@@ -349,12 +406,13 @@ answer's `citations`:
 excluded instead of invalid.
 
 **Dev example.** dev-01's gold edge raw_payments.amt → stg_payments.amount_usd: a citation of
-`models/staging/stg_payments.sql` must contain `amount_usd` on its lines under (i).
+`models/staging/stg_payments.sql` must contain `amount_usd` on its lines under (i) and (iv).
 
 **Consequence.** S4-validated passed R3 by construction, so disagreements there are expected to be
 few and each one is listed. S1 has no validator; the same check applies.
 
-`Decision: PENDING` (required column (i)/(ii)/(iii); per-answer rule (a)/(b))
+`Decision: PENDING` (required column (i)/(ii)/(iii)/(iv), with or without (iv-k); per-answer
+rule (a)/(b))
 
 ---
 
@@ -366,10 +424,11 @@ few and each one is listed. S1 has no validator; the same check applies.
 - **Inventory:** the gold spec, not the graph: the 391 columns of `lineage_spec.yml` (318 model +
   73 seed), its 49 model and 14 seed names, and the exposures in `traps.yml` (`finance_dashboard`,
   `marketing_dashboard`).
-- **Numerator:** distinct dotted mentions (negated or not) not in the inventory, excluding every id
-  the question text itself writes (an unanswerable question's non-existent id echoed in a refusal
-  is not a hallucination).
-- **Denominator:** distinct dotted mentions in the answer.
+- **Numerator:** distinct mentions (negated or not) that passed the M3 rule 1 identifier filter
+  and are not in the inventory, excluding every id the question text itself writes (an
+  unanswerable question's non-existent id echoed in a refusal is not a hallucination). Tokens the
+  filter drops (`e.g`, `github.com`, `v0.3`, file paths) are never hallucinations.
+- **Denominator:** distinct mentions (filtered the same way) in the answer.
 - **Aggregation:** per answer, then macro mean over answers with ≥ 1 dotted mention; also the share
   of answered answers with ≥ 1 hallucinated node.
 
@@ -395,11 +454,13 @@ and S1 have no such filter.
   unanswerable question is not a refusal (wrong).
 - **False-refusal rate:** on answerable questions (gold verdict answered, chain, partial or
   clarify), the share refused. dev-17's legacy `or_refused` is **not** honoured in the headline.
-- **Chain** (dev-16, dev-31): correct if the answer is answered for the gold `target` (the most
-  downstream candidate): the record's ambiguity mode is `chain` with downstream = target, or the
-  target is a non-negated mention. Then scored as upstream.
-- **Clarify** (dev-46): correct if a clarification is returned whose candidates ⊇ gold
-  `candidates`. A full answer instead is wrong for the verdict.
+- **Chain** (dev-16, dev-31): the headline reads **prose only**, so S1 and S4 are judged the same
+  way: correct if the answer is answered (not refused, no clarification) and the gold `target`
+  (the most downstream candidate) is a non-negated mention. Then scored as upstream. The record's
+  ambiguity mode (`chain`, downstream = target) is an **S4-only diagnostic**.
+- **Clarify** (dev-46): reads the shared schema field `clarification`: correct if it is set and
+  its candidates ⊇ gold `candidates`. A full answer instead is wrong for the verdict.
+- **Refusal** reads the shared schema field `refused`, never prose.
 - **Interpreted near-miss:** correct only if `answer_text` begins with "Interpreted A as B." and
   B = `gold.interpretation.column`; then scored as its underlying type. (0 such dev questions.)
 - **`closest`:** not scored. Options: (a) not scored, reported as a diagnostic (share of refusals
@@ -422,15 +483,31 @@ S0-linked refuses only on a linker no-match.
 **Question.** How are false-premise and multi-part questions scored while `premise_corrected`
 and the G2 field do not exist yet?
 
-**False premise (4 questions).** The inputs set is scored as computed (M1). The premise is put in
-one of three buckets:
-- **rejected:** the premise column appears as a **negated** mention (M3 rule 4), or, after S12,
-  `premise_corrected = true`;
-- **asserted:** the premise column appears as a non-negated mention;
-- **silent:** the premise column is not mentioned. Its own bucket; **not** counted as rejected.
+**False premise (4 questions).** The inputs set is scored as computed (M1). How the premise is
+bucketed depends on where the premise column sits:
 
-Headline: **explicit rejection rate** (rejected / 4). Options: (a) as above (recommended); (b)
-silent counts as rejected.
+- **Case O: the premise column is outside the target's upstream closure** in the primary mode.
+  A non-negated mention of it is a false claim, so three buckets:
+  - **rejected:** the premise column appears as a **negated** mention (M3 rule 4), or, after S12,
+    `premise_corrected = true`;
+  - **asserted:** it appears as a non-negated mention;
+  - **silent:** it is not mentioned. Its own bucket; **not** counted as rejected.
+- **Case U: the premise column is upstream of the target** in the primary mode (a gold path
+  exists; the premise is wrong only in how it says they connect, e.g. "directly"). A
+  non-negated mention can be true context ("amount_usd reaches net_paid_usd through
+  event_amount_usd"), so only two buckets:
+  - **rejected:** negated mention, or `premise_corrected = true` after S12;
+  - **not rejected:** everything else.
+
+| id | premise | upstream in primary mode (direct)? | case |
+|---|---|---|---|
+| dev-17 | int_customer_order_history.sales_tax → fct_orders.revenue_finance | no (no in all mode either) | O |
+| dev-18 | stg_payments.amount_usd → int_order_financials.net_paid_usd ("directly") | **yes**, 2 hops via int_payment_events.event_amount_usd (also in all mode) | U |
+| dev-49 | int_web_sessions_clean.session_started_at → int_customer_sessions.customer_id | no (no in all mode either) | O |
+| dev-50 | fct_orders.net_paid_usd → fct_segment_monthly.active_customers | no (no in all mode either) | O |
+
+Headline: **explicit rejection rate** (rejected / 4, both cases). Options: (a) as above
+(recommended); (b) silent counts as rejected (case O only).
 
 **Multi-part (3 questions).** The trace part is scored as upstream. Acknowledging the uncovered
 part is **not scored** until G2's structured field exists (S12 requirement); after that it is a
@@ -529,7 +606,10 @@ metric n/a).
   engine's graph supports; differences from 1.0 are engine-vs-gold differences.
 - **S0-linked:** `resolve_entity` on the question's `mention` (top-1; the code ambiguity policy:
   chain / per candidate / clarification) → the graph. **Hybrid stage off** in S10 (no index build,
-  no model download), recorded in the manifest. S0-gold − S0-linked = linker loss.
+  no model download), recorded in the manifest and labelled "S0-linked (hybrid off)" wherever it
+  is shown. S0-gold − S0-linked = linker loss. **In any pilot table, the S0-linked row uses the
+  same linker configuration (hybrid flag) as the S4 runs in that table**; a table mixing
+  configurations is not allowed.
 - **Depth:** S0 traverses with a cap of 50 hops (effectively unbounded: no dev closure needs more
   than 10). S4's tools use `max_depth = 10`; the deepest dev target is at hop depth 9.
 - **Both modes** are computed; the prose answer is written in the primary mode (M4), and the
@@ -572,10 +652,26 @@ templated `Answer` citing real edge ids with their side records. Only what metri
 
 ## M16. The committed pilot table (v0.3 done-when 5)
 
+**Composite F1 definitions** (each is the macro mean of the per-question headline F1 from M1, in
+the primary mode from M4):
+
+| Name | Questions in it | n (dev) |
+|---|---|---|
+| **trace F1** | trace upstream 24 (upstream F1) + computed 11 (inputs F1) + ambiguous **chain** 2 (dev-16, 31: upstream F1 of the gold target; 0 if the M9 chain verdict fails) + multi-part 3 (trace part, upstream F1) + false premise 4 (inputs F1) | **44** |
+| **impact F1** | impact downstream 24 (columns F1; dev-64: exposures F1, its `focus`) | **24** |
+| **node-set F1 (pooled headline)** | trace F1's 44 + impact F1's 24, one macro mean over 68 questions | **68** |
+
+Not in any F1: ambiguous **clarify** (dev-46, verdict only), yes/no 6 (verdict accuracy), Ask 12
+(hand), unanswerable 9 (refusal). 44 + 24 + 1 + 6 + 12 + 9 = 96. The pooled node-set F1 is the
+number in the v0.3 resume line ("[X] node-set F1 vs [Y]"); the report always prints its n and
+mode next to it. Option: false-premise questions out of trace F1 (n = 40, pooled 64), reported
+only through M10.
+
 **Proposed contents.**
 - Rows: S0-gold, S0-linked, S1, S4-raw, S4-validated, S4-augmented; panels: qwen3:4b (local),
-  Gemini Flash-Lite.
-- Columns (each with its 95% CI and n): trace F1 (primary mode), impact F1, yes/no verdict
+  Gemini Flash-Lite. The S0-linked row uses the same hybrid flag as that table's S4 runs (M14);
+  S10's S0-linked run is hybrid off and labelled so.
+- Columns (each with its 95% CI and n): node-set F1 (pooled), trace F1, impact F1, yes/no verdict
   accuracy, refusal accuracy, false-refusal rate, false-premise rejection rate, hallucinated-node
   rate, citation validity (per answer) and coverage, path node coverage, latency p50/p95, tokens
   per question.
@@ -605,12 +701,21 @@ templated `Answer` citing real edge ids with their side records. Only what metri
 - S1 asks for `model.column` identifiers exactly as S4's prompt does (M3).
 - S1 emits `reach_verdict` (M5).
 - S1 writes the same record format and a run manifest (M15).
+- S1 emits refusals and clarifications through the schema fields (`refused`, `clarification`),
+  never only in prose (M9).
+- Interpretation (M9): the "Interpreted A as B." lead is code-written in S4 only. Before any test
+  question with `gold.interpretation` exists (D5b), S11 must state how S1 can satisfy M9's
+  interpretation rule; if it cannot, the structured interpretation field (S12, below) becomes
+  the rule for every system.
 
 **S12 (agent upgrades):**
-- `reach_verdict: yes | no | null` on `Answer` (additive, ADR) (M5).
+- `reach_verdict: yes | no | null` on `Answer` (additive, ADR) (M5), plus a record of **who set
+  it** (`llm` or `code`, e.g. when R9 salvage replaces the verdict). S4-raw is scored on the LLM's
+  own value only; a code-set value counts only in S4-validated.
 - `premise_corrected` (G3) and claim `origin` (G1/G3) (M3, M10).
 - A structured uncovered-part field for multi-part questions (G2) (M10).
-- A structured interpretation (`{from, to}`) beside the lead sentence (M9).
+- A structured interpretation (`{from, to}`) beside the lead sentence (M9); it becomes the M9
+  rule for all systems if S11 finds no way for S1 to satisfy the lead-sentence rule.
 - `question_id` in `RunRecord` (M12 join).
 - Indirect traversal in `trace_upstream` / `impact_downstream` / R9, if M4 is (a) or (c).
 - A run-manifest file per run, and a relative `project` in run records (M15).
@@ -716,45 +821,90 @@ refusal 9. 10 questions have no cue and are decided by family (dev-17, 18, 26, 2
 
 ## Appendix B. Negation test sentences (M3 rule 4)
 
-`A`, `B` stand for dotted ids (the tests use real ids). "neg" = removed from prediction sets.
+`A`, `B`, `C` stand for dotted ids in the inventory (the tests use real ids). "neg" = removed from
+prediction sets; "kept" = stays; "—" = not in the sentence. Rule that decides: pre = cue before
+the mention in its clause; post = cue right after the mention; bnd = a clause boundary.
 
-| # | Sentence | A | B | Why |
+| # | Sentence | A | B | C | Why |
+|---|---|---|---|---|---|
+| 1 | It comes from A. | kept | — | — | no cue |
+| 2 | It does not come from A. | neg | — | — | pre "not" |
+| 3 | It doesn't use A. | neg | — | — | pre "n't" |
+| 4 | It comes from A, not B. | kept | neg | — | comma breaks post; pre "not" before B only |
+| 5 | It does not come from A; it comes from B. | neg | kept | — | `;` bnd |
+| 6 | It does not come from A, but from B. | neg | kept | — | "but" bnd |
+| 7 | It uses not only A but also B. | kept | kept | — | "not only" is not a cue; "but" bnd |
+| 8 | Every column except B is affected, including A. | kept | neg | — | pre "except" for B; "including" bnd before A |
+| 9 | All inputs are used except B. | — | neg | — | pre "except" |
+| 10 | A is used rather than B. | kept | neg | — | pre "rather than" |
+| 11 | A is used instead of B. | kept | neg | — | cue "instead of" is matched before the bnd word "instead" |
+| 12 | Neither A nor B is used. | neg | neg | — | pre "neither", "nor" |
+| 13 | A no longer feeds B. | neg | neg | — | post "no longer" for A; pre for B |
+| 14 | No, A does not reach B. | neg | neg | — | "No," removed; post "does not" for A; pre for B |
+| 15 | Yes, A reaches B in 3 hops. | kept | kept | — | "Yes," removed; no cue |
+| 16 | It is computed without A. | neg | — | — | pre "without" |
+| 17 | B is affected. A is not used in the SQL. | neg | kept | — | post "is not" for A; separate sentence for B |
+| 18 | A feeds B, which is not used by the dashboard. | kept | kept | — | comma breaks post for B; the "which" clause is its own clause |
+| 19 | A and B; neither is a direct input. | kept | kept | — | cue after both, in the next clause |
+| 20 | There is no direct edge from A to B. | neg | neg | — | pre "no" (limit, see notes) |
+| 21 | A is not an input to B. | neg | neg | — | post "is not" for A; pre "not" for B (see notes) |
+| 22 | A isn't used. | neg | — | — | post "isn't" |
+| 23 | A, which is not used by the dashboard, feeds B. | kept | kept | — | comma breaks post for A; the "which" clause does not reach B |
+| 24 | A is not aggregated directly; it reaches B through C. | neg | kept | kept | post "is not" for A; `;` bnd |
+| 25 | Only A, not B, is used. | kept | neg | — | pre "not" for B |
+| 26 | The A column is not used. | neg | — | — | post, after the optional word "column" |
+| 27 | A itself does not change. | neg | — | — | post, after the optional word "itself" |
+| 28 | A is never null. | neg | — | — | post "is never" (limit, see notes) |
+
+Notes the owner approves with the rule:
+- **Relative clauses (added in this revision, not in the R1 instruction):** ", which / that / who
+  … ," is its own clause. Without it, row 23's B would be negated by the "not" inside the
+  "which" clause.
+- Row 20: a sentence about a missing edge negates both endpoints. Listed so the behaviour is
+  known, not hidden.
+- Row 21: B is negated too (pre "not"). B is usually the question's target, which M2 already
+  excludes from every set, so the effect is small; when B is not the target it is a false
+  removal.
+- Row 28: "is never" is a value statement here, not a lineage statement, yet A is removed.
+- A node mentioned once negated and once not is kept. Each report shows, per system, how many
+  mentions the rule removed, so the size of these limits is visible.
+
+## Appendix C. Identifier filter test rows (M3 rule 1, M8)
+
+| # | Text | Mentions | In inventory? | Why |
 |---|---|---|---|---|
-| 1 | It comes from A. | kept | — | no cue |
-| 2 | It does not come from A. | neg | — | "not" before A |
-| 3 | It doesn't use A. | neg | — | "n't" |
-| 4 | It comes from A, not B. | kept | neg | cue after A, before B |
-| 5 | It does not come from A; it comes from B. | neg | kept | `;` ends the clause |
-| 6 | It does not come from A, but from B. | neg | kept | "but" starts a new clause |
-| 7 | It uses not only A but also B. | kept | kept | "not only" is not a cue; "but" boundary |
-| 8 | Every column except B is affected, including A. | neg | neg | both after "except" in one clause (limit, see note) |
-| 9 | All inputs are used except B. | — | neg | "except" |
-| 10 | A is used rather than B. | kept | neg | "rather than" |
-| 11 | A is used instead of B. | kept | neg | "instead of" (also a boundary word "instead": cue wins, see rule) |
-| 12 | Neither A nor B is used. | neg | neg | "neither", "nor" |
-| 13 | A no longer feeds B. | kept | neg | "no longer" before B only |
-| 14 | No, A does not reach B. | kept | neg | leading "No," removed; "not" before B only |
-| 15 | Yes, A reaches B in 3 hops. | kept | kept | leading "Yes," removed |
-| 16 | It is computed without A. | neg | — | "without" |
-| 17 | B is affected. A is not used in the SQL. | kept | kept | A is the subject, before "not" (limit, see note) |
-| 18 | A feeds B, which is not used by the dashboard. | kept | kept | B before the cue |
-| 19 | A and B; neither is a direct input. | kept | kept | cue after both mentions |
-| 20 | There is no direct edge from A to B. | neg | neg | known limitation: both after "no" (structural phrasing, accepted) |
+| 1 | e.g. stg_orders.order_id is used | `stg_orders.order_id` | yes | `e.g` is on the stop list |
+| 2 | see models/marts/fct_orders.sql | none | — | path removed whole, including `fct_orders` |
+| 3 | added in v0.3 | none | — | model part `v0`: not known, no `_`, no dbt prefix |
+| 4 | github.com | none | — | model part `github`: not dbt-style |
+| 5 | Gemini 3.5 | none | — | `3.5` starts with a digit: not a candidate |
+| 6 | i.e. the finance revenue | none | — | stop list |
+| 7 | fct_orders.revenue_net | `fct_orders.revenue_net` | no → hallucination candidate | known model, unknown column |
+| 8 | fct_returns.return_amount | `fct_returns.return_amount` | no → hallucination candidate (exempt in dev-93, where the question writes it) | `fct_` prefix |
+| 9 | model.synthetic_shop.fct_orders.order_id | `fct_orders.order_id` | yes | fully-qualified, cut to two parts |
+| 10 | customers.customer_id (a SQL alias quoted in prose) | none | — | `customers`: not a model or seed name, no `_` |
+| 11 | margins_monthly.margin_month (a CTE column quoted in prose) | `margins_monthly.margin_month` | no → hallucination candidate | has `_` (limit, see notes) |
+| 12 | payroll.employee_salary | none | — | `payroll`: not dbt-style (exempt in dev-96 anyway) |
 
-Notes the owner should approve with the rule:
-- Row 8 shows the rule's limit: "except" negates everything after it in the clause, so A
-  ("including A") is also negated. Expected result for the test: **A neg, B neg** (rule as
-  written). Changing this would need a scope rule for "except", which this design does not add.
-- Row 11: "instead" is both a boundary word and part of the cue "instead of"; the cue is matched
-  first, so "instead of B" negates B and does not start a new clause.
-- Row 17: a negation that follows its subject ("A is not used") does not negate A under the
-  "cue before the mention" rule, so A is kept. This is the main known false-keep; the reports'
-  per-system "removed by negation" counts make its size visible. Separately, a node mentioned
-  once negated and once not is **kept** (any non-negated mention keeps it).
-- Row 20: a sentence about a missing edge negates both endpoints. A trace answer rarely needs
-  this sentence; it is listed so the behaviour is known, not hidden.
+Notes:
+- Row 10: SQL table aliases without `_` (`orders.`, `items.`, `customers.`) are filtered, which
+  keeps quoted SQL from counting as mentions.
+- Row 11: CTE names with `_` pass the filter, so an answer quoting SQL with a CTE column gets a
+  hallucination candidate. Option for the owner: also drop tokens inside code spans (backticks
+  or fenced blocks). Not proposed by default: S4's prose writes real ids in backticks too.
+- Row 12: a hallucinated id with a plain-word model part (`orders.total`) is not caught. The
+  filter trades this for not counting aliases (row 10).
 
 ---
 
 ## Change log
 - 19 Oct 2026: first draft (S10 step 1), version 1.0-draft. Every Decision PENDING.
+- 19 Oct 2026: pre-decision revisions (owner R1–R10), still 1.0-draft, every Decision PENDING.
+  M3: post-mention negation cue, "including" / "plus" boundaries, relative clauses as their own
+  clause (Claude Code's addition, flagged in Appendix B); identifier filter with stop list and
+  path removal (new Appendix C). M1: strict vs closure-tolerant inputs F1. M10: case O / case U
+  per false-premise question. M7: option (iv) by edge kind, with the indirect-citation evidence
+  from the graph. M9: chain headline from prose; clarify / refusal from schema fields. M14 / M16:
+  S0-linked uses the S4 runs' hybrid flag; pooled node-set F1, trace F1 and impact F1 defined.
+  §18: reach_verdict setter, S1 refusals / clarifications via fields, interpretation for S1.
+  No S1 or S4 result added.
