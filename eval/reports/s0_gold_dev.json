@@ -1,0 +1,4384 @@
+{
+ "complete": true,
+ "manifest": {
+  "git_commit": "4a5296d9eb86c5ee91744d89f54d89653889ae29",
+  "hybrid": false,
+  "linker": null,
+  "max_depth": 50,
+  "model": "dlens-graph",
+  "note": "S0-gold (no linker)",
+  "provider": "s0-gold",
+  "questions_file": "eval/questions/dev.jsonl",
+  "questions_sha256": "c265015ae72d62d4e2865493a50fba408e3e7c3ff4afafd2a5f992e425c5fe11",
+  "record_count": 84,
+  "records_file": "s0-gold-dev.jsonl",
+  "required": [
+   "dev-01",
+   "dev-02",
+   "dev-03",
+   "dev-04",
+   "dev-05",
+   "dev-06",
+   "dev-07",
+   "dev-08",
+   "dev-09",
+   "dev-10",
+   "dev-11",
+   "dev-12",
+   "dev-13",
+   "dev-14",
+   "dev-15",
+   "dev-16",
+   "dev-17",
+   "dev-18",
+   "dev-19",
+   "dev-20",
+   "dev-21",
+   "dev-22",
+   "dev-23",
+   "dev-24",
+   "dev-25",
+   "dev-26",
+   "dev-27",
+   "dev-28",
+   "dev-29",
+   "dev-30",
+   "dev-31",
+   "dev-32",
+   "dev-33",
+   "dev-34",
+   "dev-35",
+   "dev-36",
+   "dev-37",
+   "dev-38",
+   "dev-39",
+   "dev-40",
+   "dev-41",
+   "dev-42",
+   "dev-43",
+   "dev-44",
+   "dev-45",
+   "dev-46",
+   "dev-47",
+   "dev-48",
+   "dev-49",
+   "dev-50",
+   "dev-51",
+   "dev-52",
+   "dev-53",
+   "dev-54",
+   "dev-55",
+   "dev-56",
+   "dev-57",
+   "dev-58",
+   "dev-59",
+   "dev-60",
+   "dev-61",
+   "dev-62",
+   "dev-63",
+   "dev-64",
+   "dev-65",
+   "dev-66",
+   "dev-67",
+   "dev-68",
+   "dev-69",
+   "dev-70",
+   "dev-71",
+   "dev-72",
+   "dev-73",
+   "dev-74",
+   "dev-75",
+   "dev-76",
+   "dev-89",
+   "dev-90",
+   "dev-91",
+   "dev-92",
+   "dev-93",
+   "dev-94",
+   "dev-95",
+   "dev-96"
+  ],
+  "system": "s0-gold",
+  "view": "validated"
+ },
+ "missing": [],
+ "questions_sha256": "c265015ae72d62d4e2865493a50fba408e3e7c3ff4afafd2a5f992e425c5fe11",
+ "rows": [
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-01",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-02",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 4,
+    "claims": 4,
+    "claims_cited": 4,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 4
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.6666666666666666,
+    "path_ordered_em": true,
+    "sources_f1": 0.6666666666666666,
+    "structured_nodes": 4
+   },
+   "id": "dev-03",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.6666666666666666,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 3,
+    "claims": 3,
+    "claims_cited": 3,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 3
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.5,
+    "path_ordered_em": true,
+    "sources_f1": 0.5,
+    "structured_nodes": 3
+   },
+   "id": "dev-04",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.2857142857142857,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 7,
+    "claims": 7,
+    "claims_cited": 7,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 7
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.25,
+    "path_ordered_em": true,
+    "sources_f1": 0.4444444444444445,
+    "structured_nodes": 7
+   },
+   "id": "dev-05",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.4827586206896552,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 14,
+    "claims": 14,
+    "claims_cited": 14,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 14
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.13333333333333333,
+    "path_ordered_em": true,
+    "sources_f1": 0.35294117647058826,
+    "structured_nodes": 14
+   },
+   "id": "dev-06",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.5714285714285715,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 5,
+    "claims": 5,
+    "claims_cited": 5,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 5
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 5
+   },
+   "id": "dev-07",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.888888888888889,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.888888888888889
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 40,
+    "claims": 40,
+    "claims_cited": 40,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 40
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 38
+   },
+   "id": "dev-08",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.9295774647887324,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 131,
+    "claims": 131,
+    "claims_cited": 131,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 131
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 62
+   },
+   "id": "dev-09",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.5581395348837209,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 0.6666666666666666,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.9285714285714286
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": false,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "heuristic_verdict": "no"
+   },
+   "id": "dev-10",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_valid_answer": 0.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "yesno_correct": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "yesno_all": 1.0,
+    "yesno_direct": 1.0
+   },
+   "negation_removed": 2,
+   "subtype": "yesno",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-11",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 1.0,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-12",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.5,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-13",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.5714285714285715,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.6666666666666666,
+    "path_ordered_em": true,
+    "sources_f1": 0.6666666666666666,
+    "structured_nodes": 2
+   },
+   "id": "dev-14",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.5,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 6,
+    "claims": 6,
+    "claims_cited": 6,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 6
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.2857142857142857,
+    "path_ordered_em": true,
+    "sources_f1": 0.2857142857142857,
+    "structured_nodes": 6
+   },
+   "id": "dev-15",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.375,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 5,
+    "claims": 5,
+    "claims_cited": 5,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 5
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "ambiguity_mode_ok": true,
+    "hallucinated": [],
+    "inputs_f1": 0.33333333333333337,
+    "path_ordered_em": true,
+    "sources_f1": 0.33333333333333337,
+    "structured_nodes": 5
+   },
+   "id": "dev-16",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "chain_correct": 1.0,
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.33333333333333337,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "ambiguous",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "chain"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "premise_bucket": "rejected",
+    "premise_case": "O",
+    "structured_nodes": 2
+   },
+   "id": "dev-17",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0,
+    "premise_rejected": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 1.0,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 1,
+   "subtype": "false_premise",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "premise_bucket": "rejected",
+    "premise_case": "U",
+    "structured_nodes": 1
+   },
+   "id": "dev-18",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0,
+    "premise_rejected": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.4,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 1,
+   "subtype": "false_premise",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-19",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "dotted_near_miss",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 5,
+    "claims": 5,
+    "claims_cited": 5,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 5
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.33333333333333337,
+    "path_ordered_em": true,
+    "sources_f1": 0.5714285714285715,
+    "structured_nodes": 5
+   },
+   "id": "dev-20",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-21",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-22",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 1.0,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-23",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "multi_part",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "partial"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-24",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-25",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 1.0,
+    "path_ordered_em": true,
+    "sources_f1": 1.0,
+    "structured_nodes": 1
+   },
+   "id": "dev-26",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-27",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.2857142857142857,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 4,
+    "claims": 4,
+    "claims_cited": 4,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 4
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.6666666666666666,
+    "path_ordered_em": true,
+    "sources_f1": 0.6666666666666666,
+    "structured_nodes": 4
+   },
+   "id": "dev-28",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 1.0,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 3,
+    "claims": 3,
+    "claims_cited": 3,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 3
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 3
+   },
+   "id": "dev-29",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.7499999999999999,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-30",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.6666666666666666,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "ambiguity_mode_ok": true,
+    "hallucinated": [],
+    "inputs_f1": 0.6666666666666666,
+    "path_ordered_em": true,
+    "sources_f1": 0.6666666666666666,
+    "structured_nodes": 2
+   },
+   "id": "dev-31",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "chain_correct": 1.0,
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.5,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "ambiguous",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "chain"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.6666666666666666,
+    "path_ordered_em": true,
+    "sources_f1": 0.6666666666666666,
+    "structured_nodes": 2
+   },
+   "id": "dev-32",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.6666666666666666,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "multi_part",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "partial"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-33",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.5,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 4,
+    "claims": 4,
+    "claims_cited": 4,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 4
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.4,
+    "path_ordered_em": true,
+    "sources_f1": 0.4,
+    "structured_nodes": 4
+   },
+   "id": "dev-34",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.34782608695652173,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "multi_part",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "partial"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 4,
+    "claims": 4,
+    "claims_cited": 4,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 4
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.4,
+    "path_ordered_em": true,
+    "sources_f1": 0.4,
+    "structured_nodes": 4
+   },
+   "id": "dev-35",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.21621621621621626,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 8,
+    "claims": 8,
+    "claims_cited": 8,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 8
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.2222222222222222,
+    "path_ordered_em": true,
+    "sources_f1": 0.4,
+    "structured_nodes": 8
+   },
+   "id": "dev-36",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.2807017543859649,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 5,
+    "claims": 5,
+    "claims_cited": 5,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 5
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.33333333333333337,
+    "path_ordered_em": true,
+    "sources_f1": 0.33333333333333337,
+    "structured_nodes": 5
+   },
+   "id": "dev-37",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.4,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 6,
+    "claims": 6,
+    "claims_cited": 6,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 6
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.2857142857142857,
+    "path_ordered_em": true,
+    "sources_f1": 0.5,
+    "structured_nodes": 6
+   },
+   "id": "dev-38",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.4444444444444445,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 4,
+    "claims": 4,
+    "claims_cited": 4,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 4
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.4,
+    "path_ordered_em": true,
+    "sources_f1": 0.4,
+    "structured_nodes": 4
+   },
+   "id": "dev-39",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.34782608695652173,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 5,
+    "claims": 5,
+    "claims_cited": 5,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 5
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.33333333333333337,
+    "path_ordered_em": true,
+    "sources_f1": 0.33333333333333337,
+    "structured_nodes": 5
+   },
+   "id": "dev-40",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.21739130434782605,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 40,
+    "claims": 40,
+    "claims_cited": 40,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 40
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.10256410256410257,
+    "path_ordered_em": true,
+    "sources_f1": 0.27906976744186046,
+    "structured_nodes": 37
+   },
+   "id": "dev-41",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.7184466019417475,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-42",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.4,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-43",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.6666666666666666,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 37,
+    "claims": 37,
+    "claims_cited": 37,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 37
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.05405405405405406,
+    "path_ordered_em": true,
+    "sources_f1": 0.2857142857142857,
+    "structured_nodes": 36
+   },
+   "id": "dev-44",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.712871287128713,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-45",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.4,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "computed",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-46",
+   "kind": "clarification",
+   "linker_test_seen": true,
+   "metrics": {
+    "clarify_correct": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0
+   },
+   "mode": "direct",
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "ambiguous",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "clarify"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 6,
+    "claims": 6,
+    "claims_cited": 6,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 6
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.2857142857142857,
+    "path_ordered_em": true,
+    "sources_f1": 0.2857142857142857,
+    "structured_nodes": 6
+   },
+   "id": "dev-47",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.16,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 6,
+    "claims": 6,
+    "claims_cited": 6,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 6
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "inputs_f1": 0.2857142857142857,
+    "path_ordered_em": true,
+    "sources_f1": 0.2857142857142857,
+    "structured_nodes": 6
+   },
+   "id": "dev-48",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "path_node_coverage": 1.0,
+    "upstream_f1": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "upstream_f1_all": 0.4444444444444445,
+    "upstream_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "upstream",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "premise_bucket": "rejected",
+    "premise_case": "O",
+    "structured_nodes": 1
+   },
+   "id": "dev-49",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0,
+    "premise_rejected": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 1.0,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 1,
+   "subtype": "false_premise",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "trace",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "premise_bucket": "rejected",
+    "premise_case": "O",
+    "structured_nodes": 1
+   },
+   "id": "dev-50",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "inputs_f1": 1.0,
+    "inputs_f1_tolerant": 1.0,
+    "premise_rejected": 1.0
+   },
+   "mode": "direct",
+   "modes": {
+    "inputs_f1_all": 0.4,
+    "inputs_f1_direct": 1.0
+   },
+   "negation_removed": 1,
+   "subtype": "false_premise",
+   "truncated": false,
+   "type": "trace",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-51",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.6666666666666666,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.6666666666666666
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 52,
+    "claims": 52,
+    "claims_cited": 52,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 52
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 23
+   },
+   "id": "dev-52",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.16,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 0.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.4
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 104,
+    "claims": 104,
+    "claims_cited": 104,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 104
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 62
+   },
+   "id": "dev-53",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.031746031746031744,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 0.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.2222222222222222
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-54",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 1.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-55",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 1.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 1
+   },
+   "id": "dev-56",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 1.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 27,
+    "claims": 27,
+    "claims_cited": 27,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 27
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 20
+   },
+   "id": "dev-57",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.2608695652173913,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.6666666666666666
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 12,
+    "claims": 12,
+    "claims_cited": 12,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 12
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 12
+   },
+   "id": "dev-58",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.8571428571428571,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 6,
+    "claims": 6,
+    "claims_cited": 6,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 6
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 6
+   },
+   "id": "dev-59",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.9090909090909091,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.9090909090909091
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 93,
+    "claims": 93,
+    "claims_cited": 93,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 93
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 55
+   },
+   "id": "dev-60",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.10344827586206896,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 0.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.6
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 2,
+    "claims": 2,
+    "claims_cited": 2,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 2
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 2
+   },
+   "id": "dev-61",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 1.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 17,
+    "claims": 17,
+    "claims_cited": 17,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 17
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 17
+   },
+   "id": "dev-62",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.9032258064516129,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 14,
+    "claims": 14,
+    "claims_cited": 14,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 14
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 13
+   },
+   "id": "dev-63",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 1.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 25,
+    "claims": 25,
+    "claims_cited": 25,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 25
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 24
+   },
+   "id": "dev-64",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.9565217391304348,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 18,
+    "claims": 18,
+    "claims_cited": 18,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 18
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 17
+   },
+   "id": "dev-65",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.7857142857142858,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 25,
+    "claims": 25,
+    "claims_cited": 25,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 25
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": null,
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 24
+   },
+   "id": "dev-66",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.8571428571428571,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 70,
+    "claims": 70,
+    "claims_cited": 70,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 70
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 65
+   },
+   "id": "dev-67",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.9430894308943091,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 26,
+    "claims": 26,
+    "claims_cited": 26,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 26
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 25
+   },
+   "id": "dev-68",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.8636363636363636,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 55,
+    "claims": 55,
+    "claims_cited": 55,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 55
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 52
+   },
+   "id": "dev-69",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.9166666666666666,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 9,
+    "claims": 9,
+    "claims_cited": 9,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 9
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 9
+   },
+   "id": "dev-70",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 28,
+    "claims": 28,
+    "claims_cited": 28,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 28
+   },
+   "composite": "impact",
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "structured_nodes": 21
+   },
+   "id": "dev-71",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "columns_f1": 1.0,
+    "exposures_f1": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "headline_f1": 1.0,
+    "models_f1": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "columns_f1_all": 1.0,
+    "columns_f1_direct": 0.0,
+    "exposures_f1_all": 1.0,
+    "exposures_f1_direct": 1.0,
+    "models_f1_all": 1.0,
+    "models_f1_direct": 0.0
+   },
+   "negation_removed": 0,
+   "subtype": "downstream",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 5,
+    "claims": 5,
+    "claims_cited": 5,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 5
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "heuristic_verdict": "yes"
+   },
+   "id": "dev-72",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "yesno_correct": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "yesno_all": 1.0,
+    "yesno_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "yesno",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 3,
+    "claims": 3,
+    "claims_cited": 3,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 3
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "heuristic_verdict": "yes"
+   },
+   "id": "dev-73",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "yesno_correct": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "yesno_all": 1.0,
+    "yesno_direct": 1.0
+   },
+   "negation_removed": 0,
+   "subtype": "yesno",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": true,
+    "checked": 1,
+    "claims": 1,
+    "claims_cited": 1,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 1
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "heuristic_verdict": "yes"
+   },
+   "id": "dev-74",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_coverage": 1.0,
+    "citation_valid_answer": 1.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "yesno_correct": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "yesno_all": 1.0,
+    "yesno_direct": 0.0
+   },
+   "negation_removed": 0,
+   "subtype": "yesno",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": false,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "heuristic_verdict": "no"
+   },
+   "id": "dev-75",
+   "kind": "answered",
+   "linker_test_seen": true,
+   "metrics": {
+    "citation_valid_answer": 0.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "yesno_correct": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "yesno_all": 1.0,
+    "yesno_direct": 1.0
+   },
+   "negation_removed": 2,
+   "subtype": "yesno",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": false,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": [],
+    "heuristic_verdict": "no"
+   },
+   "id": "dev-76",
+   "kind": "answered",
+   "linker_test_seen": false,
+   "metrics": {
+    "citation_valid_answer": 0.0,
+    "false_refusal": 0.0,
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "has_hallucination": 0.0,
+    "yesno_correct": 1.0
+   },
+   "mode": "all",
+   "modes": {
+    "yesno_all": 1.0,
+    "yesno_direct": 1.0
+   },
+   "negation_removed": 2,
+   "subtype": "yesno",
+   "truncated": false,
+   "type": "impact",
+   "verdict_gold": "answered"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-89",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "dotted_near_miss",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-90",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "dotted_near_miss",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-91",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "dotted_near_miss",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-92",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "dotted_typo",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-93",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "hallucination_rate": 0.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "unknown_model",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-94",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "bare",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "E",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-95",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "bare",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  },
+  {
+   "citations": {
+    "answer_valid": null,
+    "checked": 0,
+    "claims": 0,
+    "claims_cited": 0,
+    "invalid": {},
+    "macro": 0,
+    "r3_disagree": 0,
+    "r_facts": 0,
+    "valid": 0
+   },
+   "composite": null,
+   "cte_refs": 0,
+   "cue": "P",
+   "diag": {
+    "hallucinated": []
+   },
+   "id": "dev-96",
+   "kind": "refused",
+   "linker_test_seen": false,
+   "metrics": {
+    "fully_correct": 1.0,
+    "refusal_correct": 1.0
+   },
+   "mode": null,
+   "modes": {},
+   "negation_removed": 0,
+   "subtype": "out_of_domain",
+   "truncated": false,
+   "type": "unanswerable",
+   "verdict_gold": "refused"
+  }
+ ],
+ "summary": {
+  "citations": {
+   "checked": 982,
+   "macro": 0,
+   "r3_disagree": 0,
+   "r_facts": 0,
+   "valid": 982
+  },
+  "cte_refs": 0,
+  "latency_ms": {
+   "n_cached": 0,
+   "n_uncached": 84,
+   "p50": 0.1,
+   "p95": 9.8
+  },
+  "metrics": {
+   "chain_correct": {
+    "ci": null,
+    "mean": 1.0,
+    "n": 2
+   },
+   "citation_coverage": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 71
+   },
+   "citation_valid_answer": {
+    "ci": [
+     0.9054054054054054,
+     1.0
+    ],
+    "mean": 0.9594594594594594,
+    "n": 74
+   },
+   "clarify_correct": {
+    "ci": null,
+    "mean": 1.0,
+    "n": 1
+   },
+   "columns_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 24
+   },
+   "exposures_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 24
+   },
+   "false_refusal": {
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "mean": 0.0,
+    "n": 75
+   },
+   "fully_correct": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 84
+   },
+   "hallucination_rate": {
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "mean": 0.0,
+    "n": 80
+   },
+   "has_hallucination": {
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "mean": 0.0,
+    "n": 74
+   },
+   "impact_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 24
+   },
+   "inputs_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 15
+   },
+   "inputs_f1_tolerant": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 15
+   },
+   "models_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 24
+   },
+   "node_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 68
+   },
+   "path_node_coverage": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 29
+   },
+   "premise_rejected": {
+    "ci": null,
+    "mean": 1.0,
+    "n": 4
+   },
+   "refusal_correct": {
+    "ci": null,
+    "mean": 1.0,
+    "n": 9
+   },
+   "trace_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 44
+   },
+   "upstream_f1": {
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "mean": 1.0,
+    "n": 29
+   },
+   "yesno_correct": {
+    "ci": null,
+    "mean": 1.0,
+    "n": 6
+   }
+  },
+  "negation_removed": 10,
+  "node_f1_by": {
+   "hop_bucket": {
+    "1": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 14
+    },
+    "2-3": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 19
+    },
+    "4-5": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 16
+    },
+    "6+": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 17
+    },
+    "None": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    },
+    "indirect-only": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 2
+    }
+   },
+   "linker_test_seen": {
+    "False": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 54
+    },
+    "True": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 14
+    }
+   },
+   "source": {
+    "hand": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 14
+    },
+    "template": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 36
+    },
+    "v0.2": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 18
+    }
+   },
+   "subtype": {
+    "ambiguous": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 2
+    },
+    "bare": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    },
+    "computed": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 11
+    },
+    "dotted_near_miss": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    },
+    "dotted_typo": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    },
+    "downstream": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 24
+    },
+    "false_premise": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 4
+    },
+    "multi_part": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 3
+    },
+    "out_of_domain": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    },
+    "unknown_model": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    },
+    "upstream": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 24
+    },
+    "yesno": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    }
+   },
+   "trap": {
+    "case_transformation": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 6
+    },
+    "deep_chain": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 17
+    },
+    "doc_injection": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 2
+    },
+    "exposures": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 15
+    },
+    "fan_in_aggregate": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 5
+    },
+    "join_key_only": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 2
+    },
+    "near_duplicate_names": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 6
+    },
+    "none": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 23
+    },
+    "rename_chain": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 3
+    },
+    "select_star": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 22
+    },
+    "stale_doc": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 3
+    },
+    "two_revenue_definitions": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 10
+    },
+    "union_all": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 5
+    },
+    "window_function": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 2
+    }
+   },
+   "type": {
+    "impact": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 24
+    },
+    "trace": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 44
+    },
+    "unanswerable": {
+     "ci": null,
+     "mean": null,
+     "n": 0
+    }
+   },
+   "wording": {
+    "description": {
+     "ci": null,
+     "mean": 1.0,
+     "n": 8
+    },
+    "identifier": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 35
+    },
+    "name_words": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 10
+    },
+    "paraphrase": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "mean": 1.0,
+     "n": 15
+    }
+   }
+  },
+  "tokens": {
+   "llm_calls_mean": 0.0,
+   "mean": 0.0,
+   "p95": 0.0
+  },
+  "truncated": []
+ },
+ "system": "s0-gold",
+ "versions": {
+  "design": "1.0",
+  "metrics": "1.0.1"
+ },
+ "view": "validated"
+}

@@ -957,3 +957,6 @@ Notes:
     family fixes the mode; a cue that contradicts the family is recorded only.
   - **Reading noted:** M8's denominator counts the question's own ids (only the numerator exempts
     them). metrics.py parses YAML with PyYAML (dev dependency); `dlens.gold_spec` reads no files.
+- 19 Oct 2026 (Step 4, S0 scoring): **reporting bug fixed** — a valid `star` citation was listed
+  under an answer's invalid-citation reasons (its label lacked the "ok" prefix). No metric value
+  changed (validity was already counted correctly). Test added. metrics.py 1.0.1.

@@ -32,7 +32,7 @@ import yaml
 
 from dlens import gold_spec as gs
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 DESIGN_VERSION = "1.0"  # docs/plans/metrics-design.md
 SEED = 20261019  # M13
 RESAMPLES = 1000  # M13
@@ -520,7 +520,7 @@ def check_citation(
         named = need is not None and _contains(text, need)
         return CitationCheck(False, "model-level citation", macro=jinja and not named)
     if level == "star":
-        return CitationCheck("*" in lines, "star" if "*" in lines else "star without *")
+        return CitationCheck("*" in lines, "ok (star)" if "*" in lines else "star without *")
     if edge is not None:
         assert need is not None
         if _contains(lines, need):

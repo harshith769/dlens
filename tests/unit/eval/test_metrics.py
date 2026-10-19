@@ -719,3 +719,17 @@ def test_metrics_never_imports_the_system_under_test() -> None:
     banned = ("dlens.lineage", "dlens.agent", "dlens.retrieval", "dlens.graph")
     assert not [i for i in imports if i.startswith(banned)]
     assert "dlens.gold_spec" in source or "from dlens import gold_spec" in source
+
+
+def test_valid_star_citation_is_not_listed_as_invalid(tmp_path: Path) -> None:
+    """Reporting bug found on the S0 run: a valid star citation was listed under the answer's
+    invalid reasons (metrics-design change log, 19 Oct 2026)."""
+    (tmp_path / "s.sql").write_text("select *\nfrom t\n")
+    pred = M.Prediction(
+        kind="answered",
+        claims=[{"text": "s.a comes from t.a", "ids": ["e_1"]}],
+        citations={"e_1": cit("s.sql", 1, 1, "star")},
+        edges={"e_1": edge("t.a", "s.a")},
+    )
+    c = M.score_citations(pred, INV, tmp_path)
+    assert c["valid"] == 1 and c["invalid"] == {}
