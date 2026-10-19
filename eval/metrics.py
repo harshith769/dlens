@@ -32,8 +32,8 @@ import yaml
 
 from dlens import gold_spec as gs
 
-__version__ = "1.0.1"
-DESIGN_VERSION = "1.0"  # docs/plans/metrics-design.md
+__version__ = "1.1.0"
+DESIGN_VERSION = "1.1"  # docs/plans/metrics-design.md
 SEED = 20261019  # M13
 RESAMPLES = 1000  # M13
 MIN_CI_N = 10  # M13: a CI is shown only for n >= 10
@@ -319,6 +319,7 @@ class Prediction:
     premise_corrected: bool | None = None
     ambiguity: dict[str, Any] | None = None  # S4 diagnostic only (M9)
     r3_failed: set[str] = field(default_factory=set)
+    r3_checked: set[str] = field(default_factory=set)  # ids the validator's R3 ran on
     truncated: bool = False
     total_ms: float | None = None
     tokens: dict[str, int] = field(default_factory=dict)
@@ -367,6 +368,20 @@ def _r3_failed(record: Mapping[str, Any]) -> set[str]:
     return out
 
 
+def _r3_checked(record: Mapping[str, Any], edges: Mapping[str, EdgeInfo]) -> set[str]:
+    """Ids R3 actually ran on (v1.1): only when the record has a validation that was not skipped,
+    and only ledger ids (emitted by a tool). A miscopied id fails R2 and never reaches R3."""
+    v = record.get("validation") or {}
+    if not v or v.get("skipped"):
+        return set()
+    final = record.get("final_answer") or {}
+    return (
+        set((record.get("evidence") or {}).get("ids") or [])
+        | set(edges)
+        | set(final.get("citations") or {})
+    )
+
+
 def from_record(record: Mapping[str, Any], view: str = "validated") -> Prediction:
     """Adapter for the ``RunRecord`` JSON format (S4; S0 writes the same format). Views (M3):
     ``raw`` = the pre-validation ``draft``; ``validated`` = ``final_answer``; ``augmented`` =
@@ -379,6 +394,7 @@ def from_record(record: Mapping[str, Any], view: str = "validated") -> Predictio
         edges=edges,
         ambiguity=record.get("ambiguity"),
         r3_failed=_r3_failed(record),
+        r3_checked=_r3_checked(record, edges),
         truncated=truncated,
         total_ms=(record.get("timings") or {}).get("total_ms"),
         tokens=dict(record.get("tokens") or {}),
@@ -558,8 +574,15 @@ def score_citations(pred: Prediction, inv: Inventory, project: Path) -> dict[str
             valid += res.valid
             macro += res.macro
             reasons[res.reason] += 1
-            disagree += res.valid == (cid in pred.r3_failed)
+            if cid in pred.r3_checked:  # v1.1: only ids the R3 check ran on
+                disagree += res.valid == (cid in pred.r3_failed)
     answered = pred.kind == "answered"
+    # M7 v1.1: the system's own "no" verdict with no file citation is n/a (nothing to cite);
+    # never the gold verdict. With citations, they are checked as usual.
+    no_nothing_to_cite = pred.reach_verdict == "no" and checked == 0
+    answer_valid = (
+        (checked > 0 and valid == checked) if answered and not no_nothing_to_cite else None
+    )
     return {
         "checked": checked,
         "valid": valid,
@@ -568,7 +591,7 @@ def score_citations(pred: Prediction, inv: Inventory, project: Path) -> dict[str
         "r3_disagree": disagree,
         "claims": len(pred.claims),
         "claims_cited": cited_claims,
-        "answer_valid": (checked > 0 and valid == checked) if answered else None,
+        "answer_valid": answer_valid,
         "invalid": {k: v for k, v in reasons.items() if not k.startswith("ok")},
     }
 
@@ -672,8 +695,12 @@ def score_question(
             amb.get("mode") == "chain" and short_id(str(amb.get("downstream", ""))) == target
         )
     if sub == "ambiguous" and gold["verdict"] == "clarify":
+        # M9 v1.1: a clarification listing every gold candidate, or an answer naming every gold
+        # candidate as a non-negated mention; answering only one candidate is the failure.
+        cands = norm(gold["candidates"])
         m["clarify_correct"] = float(
-            pred.kind == "clarification" and norm(gold["candidates"]) <= set(pred.clarification)
+            (pred.kind == "clarification" and cands <= set(pred.clarification))
+            or (answered and cands <= kept_cols)
         )
 
     # M1 set metrics

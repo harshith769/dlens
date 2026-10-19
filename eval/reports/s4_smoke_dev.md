@@ -1,6 +1,6 @@
-# S4 smoke records re-scored with metrics v1.0 (S10 step 5, report only)
+# S4 smoke records re-scored with metrics v1.1 (S10 step 5, report only)
 
-metrics-design 1.0 · metrics.py 1.0.1 · zero LLM calls (the 96 records from the S09 eval-smoke
+metrics-design 1.1 · metrics.py 1.1.0 · zero LLM calls (the 96 records from the S09 eval-smoke
 run were read from the local run directory; nothing was re-run). Full reports:
 `s4_smoke_dev_{raw,validated,augmented}.{md,json}`.
 
@@ -52,14 +52,15 @@ LLM calls per question: mean 3.06.
 - **Ambiguity:** dev-46 answered per candidate where the gold says clarify (the policy/gold
   disagreement reported in `s0_dev.md`).
 
-## Metric issue found here (diagnostic only; not changed, owner decision)
+## Changes from metrics 1.0.1 (same records, re-scored with 1.1.0)
 
-**R3 disagreement count, raw view = 25.** 22 of these are cited ids with no citation attached:
-miscopied ids that fail R2, so the validator never runs R3 on them. metrics.py treats "not in the
-R3 failures" as "R3 passed", so each one counts as a disagreement. The design compares with R3's
-**outcome**, and these ids have none. Proposed fix (metrics 1.0.2): count a disagreement only for
-ids that R3 actually checked (cited ids present in the ledger). This changes a diagnostic count,
-no headline metric. Step 5 forbids changes after seeing S4 numbers, so it is left for the owner.
-The other 3 (also the validated view's 3) are excerpt citations (`s_`) that R3 passes by text
-hash and metrics fails because the cited lines name no column of the claim: a real difference
-between the two checks, as M7 intends.
+**No headline value changed** in any of the three views. The only change is a diagnostic:
+R3 disagreements in the raw view 25 → 3 (validated: 3 → 3). The 22 removed were cited ids with no
+citation attached (miscopied ids that fail R2 and never reach R3); v1.1 counts only ids the R3
+check ran on. The 3 left are excerpt citations (`s_`) that R3 passes by text hash and metrics
+fails because the cited lines name no column of the claim, a real difference between the two
+checks, as M7 intends.
+
+The two other 1.1 rules do not apply to these records: S4 emits no structured `reach_verdict`
+before S12, so no answer is n/a for per-answer citation validity; and S4 refused dev-46 ("no
+lineage evidence was found"), so clarify correct stays 0.000 under either rule.

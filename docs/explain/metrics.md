@@ -1,7 +1,7 @@
 # Explain: benchmark metrics (`eval/metrics.py`, S10, v0.3 D3)
 
-Implements `docs/plans/metrics-design.md` v1.0 (every definition is the owner's decision there;
-M1–M16 below point at its sections). `metrics.py` `__version__` 1.0.0. Every scored report names
+Implements `docs/plans/metrics-design.md` v1.1 (every definition is the owner's decision there;
+M1–M16 below point at its sections). `metrics.py` `__version__` 1.1.0. Every scored report names
 both versions.
 
 ## What it does
@@ -62,8 +62,9 @@ rows ─► summarise (macro means, bootstrap CI, breakdowns) ─► report .jso
   column for a direct edge, the `from` column for an indirect edge, with the clause-key fallback
   (iv-k+) only when the key's relation is a CTE or derived-table alias of that file and the key
   is on the lines. `model` level is invalid (Jinja files without the column go to the macro
-  bucket); `r_` facts are counted apart. An answered answer with no citation is invalid.
-  Disagreements with the validator's R3 are counted from the record's `validation` failures.
+  bucket); `r_` facts are counted apart. An answered answer with no citation is invalid, unless
+  its own `reach_verdict` is "no" (n/a, v1.1). Disagreements with the validator's R3 are
+  counted from the record's `validation` failures, only for ids R3 ran on (`r3_checked`).
 - **Statistics (M13, M15).** Bootstrap: 1,000 resamples with `random.Random(20261019)`,
   nearest-rank percentiles, shown only for n ≥ 10. Paired bootstrap on per-question differences
   and exact McNemar (`math.comb`) for S1 vs S4. Latency p50 / p95 from uncached runs only.

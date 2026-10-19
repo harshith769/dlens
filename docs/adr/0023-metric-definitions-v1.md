@@ -1,6 +1,7 @@
 # 0023. Benchmark metric definitions v1
 
-- Status: Accepted (owner, 19 Oct 2026: every decision in docs/plans/metrics-design.md v1.0)
+- Status: Accepted (owner, 19 Oct 2026: every decision in docs/plans/metrics-design.md v1.0;
+  amended to v1.1 the same day: M7 "no" verdicts, M9 clarify, R3 diagnostic)
 - Date: 2026-10-19
 - Amends: spec §11.3 (S0 rows), §11.4 (metric list and meanings)
 - Implemented in: S10 (D3, D2 S0 part): `eval/metrics.py`, `eval/systems/s0.py`
@@ -32,8 +33,10 @@ The definitions in docs/plans/metrics-design.md v1.0 are the benchmark's metrics
   correct".
 - **Citation validity** is re-checked on disk by metrics itself (direct edge → `to` column,
   indirect → `from` column, clause key only under a CTE / derived-alias guard); an answered
-  answer with no citation is invalid; citation coverage is reported.
-- **Refusals / clarifications** read the schema fields; false-refusal rate is added; false-premise
+  answer with no citation is invalid, except one whose own structured verdict is "no" (n/a:
+  nothing to cite, v1.1); citation coverage is reported.
+- **Refusals / clarifications** read the schema fields; a clarify-gold question is also correct
+  when the answer names every gold candidate (v1.1); false-refusal rate is added; false-premise
   rejection needs positive evidence (a negated mention or `premise_corrected`).
 - **Aggregation:** macro over questions; a non-answer on an answerable question scores 0 even on
   an empty gold set; bootstrap 1,000×, seed 20261019, CI only for n ≥ 10; exact McNemar.
@@ -49,6 +52,7 @@ The definitions in docs/plans/metrics-design.md v1.0 are the benchmark's metrics
   schema fields and `model.column` ids (S11). The full list is metrics-design.md §18.
 - Every scored report names the metrics-design version and `metrics.py` `__version__`. A metric
   bug is fixed with a test and a change-log line, never to move a result.
-- Open owner questions raised by the first scoring (S10): per-answer citation validity for correct
-  "No" verdicts (nothing to cite), the dev-46 gold (`clarify`) vs the spec §8 per-candidate policy,
-  and the R3-disagreement diagnostic counting ids R3 never checked.
+- The three questions raised by the first scoring (S10) were decided by the owner in v1.1:
+  correct "No" verdicts with nothing to cite are n/a for per-answer citation validity; a
+  clarify-gold question accepts a clarification or a per-candidate answer naming every candidate
+  (spec §8 and dev.jsonl unchanged); the R3-disagreement diagnostic counts only ids R3 checked.

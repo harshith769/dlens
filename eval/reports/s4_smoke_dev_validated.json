@@ -4633,8 +4633,8 @@
  },
  "system": "s4-qwen3-4b",
  "versions": {
-  "design": "1.0",
-  "metrics": "1.0.1"
+  "design": "1.1",
+  "metrics": "1.1.0"
  },
  "view": "validated"
 }

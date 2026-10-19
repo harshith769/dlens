@@ -535,7 +535,7 @@
   },
   {
    "citations": {
-    "answer_valid": false,
+    "answer_valid": null,
     "checked": 0,
     "claims": 0,
     "claims_cited": 0,
@@ -556,7 +556,6 @@
    "kind": "answered",
    "linker_test_seen": false,
    "metrics": {
-    "citation_valid_answer": 0.0,
     "false_refusal": 0.0,
     "fully_correct": 1.0,
     "hallucination_rate": 0.0,
@@ -2181,9 +2180,9 @@
    "metrics": {
     "citation_coverage": 1.0,
     "citation_valid_answer": 1.0,
-    "clarify_correct": 0.0,
+    "clarify_correct": 1.0,
     "false_refusal": 0.0,
-    "fully_correct": 0.0,
+    "fully_correct": 1.0,
     "hallucination_rate": 0.0,
     "has_hallucination": 0.0
    },
@@ -3504,7 +3503,7 @@
   },
   {
    "citations": {
-    "answer_valid": false,
+    "answer_valid": null,
     "checked": 0,
     "claims": 0,
     "claims_cited": 0,
@@ -3525,7 +3524,6 @@
    "kind": "answered",
    "linker_test_seen": true,
    "metrics": {
-    "citation_valid_answer": 0.0,
     "false_refusal": 0.0,
     "fully_correct": 1.0,
     "hallucination_rate": 0.0,
@@ -3545,7 +3543,7 @@
   },
   {
    "citations": {
-    "answer_valid": false,
+    "answer_valid": null,
     "checked": 0,
     "claims": 0,
     "claims_cited": 0,
@@ -3566,7 +3564,6 @@
    "kind": "answered",
    "linker_test_seen": false,
    "metrics": {
-    "citation_valid_answer": 0.0,
     "false_refusal": 0.0,
     "fully_correct": 1.0,
     "hallucination_rate": 0.0,
@@ -3885,15 +3882,15 @@
    },
    "citation_valid_answer": {
     "ci": [
-     0.8939393939393939,
+     1.0,
      1.0
     ],
-    "mean": 0.9545454545454546,
-    "n": 66
+    "mean": 1.0,
+    "n": 63
    },
    "clarify_correct": {
     "ci": null,
-    "mean": 0.0,
+    "mean": 1.0,
     "n": 1
    },
    "columns_f1": {
@@ -3922,10 +3919,10 @@
    },
    "fully_correct": {
     "ci": [
-     0.8095238095238095,
-     0.9404761904761905
+     0.8214285714285714,
+     0.9523809523809523
     ],
-    "mean": 0.8809523809523809,
+    "mean": 0.8928571428571429,
     "n": 84
    },
    "hallucination_rate": {
@@ -4336,8 +4333,8 @@
  },
  "system": "s0-linked",
  "versions": {
-  "design": "1.0",
-  "metrics": "1.0.1"
+  "design": "1.1",
+  "metrics": "1.1.0"
  },
  "view": "validated"
 }

@@ -1,6 +1,6 @@
 # S0-gold on the 96 dev questions
 
-metrics-design 1.0 · metrics.py 1.0.1 · dev.jsonl sha256 c265015ae72d · bootstrap 1000×, seed 20261019, CI only for n ≥ 10
+metrics-design 1.1 · metrics.py 1.1.0 · dev.jsonl sha256 c265015ae72d · bootstrap 1000×, seed 20261019, CI only for n ≥ 10
 
 Manifest: `{"git_commit": "4a5296d9eb86c5ee91744d89f54d89653889ae29", "hybrid": false, "linker": null, "max_depth": 50, "model": "dlens-graph", "note": "S0-gold (no linker)", "provider": "s0-gold", "questions_file": "eval/questions/dev.jsonl", "questions_sha256": "c265015ae72d62d4e2865493a50fba408e3e7c3ff4afafd2a5f992e425c5fe11", "record_count": 84, "records_file": "s0-gold-dev.jsonl", "required": ["dev-01", "dev-02", "dev-03", "dev-04", "dev-05", "dev-06", "dev-07", "dev-08", "dev-09", "dev-10", "dev-11", "dev-12", "dev-13", "dev-14", "dev-15", "dev-16", "dev-17", "dev-18", "dev-19", "dev-20", "dev-21", "dev-22", "dev-23", "dev-24", "dev-25", "dev-26", "dev-27", "dev-28", "dev-29", "dev-30", "dev-31", "dev-32", "dev-33", "dev-34", "dev-35", "dev-36", "dev-37", "dev-38", "dev-39", "dev-40", "dev-41", "dev-42", "dev-43", "dev-44", "dev-45", "dev-46", "dev-47", "dev-48", "dev-49", "dev-50", "dev-51", "dev-52", "dev-53", "dev-54", "dev-55", "dev-56", "dev-57", "dev-58", "dev-59", "dev-60", "dev-61", "dev-62", "dev-63", "dev-64", "dev-65", "dev-66", "dev-67", "dev-68", "dev-69", "dev-70", "dev-71", "dev-72", "dev-73", "dev-74", "dev-75", "dev-76", "dev-89", "dev-90", "dev-91", "dev-92", "dev-93", "dev-94", "dev-95", "dev-96"], "system": "s0-gold", "view": "validated"}`
 
@@ -27,7 +27,7 @@ Complete: True
 | fully_correct | 1.000 [1.00, 1.00] (n=84) |
 | hallucination_rate | 0.000 [0.00, 0.00] (n=80) |
 | has_hallucination | 0.000 [0.00, 0.00] (n=74) |
-| citation_valid_answer | 0.959 [0.91, 1.00] (n=74) |
+| citation_valid_answer | 1.000 [1.00, 1.00] (n=71) |
 | citation_coverage | 1.000 [1.00, 1.00] (n=71) |
 
 Citations checked 982, valid 982, r_ facts 0, model-level macro bucket 0, disagreements with R3 0.
@@ -54,6 +54,3 @@ Latency p50 0.1 ms, p95 9.8 ms over 84 uncached runs (0 cached, excluded). Token
 
 | id | subtype | mode | kind | metric | value |
 |---|---|---|---|---|---|
-| dev-10 | yesno | all | answered | citation_valid_answer | 0.000 |
-| dev-75 | yesno | all | answered | citation_valid_answer | 0.000 |
-| dev-76 | yesno | all | answered | citation_valid_answer | 0.000 |

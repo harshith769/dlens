@@ -1,6 +1,6 @@
 # Metrics design (S10, v0.3 D3)
 
-**Metrics-design version:** 1.0 (every Decision set by the owner, 19 Oct 2026). Every scored
+**Metrics-design version:** 1.1 (owner amendments to M7 and M9, 19 Oct 2026; 1.0: every Decision set by the owner, 19 Oct 2026). Every scored
 report names this version and `eval/metrics.py`'s `__version__`.
 **Status:** approved, 19 Oct 2026. **Every definition is the owner's decision**, recorded on each
 `Decision:` line. `eval/metrics.py` implements exactly this document.
@@ -409,10 +409,14 @@ answer's `citations`:
 **Reported.**
 - **Per citation (micro):** valid / all checked citations.
 - **Per answer:** over every **answered** answer (not refused, not a clarification), the answer is
-  valid if every citation is valid. An answered answer with **zero citations is invalid**.
+  valid if every citation is valid. An answered answer with **zero citations is invalid**,
+  except (v1.1) an answer whose own structured `reach_verdict` is "no" and that has zero file
+  citations: n/a, since a correct "No" has nothing to cite. Its citations, if any, are checked as
+  usual. The system's verdict decides, never the gold.
 - **Citation coverage:** share of claims with ≥ 1 citation.
 - **Disagreement with R3:** the count of citations where this re-check and the validator's R3
-  outcome (read from the record's `validation` failures, no import) disagree, listed.
+  outcome (read from the record's `validation` failures, no import) disagree, listed. Only ids
+  the R3 check actually ran on count (v1.1: ledger ids of a record whose validation ran).
 
 **Options for the per-answer rule.** (a) as above (recommended); (b) answers with zero citations
 excluded instead of invalid.
@@ -423,7 +427,7 @@ excluded instead of invalid.
 **Consequence.** S4-validated passed R3 by construction, so disagreements there are expected to be
 few and each one is listed. S1 has no validator; the same check applies.
 
-`Decision (owner, 19 Oct 2026):` (iv) by edge kind with (iv-k+); per-answer rule (a). Guard, checked by metrics itself: the clause key's model part is either a CTE (`<name> as (`) or a derived-table alias (`) as <name>` **and** used as `<name>.` elsewhere in the same file), **and** the key appears on the cited lines. Required test: a cast alias such as `cast(x as int) as amount`, with no `amount.` qualifier anywhere in the file, does **not** pass the guard.
+`Decision (owner, 19 Oct 2026):` (iv) by edge kind with (iv-k+); per-answer rule (a). Guard, checked by metrics itself: the clause key's model part is either a CTE (`<name> as (`) or a derived-table alias (`) as <name>` **and** used as `<name>.` elsewhere in the same file), **and** the key appears on the cited lines. Required test: a cast alias such as `cast(x as int) as amount`, with no `amount.` qualifier anywhere in the file, does **not** pass the guard. **Amended (owner, 19 Oct 2026, v1.1):** an answer whose structured `reach_verdict` is "no" and that has zero file citations is n/a for per-answer citation validity; with citations it is checked as usual; the system's own verdict decides, never the gold.
 
 ---
 
@@ -482,7 +486,9 @@ and S1 have no such filter.
   (the most downstream candidate) is a non-negated mention. Then scored as upstream. The record's
   ambiguity mode (`chain`, downstream = target) is an **S4-only diagnostic**.
 - **Clarify** (dev-46): reads the shared schema field `clarification`: correct if it is set and
-  its candidates ⊇ gold `candidates`. A full answer instead is wrong for the verdict.
+  its candidates ⊇ gold `candidates`, **or** (v1.1) the answer is answered and every gold
+  candidate is a non-negated mention (a per-candidate answer). Answering only one candidate is
+  wrong.
 - **Refusal** reads the shared schema field `refused`, never prose.
 - **Interpreted near-miss:** correct only if `answer_text` begins with "Interpreted A as B." and
   B = `gold.interpretation.column`; then scored as its underlying type. (0 such dev questions.)
@@ -497,7 +503,7 @@ fct_segment_monthly.order_month.
 **Consequence.** S0-gold refuses unanswerable questions trivially (its target does not exist);
 S0-linked refuses only on a linker no-match.
 
-`Decision (owner, 19 Oct 2026):` rules as drafted; `closest` not scored (diagnostic only); `or_refused` not honoured.
+`Decision (owner, 19 Oct 2026):` rules as drafted; `closest` not scored (diagnostic only); `or_refused` not honoured. **Amended (owner, 19 Oct 2026, v1.1):** a clarify-gold question is correct with a clarification listing every gold candidate **or** an answered answer naming every gold candidate as a non-negated mention; dev.jsonl gold and spec §8 unchanged.
 
 ---
 
@@ -960,3 +966,15 @@ Notes:
 - 19 Oct 2026 (Step 4, S0 scoring): **reporting bug fixed** — a valid `star` citation was listed
   under an answer's invalid-citation reasons (its label lacked the "ok" prefix). No metric value
   changed (validity was already counted correctly). Test added. metrics.py 1.0.1.
+- 19 Oct 2026: **version 1.1** (owner decisions on the three S10 questions; metrics.py 1.1.0).
+  - **M7 per-answer citation validity:** an answer whose own structured `reach_verdict` is "no"
+    and that has zero file citations is n/a, not invalid; with citations it is checked as usual;
+    the system's verdict decides, never the gold. Rationale: spec §0 row 27, a correct "No" has
+    nothing to cite. Seen in S0-gold's per-answer validity 0.959 (3 of 74 answers: dev-10, 75, 76,
+    all correct "No" verdicts) before any S4 number was read.
+  - **M9 clarify:** correct if a clarification lists every gold candidate **or** the answer is
+    answered and every gold candidate is a non-negated mention. Both behaviours are correct for a
+    genuinely ambiguous question; answering only one candidate is the failure. No change to
+    dev.jsonl gold or to spec §8 (which answers per candidate for ≤ 3 tied candidates).
+  - **R3 disagreement count (bug fix):** counts only ids the R3 check actually ran on (ledger ids
+    of a record whose validation ran). Found in Step 5, diagnostic only, no headline value changes.

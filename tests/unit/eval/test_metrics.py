@@ -605,6 +605,7 @@ def test_answer_level_citations(project: Path) -> None:
         citations={"e_1": cit("models/m.sql", 2, 2)},
         edges={"e_1": edge("src.x", "m.total")},
         r3_failed={"e_1"},
+        r3_checked={"e_1"},
     )
     c = M.score_citations(pred, INV, project)
     assert (c["checked"], c["valid"], c["r_facts"], c["claims_cited"], c["claims"]) == (
@@ -733,3 +734,85 @@ def test_valid_star_citation_is_not_listed_as_invalid(tmp_path: Path) -> None:
     )
     c = M.score_citations(pred, INV, tmp_path)
     assert c["valid"] == 1 and c["invalid"] == {}
+
+
+# ------------------------------------------------------------------------- v1.1 (owner)
+def test_no_verdict_with_zero_file_citations_is_na(project: Path) -> None:
+    """M7 v1.1: the system's own "no" with nothing to cite is n/a, never invalid."""
+    pred = M.Prediction(kind="answered", answer_text="No.", reach_verdict="no", claims=[])
+    assert M.score_citations(pred, INV, project)["answer_valid"] is None
+    only_fact = M.Prediction(
+        kind="answered", reach_verdict="no", claims=[{"text": "t", "ids": ["r_1"]}]
+    )
+    assert M.score_citations(only_fact, INV, project)["answer_valid"] is None
+
+
+def test_no_verdict_with_a_bad_citation_is_still_invalid(project: Path) -> None:
+    pred = M.Prediction(
+        kind="answered",
+        reach_verdict="no",
+        claims=[{"text": "m.total comes from src.x", "ids": ["e_1"]}],
+        citations={"e_1": cit("models/m.sql", 3, 3)},
+        edges={"e_1": edge("src.x", "m.total")},
+    )
+    assert M.score_citations(pred, INV, project)["answer_valid"] is False
+
+
+def test_yes_or_missing_verdict_with_zero_citations_stays_invalid(project: Path) -> None:
+    for verdict in ("yes", None):
+        pred = M.Prediction(kind="answered", reach_verdict=verdict, claims=[])
+        assert M.score_citations(pred, INV, project)["answer_valid"] is False
+
+
+def test_na_uses_the_system_verdict_not_the_gold() -> None:
+    q = BY_ID["dev-10"]  # gold "no"
+    assert q["gold"]["reach"]["all"] == "no"
+    wrong_yes = M.score_question(q, answered("Yes.", "yes"), INV, VIEW, CORPUS)
+    assert wrong_yes["metrics"]["citation_valid_answer"] == 0.0
+    said_no = M.score_question(q, answered("No.", "no"), INV, VIEW, CORPUS)
+    assert "citation_valid_answer" not in said_no["metrics"]
+
+
+def test_clarify_question_answered_for_every_candidate_is_correct() -> None:
+    q = BY_ID["dev-46"]
+    cands = q["gold"]["candidates"]
+    both = " ".join(f"{c} comes from fct_orders.order_date." for c in cands)
+    assert (
+        M.score_question(q, answered(both), INV, VIEW, CORPUS)["metrics"]["clarify_correct"] == 1.0
+    )
+
+
+def test_per_candidate_answer_missing_one_candidate_is_wrong() -> None:
+    q = BY_ID["dev-46"]
+    c0, c1 = q["gold"]["candidates"][:2]
+    one = f"{c0} comes from fct_orders.order_date."
+    assert (
+        M.score_question(q, answered(one), INV, VIEW, CORPUS)["metrics"]["clarify_correct"] == 0.0
+    )
+    negated = f"{c0} comes from fct_orders.order_date. It is not {c1}."
+    row = M.score_question(q, answered(negated), INV, VIEW, CORPUS)
+    assert row["metrics"]["clarify_correct"] == 0.0
+
+
+def test_r3_disagreement_counts_only_ids_r3_ran_on(project: Path) -> None:
+    """Found in Step 5 (diagnostic only): a miscopied id fails R2 and never reaches R3."""
+    pred = M.Prediction(
+        kind="answered",
+        claims=[{"text": "m.total comes from src.x", "ids": ["e_1", "e_bad"]}],
+        citations={"e_1": cit("models/m.sql", 2, 2)},
+        edges={"e_1": edge("src.x", "m.total")},
+        r3_checked={"e_1"},
+    )
+    c = M.score_citations(pred, INV, project)
+    assert c["checked"] == 2 and c["valid"] == 1  # e_bad: no citation attached, invalid
+    assert c["r3_disagree"] == 0  # e_1 agrees (valid, R3 passed); e_bad was never R3-checked
+
+
+def test_r3_checked_from_record() -> None:
+    rec = record(
+        BY_ID["dev-01"]["question"],
+        evidence={"ids": ["e_1"]},
+        validation={"skipped": False, "first": {"failures": []}},
+    )
+    assert M.from_record(rec).r3_checked == {"e_1"}
+    assert M.from_record(record(BY_ID["dev-01"]["question"])).r3_checked == set()

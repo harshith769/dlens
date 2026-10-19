@@ -535,7 +535,7 @@
   },
   {
    "citations": {
-    "answer_valid": false,
+    "answer_valid": null,
     "checked": 0,
     "claims": 0,
     "claims_cited": 0,
@@ -556,7 +556,6 @@
    "kind": "answered",
    "linker_test_seen": false,
    "metrics": {
-    "citation_valid_answer": 0.0,
     "false_refusal": 0.0,
     "fully_correct": 1.0,
     "hallucination_rate": 0.0,
@@ -3545,7 +3544,7 @@
   },
   {
    "citations": {
-    "answer_valid": false,
+    "answer_valid": null,
     "checked": 0,
     "claims": 0,
     "claims_cited": 0,
@@ -3566,7 +3565,6 @@
    "kind": "answered",
    "linker_test_seen": true,
    "metrics": {
-    "citation_valid_answer": 0.0,
     "false_refusal": 0.0,
     "fully_correct": 1.0,
     "hallucination_rate": 0.0,
@@ -3586,7 +3584,7 @@
   },
   {
    "citations": {
-    "answer_valid": false,
+    "answer_valid": null,
     "checked": 0,
     "claims": 0,
     "claims_cited": 0,
@@ -3607,7 +3605,6 @@
    "kind": "answered",
    "linker_test_seen": false,
    "metrics": {
-    "citation_valid_answer": 0.0,
     "false_refusal": 0.0,
     "fully_correct": 1.0,
     "hallucination_rate": 0.0,
@@ -3926,11 +3923,11 @@
    },
    "citation_valid_answer": {
     "ci": [
-     0.9054054054054054,
+     1.0,
      1.0
     ],
-    "mean": 0.9594594594594594,
-    "n": 74
+    "mean": 1.0,
+    "n": 71
    },
    "clarify_correct": {
     "ci": null,
@@ -4377,8 +4374,8 @@
  },
  "system": "s0-gold",
  "versions": {
-  "design": "1.0",
-  "metrics": "1.0.1"
+  "design": "1.1",
+  "metrics": "1.1.0"
  },
  "view": "validated"
 }

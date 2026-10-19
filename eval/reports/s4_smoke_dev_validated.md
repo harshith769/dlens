@@ -1,6 +1,6 @@
 # S4 (validated) on the 96 dev questions: S09 eval-smoke records, local qwen3:4b, hybrid off
 
-metrics-design 1.0 · metrics.py 1.0.1 · dev.jsonl sha256 c265015ae72d · bootstrap 1000×, seed 20261019, CI only for n ≥ 10
+metrics-design 1.1 · metrics.py 1.1.0 · dev.jsonl sha256 c265015ae72d · bootstrap 1000×, seed 20261019, CI only for n ≥ 10
 
 Manifest: `{"hybrid": null, "model": "qwen3:4b-instruct-2507-q4_K_M", "note": "legacy: built by metrics.py from the records (pre-S10 run, no manifest)", "provider": "ollama", "record_count": 96, "records_file": "2026-10-18.jsonl", "system": "s4-qwen3-4b"}`
 

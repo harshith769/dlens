@@ -22,7 +22,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 0
    },
@@ -165,7 +165,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 2
    },
@@ -214,7 +214,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -263,7 +263,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 5
    },
@@ -312,7 +312,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 1
    },
@@ -599,7 +599,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -738,7 +738,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 1
    },
@@ -836,7 +836,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -1406,7 +1406,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 1
    },
@@ -1548,7 +1548,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -1597,7 +1597,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -1646,7 +1646,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -1744,7 +1744,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -1792,7 +1792,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -1841,7 +1841,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 0
    },
@@ -2233,7 +2233,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 4
    },
@@ -2471,7 +2471,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 1
    },
@@ -2697,7 +2697,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -2797,7 +2797,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 1
    },
@@ -2985,7 +2985,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 8
    },
@@ -3525,7 +3525,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 17
    },
@@ -3896,7 +3896,7 @@
      "no citation attached": 1
     },
     "macro": 0,
-    "r3_disagree": 1,
+    "r3_disagree": 0,
     "r_facts": 0,
     "valid": 3
    },
@@ -4194,7 +4194,7 @@
   "citations": {
    "checked": 305,
    "macro": 0,
-   "r3_disagree": 25,
+   "r3_disagree": 3,
    "r_facts": 4,
    "valid": 280
   },
@@ -4686,8 +4686,8 @@
  },
  "system": "s4-qwen3-4b",
  "versions": {
-  "design": "1.0",
-  "metrics": "1.0.1"
+  "design": "1.1",
+  "metrics": "1.1.0"
  },
  "view": "raw"
 }

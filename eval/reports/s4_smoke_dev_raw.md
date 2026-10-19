@@ -1,6 +1,6 @@
 # S4 (raw) on the 96 dev questions: S09 eval-smoke records, local qwen3:4b, hybrid off
 
-metrics-design 1.0 · metrics.py 1.0.1 · dev.jsonl sha256 c265015ae72d · bootstrap 1000×, seed 20261019, CI only for n ≥ 10
+metrics-design 1.1 · metrics.py 1.1.0 · dev.jsonl sha256 c265015ae72d · bootstrap 1000×, seed 20261019, CI only for n ≥ 10
 
 Manifest: `{"hybrid": null, "model": "qwen3:4b-instruct-2507-q4_K_M", "note": "legacy: built by metrics.py from the records (pre-S10 run, no manifest)", "provider": "ollama", "record_count": 96, "records_file": "2026-10-18.jsonl", "system": "s4-qwen3-4b"}`
 
@@ -30,7 +30,7 @@ Complete: True
 | citation_valid_answer | 0.591 [0.47, 0.70] (n=66) |
 | citation_coverage | 1.000 [1.00, 1.00] (n=66) |
 
-Citations checked 305, valid 280, r_ facts 4, model-level macro bucket 0, disagreements with R3 25.
+Citations checked 305, valid 280, r_ facts 4, model-level macro bucket 0, disagreements with R3 3.
 Mentions removed by the negation rule: 13. CTE references: 0. Truncated payloads: dev-44, dev-67, dev-75.
 Latency p50 5325.8 ms, p95 23329.1 ms over 77 uncached runs (19 cached, excluded). Tokens/question mean 2639.7083333333335, LLM calls/question mean 3.0625.
 
