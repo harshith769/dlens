@@ -947,3 +947,13 @@ Notes:
   Differences from the recommendations: M7 takes (iv-k+) (derived-table aliases, with the
   cast-alias test); M8 takes (a+); M13's linker-test flag covers 21 questions (target and yes/no
   endpoints).
+- 19 Oct 2026 (Step 2, implementation, before any result was read):
+  - **Metric bug fixed:** dev-46 (clarify) carries a gold `paths` list, so path node coverage
+    scored a correct clarification 0. Path node coverage now applies only to questions whose
+    gold verdict is not `clarify` (M6). Found by the identity test; regression test added.
+  - **Clarification, no change to the approved mapping:** M4 (a)'s text sends "no cue, or cues
+    of both classes" to the family; the approved Appendix A also resolves dev-50 (an effect cue
+    on a false-premise question) by family. `eval/metrics.py` implements Appendix A: the
+    family fixes the mode; a cue that contradicts the family is recorded only.
+  - **Reading noted:** M8's denominator counts the question's own ids (only the numerator exempts
+    them). metrics.py parses YAML with PyYAML (dev dependency); `dlens.gold_spec` reads no files.

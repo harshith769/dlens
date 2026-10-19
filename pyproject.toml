@@ -63,7 +63,7 @@ packages = ["src/dlens"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["src", "tests", "eval/oracle"]
+src = ["src", "tests", "eval", "eval/oracle"]
 extend-exclude = ["docs", "scripts"]
 
 [tool.ruff.lint]
@@ -71,8 +71,8 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src/dlens", "eval/oracle/dlens_oracle"]
-mypy_path = ["src", "eval/oracle"]
+files = ["src/dlens", "eval/oracle/dlens_oracle", "eval/metrics.py"]
+mypy_path = ["src", "eval", "eval/oracle"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -81,7 +81,7 @@ strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "eval/oracle"]
+pythonpath = ["src", "eval", "eval/oracle"]
 markers = [
     "integration: runs dbt end to end on a vendored corpus",
     "ollama: needs a live local Ollama server (set DLENS_RUN_OLLAMA=1); skipped in CI",
