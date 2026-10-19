@@ -8,7 +8,7 @@
 
 ## 0. What changed from v1.0, and why
 
-Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come from the v0.3 plan (4 Oct 2026); row 31 from S03. Rows 1–8 became ADRs 0001–0008 and row 17 became ADR 0009 (superseded by 0010). Rows 19 and 21–31 are recorded in ADRs 0010–0020; each ADR names its row.
+Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come from the v0.3 plan (4 Oct 2026); row 31 from S03; row 32 from S10. Rows 1–8 became ADRs 0001–0008 and row 17 became ADR 0009 (superseded by 0010). Rows 19 and 21–31 are recorded in ADRs 0010–0020, row 32 in ADR 0023; each ADR names its row.
 
 | # | Change | Reason |
 |---|---|---|
@@ -43,6 +43,7 @@ Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come fro
 | 29 | **System freeze together with the test freeze** (prompts, validator version, model IDs, tool code hashed) | Rules changed often in dev; test numbers must come from a fixed system |
 | 30 | **Two-track roadmap:** research (to v1.0) + product (v1.1 MCP server, v1.2 PR impact bot) | Build velocity is higher than planned; product work uses the surplus without blocking research gates |
 | 31 | **Indirect-edge classification and targets final** (ADR 0020): the clause decides first (WHERE/HAVING/QUALIFY → FILTER, also inside an OVER within QUALIFY); function arguments and CASE conditions are direct; OVER → WINDOW, aggregate `FILTER (WHERE)` → CONDITIONAL, ORDER BY → SORT; row-set clauses target every output column computed through their SELECT, function-attached clauses only the column containing the function; direct edges win. Indirect edges carry model-level citations until a clause locator ships with their exposure | DESIGN_v2 D1/D7 were working rules for the gold; the engine now emits the edges, so one rule binds both. Deviates from OpenLineage (CASE conditions are not CONDITIONAL) to keep the frozen v1 gold |
+| 32 | **Metric definitions v1** (ADR 0023, 19 Oct 2026; `docs/plans/metrics-design.md` v1.0): one prose extractor for every system; primary mode per question family (trace direct, impact direct + indirect), both modes reported; node-set F1 pools 68 dev questions (trace 44, impact 24); yes/no scored only on a structured `reach_verdict`; "path exact match" renamed path node coverage; citation validity re-checked on disk by metrics; false-refusal rate added; S0 split into S0-gold and S0-linked | Definitions had to exist before any S1/S4 number: gold differs by mode on 50 of 96 dev questions, S1 cites chunks not edges, and prose verdicts score phrasing |
 
 ---
 
@@ -499,7 +500,8 @@ edges:
 
 | ID | System | Purpose |
 |---|---|---|
-| S0 | Graph oracle from the gold entity, no LLM | Upper bound; isolates linker and LLM loss |
+| S0-gold | Graph oracle from the gold entity, no LLM | Upper bound; isolates linker and LLM loss |
+| S0-linked | Linker (same hybrid flag as the S4 runs compared) + graph, no LLM (ADR 0023) | Isolates linker loss: S0-gold − S0-linked |
 | S1 | Vector RAG (hybrid BM25 + dense, top-k in context) | Baseline to beat |
 | S2 | Long-context stuffing (all compiled SQL in the prompt) | "Why not paste everything?" Synthetic corpus only, plus set E if it fits |
 | S3 | Agent with graph tools only | Ablation |
@@ -508,15 +510,15 @@ edges:
 
 ### 11.4 Metrics and statistics
 - **Metrics:**
-  - Node-set precision, recall and F1; path exact match
-  - Hallucinated-node rate; citation validity
-  - Linker top-1 and top-3; refusal accuracy
-  - Verdict accuracy for yes/no questions (a correct "No" has nothing to cite)
+  - Node-set precision, recall and F1 (headline: node-set F1 pooled over trace and impact questions, in each question's primary mode, both modes reported); path node coverage (order-free; was "path exact match", ADR 0023)
+  - Hallucinated-node rate; citation validity (re-checked on disk by metrics) and citation coverage
+  - Linker top-1 and top-3; refusal accuracy; false-refusal rate; false-premise explicit rejection rate
+  - Verdict accuracy for yes/no questions, scored only on the structured `reach_verdict` (a correct "No" has nothing to cite)
   - Ask rubric score (judge = a model behind the OpenAI-compatible adapter, Groq if still free; calibrated on 30 of your labels with Cohen's kappa ≥ 0.6, or else Ask is scored by hand)
   - p50/p95 latency; tokens per question
-- **Statistics:** 95% bootstrap confidence intervals (1,000 resamples). Paired bootstrap on per-question F1 and McNemar's test on exact match, for S1 vs S4.
+- **Statistics:** 95% bootstrap confidence intervals (1,000 resamples). Paired bootstrap on per-question F1 and exact McNemar's test on "question fully correct", for S1 vs S4 (fixed seed, CI shown for n ≥ 10; ADR 0023).
 - **Headline chart:** F1 against hop depth, one line per system, one panel per model (Gemini, Qwen3).
-- Metrics are defined in `docs/plans/metrics-design.md` (owner-approved) before `eval/metrics.py` is written.
+- Metrics are defined in `docs/plans/metrics-design.md` (owner-approved, v1.0 on 19 Oct 2026, ADR 0023) and implemented exactly by `eval/metrics.py`.
 
 ### 11.5 Ablations: all near zero quota
 

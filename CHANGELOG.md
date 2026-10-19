@@ -19,6 +19,16 @@ All notable changes to this project are documented here. The format follows
   refusal; code prefixes the answer with "Interpreted X as Y.".
 
 ### Added
+- **Benchmark metrics v1** (S10; ADR 0023, docs/plans/metrics-design.md v1.0): `eval/metrics.py`
+  scores run records of any system the same way: a shared prose extractor (identifier filter,
+  tested negation rule, CTE references apart), node-set F1 in each question's primary mode with
+  both modes reported, structured yes/no verdicts only, false-premise rejection, path node
+  coverage, hallucinated-node rate, on-disk citation re-check, seeded bootstrap CIs, paired
+  bootstrap and exact McNemar. It never imports the system under test.
+- **S0 graph oracle** (`eval/systems/s0.py`, `make eval-s0`): S0-gold and S0-linked (hybrid off),
+  no LLM, records in the S4 run-record format under `eval/runs/s0/`; reports
+  `eval/reports/s0_dev.md`. The S09 S4 smoke records were re-scored, report only
+  (`eval/reports/s4_smoke_dev.md`).
 - **Linker test set** `eval/linker/` (247 owner-reviewed cases, split linker-dev / linker-test by
   gold column; dev mentions; a 20-mention dbt_jira sample), `scripts/gen_linker_cases.py`,
   `scripts/linker_report.py` (`eval/reports/linker.md`), `scripts/linker_preset_gate.py`, and
