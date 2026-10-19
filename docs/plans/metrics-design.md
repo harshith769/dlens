@@ -218,6 +218,10 @@ to S1 and S4 identically. (b) is reported as a labelled diagnostic for S0 and S4
      "does not", "doesn't", "did not", "didn't", "is never", "never", "no longer" or "has no".
      Adjacency is required: a comma or a relative word ("which", "that", "who") between the
      mention and the cue breaks it.
+   - *Value-word exemption:* a cue (pre or post) that is followed in its clause by a value word
+     ("null", "nullable", "empty", "zero", "negative", "unique", "missing", "blank") **before the
+     next mention or the clause end** is not a negation: it describes values, not lineage ("where
+     A is not null", "A is never null" → A kept). Appendix B rows 28–31.
    - A mention is negated if either cue applies. Every cue word is matched as a whole word,
      case-insensitive.
    - A node mentioned once negated and once not is **kept** (any non-negated mention keeps it).
@@ -381,10 +385,19 @@ answer's `citations`:
        customers.customer_id`: names `from` (and `to`, only because the sort list holds it).
      The 23 indirect citations without the `from` name are JOINs whose clause names a CTE column
      (`margins_monthly.margin_month` ×8, `adjustments_monthly.adjustment_month` ×8,
-     `revenue_monthly.finance_month` ×7). Under (iv) these fail unless the record carries the
-     edge's clause key as written; sub-option (iv-k): for indirect edges, accept the clause key
-     when the record's side record has one. S4's tools return no indirect edges today, so this
-     matters once indirect traversal lands (S12).
+     `revenue_monthly.finance_month` ×7). Under (iv) these fail.
+     **Sub-option (iv-k)**, for indirect edges whose `from` column is not on the cited lines:
+     accept the clause key as written only if metrics itself confirms (1) the key's model part
+     is a CTE defined in the cited file (a case-insensitive `<name> as (` match) and (2) the key
+     appears in the cited lines. The record's key alone is never enough.
+     *Finding (19 Oct 2026):* the three names above are **derived-table aliases**, not CTEs
+     (`fct_monthly_finance.sql`: `( select … ) as revenue_monthly`). Guard (1) as written
+     therefore accepts **none** of the 23. Option (iv-k+): guard (1) also accepts a
+     derived-table alias, matched as `) as <name>` **and** used as a qualifier (`<name>.`) in
+     the same file. On the corpus this matches exactly `adjustments_monthly`, `margins_monthly`
+     and `revenue_monthly`. The qualifier test is what excludes column aliases
+     (`sum(x) as gross_margin`). S4's tools return no indirect edges today, so this matters once
+     indirect traversal lands (S12).
    - `star` level: the lines contain `*`;
    - excerpt citation (`s_`, and S1 chunk citations): range in bounds and the lines contain at
      least one column the claim names;
@@ -411,7 +424,7 @@ excluded instead of invalid.
 **Consequence.** S4-validated passed R3 by construction, so disagreements there are expected to be
 few and each one is listed. S1 has no validator; the same check applies.
 
-`Decision: PENDING` (required column (i)/(ii)/(iii)/(iv), with or without (iv-k); per-answer
+`Decision: PENDING` (required column (i)/(ii)/(iii)/(iv); none / (iv-k) / (iv-k+); per-answer
 rule (a)/(b))
 
 ---
@@ -429,10 +442,22 @@ rule (a)/(b))
   unanswerable question's non-existent id echoed in a refusal is not a hallucination). Tokens the
   filter drops (`e.g`, `github.com`, `v0.3`, file paths) are never hallucinations.
 - **Denominator:** distinct mentions (filtered the same way) in the answer.
+- **CTE references:** metrics builds a CTE-name list with a plain regex (`<name> as (`,
+  case-insensitive) over the corpus model SQL files, never from the engine. A dotted token whose
+  model part is on that list is neither a node nor a hallucination; it is counted in its own
+  "CTE reference" diagnostic. On synthetic_shop the list has 9 names (`attributed_daily`,
+  `cash_per_order`, `item_agg`, `item_margins`, `latest_snapshots`, `order_agg`,
+  `refunds_per_order`, `rfm_base`, `rfm_scores`), none equal to a model or seed name. Option
+  (a+): the list also takes derived-table aliases under the M7 (iv-k+) test (+3:
+  `adjustments_monthly`, `margins_monthly`, `revenue_monthly`). Without (a+), a quoted
+  `margins_monthly.margin_month` is a hallucination candidate.
 - **Aggregation:** per answer, then macro mean over answers with ≥ 1 dotted mention; also the share
   of answered answers with ≥ 1 hallucinated node.
+- **Known limit:** a hallucinated id with a plain-word model part (`orders.total`) fails the M3
+  identifier filter and is not counted. This can only **undercount** hallucinations.
 
-**Options.** (a) as above (recommended); (b) negated mentions excluded from both counts.
+**Options.** (a) as above, with the CTE list (recommended); (a+) as (a), with derived-table
+aliases added to the list; (b) negated mentions excluded from both counts.
 
 **Dev examples.** dev-92 "Where does fct_daily_revenue.revnue_finance come from?" — a refusal
 naming `fct_daily_revenue.revnue_finance` is not a hallucination; one naming
@@ -854,7 +879,10 @@ the mention in its clause; post = cue right after the mention; bnd = a clause bo
 | 25 | Only A, not B, is used. | kept | neg | — | pre "not" for B |
 | 26 | The A column is not used. | neg | — | — | post, after the optional word "column" |
 | 27 | A itself does not change. | neg | — | — | post, after the optional word "itself" |
-| 28 | A is never null. | neg | — | — | post "is never" (limit, see notes) |
+| 28 | A is never null. | kept | — | — | post "is never" voided by the value word "null" |
+| 29 | Rows are kept where A is not null. | kept | — | — | post "is not" voided by "null" |
+| 30 | A is not null and feeds B. | kept | kept | — | "not" voided by "null" (before the next mention), so it negates neither A nor B |
+| 31 | A does not feed B when B is null. | neg | neg | — | "does not" reaches B before "null", so it is not voided (limit for B) |
 
 Notes the owner approves with the rule:
 - **Relative clauses (added in this revision, not in the R1 instruction):** ", which / that / who
@@ -865,7 +893,10 @@ Notes the owner approves with the rule:
 - Row 21: B is negated too (pre "not"). B is usually the question's target, which M2 already
   excludes from every set, so the effect is small; when B is not the target it is a false
   removal.
-- Row 28: "is never" is a value statement here, not a lineage statement, yet A is removed.
+- Rows 28–31 (value-word exemption, F1): the owner's wording is "followed within the clause by a
+  value word". This draft narrows it to "before the next mention in the clause" so that row 30
+  ("A is not null and feeds B") keeps B, and row 31 ("A does not feed B when B is null") still
+  negates A. Approved with M3 or changed there.
 - A node mentioned once negated and once not is kept. Each report shows, per system, how many
   mentions the rule removed, so the size of these limits is visible.
 
@@ -883,17 +914,17 @@ Notes the owner approves with the rule:
 | 8 | fct_returns.return_amount | `fct_returns.return_amount` | no → hallucination candidate (exempt in dev-93, where the question writes it) | `fct_` prefix |
 | 9 | model.synthetic_shop.fct_orders.order_id | `fct_orders.order_id` | yes | fully-qualified, cut to two parts |
 | 10 | customers.customer_id (a SQL alias quoted in prose) | none | — | `customers`: not a model or seed name, no `_` |
-| 11 | margins_monthly.margin_month (a CTE column quoted in prose) | `margins_monthly.margin_month` | no → hallucination candidate | has `_` (limit, see notes) |
+| 11 | rfm_scores.rfm_score (a CTE column quoted in prose) | none | — | `rfm_scores` is on the CTE list: counted as a "CTE reference" |
+| 12b | margins_monthly.margin_month (a derived-table column quoted in prose) | `margins_monthly.margin_month` under (a); none under (a+) | no → hallucination candidate under (a); "CTE reference" under (a+) | derived-table alias, not a CTE |
 | 12 | payroll.employee_salary | none | — | `payroll`: not dbt-style (exempt in dev-96 anyway) |
 
 Notes:
 - Row 10: SQL table aliases without `_` (`orders.`, `items.`, `customers.`) are filtered, which
   keeps quoted SQL from counting as mentions.
-- Row 11: CTE names with `_` pass the filter, so an answer quoting SQL with a CTE column gets a
-  hallucination candidate. Option for the owner: also drop tokens inside code spans (backticks
-  or fenced blocks). Not proposed by default: S4's prose writes real ids in backticks too.
+- Rows 11 / 12b: the CTE list (M8, F3) takes CTE names out of both the node sets and the
+  hallucination count; derived-table aliases join it only under M8 (a+).
 - Row 12: a hallucinated id with a plain-word model part (`orders.total`) is not caught. The
-  filter trades this for not counting aliases (row 10).
+  filter trades this for not counting aliases (row 10). It can only undercount hallucinations.
 
 ---
 
@@ -908,3 +939,9 @@ Notes:
   S0-linked uses the S4 runs' hybrid flag; pooled node-set F1, trace F1 and impact F1 defined.
   §18: reach_verdict setter, S1 refusals / clarifications via fields, interpretation for S1.
   No S1 or S4 result added.
+- 19 Oct 2026: negation value-word exemption, CTE guards (owner F1–F3; relative-clause rule and
+  R1–R10 approved), still 1.0-draft. M3: value-word exemption, narrowed to "before the next
+  mention" (flagged; Appendix B rows 28–31). M7: (iv-k) guard checked by metrics itself; finding:
+  the 23 key-only citations use derived-table aliases, so option (iv-k+) is added. M8: CTE-name
+  list from a plain regex over the corpus SQL, its own diagnostic; option (a+) adds derived-table
+  aliases; plain-word model-part gap documented as an undercount.
