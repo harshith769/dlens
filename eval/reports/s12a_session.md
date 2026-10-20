@@ -16,6 +16,7 @@
 | 3 | d6d8e61 | Explain-back questions for the new behaviour (agent, validator, retrieval, tools, graph, indirect-edges, eval-dev, deploy) |
 | fix | 54519db | Owner decisions at the step-4 STOP: the collapsed over-cap line reads "+K more columns in M models (<kind>)" (tested on a synthetic 150-model payload); the synthetic_shop tool test checks every indirect record against the **gold spec's** 621 indirect edges, not the engine's |
 | test | 81e08bf | `scripts/check_s0_stable.py`: S0 stability, equal except one named field |
+| A6 | 60fdd13 | Regenerate budget fix (owner decision before merge; s12-design v1.1 A6): two-stage bound, answer budget `cap − REGENERATE_RESERVE` (278), skip-and-salvage fallback. See "Fixed in S12a" |
 
 Offline facts measured on the way (no LLM):
 - On the real corpus graph all 621 indirect edges cite at `line` (598 by the from column, 23 by
@@ -28,16 +29,17 @@ Offline facts measured on the way (no LLM):
 
 | where | result |
 |---|---|
-| local `make test` (agent + ui + retrieval extras installed) | 1,416 passed, 19 skipped |
-| CI lint-test (3.12): `make test` | 1,374 passed, 39 skipped |
+| local `make test` (agent + ui + retrieval extras installed) | 1,422 passed, 19 skipped |
+| CI lint-test (3.12): `make test` | 1,380 passed, 39 skipped |
 | CI lint-test (3.12): core install, no extras | 797 passed, 8 skipped, 71 deselected |
-| CI lint-test (3.13): `make test` | 1,374 passed, 39 skipped |
+| CI lint-test (3.13): `make test` | 1,380 passed, 39 skipped |
 | CI lint-test (3.13): core install, no extras | 797 passed, 8 skipped, 71 deselected |
 | CI retrieval | 84 passed, 1 skipped |
 | CI core-artifacts (macOS / Windows) | 56 passed / 56 passed |
 | CI demo-install | success (boot + preset click) |
 
-CI run 39478005749 (head 81e08bf): all six jobs green. New tests needing an extra use
+CI run 39483251022 (head 60fdd13, after A6): all six jobs green. (Before A6, run 39478005749 on
+81e08bf: all green, 1,374 passed in lint-test.) New tests needing an extra use
 `pytest.importorskip`: `test_s4.py` (httpx, lint-test), the A3 parity test (bm25s + httpx,
 retrieval job).
 
@@ -96,24 +98,50 @@ and every cited id must resolve. The live demo shows recorded answers and is una
   the index key, `required` = the 10 ids, `cache` `{dir: eval/cache/s12a-smoke, hits: 0,
   misses: 36, records: {hit 0, miss 10, partial 0}}`.
 
-Observations for S12b (no code changed for them):
-1. **dev-67, budget bug (crash class):** the answer prompt was trimmed to fit (3,827 → 2,958
-   est. tokens, 25 edges dropped). The R9/validator regenerate then added its failure list and
-   came to 3,107 > 3,000, so the client raised `InputTooLarge` and the run was refused. `trim`
-   fits the answer prompt to the full cap, leaving no room for the regenerate turn, which
-   `_regenerate` can shorten only to one line. Fix candidate: reserve the regenerate turn when
-   trimming (as S1 reserves its repair turn).
+Observations (no code changed for 2–4):
+1. **dev-67, budget bug (crash class): fixed in S12a (A6), see below.** The answer prompt was
+   trimmed to fit (3,827 → 2,958 est. tokens, 25 edges dropped). The validator's regenerate then
+   added its failure list and came to 3,107 > 3,000, so the client raised `InputTooLarge` and the
+   run was refused.
 2. **dev-46:** still refused "no lineage evidence" (B7's case, as recorded).
 3. **dev-93:** refused on the unknown model with the tool error (expected for its type).
 4. **dev-07:** the first draft set `reach_verdict: "yes"` on an impact question with no `r_`
    fact (no R9 field check without a fact, by design). The regenerated draft said `no`. Metrics
    reads the field only on yes/no questions.
 
+## Fixed in S12a: the regenerate budget (A6, owner decision before merge)
+
+- **Cause:** the answer phase trimmed to the full cap, and the regenerate turn had no reserved room
+  and could not shrink its list below one line (the fact line was unclipped). A1 + A5 made it
+  reachable.
+- **Fix (s12-design v1.1 A6):** the answer prompt is trimmed to `cap − REGENERATE_RESERVE`. The
+  regenerate is built on the original answer prompt, never on the JSON-repair exchange, so the
+  reserve is `max(repair turn 170, minimal regenerate 278) = 278 est.`, computed from the
+  constants. The failure list then fills the room left: fact first, rule order R1–R9, at most 9,
+  "+K more failures". If not even the minimal list fits, the regenerate is skipped and the answer
+  salvaged (`+regenerate_skipped_budget`). No call is sent over the cap.
+- **Rejected:** a worst-case reserve (~803 est.), −33% evidence budget on every question.
+- **Offline replay** (`scripts/replay_answer_budget.py`; offline approximation: 18 Oct tool calls,
+  today's tools, hybrid off; 67 answer-phase records):
+
+  | threshold | trimmed |
+  |---|---|
+  | cap, before A6 | 2 / 67 (dev-67, dev-69) |
+  | cap − 278, A6 | 2 / 67 (dev-67, dev-69) |
+  | cap − 803, rejected | 5 / 67 (+ dev-08, dev-09, dev-72) |
+
+- **dev-67 local re-run** (qwen, new empty cache `eval/cache/s12a-dev67`, output gitignored): no
+  `InputTooLarge`; the record loads; 3 LLM calls (tool, tool, answer); the answer prompt was
+  trimmed (31 ids dropped) to 2,715 est., under 3,000 − 278 = 2,722. `stop_reason`
+  `model_done`; the first draft passed validation, so no regenerate was needed and the regenerate
+  path was not exercised live (the unit tests cover it: trimmed evidence + forced regenerate,
+  repair + regenerate, and the skip-and-salvage case). Not refused; `reach_verdict` present. No
+  scores.
+
 ## Open items for S12b
 
-- dev-67's tool payload is 1,462 of 1,500 tokens (closest to the cap of any dev impact question),
-  and its answer phase hit the regenerate budget bug above.
-- Reserve room for the regenerate turn in answer-phase trimming (observation 1).
+- dev-67's tool payload is 1,462 of 1,500 tokens (closest to the cap of any dev impact
+  question).
 - B1–B8 as decided in s12-design v1.0. B6: re-count the expected R9 regenerates (new `r_`
   facts) for the S13 quota line. B4: the A1 claims phrase becomes `"the e_/s_/c_ ids"` (one
   `ALLOWED_DIFFERENCES` entry); S0-linked hybrid-off kept and labelled, hybrid-on added.
