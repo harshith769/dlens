@@ -323,6 +323,8 @@ Report top-1 and top-3 accuracy.
 
 *v0.3 note (additive, ADR 0015):* `Answer` gains `premise_corrected: bool` (the question's premise was wrong and the answer says so), and each claim gains `origin`: `model` (drafted by the LLM), `repaired` (R2r), `completed` (R8c) or `augmented` (coverage completion). `confidence` is unused and kept only for compatibility.
 
+*v0.3 note (additive, ADR 0024, S11):* `Answer` gains `reach_verdict: yes | no | null` and `reach_verdict_source: llm | code | null` (who set it; null when there is no verdict). Yes/no questions are scored only on this field (metrics M5). S1 sets it from S11; S4's draft schema gains it in S12, where R9 salvage marks a replaced verdict `code` and S4-raw counts only `llm` values.
+
 *v0.2 note (additive, no existing field changed):* `Answer` also carries `refusal_reason`, `clarification: {question, candidates} | None`, `partial_evidence` (the answer prompt was trimmed to fit) and `citations` (id → file/lines, attached by code from the tool ledger, never typed by the LLM). The LLM drafts each claim with one `ids` list; code splits it into `edge_ids` (`e_`) and `chunk_ids` (`s_` excerpts and anything else). `subgraph` is computed by code. `confidence` is the model's self-report and is never used by the validator or scoring. **Ambiguity** (tied `resolve_entity` candidates the question does not disambiguate), decided in code: all candidates on one lineage chain → answer for the most downstream (code traces it if needed) and name each layer; otherwise ≤3 candidates → answer per candidate; >3 → clarification with no answer call. See `docs/explain/agent.md`.
 
 **Validator, enforced in code:**

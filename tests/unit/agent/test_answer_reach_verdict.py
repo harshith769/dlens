@@ -1,0 +1,80 @@
+"""ADR 0024: additive ``reach_verdict`` / ``reach_verdict_source`` on ``Answer``. Old records still
+load, and S4's draft schema and answer prompts are byte-identical, so S4 cache keys don't move."""
+
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from dlens.agent import prompts
+from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft
+
+ROOT = Path(__file__).resolve().parents[3]
+
+# sha256 at 776724f (before S11). A change here changes every S4 answer-phase cache key and is an
+# S12 decision, never a side effect.
+S4_ANSWER_SYSTEM = "4bb98f41f1ded060e11ed771ab94e7cea931e3fb9c1bd03555564c02fb857041"
+S4_DRAFT_SCHEMA = "a945c5b8ada9b624477420a536411827dd096f30282fa01ca7476cd289878e6f"
+S4_ANSWER_REPAIR = "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b"
+
+
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def test_s4_answer_phase_is_unchanged() -> None:
+    assert _sha(prompts.ANSWER_SYSTEM) == S4_ANSWER_SYSTEM
+    assert _sha(json.dumps(DRAFT_SCHEMA, sort_keys=True)) == S4_DRAFT_SCHEMA
+    assert _sha(prompts.ANSWER_REPAIR) == S4_ANSWER_REPAIR
+    assert "reach_verdict" not in AnswerDraft.model_fields  # S4's draft gets it in S12
+
+
+def test_fields_default_to_null() -> None:
+    a = Answer(answer_text="x")
+    assert (a.reach_verdict, a.reach_verdict_source) == (None, None)
+
+
+def test_round_trip() -> None:
+    a = Answer(answer_text="No.", reach_verdict="no", reach_verdict_source="llm")
+    assert Answer.model_validate_json(a.model_dump_json()) == a
+
+
+@pytest.mark.parametrize(("verdict", "source"), [("maybe", "llm"), ("yes", "human"), (None, "llm")])
+def test_invalid_values_are_rejected(verdict: str | None, source: str) -> None:
+    with pytest.raises(ValidationError):
+        Answer(answer_text="x", reach_verdict=verdict, reach_verdict_source=source)
+
+
+def test_pre_adr_s4_shaped_answer_loads() -> None:
+    old = {
+        "answer_text": "It comes from raw_payments.amt.",
+        "claims": [{"text": "t", "edge_ids": ["e_0123abcd"], "chunk_ids": []}],
+        "subgraph": ["e_0123abcd"],
+        "confidence": "high",
+        "refused": False,
+        "refusal_reason": None,
+        "clarification": None,
+        "partial_evidence": False,
+        "citations": {
+            "e_0123abcd": {"file": "m.sql", "line_start": 1, "line_end": 2, "level": "line"}
+        },
+        "validation_warning": False,
+    }
+    a = Answer.model_validate(old)
+    assert a.reach_verdict is None and a.model_dump(include=set(old)) == old
+
+
+@pytest.mark.parametrize("variant", ["gold", "linked"])
+def test_committed_s0_answers_still_load(variant: str) -> None:
+    """S0 writes lean RunRecord-format dicts (S10: only what metrics reads), so the record itself
+    is not a full ``RunRecord``; its ``final_answer`` must still be a valid ``Answer``."""
+    path = ROOT / "eval" / "runs" / "s0" / f"s0-{variant}-dev.jsonl"
+    n = 0
+    for line in path.read_text().splitlines():
+        rec = json.loads(line)
+        a = Answer.model_validate(rec["final_answer"])
+        assert a.reach_verdict is None  # S0's verdict stays record-level (structured.*)
+        n += 1
+    assert n == 84

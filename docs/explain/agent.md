@@ -97,6 +97,15 @@ model-level citations, `[?id]` for an id the ledger does not know).
 **`confidence` is the model's self-report.** It is shown and logged, but the validator and the
 benchmark scoring never use it.
 
+**Structured yes/no verdict (ADR 0024, S11).** `Answer` has two additive fields:
+`reach_verdict` (`yes` | `no` | null) and `reach_verdict_source` (`llm` | `code` | null). A source
+without a verdict is rejected. Metrics M5 scores yes/no questions only on this field, never on
+prose. In S11 only S1 sets it (from its draft, source `llm`). S4's `AnswerDraft`, `DRAFT_SCHEMA`
+and answer prompts are unchanged (a test pins their sha256 at 776724f), so S4 cache keys and
+records are unaffected until S12 adds the field to S4's draft. R9 salvage will then mark a
+replaced verdict `code`, and the S4-raw view counts only `llm` values. Old records and presets load
+unchanged; new dumps carry two extra `null` keys.
+
 ## Failure handling
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
   turn with the error, then a refused answer.
@@ -194,3 +203,6 @@ That is enough to replay the no-validator ablation offline.
    get_model_sql, and answers. Does `linked_evidence` fire, and why doesn't the evidence
    guarantee? Would it fire for "What does order_total mean?", or if resolve_entity had said
    `ambiguous: true`? How would an ablation count the extra trace: as the model's call or not?
+5. A yes/no answer says "No, X does not reach Y" in prose, but `reach_verdict` is null. How does
+   metrics score it, and why? In S12, R9 salvage replaces the LLM's "yes" with code's "no": what
+   do `reach_verdict` and `reach_verdict_source` hold, and which S4 view counts that verdict?

@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from dlens.agent.tools.provenance import Citation
 
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     from dlens.graph import LineageGraph
 
 Confidence = Literal["high", "medium", "low"]
+ReachVerdict = Literal["yes", "no"]
+VerdictSource = Literal["llm", "code"]
 
 
 class DraftClaim(BaseModel):
@@ -103,6 +105,16 @@ class Answer(BaseModel):
     partial_evidence: bool = False
     citations: dict[str, Citation] = Field(default_factory=dict)  # attached by code, per id
     validation_warning: bool = False  # claims were dropped after the regenerate also failed
+    # Additive fields (ADR 0024): the structured yes/no verdict metrics M5 scores, and who set it
+    # (``llm``: the model's draft; ``code``: set or replaced by code). Both null otherwise.
+    reach_verdict: ReachVerdict | None = None
+    reach_verdict_source: VerdictSource | None = None
+
+    @model_validator(mode="after")
+    def _source_needs_verdict(self) -> Answer:
+        if self.reach_verdict is None and self.reach_verdict_source is not None:
+            raise ValueError("reach_verdict_source is set but reach_verdict is null")
+        return self
 
     @classmethod
     def refusal(cls, reason: str) -> Answer:
