@@ -1,12 +1,12 @@
 # Metrics design (S10, v0.3 D3)
 
-**Metrics-design version:** 1.2 **DRAFT** (S12b, 20 Oct 2026: the B2 + B5 policy of
+**Metrics-design version:** 1.2 (S12b, 20 Oct 2026: the B2 + B5 policy of
 `docs/plans/s12-design.md`; changes M9, M10 and adds Appendix D). Last approved version: 1.1
 (owner amendments to M7 and M9, 19 Oct 2026; 1.0: every Decision set by the owner, 19 Oct 2026).
 Every scored report names this version and `eval/metrics.py`'s `__version__`.
-**Status:** v1.1 approved, 19 Oct 2026; **v1.2 Draft, not decided**. Until the owner decides
-v1.2, `eval/metrics.py` (1.2.0) implements v1.1 and no S1 or S4 result with the new fields is
-read. **Every definition is the owner's decision**, recorded on each `Decision:` line.
+**Status:** v1.2 **Approved (implementation pending)**, owner, 20 Oct 2026 (STOP 1 of S12b, with
+one change to the M9 mention branch). Until `eval/metrics.py` 1.3.0 lands, metrics.py (1.2.0)
+implements v1.1 and no S1 or S4 result with the new fields is read. **Every definition is the owner's decision**, recorded on each `Decision:` line.
 **Inputs:** spec §8 (answer schema, validator, S4 views) and §11.2–11.5;
 `docs/plans/v0.3-plan.md` D2–D4; `docs/plans/questions-design.md` §1, §5, §7;
 `eval/questions/dev.jsonl` (96); `dlens.gold_spec`; the run-record format (`RunRecord`,
@@ -508,7 +508,7 @@ S0-linked refuses only on a linker no-match.
 
 `Decision (owner, 19 Oct 2026):` rules as drafted; `closest` not scored (diagnostic only); `or_refused` not honoured. **Amended (owner, 19 Oct 2026, v1.1):** a clarify-gold question is correct with a clarification listing every gold candidate **or** an answered answer naming every gold candidate as a non-negated mention; dev.jsonl gold and spec §8 unchanged.
 
-### M9 v1.2 DRAFT: interpreted near-miss, field or prose (s12-design B2 + B5, ADR 0028)
+### M9 v1.2: interpreted near-miss, field or prose (s12-design B2 + B5, ADR 0028)
 
 Replaces the "Interpreted near-miss" bullet above when decided. 0 dev questions carry
 `gold.interpretation`; test questions may (questions-design D5b).
@@ -519,14 +519,21 @@ Replaces the "Interpreted near-miss" bullet above when decided. 0 dev questions 
   - **field:** the answer's structured `interpretation.to`, normalised by M2, equals G;
   - **prose (lead):** `answer_text` contains a lead "Interpreted A as B." (the M3 rule 3 pattern,
     as `interpretations()` reads it today) with `short_id(B)` = G;
-  - **prose (mention):** G is a **kept** column mention of the answer text (`answer_text` plus
-    every claim text, in the view being scored): it has at least one mention that M3 rule 4 does
-    not negate.
-- **Negation rules reused, exactly.** M3 rule 4 in full: clauses (sentence ends `.` `!` `?` `;`;
-  the boundary words "but", "however", "whereas", "while", "instead", "including", "plus"; the
-  ", which / that / who … ," relative clause as its own clause), the pre-mention cues, the
-  post-mention cues with adjacency, the value-word exemption (before the next mention), the
-  leading "Yes," / "No," removal, and "a node mentioned once negated and once not is kept".
+  - **prose (mention):** G is an **identity-kept** column mention of the answer text
+    (`answer_text` plus every claim text, in the view being scored): at least one mention of G
+    that no **pre-mention cue** negates.
+- **Negation in the mention branch (owner change at STOP 1).** Only M3 rule 4's **pre-mention**
+  part applies: the clause rules (sentence ends `.` `!` `?` `;`; the boundary words "but",
+  "however", "whereas", "while", "instead", "including", "plus"; the ", which / that / who … ,"
+  relative clause as its own clause), the pre-mention cue list (with "not only" excluded and the
+  pairs "rather than", "instead of", "other than"), the leading "Yes," / "No," removal, and "a
+  node mentioned once negated and once not is kept". The **post-mention rule** ("A is not…",
+  "A does not…") and therefore the **value-word exemption** do **not** apply in this branch: a
+  post-mention cue negates a statement *about* the column, while M9 asks *which* column the
+  answer understood ("No, G does not reach H" names G correctly). Known limit: a predicate
+  negation keeps the identity ("G is not used" → kept; Appendix D row I5).
+  Scope: this branch only. M3's node sets, the M9 v1.1 clarification rule and M10's premise rule
+  keep the full M3 rule 4.
   M3 rule 3: in a lead "Interpreted A as B.", B is a mention and A is not.
 - **Target exclusion does not apply here.** G is usually the question's target, which M2 removes
   from the node sets; the M9 rule reads the kept-column set *before* that exclusion, as the chain
@@ -547,7 +554,8 @@ Replaces the "Interpreted near-miss" bullet above when decided. 0 dev questions 
   linker, never interprets) and S0-linked (writes the lead in prose): prose branches only. One
   rule for every system (rule 12).
 
-`Decision (owner, pending, v1.2):` —
+`Decision (owner, 20 Oct 2026, v1.2):` approved with one change: the mention branch applies only
+pre-mention negation (no post-mention rule, no value-word exemption), as written above.
 
 ---
 
@@ -596,7 +604,7 @@ dev-23: "…and who owns it?" (out of scope: "who owns it").
 
 `Decision (owner, 19 Oct 2026):` (a) cases O / U, headline = explicit rejection rate over 4; multi-part uncovered part unscored until G2.
 
-### M10 v1.2 DRAFT: uncovered part and premise correction, field or prose (s12-design B2 + B5, ADRs 0025, 0027)
+### M10 v1.2: uncovered part and premise correction, field or prose (s12-design B2 + B5, ADRs 0025, 0027)
 
 **The v1.1 false-premise rule, restated exactly (as `eval/metrics.py` 1.2.0 implements it).**
 Let P = `short_id(gold.premise.edge.from)`, the mode = M4's primary mode, and **case U** iff
@@ -716,7 +724,8 @@ predictions of those questions; n shown.
 - Every other number (node-set F1, trace / impact F1, verdicts, refusal, hallucination,
   citations, path coverage, latency, tokens) re-scores byte-for-byte; a test checks it.
 
-`Decision (owner, pending, v1.2):` —
+`Decision (owner, 20 Oct 2026, v1.2):` approved as drafted (uncovered-part rule, premise policy,
+pass routes, spurious-field diagnostics, the 1.3.0 change list, the effect list).
 
 ---
 
@@ -1096,9 +1105,12 @@ Notes:
 - Row 12: a hallucinated id with a plain-word model part (`orders.total`) is not caught. The
   filter trades this for not counting aliases (row 10). It can only undercount hallucinations.
 
-## Appendix D. Field-or-prose test rows (v1.2 DRAFT: M10 uncovered part, M9 interpretation, M10 premise)
+## Appendix D. Field-or-prose test rows (v1.2: M10 uncovered part, M9 interpretation, M10 premise)
 
-Each row becomes one test case of the extractor (Step 2 of S12b). "Answered" unless the row says
+Each row becomes one test case of the extractor (Step 2 of S12b). **The expected results are fixed
+and are the definition** (owner, STOP 1): if the extractor disagrees with a row, the
+implementation stops and the row, expected and actual result go to the owner; neither the row
+nor the code is tuned to agree without the owner's decision. "Answered" unless the row says
 otherwise. Route: `field` / `prose` / `both` / `neither`; correct = any route but `neither`.
 
 ### D.1 Uncovered part (M10), prose branch
@@ -1150,18 +1162,20 @@ G = the gold `interpretation.column`; H, A = other inventory columns (the tests 
 | I2 | — | Interpreted stg_orders.ordr_total as G. It comes from A. | prose | lead with B = G (B is also a kept mention) |
 | I3 | — | Interpreted G as H. H comes from A. | neither | G is the lead's A, which never counts (M3 rule 3) |
 | I4 | — | G comes from A. | prose | kept mention |
-| I5 | — | G is not used; H comes from A. | neither | post `is not` |
+| I5 | — | G is not used; H comes from A. | prose | post rule not applied in M9; **known limit: predicate negation keeps the identity** |
 | I6 | — | It does not come from G. | neither | pre `not` |
 | I7 | — | H comes from A, not G. | neither | pre `not` before G |
-| I8 | — | G is never null. It comes from A. | prose | value-word exemption keeps G |
+| I8 | — | G is never null. It comes from A. | prose | post rule not applied (the value-word exemption no longer applies here) |
 | I9 | — | Neither G nor H is upstream of A. | neither | pre `neither` / `nor` |
 | I10 | — | G feeds H, which is not used by the dashboard. | prose | the relative clause does not reach G |
 | I11 | — | H is not G. G comes from A. | prose | negated once, kept once → kept |
-| I12 | — | No, G does not reach H. | neither | "No," removed; post `does not` |
+| I12 | — | No, G does not reach H. | prose | "No," removed; post-mention rule not applied in M9 |
 | I13 | G | (refused) I can't answer this: G is not in the evidence. | neither | not answered (field ignored) |
 | I14 | H | Interpreted x as H. It comes from A. | neither | field ≠ G, lead B ≠ G |
 | I15 | G | Interpreted x as G. It comes from A. | both | field and lead |
 | I16 | — | (clarification listing G and H) | neither | not answered |
+| I17 | — | It comes from A, not from G. | neither | pre `not` before G in its clause |
+| I18 | — | Yes, G reaches H through A. | prose | "Yes," removed; kept mention |
 
 ### D.4 Premise rejection (M10)
 
@@ -1241,3 +1255,13 @@ case U: P upstream of it. A, H = other columns.
   pass-route tables; spurious-field diagnostics for S4; the metrics.py 1.3.0 change list and the
   effect on existing reports (M9 / M10 rows only). New Appendix D (C was already the identifier
   filter rows). No S1 or S4 result read.
+- 20 Oct 2026 (S12b STOP 1): **version 1.2 approved (implementation pending).** One owner change
+  to the draft: M9's prose-mention branch applies only pre-mention negation (clause rules,
+  pre-cues, "Yes,/No," removal, any kept mention keeps G); the post-mention rule and the
+  value-word exemption do not apply there. Reason: the post-mention rule negates a statement
+  *about* the column, while M9 asks which column the answer understood; a correct "No, G does not
+  reach H" must not fail M9, and that case hits S1 hardest because S1 has only the prose branch
+  (rule 12). Scope: that branch only (M3 node sets, the M9 v1.1 clarify rule and M10 premise keep
+  the full rule). Appendix D.3: I5, I8, I12 → prose (I5 a stated limit); I17, I18 added. Appendix
+  D's expected results are fixed: a disagreeing row stops the implementation for an owner
+  decision.
