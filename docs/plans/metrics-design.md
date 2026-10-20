@@ -1,9 +1,12 @@
 # Metrics design (S10, v0.3 D3)
 
-**Metrics-design version:** 1.1 (owner amendments to M7 and M9, 19 Oct 2026; 1.0: every Decision set by the owner, 19 Oct 2026). Every scored
-report names this version and `eval/metrics.py`'s `__version__`.
-**Status:** approved, 19 Oct 2026. **Every definition is the owner's decision**, recorded on each
-`Decision:` line. `eval/metrics.py` implements exactly this document.
+**Metrics-design version:** 1.2 **DRAFT** (S12b, 20 Oct 2026: the B2 + B5 policy of
+`docs/plans/s12-design.md`; changes M9, M10 and adds Appendix D). Last approved version: 1.1
+(owner amendments to M7 and M9, 19 Oct 2026; 1.0: every Decision set by the owner, 19 Oct 2026).
+Every scored report names this version and `eval/metrics.py`'s `__version__`.
+**Status:** v1.1 approved, 19 Oct 2026; **v1.2 Draft, not decided**. Until the owner decides
+v1.2, `eval/metrics.py` (1.2.0) implements v1.1 and no S1 or S4 result with the new fields is
+read. **Every definition is the owner's decision**, recorded on each `Decision:` line.
 **Inputs:** spec §8 (answer schema, validator, S4 views) and §11.2–11.5;
 `docs/plans/v0.3-plan.md` D2–D4; `docs/plans/questions-design.md` §1, §5, §7;
 `eval/questions/dev.jsonl` (96); `dlens.gold_spec`; the run-record format (`RunRecord`,
@@ -116,13 +119,13 @@ tell a precise answer from a closure dump.
 | trace / upstream | 24 | `upstream[mode]` | node-set F1 | sources F1, inputs F1, path node coverage (M6) |
 | trace / computed | 11 | `inputs.direct` (+ indirect `from`s in all mode) | inputs F1, strict (s) or closure-tolerant (t) | the other of (s) / (t) |
 | trace / ambiguous | 3 | `verdict`, `candidates`, `upstream` | verdict correct (M9); chain: upstream F1 of the gold target | candidate recall |
-| trace / multi-part | 3 | `upstream`, `out_of_scope` | upstream F1 (as upstream) | uncovered part named (M10, after G2) |
+| trace / multi-part | 3 | `upstream`, `out_of_scope` | upstream F1 (as upstream) | uncovered part named (M10; v1.2 draft: field or prose, own row) |
 | trace / false premise | 4 | `inputs`, `premise` | inputs F1 ((s) or (t)) + premise rejection (M10) | silent / asserted counts |
 | impact / downstream | 24 | `downstream[mode]`, `models[mode]`, `exposures[mode]` | columns F1 (dev-64, `focus: exposures`: exposures F1) | models F1, exposures F1 |
 | impact / yes-no | 6 | `reach[mode]` | verdict accuracy (M5) | heuristic prose verdict (labelled) |
 | ask / meaning | 12 | `facts` | hand rubric (M11) | — |
 | unanswerable | 9 | `verdict: refused` | refusal correct (M9) | `closest` named (not scored) |
-| interpreted near-miss | 0 in dev | `interpretation` | M9 rule, then scored as its underlying type | — |
+| interpreted near-miss | 0 in dev | `interpretation` | M9 rule (v1.2 draft: field or prose), then scored as its underlying type | — |
 
 **Dev examples.** dev-03 (upstream 4 direct; sources 2; inputs 2). dev-09 (24 / 13 / 1 direct).
 dev-64 ("Which dashboards are affected…", exposures headline).
@@ -505,6 +508,47 @@ S0-linked refuses only on a linker no-match.
 
 `Decision (owner, 19 Oct 2026):` rules as drafted; `closest` not scored (diagnostic only); `or_refused` not honoured. **Amended (owner, 19 Oct 2026, v1.1):** a clarify-gold question is correct with a clarification listing every gold candidate **or** an answered answer naming every gold candidate as a non-negated mention; dev.jsonl gold and spec §8 unchanged.
 
+### M9 v1.2 DRAFT: interpreted near-miss, field or prose (s12-design B2 + B5, ADR 0028)
+
+Replaces the "Interpreted near-miss" bullet above when decided. 0 dev questions carry
+`gold.interpretation`; test questions may (questions-design D5b).
+
+- **Rule.** Let G = `short_id(gold.interpretation.column)`. Correct iff the prediction is
+  **answered** (kind `answered`: not refused, not a clarification, not crashed or missing) **and**
+  at least one branch holds:
+  - **field:** the answer's structured `interpretation.to`, normalised by M2, equals G;
+  - **prose (lead):** `answer_text` contains a lead "Interpreted A as B." (the M3 rule 3 pattern,
+    as `interpretations()` reads it today) with `short_id(B)` = G;
+  - **prose (mention):** G is a **kept** column mention of the answer text (`answer_text` plus
+    every claim text, in the view being scored): it has at least one mention that M3 rule 4 does
+    not negate.
+- **Negation rules reused, exactly.** M3 rule 4 in full: clauses (sentence ends `.` `!` `?` `;`;
+  the boundary words "but", "however", "whereas", "while", "instead", "including", "plus"; the
+  ", which / that / who … ," relative clause as its own clause), the pre-mention cues, the
+  post-mention cues with adjacency, the value-word exemption (before the next mention), the
+  leading "Yes," / "No," removal, and "a node mentioned once negated and once not is kept".
+  M3 rule 3: in a lead "Interpreted A as B.", B is a mention and A is not.
+- **Target exclusion does not apply here.** G is usually the question's target, which M2 removes
+  from the node sets; the M9 rule reads the kept-column set *before* that exclusion, as the chain
+  rule (above) does.
+- **Pass route** (reported, see M10 v1.2 "Pass-route reporting"): `field` (field only), `prose`
+  (lead or mention, not field), `both`, `neither` (no branch holds, or not answered).
+- **Set metrics gate (unchanged structure).** As in v1.1, an interpreted question that fails
+  this rule scores 0 on its set metrics (`score_question`'s `interp_ok`); v1.2 changes only which
+  answers pass the gate. On dev this moves no number (0 such questions).
+- **Views (ADR 0028).** `interpretation` is set by code before the answer phase from the
+  linker's reading (`entity.dotted_column`); it is not a correction of the model's draft. It
+  therefore counts in **raw, validated and augmented** alike, read from `final_answer` (the
+  draft has no such field). `interpretation_source` is recorded (`code` for every S12 value);
+  metrics does not filter on it in v1.2. The prose branches read the view's own answer text
+  (raw: the draft, which never holds the code-written lead; the field branch carries the code
+  reading into raw). *(Owner, plan approval 20 Oct 2026: all views.)*
+- **Systems.** S4: all three branches. S1 (frozen; no field): prose branches only. S0-gold (no
+  linker, never interprets) and S0-linked (writes the lead in prose): prose branches only. One
+  rule for every system (rule 12).
+
+`Decision (owner, pending, v1.2):` —
+
 ---
 
 ## M10. False premise and multi-part
@@ -551,6 +595,128 @@ dev-23: "…and who owns it?" (out of scope: "who owns it").
 "The answer does not use X." (rejected by construction).
 
 `Decision (owner, 19 Oct 2026):` (a) cases O / U, headline = explicit rejection rate over 4; multi-part uncovered part unscored until G2.
+
+### M10 v1.2 DRAFT: uncovered part and premise correction, field or prose (s12-design B2 + B5, ADRs 0025, 0027)
+
+**The v1.1 false-premise rule, restated exactly (as `eval/metrics.py` 1.2.0 implements it).**
+Let P = `short_id(gold.premise.edge.from)`, the mode = M4's primary mode, and **case U** iff
+`dlens.gold_spec.reaches(P, gold.premise.edge.to)` in that mode (else **case O**).
+`mentioned` = P is a column mention (negated or not); `negated` = every mention of P is negated
+(M3 rule 4). `rejected` = `premise_corrected is true` **or** (answered **and** `negated`).
+Case U: bucket `rejected` if rejected, else `not_rejected`. Case O: `rejected` if rejected, else
+`asserted` if answered and mentioned, else `silent`. Headline `premise_rejected` = bucket is
+`rejected`. In v1.1 the `premise_corrected` term is read from the answer without further
+condition (raw view: the draft); no S1, S0 or committed S4 record sets it.
+
+**Premise correction under the field-or-prose policy (v1.2 draft).** `premise_corrected` enters
+scoring (it is already named in v1.1's rule), with the same strictness as the prose branch:
+- **field branch:** `premise_corrected is true` **and** answered **and** no non-negated
+  assertion of the premise: in **case O**, P is not a kept mention (a kept mention of P is the
+  `asserted` bucket); in **case U** no condition on mentions (a kept mention of P is true context
+  there, which is why case U has no `asserted` bucket);
+- **prose branch:** answered **and** `negated` (unchanged);
+- `rejected` = field branch **or** prose branch. Buckets as above. Pass route: `field` / `prose`
+  / `both` / `neither`.
+- Change from v1.1: a `premise_corrected = true` answer that is not answered (refused,
+  clarification) or that asserts P in case O is no longer `rejected`. No committed record is
+  affected (none sets the field).
+- `premise_corrected` is LLM-only (ADR 0025); raw reads the draft, validated / augmented the
+  final answer. S1 and S0 have no field: prose branch only (S0's "It does not use P." is
+  rejected by construction, as v1.1 states).
+
+**Multi-part: uncovered part (3 dev questions; replaces "not scored until G2").** Scored on every
+multi-part question as `uncovered_part_correct` (binary, macro mean). The trace part keeps its
+upstream F1 (M1); a refusal of the whole question is a false refusal (M9), unchanged.
+
+- **Rule.** Correct iff the prediction is **answered** (kind `answered`) **and** at least one
+  branch holds:
+  - **field:** some string in the answer's `uncovered_parts` contains a **content word**
+    (definitions below). No cue is needed: the field is the cue. A non-empty list with no
+    content word (e.g. `["n/a"]`) does not satisfy it.
+  - **prose:** some **sentence** of the answer text contains both a content word and a
+    **coverage cue**.
+- **Content words (from the gold).** Lowercase the gold `out_of_scope` text, split it into word
+  tokens (`[a-z']+`), drop the tokens on the stop list. The stop list, exactly:
+  `a, an, the, it, its, this, that, these, those, is, are, was, were, be, been, being, do, does,
+  did, done, to, of, for, in, on, at, by, with, from, and, or, as, i, you, we, they, them, their,
+  who, whom, whose, what, which, when, where, why, how, much, many, can, could, would, should,
+  will, there, here, come, comes, came, compute, computes, computed, computing, derive, derives,
+  derived, depend, depends, use, uses, used, feed, feeds, column, columns, model, models, table,
+  tables, lineage, source, sources, upstream, downstream`.
+  On dev: "who owns it" → {`owns`}; "how much does it cost to compute" → {`cost`}.
+- **Word match (suffix rule).** For a content word w: base = w without its final "s" when w is
+  longer than 3 letters and ends in "s" but not "ss", else w. An answer word t matches w iff
+  t = base + x for x in exactly `"", s, es, d, ed, er, ers, ership, ing`. So `owns` matches own,
+  owns, owned, owner, owners, ownership, owning; `cost` matches cost, costs, costed, coster,
+  costers, costing. Synonyms ("expense", "price", "steward") never match (a stated limit; it can
+  only under-credit).
+- **Identifier exclusion.** Before words are read from an answer sentence or a field string,
+  remove every token that M3 rule 1 removes or considers: paths (rule 1 "paths first"), every
+  dotted candidate (`name.name`, 2–4 parts, whether or not it is a mention), and every remaining
+  token that contains `_` (snake_case identifiers such as `unit_cost`, `owner_id`). Words inside
+  identifiers therefore never match (`stg_product_costs.unit_cost` gives no `cost`). The gold
+  side is plain words on dev and needs no exclusion.
+- **Coverage cues (prose branch only), exactly**, whole words, case-insensitive: `not`, `no`,
+  `never`, `without`, `neither`, `nor`, `cannot`, `unable`, `outside`, `beyond`, `unknown`,
+  `unavailable`, any word containing `n't`, and the phrase `out of scope`. The two-word phrase
+  "not only" is not a cue (as in M3). The M3 lineage cues "except", "excluding", "rather than",
+  "instead of", "other than" are **not** coverage cues.
+- **Sentence scope.** Sentences are split exactly as M3's extractor splits them (`.` `!` `?` `;`
+  followed by a space or the end), over `answer_text` and each claim's text separately (a claim
+  is never joined to the answer text). A leading "Yes," / "No," is removed first (M3). The cue and
+  the content word must be in the same sentence, in either order; clause boundaries inside the
+  sentence do not matter. A code-written lead "Interpreted A as B." is its own sentence.
+- **Pass route:** `field` / `prose` / `both` / `neither` (`neither` also when not answered).
+- **Not in any composite.** `uncovered_part_correct` enters no F1 composite (M16), not
+  `fully_correct` and not McNemar; it is its own row.
+- **Systems.** S4: both branches (raw: the draft's `uncovered_parts` and prose; validated /
+  augmented: the final answer's). S1 (frozen; no field) and S0-gold / S0-linked (no field; S0's
+  multi-part answer is the trace closure only): prose branch only. One rule for every system.
+- **Known limits (listed, not hidden):** a sentence that names the out-of-scope word as data
+  with an unrelated negation passes ("Its costs come from stg_orders.order_id, with no other
+  inputs." → pass, Appendix D row U14); a statement without a cue ("Nobody is listed as its
+  owner.") fails.
+
+**Pass-route reporting (both M9 and M10 v1.2).** Every report shows, per system and view, a
+table with one row per field-or-prose rule (interpretation, uncovered part, premise rejection)
+and the counts `field` / `prose` / `both` / `neither`, with n. A system without the field shows
+only `prose` / `neither` by construction.
+
+**Spurious-field diagnostics (not scored).** Every S4 report shows, per view: (i) the share of
+non-multi-part questions whose answer has a non-empty `uncovered_parts`; (ii) the share of
+non-false-premise questions whose answer has `premise_corrected = true`. Denominator: answered
+predictions of those questions; n shown.
+
+**`eval/metrics.py` change list (1.3.0, implemented only after the owner decides v1.2).**
+- `DESIGN_VERSION = "1.2"`, `__version__ = "1.3.0"`.
+- `Prediction` gains `uncovered_parts: list[str]` and `interpretation: tuple[str, str] | None`.
+- `from_record`: `uncovered_parts` and `premise_corrected` from the view's answer (raw = draft);
+  `interpretation` from `final_answer` in every view (ADR 0028). `from_s1_record` unchanged (its
+  records have neither field: empty / None).
+- New: `content_words(out_of_scope)`, `plain_words(text)` (identifier exclusion),
+  `word_matches(token, word)`, `coverage_sentence(sentence, words)`,
+  `uncovered_part(pred, gold) -> (bool, route)`, `interpretation_ok(pred, ex, gold) -> (bool,
+  route)`, `premise_rejection(...) -> (bucket, route)`; constants `OOS_STOP`, `OOS_SUFFIXES`,
+  `COVERAGE_CUES`.
+- `score_question`: `interp_ok` from `interpretation_ok`; `uncovered_part_correct` on
+  `multi_part`; the premise bucket through `premise_rejection`; routes in `row["diag"]`
+  (`route_interpretation`, `route_uncovered`, `route_premise`); spurious-field flags.
+- `METRIC_ORDER` gains `uncovered_part_correct`; `summarise` adds `pass_routes` and
+  `spurious_fields`; `render_markdown` prints both tables.
+- Tests: Appendix D (every row) against the extractor; the S0-gold, S0-linked, S1 v2 and S4
+  smoke reports re-score unchanged except the rows below.
+
+**Effect on existing reports (which numbers can move).** Only M9 and M10 rows:
+- `uncovered_part_correct` is a **new** row (3 dev questions) in every re-scored report; the
+  pass-route and spurious-field tables are new.
+- `interpretation_correct`: n/a on dev (0 questions), so nothing moves; its set-metric gate moves
+  nothing either.
+- `premise_rejected`: unchanged for S0 and S1 (no field); unchanged for the committed S4 smoke
+  records (no record sets `premise_corrected`).
+- Every other number (node-set F1, trace / impact F1, verdicts, refusal, hallucination,
+  citations, path coverage, latency, tokens) re-scores byte-for-byte; a test checks it.
+
+`Decision (owner, pending, v1.2):` —
 
 ---
 
@@ -930,6 +1096,88 @@ Notes:
 - Row 12: a hallucinated id with a plain-word model part (`orders.total`) is not caught. The
   filter trades this for not counting aliases (row 10). It can only undercount hallucinations.
 
+## Appendix D. Field-or-prose test rows (v1.2 DRAFT: M10 uncovered part, M9 interpretation, M10 premise)
+
+Each row becomes one test case of the extractor (Step 2 of S12b). "Answered" unless the row says
+otherwise. Route: `field` / `prose` / `both` / `neither`; correct = any route but `neither`.
+
+### D.1 Uncovered part (M10), prose branch
+
+Gold texts (dev): **O1** = "who owns it" → content words {`owns`}; **O2** = "how much does it cost
+to compute" → {`cost`}. No `uncovered_parts` field in these rows (empty list).
+
+| # | gold | answer text | result | why |
+|---|---|---|---|---|
+| U1 | O1 | The lineage does not show who owns it. | prose | cue `not` + `owns` |
+| U2 | O1 | Ownership is not recorded in the project. | prose | `ownership` = own + "ership"; cue `not` |
+| U3 | O1 | I can't tell you the owner of this column. | prose | cue `n't`; `owner` = own + "er" |
+| U4 | O1 | The owner is the finance team. | neither | content word, no cue |
+| U5 | O1 | This part is not covered by the evidence. | neither | cue, no content word |
+| U6 | O1 | It comes from stg_products.product_id. Who owns it is outside what lineage shows. | prose | 2nd sentence: `owns` + `outside` (multi-sentence positive) |
+| U7 | O1 | The owner is listed in the YAML. It does not come from stg_orders.order_id. | neither | content word and cue in different sentences |
+| U8 | O1 | It uses not only stg_orders.order_id but also owner_id. | neither | `owner_id` is an identifier (excluded); "not only" is not a cue |
+| U9 | O2 | The cost to compute it is not available from lineage. | prose | `cost` + `not` |
+| U10 | O2 | stg_product_costs.unit_cost is not derived from orders. | neither | both identifiers excluded; no content word left |
+| U11 | O2 | unit_cost does not depend on stg_orders.order_id. | neither | `unit_cost` is snake_case (excluded) |
+| U12 | O2 | Compute cost cannot be determined from the dbt project. | prose | `cost` + `cannot` |
+| U13 | O2 | It is computed from stg_orders.amount and stg_orders.tax, not directly. | neither | `computed` is on the stop list; no content word |
+| U14 | O2 | Its costs come from stg_orders.order_id, with no other inputs. | prose | `costs` + `no`: **known false positive** (limit) |
+| U15 | O2 | Costs are unknown. | prose | `costs` = cost + "s"; cue `unknown` |
+| U16 | O2 | The price of running it is unknown. | neither | synonym, not matched (limit) |
+| U17 | O2 | It is not clear what it costs. | prose | `costs` (verb form) + `not` |
+| U18 | O1 | No, nobody here knows; the owner is a team decision. | neither | "No," removed; `;` splits; `nobody` is not a cue |
+| U19 | O1 | answer_text "Ownership is a separate question." + claim text "It is not in the lineage." | neither | a claim text is its own sentence, never joined to the answer text |
+| U20 | O2 | (refused) I can't answer this: the cost is unknown. | neither | not answered |
+
+### D.2 Uncovered part (M10), field branch
+
+| # | gold | `uncovered_parts` | answer text | result | why |
+|---|---|---|---|---|---|
+| F1 | O1 | ["who owns the column"] | It comes from stg_products.product_id. | field | `owns` in the field; no cue needed |
+| F2 | O1 | ["the runtime of the query"] | It comes from stg_products.product_id. | neither | non-empty field, no content word |
+| F3 | O1 | ["n/a"] | It comes from stg_products.product_id. | neither | non-empty field, no content word |
+| F4 | O2 | ["cost to compute"] | The cost cannot be computed from lineage. | both | field `cost`; prose `cost` + `cannot` |
+| F5 | O2 | ["unit_cost"] | It comes from stg_orders.amount. | neither | identifier excluded in the field too |
+| F6 | O1 | ["who owns it"] | (refused) I can't answer this. | neither | not answered |
+
+### D.3 Interpretation (M9)
+
+G = the gold `interpretation.column`; H, A = other inventory columns (the tests use real ids).
+
+| # | `interpretation.to` | answer text | result | why |
+|---|---|---|---|---|
+| I1 | G | It comes from A. | field | field only; G not in the prose |
+| I2 | — | Interpreted stg_orders.ordr_total as G. It comes from A. | prose | lead with B = G (B is also a kept mention) |
+| I3 | — | Interpreted G as H. H comes from A. | neither | G is the lead's A, which never counts (M3 rule 3) |
+| I4 | — | G comes from A. | prose | kept mention |
+| I5 | — | G is not used; H comes from A. | neither | post `is not` |
+| I6 | — | It does not come from G. | neither | pre `not` |
+| I7 | — | H comes from A, not G. | neither | pre `not` before G |
+| I8 | — | G is never null. It comes from A. | prose | value-word exemption keeps G |
+| I9 | — | Neither G nor H is upstream of A. | neither | pre `neither` / `nor` |
+| I10 | — | G feeds H, which is not used by the dashboard. | prose | the relative clause does not reach G |
+| I11 | — | H is not G. G comes from A. | prose | negated once, kept once → kept |
+| I12 | — | No, G does not reach H. | neither | "No," removed; post `does not` |
+| I13 | G | (refused) I can't answer this: G is not in the evidence. | neither | not answered (field ignored) |
+| I14 | H | Interpreted x as H. It comes from A. | neither | field ≠ G, lead B ≠ G |
+| I15 | G | Interpreted x as G. It comes from A. | both | field and lead |
+| I16 | — | (clarification listing G and H) | neither | not answered |
+
+### D.4 Premise rejection (M10)
+
+P = the premise column (`gold.premise.edge.from`). Case O: P outside the target's closure;
+case U: P upstream of it. A, H = other columns.
+
+| # | case | `premise_corrected` | answer text | bucket | route | why |
+|---|---|---|---|---|---|---|
+| P1 | O | true | The answer does not use P. | rejected | both | field (P not kept) + negated mention |
+| P2 | O | true | P feeds the target directly. | asserted | neither | a kept P voids the field branch in case O |
+| P3 | O | true | It comes from A and H. | rejected | field | P silent; field holds |
+| P4 | U | true | P reaches the target through A, not directly. | rejected | field | case U: a kept P is context; the `not` comes after P |
+| P5 | U | false | It does not come directly from P. | rejected | prose | negated mention |
+| P6 | O | true | (refused) I can't answer this. | silent | neither | not answered |
+| P7 | O | false | P is used. | asserted | neither | kept mention, no field |
+
 ---
 
 ## Change log
@@ -983,3 +1231,13 @@ Notes:
   and the M5 verdict accessor reading the ADR 0024 `Answer` fields (`reach_verdict`,
   `reach_verdict_source`) and S0's record-level key; the nested `{value, set_by}` shape guessed in
   S10 is no longer read (no committed record used it). S0 reports re-score byte for byte.
+- 20 Oct 2026 (S12b step 1): **version 1.2 DRAFT** (not decided; metrics.py stays 1.2.0). The
+  s12-design B2 + B5 policy (structured field **or** deterministic prose, one rule for every
+  system), with the owner's plan amendments: M9 interpretation (field / lead / kept mention; M3
+  rules 3–4 reused exactly; all three views count the code-set field, ADR 0028); M10 uncovered
+  part (new row: field with a content word, or a sentence with a content word and a coverage
+  cue; fixed stop list, suffix rule, identifier exclusion); M10 premise correction (v1.1 rule
+  restated; the field branch requires answered and, in case O, no kept mention of the premise);
+  pass-route tables; spurious-field diagnostics for S4; the metrics.py 1.3.0 change list and the
+  effect on existing reports (M9 / M10 rows only). New Appendix D (C was already the identifier
+  filter rows). No S1 or S4 result read.
