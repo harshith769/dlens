@@ -9,15 +9,17 @@ Covers the four v0.2 tools, the provenance contract the validator depends on, an
 | Tool | Returns to the LLM |
 |---|---|
 | `resolve_entity(text, k=5)` | ranked candidate columns and models, each with a score and a match tier |
-| `trace_upstream(column_id, max_depth=10, include_indirect=False)` | paths, each a list of one-line edge strings |
-| `impact_downstream(column_id, max_depth=10, include_indirect=True)` | columns by depth as `{id, via: edge_id}`, affected models and exposures |
+| `trace_upstream(column_id, max_depth=10, include_indirect=False)` | paths, each a list of one-line edge strings (indirect hops print `e_…: a -> b [JOIN]`) |
+| `impact_downstream(column_id, max_depth=10, include_indirect=True)` | columns grouped by (depth, kind) as `"model.column e_…"` (the via edge), "+K more" lines if cut, affected models and exposures |
 | `get_model_sql(model_id, around_column=None)` | numbered lines of the SOURCE `.sql` as ordered windows (`…` between gaps), one `excerpt_id` per window |
 
 **Specs shown to the LLM are trimmed** (437 estimated tokens for all four, down from 728) because
 they ride on every tool-phase call under the 3K cap. They advertise only `text`, `column_id`,
 `max_depth`, `model_id` and `around_column`. The tools still accept `k` and `include_indirect` with
-the defaults above, so the spec §8 signatures are unchanged. Indirect edges are not in the graph
-yet, so advertising `include_indirect` only invited useless calls. `toolbox.edge_string(eid)` gives
+the defaults above, so the spec §8 signatures are unchanged. Since S12a (s12-design A5.1 (i), ADR
+0026) the defaults are honoured: trace is direct, impact direct + indirect. The flag is still not
+advertised: it would cost ~30 tokens on every tool call and leave a 4B model to pick the mode per
+question; which tool is called decides the mode. `toolbox.edge_string(eid)` gives
 the agent the same compact line for any edge id when it rebuilds the answer prompt.
 
 `toolbox.call(name, args)` never raises. Bad input comes back as `{"error": {"code", "message",
@@ -126,7 +128,48 @@ parts and `closest` stay in the side record.
   extra and a built index, so the core and demo installs run stages 1-2 only (linker.md).
 - `rapidfuzz`: a new dependency for a corpus this small.
 
+## Indirect edges in the tools (S12a, ADR 0026)
+- **Ids and records.** `Provenance` registers indirect edges too; `edge_id` is the same formula
+  (the indirect kinds JOIN, FILTER, … differ from the direct kinds, and the collision check
+  still runs). An indirect edge's record adds `key` (the clause key) and `indirect: true`; direct
+  records are byte-unchanged. `common.hop()` replaces `direct()`.
+- **Citations by kind.** A direct edge's cited lines must name its `to` column. An indirect
+  edge's must name its `from` column (the key), or its clause key `rel.col` where `rel` is a CTE
+  or a derived alias used as a qualifier (`relation_names`, the metrics M7 (iv-k+) guard, copied,
+  not imported). Otherwise the whole file (`model`). Never `star`. On synthetic_shop all 621
+  indirect edges cite at `line`: 598 by the from column, 23 by the guarded key, and metrics M7
+  accepts all 621 (checked offline, 20 Oct 2026).
+- **Impact payload shape B** (owner, 20 Oct 2026): full dotted ids, one via edge id each,
+  grouped `"<depth> [<kind>]"`. A column is `[direct]` only if an all-direct path reaches it, at its
+  direct depth (a second, direct-only traversal decides this: decision A5-IMPACT-DIRECT-LABEL).
+  Otherwise its label is the kind of the first indirect hop on its shortest path, and its depth is
+  that path's length; a column reachable both ways appears once, under `[direct]`. Why full ids:
+  the model copies what it reads, and only `model.column` ids count for metrics M3 and can be
+  checked by R4. Every dev impact payload fits the 1,500-token cap uncut (1,114–1,462 measured).
+- **Over the cap** columns are cut in a fixed order (depth, model, column), kept from the front,
+  and every cut (depth, kind, model) gets one line in `more`: "+K more columns in <model>
+  (<kind>)", with `truncated` and `dropped`. When that would be more than 12 lines (a wide project
+  where each cut model loses one column, so the lines would be as long as what they replace) the
+  lines are per (depth, kind): "+K more columns in N models (<kind>, depth D)". Only
+  `stg_products.product_id` (175 columns, in no dev question) is cut on synthetic_shop.
+- **Side records.** `edges` and `columns` hold the shown columns (what the ledger emits and the
+  validator's evidence reads); `full` holds every reached column with its whole via chain and
+  every chain edge's record, for code (G1, S12b). The model never sees `full`.
+- **The `r_` fact** (`reach.py`) decides its verdict over direct + indirect hops and states the
+  direct reading too ("… in 1 hop (graph check: with indirect dependencies; not through direct
+  edges)"); the direct reading is the shortest DERIVES-only path (decision A5-R9-DIRECT-READING).
+
 ## Explain-back questions (for you)
+S12a (A5):
+- A. `raw.id -> stg.x_id` (direct) `-> fct.total` (JOIN) `-> fct_star.total` (direct): under which
+  group key does each reached column appear in `impact_downstream(raw.id)`, and why is
+  fct_star.total not `[direct]` although its last hop is direct?
+- B. An indirect edge's cited line says `where orders.customer_id > 0` and the edge's from column
+  is `cust_ref`. Is the citation `line` or `model`, and what would change if `orders` were a table
+  alias rather than a CTE?
+- C. A payload is cut. Where does the model see that columns are missing, and where can code still
+  find them?
+
 1. Why is `kind` part of the `edge_id` hash while the file, lines and expression are not? What would
    break in the validator if an edge's line moved but its id changed?
 2. A column's name does not appear in its model's source file (a `SELECT *`, or an alias built in

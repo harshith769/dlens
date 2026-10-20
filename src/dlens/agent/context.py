@@ -1,7 +1,8 @@
 """Tool-phase budget manager: keep the chat history under the input cap without losing ids.
 
 Older tool messages are replaced by digests, oldest first and the newest last:
-  level 1  trace: edge lines deduplicated across paths; impact: ``column via e_id`` list;
+  level 1  trace: edge lines deduplicated across paths; impact: the grouped ``model.column e_id``
+           items (and its "+K more" lines);
            get_model_sql: window excerpt ids + ranges (SQL text dropped); resolve: candidate ids
   level 2  as level 1, minus edge expressions and impact models/exposures
 Every id the original payload showed survives both levels (``ID_RE`` finds the same set or more).
@@ -39,12 +40,9 @@ def digest(result: ToolResult, level: int) -> dict[str, Any]:
             lines = list(dict.fromkeys(_strip_expr(line) for line in lines))
         out |= {"column": p.get("column"), "edges": lines, "truncated": p.get("truncated", False)}
     elif result.tool == "impact_downstream":
-        reached = [
-            f"{it['id']} via {it['via']}"
-            for items in p.get("columns_by_depth", {}).values()
-            for it in items
-        ]
-        out |= {"column": p.get("column"), "reached": reached}
+        out |= {"column": p.get("column"), "reached": p.get("columns_by_depth", {})}
+        if p.get("more"):
+            out["more"] = p["more"]
         if level < 2:
             out |= {"models": p.get("models", []), "exposures": p.get("exposures", [])}
     elif result.tool == "get_model_sql":

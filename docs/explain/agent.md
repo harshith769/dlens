@@ -39,7 +39,8 @@ question ─► TOOL PHASE  (≤5 LLM calls, tools on, history compacted to fit)
 Messages are `[system, user(question)]` plus assistant tool calls and tool results. Before each
 call `fit()` checks the estimate. If it is over the cap, the oldest tool message is replaced by
 a **digest**, then the next oldest, newest last:
-- level 1: trace edge lines deduplicated across paths; impact `column via e_id`; SQL
+- level 1: trace edge lines deduplicated across paths; impact: its grouped `model.column e_id`
+  items and "+K more" lines (S12a); SQL
   `excerpt_id + file + range` (text dropped); resolve candidate ids;
 - level 2: also drops edge expressions and impact models and exposures.
 
@@ -70,6 +71,12 @@ Reasons:
 If the answer prompt is still over the cap, `trim()` drops the most distant evidence first (by hop
 distance from the queried column), so every path keeps a contiguous run from the column outward.
 It then sets `partial_evidence` and tells the model to say the answer may be incomplete.
+
+**Impact evidence (S12a, A5).** Impact results keep the tool's grouping: a context header per
+(depth, kind) group ("impact of X, depth 2 [JOIN]:"), then one line per column. A direct column
+keeps today's edge string (with its expression, so "how" is answerable); an indirect one is
+`model.column e_…`. When `trim()` cuts columns it writes one "+K more columns in <model> (<kind>)"
+line per cut group, counted in the budget, so a cut is never silent.
 
 ## Ambiguity policy (code, not the LLM)
 For an `ambiguous: true` resolve_entity result, the tie set is the candidates within 0.05 of the

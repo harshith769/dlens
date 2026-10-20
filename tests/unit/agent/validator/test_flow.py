@@ -227,7 +227,9 @@ def test_wrong_verdict_twice_is_salvaged_to_code_verdict(box, make_client):
     run = ask(RQ, client, box)
     a, rid = run.answer, _fact_id(box)
     assert run.record.validation["warning"] and a.validation_warning
-    assert a.answer_text.startswith("No: raw.id does NOT reach fct.total (graph check).")
+    assert a.answer_text.startswith(
+        "No: raw.id does NOT reach fct.total (graph check: direct or indirect)."
+    )
     assert a.claims[0].chunk_ids == [rid] and a.claims[0].text.startswith("No:")
     assert [c.text for c in a.claims[1:]] == ["fct.total aggregates stg.amount"]  # still true
     assert (a.reach_verdict, a.reach_verdict_source) == ("no", "code")  # A2: salvage sets code
@@ -246,7 +248,7 @@ def test_wrong_verdict_and_bad_regenerate_json_still_get_code_verdict(box, make_
     a = run.answer
     assert not a.refused and a.validation_warning  # every LLM claim failed, code's verdict stays
     assert [c.chunk_ids for c in a.claims] == [[_fact_id(box)]]
-    assert a.answer_text == "No: raw.id does NOT reach fct.total (graph check)."
+    assert a.answer_text == "No: raw.id does NOT reach fct.total (graph check: direct or indirect)."
 
 
 def test_raw_view_reads_the_first_draft_never_the_regenerate(box, make_client):

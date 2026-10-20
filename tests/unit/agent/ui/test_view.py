@@ -438,7 +438,10 @@ def test_fact_statement_for_graph_checks(shop_root: Path):
     box = Toolbox(make_shop(), shop_root)
     box.call("reachability", {"from_column": "raw.amt", "to_column": "fct.total"}, code=True)
     rid = next(i for i in box.emitted_ids if i.startswith("r_"))
-    assert view.fact_statement(box, rid) == "raw.amt reaches fct.total in 2 hops (graph check)"
+    assert (
+        view.fact_statement(box, rid)
+        == "raw.amt reaches fct.total in 2 hops (graph check: through direct edges)"
+    )
     assert view.fact_statement(box, "r_missing") is None
 
 

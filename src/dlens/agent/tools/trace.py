@@ -1,4 +1,7 @@
-"""trace_upstream: every path from a column back to what it is computed from."""
+"""trace_upstream: every path from a column back to what it is computed from.
+
+Direct edges by default (spec §7/§8, s12-design A5.1 (i)). With ``include_indirect`` (accepted,
+not advertised to the LLM) the paths also walk indirect edges, printed ``e_…: a -> b [JOIN]``."""
 
 from __future__ import annotations
 
@@ -10,7 +13,7 @@ from dlens.agent.tools.common import (
     as_bool,
     as_int,
     as_str,
-    direct,
+    hop,
     resolve_column,
 )
 from dlens.agent.tools.provenance import Provenance
@@ -23,12 +26,9 @@ def trace_upstream(prov: Provenance, args: dict[str, Any]) -> ToolOutput:
     include_indirect = as_bool(args, "include_indirect", False)
     g = prov.graph
     col = resolve_column(g, text)
-    # The argument is accepted but not traversed: tools stay direct-only until S10/S12 decide.
-    paths = g.upstream(col, max_depth=max_depth, include_indirect=False)
-    strings = [[prov.edge_string(direct(e)) for e in p.edges] for p in paths]
+    paths = g.upstream(col, max_depth=max_depth, include_indirect=include_indirect)
+    strings = [[prov.edge_string(hop(e)) for e in p.edges] for p in paths]
     notes: list[str] = []
-    if include_indirect:
-        notes.append("indirect edges are not in the graph yet; only direct edges are returned")
     if not paths:
         notes.append("no upstream columns: this column is a source or a leaf")
     if paths.truncated:
@@ -51,6 +51,6 @@ def trace_upstream(prov: Provenance, args: dict[str, Any]) -> ToolOutput:
     edges = {}
     for p in list(paths)[:kept]:
         for e in p.edges:
-            rec = prov.edge_record(direct(e))
+            rec = prov.edge_record(hop(e))
             edges[str(rec["edge_id"])] = rec
     return ToolOutput(render(kept), {"column": col, "edges": edges})

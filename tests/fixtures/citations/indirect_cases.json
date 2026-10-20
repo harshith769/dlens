@@ -1,0 +1,11 @@
+{
+ "about": "Indirect-edge citations checked by kind (s12-design A5, metrics M7 (iv)): the cited lines name the edge's from column, or its clause key rel.col where rel is a CTE or a derived alias used as a qualifier. Read by the validator R3 test and the metrics M7 test; neither imports the other.",
+ "file": "models/indirect_cases.sql",
+ "cases": [
+  {"name": "from column on the lines", "from": "stg_orders.customer_id", "to": "fct_x.order_id", "kind": "JOIN", "key": "o.customer_id", "lines": [11, 11], "valid": true},
+  {"name": "clause key under a CTE", "from": "stg_orders.cust_ref", "to": "fct_x.order_id", "kind": "FILTER", "key": "orders.customer_id", "lines": [12, 12], "valid": true},
+  {"name": "cast alias is not a relation", "from": "stg_customers.zone", "to": "fct_x.region_code", "kind": "JOIN", "key": "region_code.region", "lines": [5, 5], "valid": false},
+  {"name": "table alias is not a relation", "from": "stg_customers.client_id", "to": "fct_x.order_id", "kind": "JOIN", "key": "e.customer_id", "lines": [11, 11], "valid": false},
+  {"name": "neither from column nor key", "from": "stg_orders.status", "to": "fct_x.order_id", "kind": "FILTER", "key": "orders.status", "lines": [8, 8], "valid": false}
+ ]
+}

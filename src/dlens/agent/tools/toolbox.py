@@ -83,8 +83,8 @@ class Toolbox:
 
     @property
     def emitted_ids(self) -> frozenset[str]:
-        """Edge ids (``e_``), excerpt ids (``s_``) and graph-check fact ids (``r_``) shown to
-        the LLM in this conversation."""
+        """Edge ids (``e_``, direct or indirect), excerpt ids (``s_``) and graph-check fact ids
+        (``r_``) shown to the LLM in this conversation."""
         return frozenset(self._emitted)
 
     def record(self, item_id: str) -> dict[str, Any] | None:
@@ -136,13 +136,14 @@ class Toolbox:
 
 
 def _ids_in(payload: dict[str, Any]) -> list[str]:
-    """Ids visible in a payload: edge ids in path strings / ``via`` fields, the excerpt id of
-    every SQL window, and a reachability fact id with its path."""
+    """Ids visible in a payload: edge ids in path strings and impact items
+    (``"model.column e_…"``, the via id last), the excerpt id of every SQL window, and a
+    reachability fact id with its path."""
     found: list[str] = []
     for path in payload.get("paths", []):
         found += [line.split(":", 1)[0] for line in path]
     for items in payload.get("columns_by_depth", {}).values():
-        found += [it["via"] for it in items]
+        found += [it.rsplit(" ", 1)[-1] for it in items]
     found += [w["excerpt_id"] for w in payload.get("windows", [])]
     if "fact_id" in payload:
         found += [payload["fact_id"], *(line.split(":", 1)[0] for line in payload["path"])]

@@ -69,7 +69,14 @@ live: `e_4b2_403a` (one wrong character) and `s_b3ece5f` (last character dropped
 The citation comes from the ledger record (never from the answer, since the LLM never types
 citations). The file is re-read fresh through `safe_read` (path-traversal safe). Checks:
 - the file exists inside the project and `1 ≤ line_start ≤ line_end ≤ line count`;
-- level `line`: the range contains the column name (word boundary, case-insensitive);
+- level `line`: the range contains the column name (word boundary, case-insensitive). **Which
+  column depends on the edge's kind** (S12a, A5): a direct edge needs its `to` column; an
+  indirect edge (record `indirect: true`) its `from` column, or else its clause key `rel.col`
+  with `rel` a CTE or derived alias used as a qualifier in the file and `col` on the lines. This
+  is metrics M7 (iv) exactly: without it R3 would drop almost every indirect citation metrics
+  accepts (598 of 621 name the from column, 0 the to column). A shared fixture
+  (`tests/fixtures/citations/indirect_cases.json`) is checked by an R3 test and by an M7 test,
+  neither importing the other;
 - level `star`: the range contains `*` (the column comes from `SELECT *`);
 - level `model`: the file mentions the name (for a seed CSV, a header field);
 - `s_` excerpt: the range exists and its text hash equals `text_sha1` recorded when
@@ -172,8 +179,11 @@ Exemptions:
 R8 dropped claims whose prose was right but whose citations missed a connecting edge that the
 tools *had* emitted. R8c adds those edges in code before the rules run, under four conditions:
 
-1. **Only ledger edges.** The path is built from edges this question's tools emitted, never
-   from the whole graph. The tools still have to have found the evidence.
+1. **Only ledger edges, direct only.** The path is built from DIRECT edges this question's tools
+   emitted, never from the whole graph. The tools still have to have found the evidence. Since
+   S12a indirect edges are in the ledger too, but they never bridge: completion adds value
+   derivations, and a path through a join key would assert one that does not exist. (A claim
+   may still cite an indirect edge itself; R8 counts it as a link.)
 2. **Anchor.** At least one of the claim's own cited edges must touch a column it names.
    Without this, completion would turn an unrelated citation into a relevant one: the added
    path touches the named columns, so R7 would pass. That would be laundering by code.
@@ -221,7 +231,11 @@ citation, and `render()` marks it `[graph check]`.
   license bridges to other columns); only cited edges anchor.
 
 ### R9 `rule_verdict`: the yes/no verdict matches the graph check
-Runs only when an `r_` fact exists.
+Runs only when an `r_` fact exists. Since S12a (ADR 0026, R9 option (a)) the fact's verdict uses
+direct + indirect hops (yes/no is impact family, metrics M4), and its text states the direct
+reading too: "X reaches Y in 1 hop (graph check: with indirect dependencies; not through direct
+edges)". R3 re-runs the same two-mode check (`direct_reaches` / `direct_hops` included). R5 is
+unchanged: no indirect kind is in a `KIND_WORDS` row, so "aggregated" over a JOIN edge fails.
 - `answer_text`: the verdict of its **first sentence** must equal the fact (`reaches` → yes).
   No verdict is a failure (`claim_index` None).
 - a claim that **cites** the `r_` id must not state the opposite verdict (a claim with no verdict
@@ -354,6 +368,13 @@ added, for a claim naming 4 columns along the deep chain). dev-03 went from fail
 calls fell from 4 to 0 (73 → 69 LLM calls). See docs/explain/eval-dev.md.
 
 ## Explain-back questions
+S12a (A5):
+- D. A claim cites only a JOIN edge stg.x_id -> fct.total and says "fct.total is aggregated from
+  stg.x_id". Which rules fail it and why? Would R8c have bridged raw.id to fct.total through that
+  JOIN edge?
+- E. The fact for dev-74 says "reaches … not through direct edges". What verdict must the answer
+  give, and which metric mode makes that the right answer?
+
 S12a (A2):
 - A. The fact says raw.id does NOT reach fct.total. The draft's prose says "No, …" but its
   `reach_verdict` is "yes". Which R9 failures fire, what does the regenerate prompt start with, and

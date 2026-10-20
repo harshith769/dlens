@@ -48,3 +48,23 @@ def test_error_line_does_not_repeat_suggestions(box: Toolbox):
     box.call("trace_upstream", {"column_id": "fct.totl"})
     line = tool_errors(box)[0]
     assert line.lower().count("did you mean") == 1
+
+
+def test_trim_writes_one_more_line_per_cut_impact_group() -> None:
+    from dlens.agent.evidence import EvidenceItem, trim
+
+    items = [
+        EvidenceItem(None, "impact of a.x, depth 1 [direct]:", 0, 0),
+        EvidenceItem("e_00000001", "e_00000001: a.x -> b.y [IDENTITY]", 1, 1, "b (direct)"),
+        EvidenceItem(None, "impact of a.x, depth 2 [JOIN]:", 0, 2),
+        EvidenceItem("e_00000002", "c.p e_00000002", 2, 3, "c (JOIN)"),
+        EvidenceItem("e_00000003", "c.q e_00000003", 2, 4, "c (JOIN)"),
+    ]
+    kept, dropped = trim(items, lambda its: sum(it.id is not None for it in its) <= 1)
+    assert dropped == ["e_00000003", "e_00000002"]
+    assert [it.line for it in kept] == [
+        "impact of a.x, depth 1 [direct]:",
+        "e_00000001: a.x -> b.y [IDENTITY]",
+        "impact of a.x, depth 2 [JOIN]:",
+        "+2 more columns in c (JOIN)",
+    ]

@@ -7,11 +7,18 @@ are context: impact models and exposures, resolve_entity candidates, tool errors
 ``priority`` is the hop distance from the column the tool was asked about (trace: position in the
 path + 1; impact: depth). Excerpts, facts and context lines are 0. ``trim`` drops the most distant
 evidence first, so every path keeps a contiguous run of edges starting at the queried column.
+
+Impact evidence (S12a, payload shape B) keeps the tool's grouping: a context header per (depth,
+kind) group, then one line per column: a direct column as its edge string (with the expression),
+an indirect one as ``model.column e_…``. Every column item carries its group ``<model> (<kind>)``,
+and ``trim`` writes one "+K more columns in <model> (<kind>)" line per group it cuts, so nothing is
+dropped silently.
 """
 
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
@@ -27,6 +34,7 @@ class EvidenceItem:
     line: str
     priority: int
     order: int
+    group: str | None = None  # impact items: "<model> (<kind>)", for trim's "+K more" lines
 
 
 def _clip(text: str, n: int) -> str:
@@ -64,14 +72,14 @@ def build_evidence(toolbox: Toolbox) -> list[EvidenceItem]:
     resolved: list[EvidenceItem] = []  # or when nothing citable was found at all
     order = 0
 
-    def add(item_id: str, line: str, priority: int) -> None:
+    def add(item_id: str, line: str, priority: int, group: str | None = None) -> None:
         nonlocal order
         if item_id not in emitted:
             return
         if item_id in by_id:
             by_id[item_id].priority = min(by_id[item_id].priority, priority)
             return
-        by_id[item_id] = EvidenceItem(item_id, line, priority, order)
+        by_id[item_id] = EvidenceItem(item_id, line, priority, order, group)
         order += 1
 
     def note(line: str, bucket: list[EvidenceItem]) -> None:
@@ -91,10 +99,18 @@ def build_evidence(toolbox: Toolbox) -> list[EvidenceItem]:
             if not p.get("paths"):
                 note(f"trace_upstream({p.get('column')}): no upstream columns", context)
         elif r.tool == "impact_downstream":
-            for depth, items in p.get("columns_by_depth", {}).items():
+            for key, items in p.get("columns_by_depth", {}).items():
+                depth, label = int(key.split(" ", 1)[0]), key.split("[", 1)[1].rstrip("]")
+                note(f"impact of {p.get('column')}, depth {key}:", context)
                 for it in items:
-                    line = toolbox.edge_string(it["via"]) or f"{it['via']}: -> {it['id']}"
-                    add(it["via"], line, int(depth))
+                    name, eid = it.rsplit(" ", 1)
+                    if label == "direct":
+                        line = toolbox.edge_string(eid) or f"{eid}: -> {name}"
+                    else:
+                        line = f"{name} {eid}"
+                    add(eid, line, depth, f"{name.rsplit('.', 1)[0]} ({label})")
+            for line in p.get("more", []):
+                note(line, context)
             models = ", ".join(p.get("models", [])) or "none"
             exps = ", ".join(f"{x['name']} ({x['type']})" for x in p.get("exposures", [])) or "none"
             more = " (truncated)" if p.get("truncated") else ""
@@ -129,10 +145,19 @@ def trim(
     items: list[EvidenceItem], fits: Callable[[list[EvidenceItem]], bool]
 ) -> tuple[list[EvidenceItem], list[str]]:
     """Drop the most distant citable items first (latest first on ties), then context lines from
-    the end, until ``fits`` holds. Returns the kept items and the dropped ids."""
+    the end, until ``fits`` holds. Every impact group that loses items gets one "+K more columns
+    in <model> (<kind>)" line, counted in ``fits``. Returns the kept items (with those lines) and
+    the dropped ids."""
     kept = list(items)
     dropped: list[str] = []
-    while kept and not fits(kept):
+    cut: Counter[str] = Counter()
+    at: dict[str, int] = {}
+
+    def shown() -> list[EvidenceItem]:
+        notes = [EvidenceItem(None, f"+{n} more columns in {g}", 0, at[g]) for g, n in cut.items()]
+        return sorted([*kept, *notes], key=lambda it: it.order)
+
+    while kept and not fits(shown()):
         with_id = [it for it in kept if it.id is not None]
         victim = (
             max(with_id, key=lambda it: (it.priority, it.order))
@@ -142,4 +167,7 @@ def trim(
         kept.remove(victim)
         if victim.id is not None:
             dropped.append(victim.id)
-    return kept, dropped
+        if victim.group is not None:
+            cut[victim.group] += 1
+            at.setdefault(victim.group, victim.order)
+    return shown(), dropped

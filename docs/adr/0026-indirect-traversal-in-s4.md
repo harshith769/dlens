@@ -46,6 +46,12 @@ S4's reach by construction. Uncapped indirect impact payloads exceed the 1,500-t
   call; recorded in the allowlist test's docstring.
 - Decided options: s12-design A5.1 (i) family defaults; R9 fact mode (a).
 
+- **Implementation note (S12a, for owner review):** when the per-model "+K more" lines would be
+  more than 12, they collapse to one line per (depth, kind): "+K more columns in N models
+  (<kind>, depth D)". Without it a wide project (one cut column per model) gets as many "+K more"
+  lines as cut columns, so the cut cannot shrink the payload. On synthetic_shop only
+  `stg_products.product_id` (175 columns, no dev question) is cut, and it collapses.
+
 ## Consequences
 
 - Answer-phase evidence grows on impact questions (measured: 895–1,094 est. tokens for the five

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from dlens.graph import AmbiguousColumn, ColumnNotFound, Hop, LineageGraph
-from dlens.lineage import Edge
+from dlens.lineage import Edge, IndirectEdge
 
 
 class ToolError(Exception):
@@ -69,8 +69,9 @@ def resolve_column(graph: LineageGraph, text: str) -> str:
         ) from None
 
 
-def direct(hop: Hop) -> Edge:
-    """The tools traverse direct edges only (``include_indirect=False`` until S10/S12)."""
-    if not isinstance(hop, Edge):
-        raise TypeError(f"indirect hop in a direct-only tool: {hop.from_column} -> {hop.to_column}")
-    return hop
+def hop(h: Hop) -> Hop:
+    """One traversal step as the tools pass it on: a DERIVES edge, or (S12a, ADR 0026) an indirect
+    edge. Anything else is a bug in the caller."""
+    if not isinstance(h, Edge | IndirectEdge):
+        raise TypeError(f"not a lineage hop: {h!r}")
+    return h

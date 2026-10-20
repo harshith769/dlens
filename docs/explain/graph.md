@@ -43,10 +43,14 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
    - **Defaults follow spec §7**: `upstream(include_indirect=False)`,
      `downstream(include_indirect=True)`. Because a bare `downstream()` would now traverse
      indirect edges, every caller in dlens passes the flag explicitly. The CLI passes its
-     `--include-indirect` option (default off). The agent loop and the tools pass False (the tools
-     accept and ignore the argument), and so the validator, UI and demo see direct edges only
-     until S10/S12. `tests/unit/test_traversal_calls.py` scans `src/`, `scripts/`, `eval/` and
-     `demo/` and fails on any call without `include_indirect=`.
+     `--include-indirect` option (default off). Since S12a (ADR 0026) the tools honour their
+     spec defaults (trace direct, impact direct + indirect) and the `r_` fact uses both.
+     `tests/unit/test_traversal_calls.py` scans `src/`, `scripts/`, `eval/` and `demo/` and fails
+     on any call without `include_indirect=`; in `src/` a literal `False` must be in its
+     allowlist with a recorded decision: A5-CHAIN (`loop._chain_end`: chain mode asks "same
+     column at different layers", a value question), A5-CHUNK-META (the chunker's downstream
+     count; the chunker is frozen with the linker) and A5-IMPACT-DIRECT-LABEL (impact's second,
+     direct-only walk that decides the `[direct]` labels).
 6. **`resolve`**: an exact id wins. Otherwise a query with a dot matches ids ending in
    `"." + query`, so `stg_orders.order_id` can't match `xstg_orders.order_id`. Several matches raise
    `AmbiguousColumn` listing the full ids. No match raises `ColumnNotFound` with the 3 closest
@@ -107,14 +111,21 @@ and `parse_report()`. `dlens trace COLUMN` and `dlens impact COLUMN` print both 
 - Indirect traversal widens results a lot. On synthetic_shop, `stg_products.product_id` (a
   join-key-only column) impacts 0 columns direct-only and 175 with indirect edges (max 8 hops),
   and the uncapped impact payload grows from ~125 to ~4,469 tokens, over both the 1,500-token
-  tool cap and the 3K input cap (`scripts/measure_indirect_reach.py`). That is why the tools stay
-  direct-only until S10/S12 decide how to rank or trim indirect results.
+  tool cap and the 3K input cap (`scripts/measure_indirect_reach.py`). S12a's impact payload
+  (full dotted ids grouped by depth and kind, tools.md) brings it to ~3,200 uncapped; the tool
+  cuts it deterministically with visible "+K more" lines, and every dev impact question fits.
 - `upstream` enumerates paths, not a DAG summary. The cap bounds the work, but a capped trace
   shows an arbitrary 1000 of the paths (sorted DFS order), not the "most important" ones.
 - The cache can't see changes outside the listed directories (for example a package update).
   Use `--rebuild`.
 
 ## Explain-back questions
+S12a (A5):
+- A. Someone adds `g.downstream(col, include_indirect=False)` to a new tool. Which test fails,
+  and what must they write down to make it pass?
+- B. Why does `_chain_end` stay direct while impact goes direct + indirect?
+
+Earlier:
 1. `downstream` uses BFS and `upstream` uses DFS. For a column reachable by two routes of length 2
    and 4, what does each one report, and why is that the right behaviour for impact but would be
    wrong for trace?

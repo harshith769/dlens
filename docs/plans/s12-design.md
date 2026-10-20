@@ -509,6 +509,9 @@ ADR 0026 → Accepted. All as written, plus:
   shortest (all-hop) path from the queried column, and its depth is that path's length. A column
   reachable both ways appears once, under `[direct]`. `side_records` keep the full via chain (the
   edge record of every hop on that path).
+- **Implementation note (S12a, flagged for owner review):** more than 12 per-model "+K more"
+  lines collapse to one line per (depth, kind), "+K more columns in N models (<kind>, depth D)";
+  otherwise a cut in a wide project cannot shrink the payload (ADR 0026).
 
 ---
 

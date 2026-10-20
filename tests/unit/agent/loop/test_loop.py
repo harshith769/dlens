@@ -485,10 +485,16 @@ def test_reachability_fact_is_emitted_with_its_shortest_path(box, make_client):
     assert _reach_steps(run) == [{"from_column": "raw.amt", "to_column": "fct_star.total"}]
     rid, rec = _fact(box)
     assert rec["reaches"] and rec["hops"] == 3 and rec["reverse_hops"] is None
-    assert rec["fact"] == "raw.amt reaches fct_star.total in 3 hops (graph check)"
+    assert (
+        rec["fact"]
+        == "raw.amt reaches fct_star.total in 3 hops (graph check: through direct edges)"
+    )
     assert set(rec["path"]) <= box.emitted_ids and len(rec["path"]) == 3
     prompt = prov.requests[-1]["messages"][-1].content
-    assert f"{rid}: raw.amt reaches fct_star.total in 3 hops (graph check)" in prompt
+    assert (
+        f"{rid}: raw.amt reaches fct_star.total in 3 hops (graph check: through direct edges)"
+        in prompt
+    )
     assert run.record.llm_calls == 3  # the check is code, not an LLM call
 
 
@@ -503,7 +509,8 @@ def test_reachability_fact_says_not_reached_and_shows_the_reverse_path(box, make
     _, rec = _fact(box)
     assert not rec["reaches"] and rec["reverse_hops"] == 2
     assert rec["fact"] == (
-        "fct.total does NOT reach raw.amt (graph check); raw.amt reaches fct.total in 2 hops"
+        "fct.total does NOT reach raw.amt (graph check: direct or indirect); "
+        "raw.amt reaches fct.total in 2 hops"
     )
     assert len(rec["path"]) == 2  # the reverse path is emitted, so the answer can cite it
 
@@ -517,7 +524,10 @@ def test_reachability_fact_unconnected_has_no_path(box, make_client):
     client, _ = make_client(script)
     ask("Does raw.id feed fct.total?", client, box)
     _, rec = _fact(box)
-    assert rec["fact"] == "raw.id does NOT reach fct.total (graph check)" and rec["path"] == []
+    assert (
+        rec["fact"] == "raw.id does NOT reach fct.total (graph check: direct or indirect)"
+        and rec["path"] == []
+    )
 
 
 def test_reachability_depend_wording_asks_the_reverse_direction(box, make_client):

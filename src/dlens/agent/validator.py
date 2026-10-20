@@ -6,14 +6,15 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
   R1 cites            every claim cites >= 1 id
   R2 in_ledger        every cited id was emitted by a tool for THIS question
   R2r repair          ... unless it is a unique, same-prefix, 1-edit (or >=7-hex-prefix) miscopy
-  R3 on_disk          every cited citation still holds on disk (range exists, contains the column)
+  R3 on_disk          every cited citation still holds on disk (range exists, contains the column:
+                      a direct edge's to column, an indirect edge's from column or guarded key)
   R4 known_nodes      every model.column / model name in the prose is in the graph (hallucinated)
                       and in this question's evidence (unsupported)
   R5 kind_consistency kind words in a claim ("aggregated", "renamed") match a cited edge's kind
   R7 relevance        a claim that names entities cites at least one id that touches one of them
   R8 connectivity     a claim naming >= 2 columns connects them all through its cited edges
   R8c completion      ... after code adds the shortest connecting path (<= 4 hops) from this
-                      question's emitted edges; not for "directly" claims over > 1 hop
+                      question's emitted DIRECT edges; not for "directly" claims over > 1 hop
   R9 verdict          if code made a reachability fact (r_ id), the yes/no verdict in the first
                       sentence of answer_text matches it, and so does the structured
                       reach_verdict field (null fails only while the prose states a verdict)
@@ -44,6 +45,7 @@ from dlens.agent.tools.provenance import (
     Citation,
     contains_word,
     graph_files,
+    key_on_lines,
     safe_read,
     text_sha1,
 )
@@ -424,10 +426,14 @@ def _citation_problem(item_id: str, rec: dict[str, Any], ctx: ValidationContext)
         if want and text_sha1(text, a, b) != want:
             return f"{file}:{a}-{b} changed since the tool showed it"
         return None
-    name = str(rec.get("to", "")).rsplit(".", 1)[-1]
+    # by kind (s12-design A5, metrics M7 (iv)): a direct edge's lines name its `to` column; an
+    # indirect edge's name its `from` column, or its clause key under the CTE / alias guard
+    indirect = bool(rec.get("indirect"))
+    name = str(rec.get("from" if indirect else "to", "")).rsplit(".", 1)[-1]
     level = cite.get("level")
     if level == "line" and not contains_word(chunk, name):
-        return f"{file}:{a}-{b} does not contain {name!r}"
+        if not (indirect and key_on_lines(str(rec.get("key", "")), text, chunk)):
+            return f"{file}:{a}-{b} does not contain {name!r}"
     if level == "star" and "*" not in chunk:
         return f"{file}:{a}-{b} does not contain the '*' that produces {name!r}"
     if level == "model":
@@ -446,7 +452,7 @@ def _fact_problem(rec: dict[str, Any], ctx: ValidationContext) -> str | None:
     if not (g.has_column(rec.get("from", "")) and g.has_column(rec.get("to", ""))):
         return "the graph check's columns are not in the graph"
     fresh = fact_record(g, check(g, rec["from"], rec["to"]))
-    keys = ("fact_id", "reaches", "hops", "reverse_hops", "path")
+    keys = ("fact_id", "reaches", "hops", "reverse_hops", "path", "direct_reaches", "direct_hops")
     if any(fresh[k] != rec.get(k) for k in keys):
         return f"the graph check no longer holds: now {fresh['fact']!r}"
     return None
@@ -612,10 +618,15 @@ Adjacency = dict[str, list[tuple[str, str]]]  # node -> [(next node, edge id)], 
 
 
 def _ledger_adjacency(ctx: ValidationContext) -> Adjacency:
-    """Directed (from -> to) adjacency over every edge this question's tools emitted. Sorted,
-    so completion is deterministic."""
+    """Directed (from -> to) adjacency over every DIRECT edge this question's tools emitted.
+    Indirect edges never bridge (s12-design A5): completion adds value derivations, and a path
+    through a join key would assert one that does not exist. Sorted, so completion is
+    deterministic."""
     adj: Adjacency = {}
     for i in sorted(ctx.ledger.emitted_ids):
+        rec = ctx.ledger.record(i) or {}
+        if rec.get("indirect"):
+            continue
         if i.startswith("e_") and (ends := _edge_ends(i, ctx)) is not None:
             adj.setdefault(ends[0], []).append((ends[1], i))
     return adj

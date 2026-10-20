@@ -48,19 +48,26 @@ def test_every_edge_returned_by_trace_and_impact_is_in_the_gold_spec(
     gold = gold_kinds()
     gaps = known_engine_kinds()
     seen: set[str] = set()
+    seen_indirect: set[str] = set()
     seen_gaps: set[tuple[str, str]] = set()
+    indirect_ids = {box._prov.edge_record(x)["edge_id"] for x in synthetic_graph.indirect_edges()}
     for col in synthetic_graph.columns():
         box.reset()
         for tool in ("trace_upstream", "impact_downstream"):
             r = box.call(tool, {"column_id": col})
             assert not r.is_error, (tool, col, r.llm_payload)
             for eid, rec in r.side_records["edges"].items():
+                if rec.get("indirect"):  # impact is direct + indirect since S12a (A5)
+                    assert eid in indirect_ids and rec["kind"] != "IDENTITY"
+                    seen_indirect.add(eid)
+                    continue
                 key = (short_id(rec["from"]), short_id(rec["to"]))
                 if gold.get(key) != rec["kind"]:  # only a listed gap may disagree
                     assert gaps.get(key) == rec["kind"], (key, rec["kind"], gold.get(key))
                     seen_gaps.add(key)
                 seen.add(eid)
     assert len(seen) == len(synthetic_graph.edges())  # and together they reach every edge
+    assert seen_indirect  # impact shows indirect edges as via hops
     assert seen_gaps == set(gaps)  # engine_gaps.yml is exact: no stale entries
 
 

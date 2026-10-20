@@ -8,7 +8,7 @@ from dlens.agent.llm.types import Message
 from dlens.agent.tools import TOOL_SPECS, Toolbox, ToolResult
 from dlens.agent.tools.budget import MAX_RESULT_TOKENS
 from dlens.graph import LineageGraph
-from dlens.lineage import Edge, EdgeKind
+from dlens.lineage import Edge, EdgeKind, IndirectEdge, IndirectKind
 
 from .conftest import GROUP_BY_X_ID, STG, make_shop
 
@@ -52,22 +52,23 @@ def test_trace_of_a_seed_column_has_no_paths(toolbox: Toolbox) -> None:
     assert r.llm_payload["paths"] == [] and "notes" in r.llm_payload
 
 
-def test_indirect_flag_is_explained(toolbox: Toolbox) -> None:
-    r = toolbox.call("trace_upstream", {"column_id": TOTAL, "include_indirect": True})
-    assert "indirect" in " ".join(r.llm_payload["notes"])
-
-
 # -- impact_downstream ------------------------------------------------------------------------
+
+
+def shown(p: dict) -> list[tuple[str, str]]:
+    """(model.column, via id) for every impact item, in payload order."""
+    return [tuple(it.rsplit(" ", 1)) for v in p["columns_by_depth"].values() for it in v]
 
 
 def test_impact(toolbox: Toolbox) -> None:
     r = toolbox.call("impact_downstream", {"column_id": "raw.amt"})
     p = r.llm_payload
-    assert [c["id"] for c in p["columns_by_depth"]["1"]] == ["stg.amount"]
-    assert [c["id"] for c in p["columns_by_depth"]["3"]] == ["fct_star.total"]
+    assert list(p["columns_by_depth"]) == ["1 [direct]", "2 [direct]", "3 [direct]"]
+    assert [n for n, _ in shown(p)] == ["stg.amount", "fct.total", "fct_star.total"]
+    assert p["mode"] == "direct + indirect" and "more" not in p
     assert p["models"] == ["fct", "fct_star", "stg"]
     assert p["exposures"] == [{"name": "dash", "type": "dashboard"}]
-    via = {c["via"] for d in p["columns_by_depth"].values() for c in d}
+    via = {v for _, v in shown(p)}
     assert via == set(r.side_records["edges"]) == set(toolbox.emitted_ids)
     cites = r.side_records["columns"]
     assert cites["fct_star.total"]["citation"]["level"] == "star"
@@ -76,7 +77,8 @@ def test_impact(toolbox: Toolbox) -> None:
 
 def test_impact_depth_limited(toolbox: Toolbox) -> None:
     r = toolbox.call("impact_downstream", {"column_id": "raw.amt", "max_depth": 1})
-    assert r.llm_payload["depth_limited"] and set(r.llm_payload["columns_by_depth"]) == {"1"}
+    assert r.llm_payload["depth_limited"]
+    assert set(r.llm_payload["columns_by_depth"]) == {"1 [direct]"}
 
 
 # -- errors -----------------------------------------------------------------------------------
@@ -142,16 +144,17 @@ def test_impact_truncates_under_the_cap(tmp_path: Path) -> None:
     box = Toolbox(wide_graph(150, tmp_path), tmp_path)
     r = box.call("impact_downstream", {"column_id": "src.root"})
     p = r.llm_payload
-    kept = sum(len(v) for v in p["columns_by_depth"].values())
+    kept = len(shown(p))
     assert p["truncated"] is True
     assert 0 < kept < 150 and p["dropped"]["columns"] == 150 - kept
     assert tokens(r) <= MAX_RESULT_TOKENS
+    # never silent: 150 - kept cut columns in 150 - kept models -> one collapsed line
+    assert p["more"] == [f"+{150 - kept} more columns in {150 - kept} models (direct, depth 1)"]
     # no dangling ids: everything shown has a side record, nothing unseen was emitted
-    via = {c["via"] for v in p["columns_by_depth"].values() for c in v}
+    via = {v for _, v in shown(p)}
     assert via == set(r.side_records["edges"]) == set(box.emitted_ids)
-    assert set(r.side_records["columns"]) == {
-        c["id"] for v in p["columns_by_depth"].values() for c in v
-    }
+    assert set(r.side_records["columns"]) == {n for n, _ in shown(p)}
+    assert len(r.side_records["full"]["columns"]) == 150  # the full set, for code
 
 
 def test_trace_truncates_under_the_cap(tmp_path: Path) -> None:
@@ -419,16 +422,92 @@ def test_sql_unknown_model_with_a_dot_keeps_the_original_error(toolbox: Toolbox)
     assert err["code"] == "unknown_model" and "'nope.total'" in err["message"]
 
 
-def test_tools_stay_direct_only_on_a_graph_with_indirect_edges(shop_dir: Path) -> None:
-    """S04: indirect traversal is opt-in for the CLI only. The tools accept include_indirect but
-    pass False to the graph, so payloads and side records equal those of a direct-only graph."""
+def test_trace_is_direct_by_default_and_honours_include_indirect(shop_dir: Path) -> None:
+    """s12-design A5.1 (i): trace defaults to direct; the flag (not advertised) now traverses."""
     plain = Toolbox(make_shop(), shop_dir)
     mixed = Toolbox(make_shop([GROUP_BY_X_ID]), shop_dir)
-    for tool, col in (("trace_upstream", "fct.total"), ("impact_downstream", "stg.x_id")):
-        for args in ({}, {"include_indirect": True}, {"include_indirect": False}):
-            plain.reset()
-            mixed.reset()
-            a = plain.call(tool, {"column_id": col, **args})
-            b = mixed.call(tool, {"column_id": col, **args})
-            assert not b.is_error
-            assert (a.llm_payload, a.side_records) == (b.llm_payload, b.side_records)
+    a = plain.call("trace_upstream", {"column_id": "fct.total"})
+    b = mixed.call("trace_upstream", {"column_id": "fct.total"})
+    assert (a.llm_payload, a.side_records) == (b.llm_payload, b.side_records)
+    both = mixed.call("trace_upstream", {"column_id": "fct.total", "include_indirect": True})
+    lines = [line for path in both.llm_payload["paths"] for line in path]
+    assert any(line.endswith("stg.x_id -> fct.total [GROUP_BY]") for line in lines)
+    eid = next(line.split(":", 1)[0] for line in lines if "[GROUP_BY]" in line)
+    rec = mixed.record(eid)
+    assert rec is not None and rec["indirect"] is True and rec["key"] == "stg.x_id"
+
+
+def test_impact_direct_mode_ignores_indirect_edges(shop_dir: Path) -> None:
+    plain = Toolbox(make_shop(), shop_dir)
+    mixed = Toolbox(make_shop([GROUP_BY_X_ID]), shop_dir)
+    a = plain.call("impact_downstream", {"column_id": "stg.x_id", "include_indirect": False})
+    b = mixed.call("impact_downstream", {"column_id": "stg.x_id", "include_indirect": False})
+    assert (a.llm_payload, a.side_records) == (b.llm_payload, b.side_records)
+    assert a.llm_payload["mode"] == "direct"
+
+
+def _indirect(src: str, dst: str, kind: IndirectKind, key: str) -> IndirectEdge:
+    return IndirectEdge(
+        from_column=f"model.p.{src}",
+        to_column=f"model.p.{dst}",
+        kind=kind,
+        key=key,
+        expression=f"{kind.value.lower()} {key}",
+        file="models/fct.sql",
+        lines=(6, 6),
+        model_level_citation=False,
+    )
+
+
+def test_impact_labels_a_mixed_path_by_its_first_indirect_hop(shop_dir: Path) -> None:
+    """raw.id -> stg.x_id (direct) -> fct.total (JOIN) -> fct_star.total (direct): fct.total and
+    fct_star.total are labelled JOIN at their shortest-path depth; the all-direct x_id chain stays
+    [direct]. side["full"] keeps the whole via chain."""
+    join = _indirect("stg.x_id", "fct.total", IndirectKind.JOIN, "stg.x_id")
+    box = Toolbox(make_shop([join]), shop_dir)
+    r = box.call("impact_downstream", {"column_id": "raw.id"})
+    groups = r.llm_payload["columns_by_depth"]
+    assert {k: [it.split()[0] for it in v] for k, v in groups.items()} == {
+        "1 [direct]": ["stg.x_id"],
+        "2 [direct]": ["fct.x_id"],
+        "2 [JOIN]": ["fct.total"],
+        "3 [direct]": ["fct_star.x_id"],
+        "3 [JOIN]": ["fct_star.total"],
+    }
+    full = r.side_records["full"]
+    chain = full["columns"]["fct_star.total"]["chain"]
+    assert len(chain) == 3 and [full["edges"][e].get("indirect", False) for e in chain] == [
+        False,
+        True,
+        False,
+    ]
+    assert full["columns"]["fct_star.total"]["via"] == chain[-1]
+
+
+def test_a_column_reachable_both_ways_is_listed_once_under_direct(shop_dir: Path) -> None:
+    """fct_star.x_id: 3 direct hops from raw.id, or 2 through a FILTER on stg.x_id. Listed once,
+    under [direct] at its direct depth."""
+    filt = _indirect("stg.x_id", "fct_star.x_id", IndirectKind.FILTER, "fct.x_id")
+    box = Toolbox(make_shop([filt]), shop_dir)
+    p = box.call("impact_downstream", {"column_id": "raw.id"}).llm_payload
+    names = [n for n, _ in shown(p)]
+    assert names.count("fct_star.x_id") == 1
+    assert "fct_star.x_id" in [it.split()[0] for it in p["columns_by_depth"]["3 [direct]"]]
+    assert "2 [FILTER]" not in p["columns_by_depth"]
+
+
+def test_more_lines_per_model_then_per_group() -> None:
+    from dlens.agent.tools.impact import MAX_MORE_LINES, Reached, more_lines
+
+    def x(depth: int, label: str, model: str, col: str) -> Reached:
+        return Reached(col, f"{model}.{col}", model, depth, label, ())
+
+    few = [x(2, "JOIN", "fct_a", "a"), x(2, "JOIN", "fct_a", "b"), x(2, "JOIN", "fct_b", "c")]
+    assert more_lines(few) == [
+        "+2 more columns in fct_a (JOIN)",
+        "+1 more columns in fct_b (JOIN)",
+    ]
+    many = [x(1, "direct", f"m{i:02d}", "c") for i in range(MAX_MORE_LINES + 1)]
+    assert more_lines(many) == [
+        f"+{len(many)} more columns in {len(many)} models (direct, depth 1)"
+    ]

@@ -15,8 +15,10 @@ rows an aggregate counts (CONDITIONAL), without flowing into the value. They liv
 `LineageResult.indirect` and `LineageGraph.indirect_edges()`, separate from direct edges. Each one
 cites its clause's lines in the model's source file (S04). They are exposed **opt-in** only:
 `upstream`/`downstream(include_indirect=True)` and `dlens trace|impact --include-indirect`
-(graph.md). The agent tools, validator, UI and demo stay direct-only until S10/S12 decide how
-answers use them.
+(graph.md). Since S12a (ADR 0026) the agent uses them: `impact_downstream` and the `r_` fact
+traverse direct + indirect by default, `trace_upstream` stays direct unless asked, indirect edges
+are citable (`key`, `indirect: true`) and R3 checks them by kind (tools.md, validator.md). The
+demo replays presets recorded before S12a, so it shows them only after S15 re-records.
 
 ## How it works
 1. **One qualified AST.** `qualified_scope` qualifies the compiled SQL once and builds the scope
@@ -95,8 +97,8 @@ answers use them.
 - **Targets come from the lineage trees, not from the SQL layout.** "Computed in or through" is
   exactly "the SELECT is on the column's tree".
 - **Kept outside the nx graph.** The default traversals stay direct-only by construction, and
-  `include_indirect` merges the indirect index in only when asked. Exposure in answers is a later,
-  metrics-driven decision (S10/S12).
+  `include_indirect` merges the indirect index in only when asked. Exposure in answers was decided
+  in S12a from metrics M4 (impact's primary mode is direct + indirect): ADR 0026.
 - **Cite through the compiled SQL, then map lines back.** The engine already knows exactly where
   each clause is in the compiled SQL (it cut the text from there). Mapping those lines back to the
   source is a small, general step that handles every clause type at once, and it shares the
@@ -134,6 +136,13 @@ answers use them.
   (S05) is the independent check.
 
 ## Explain-back questions
+S12a (A5):
+- A. dev-70's direct gold is empty and its direct + indirect gold has 9 columns. Before S12a S4
+  refused it; what does the impact tool return now, and under which group labels?
+- B. Why does an indirect edge's citation name its `from` column while a direct edge's names its
+  `to` column?
+
+Earlier:
 1. In `int_order_promotions`, why are `stg_promotions.promo_channel` (in the subquery's WHERE)
    and `stg_promotions.promotion_id` (the subquery's SELECT list) both FILTER edges to every
    column, while `discount_pct` is only a SORT edge to `promo_codes`?
