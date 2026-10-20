@@ -652,10 +652,57 @@ def test_reach_verdict_record_level_and_raw_view() -> None:
     q = BY_ID["dev-72"]
     rec = record(q["question"], structured={"reach_verdict": "yes"})
     assert M.from_record(rec).reach_verdict == "yes"
+    # ADR 0024 shape: a verdict code set counts in validated, never in raw
     rec2 = record(q["question"], draft={"answer_text": "Yes", "claims": [], "refused": False})
-    rec2["final_answer"]["reach_verdict"] = {"value": "yes", "set_by": "code"}
+    rec2["final_answer"].update(reach_verdict="yes", reach_verdict_source="code")
     assert M.from_record(rec2, "validated").reach_verdict == "yes"
     assert M.from_record(rec2, "raw").reach_verdict is None
+    # the raw view reads the draft's own (LLM) value
+    rec3 = record(q["question"], draft={"answer_text": "No", "reach_verdict": "no"})
+    rec3["final_answer"].update(reach_verdict="yes", reach_verdict_source="code")
+    assert M.from_record(rec3, "raw").reach_verdict == "no"
+    # no draft: a final verdict counts in raw only if the LLM set it
+    for source, want in (("llm", "yes"), ("code", None)):
+        rec4 = record(q["question"])
+        rec4["final_answer"].update(reach_verdict="yes", reach_verdict_source=source)
+        assert M.from_record(rec4, "raw").reach_verdict == want
+    # the field wins over S0's record-level key
+    rec5 = record(q["question"], structured={"reach_verdict": "no"})
+    rec5["final_answer"]["reach_verdict"] = "yes"
+    assert M.from_record(rec5).reach_verdict == "yes"
+
+
+def test_s1_adapter() -> None:
+    q = BY_ID["dev-01"]
+    cite = {"file": "models/staging/stg_payments.sql", "line_start": 1, "line_end": 3,
+            "level": "line"}  # fmt: skip
+    rec = record(
+        q["question"],
+        final_answer={
+            "answer_text": "It comes from raw_payments.amt.",
+            "claims": [{"text": "t", "edge_ids": [], "chunk_ids": ["c_1a2b3c4d", "c_unknown0"]}],
+            "refused": False,
+            "citations": {"c_1a2b3c4d": cite},
+            "reach_verdict": None,
+            "reach_verdict_source": None,
+        },
+    )
+    pred = M.from_s1_record(rec)
+    assert pred.kind == "answered" and pred.cited_ids == ["c_1a2b3c4d", "c_unknown0"]
+    assert pred.citations == {"c_1a2b3c4d": cite}  # the unknown id stays uncited (M7: invalid)
+    assert M.adapter_for("s1-qwen3") is M.from_s1_record
+    assert M.adapter_for("s0-gold") is M.from_record and M.adapter_for("s4") is M.from_record
+    for view in ("raw", "augmented"):
+        with pytest.raises(ValueError, match="no validator"):
+            M.from_s1_record(rec, view)
+    rec["final_answer"]["claims"][0]["edge_ids"] = ["e_0123abcd"]
+    with pytest.raises(ValueError, match="cites edges"):
+        M.from_s1_record(rec)
+
+
+def test_s1_cli_refuses_other_views(tmp_path: Path) -> None:
+    argv = ["--records", str(tmp_path / "x.jsonl"), "--system", "s1-qwen3", "--view", "raw"]
+    assert M.main([*argv, "--out", str(tmp_path / "out")]) == 2
 
 
 def test_adapter_kinds() -> None:

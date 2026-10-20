@@ -6,14 +6,14 @@ both versions.
 
 ## What it does
 
-Takes the run records of one system and view (S0 now; S4 raw / validated / augmented; S1 from
-S11), joins them to `eval/questions/dev.jsonl`, and scores each question against its gold:
+Takes the run records of one system and view (S0; S4 raw / validated / augmented; S1, which has
+only its validated view), joins them to `eval/questions/dev.jsonl`, and scores each question against its gold:
 node-set F1 in the question's primary mode, yes/no verdicts, refusals, clarifications,
 false-premise rejection, path node coverage, hallucinated nodes and citation validity. Then it
 aggregates (macro means, bootstrap CIs, breakdowns) and writes JSON + Markdown.
 
 ```
-records.jsonl ─► adapter (from_record, per view) ─► Prediction ─► score_question ─► rows
+records.jsonl ─► adapter (adapter_for: from_record / from_s1_record) ─► Prediction ─► score_question ─► rows
      + manifest                                                       │
 dev.jsonl ── join on exact text (fails on unmatched / duplicate) ─────┘
 lineage_spec.yml + traps.yml ─► Inventory (columns, models, seeds, exposures, CTE names)
@@ -53,7 +53,9 @@ rows ─► summarise (macro means, bootstrap CI, breakdowns) ─► report .jso
   both modes (`row["modes"]`) and puts the primary one in `row["metrics"]`. Anything other than
   an answered prediction scores 0 on every set metric of an answerable question, even when the
   gold set is empty (`prf` gives ∅/∅ = 1 only to answered predictions). Yes/no reads only the
-  structured `reach_verdict` (S0's record-level key now, the S11/S12 answer field later); the
+  structured `reach_verdict` through one accessor (`reach_verdict()`): the ADR 0024 `Answer`
+  fields, else S0's record-level `structured.reach_verdict`. The raw view counts only the LLM's
+  own value: the draft's, or a final verdict whose `reach_verdict_source` is `llm`. The
   first-sentence heuristic is a diagnostic. The false-premise bucket depends on whether the
   premise column is upstream of the target in the primary mode (`gs.reaches`): case U has
   rejected / not rejected, case O has rejected / asserted / silent.
@@ -99,6 +101,16 @@ rows ─► summarise (macro means, bootstrap CI, breakdowns) ─► report .jso
 - **S4-raw citations:** the draft has no attached citations, so the raw view uses the ledger's
   edge citations (`side_records.edges[*].citation`) and the final answer's map for anything else.
 
+- **S1 records (metrics.py 1.2.0, S11).** `adapter_for(system)` picks `from_s1_record` for any
+  system label starting with `s1`. It delegates to `from_record` (same RunRecord format) and
+  enforces S1's invariants: S1 has only the validated view (no validator, so no raw or augmented;
+  the CLI exits 2 on another view), and it never cites an `e_` edge (it can't see the graph). Its
+  `c_` chunk citations come from `final_answer.citations`, attached by S1's code from the shown
+  chunks. An id S1 cited but never saw stays uncited, and M7 scores it invalid. No scorer or
+  definition changed: metrics-design stays v1.1. The S10 guess of a nested `{value, set_by}`
+  verdict was replaced by the ADR 0024 shape; no committed record used it. A regression test
+  re-scores the committed S0 records to the committed reports byte for byte (version stamps aside).
+
 ## Explain-back questions
 1. "There is no direct edge from A to B." negates both A and B, and "A is not null and feeds B."
    negates neither. Walk through the clause ids, the cues and the value-word check that give
@@ -109,3 +121,6 @@ rows ─► summarise (macro means, bootstrap CI, breakdowns) ─► report .jso
 3. Why must a derived-table alias appear as `<name>.` somewhere in the file before a clause key
    on it is accepted? Give the SQL line that would wrongly pass without that test, and say what
    citation-validity number it would inflate.
+4. Someone runs `metrics.py --system s1-qwen3-4b --view raw`. What happens and why? An S1 answer
+   cites `c_1a2b3c4d`, a chunk that was retrieved but did not fit the budget: what does M7 say
+   about it, and which part of the pipeline decided that?

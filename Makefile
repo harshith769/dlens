@@ -1,4 +1,4 @@
-.PHONY: test test-fast lint ingest eval-smoke eval-s0 eval-full oracle ui demo-bundle demo-requirements check-review
+.PHONY: test test-fast lint ingest eval-smoke eval-s0 eval-s1 eval-full oracle ui demo-bundle demo-requirements check-review
 
 test:
 	uv run pytest
@@ -27,6 +27,16 @@ eval-s0:
 	  --out eval/reports/s0_gold_dev --title "S0-gold on the 96 dev questions"
 	uv run python eval/metrics.py --records eval/runs/s0/s0-linked-dev.jsonl --system s0-linked \
 	  --out eval/reports/s0_linked_dev --title "S0-linked (hybrid off) on the 96 dev questions"
+
+# S1 vector-RAG baseline (S11): provider from DLENS_PROVIDER (default ollama, local and free); a
+# cloud provider is refused unless s1.py gets --allow-cloud. Cached in eval/cache (re-runs free).
+# Writes eval/runs/s1/ and scores it into eval/reports/s1_smoke_dev.{json,md}.
+S1_RECORDS ?= eval/runs/s1/s1-qwen3-4b-instruct-2507-q4-k-m-dev.jsonl
+eval-s1:
+	DLENS_CACHE_DIR=eval/cache uv run --extra agent --extra retrieval python eval/systems/s1.py
+	uv run python eval/metrics.py --records $(S1_RECORDS) --system s1-qwen3-4b \
+	  --out eval/reports/s1_smoke_dev \
+	  --title "S1 (vector RAG, local qwen3:4b) on the 96 dev questions"
 
 # Dev question review gate (S09): every owner decision set, counts match the table.
 check-review:

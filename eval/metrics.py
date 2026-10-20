@@ -1,4 +1,4 @@
-"""Benchmark metrics (S10, v0.3 D3): implements docs/plans/metrics-design.md v1.0 exactly.
+"""Benchmark metrics (S10, v0.3 D3): implements docs/plans/metrics-design.md v1.1 exactly.
 
 Every definition here is the owner's decision in that document; section names (M1-M16) point at
 it. Imports are limited on purpose: the gold spec helpers (``dlens.gold_spec``), the standard
@@ -6,8 +6,9 @@ library and PyYAML (a parser for lineage_spec.yml / traps.yml; ``dlens.gold_spec
 files). Nothing from ``dlens.lineage``, ``dlens.agent``, ``dlens.retrieval`` or ``dlens.graph``:
 metrics never grades a system with the system's own engine.
 
-Pipeline: run records → one adapter per record format (S0, S4) → ``Prediction`` → per-question
-scorers → aggregation and statistics → JSON / Markdown stamped with both versions.
+Pipeline: run records → one adapter per record format (S0 and S4: ``from_record``; S1:
+``from_s1_record``) → ``Prediction`` → per-question scorers → aggregation and statistics →
+JSON / Markdown stamped with both versions.
 
     uv run python eval/metrics.py --records eval/runs/s0/s0-gold-dev.jsonl --system s0 \\
         --out eval/reports/s0_gold_dev
@@ -23,7 +24,7 @@ import random
 import re
 import sys
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -32,7 +33,7 @@ import yaml
 
 from dlens import gold_spec as gs
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 DESIGN_VERSION = "1.1"  # docs/plans/metrics-design.md
 SEED = 20261019  # M13
 RESAMPLES = 1000  # M13
@@ -388,7 +389,6 @@ def from_record(record: Mapping[str, Any], view: str = "validated") -> Predictio
     validated plus claims with ``origin: augmented`` (identical to validated until S12)."""
     edges, cits, truncated = _ledger(record)
     final = record.get("final_answer")
-    structured = record.get("structured") or {}
     base = Prediction(
         kind="crashed",
         edges=edges,
@@ -416,16 +416,47 @@ def from_record(record: Mapping[str, Any], view: str = "validated") -> Predictio
         claims = [c for c in claims if c.get("origin") != "augmented"]
     base.claims = claims
     base.citations = {**cits, **(final.get("citations") or {})}
-    # reach_verdict: the S12 answer field when present, else the record-level key (S0, M5).
-    # The raw view reads only the LLM's own value (S12 records who set it).
-    rv = answer.get("reach_verdict")
-    if rv is None and view != "raw":
-        rv = final.get("reach_verdict", structured.get("reach_verdict"))
-    if isinstance(rv, dict):
-        rv = rv.get("value") if view != "raw" or rv.get("set_by") == "llm" else None
-    base.reach_verdict = rv
+    base.reach_verdict = reach_verdict(record, view)
     base.premise_corrected = answer.get("premise_corrected")
     return base
+
+
+def reach_verdict(record: Mapping[str, Any], view: str = "validated") -> str | None:
+    """M5's one accessor. The ADR 0024 ``Answer`` fields (``reach_verdict`` +
+    ``reach_verdict_source``), else S0's record-level ``structured.reach_verdict``. The raw view
+    counts only the LLM's own value: the pre-validation ``draft`` (the model's by definition), or a
+    final answer whose verdict source is ``llm``."""
+    final = record.get("final_answer") or {}
+    rv: str | None
+    if view == "raw":
+        draft = record.get("draft")
+        if draft is not None:
+            rv = draft.get("reach_verdict")
+        else:
+            rv = final.get("reach_verdict") if final.get("reach_verdict_source") == "llm" else None
+        return rv
+    rv = final.get("reach_verdict")
+    if rv is None:
+        rv = (record.get("structured") or {}).get("reach_verdict")
+    return rv
+
+
+def from_s1_record(record: Mapping[str, Any], view: str = "validated") -> Prediction:
+    """Adapter for S1 (vector RAG, docs/plans/s1-design.md) records: RunRecord format, chunk
+    citations (``c_``) attached by code from the S1 ledger in ``final_answer.citations``, no
+    validator. S1 has one view (validated = its final answer) and never cites an edge."""
+    if view != "validated":
+        raise ValueError(f"S1 has no {view!r} view: it has no validator (only 'validated')")
+    pred = from_record(record, view)
+    edge_ids = [i for i in pred.cited_ids if i.startswith("e_")]
+    if pred.edges or edge_ids:
+        raise ValueError(f"S1 record cites edges, which S1 cannot see: {edge_ids[:3]}")
+    return pred
+
+
+def adapter_for(system: str) -> Callable[[Mapping[str, Any], str], Prediction]:
+    """The record adapter for a system label (M3: one adapter per record format)."""
+    return from_s1_record if system.lower().startswith("s1") else from_record
 
 
 class JoinError(ValueError):
@@ -921,6 +952,7 @@ def score_run(
     view: str = "validated",
     required: Iterable[str] | None = None,
     flagged: set[str] | None = None,
+    adapter: Callable[[Mapping[str, Any], str], Prediction] | None = None,
 ) -> dict[str, Any]:
     """Score one run. ``required``: question ids that must have a record (a missing one counts
     0 and marks the run incomplete); by default every non-Ask question."""
@@ -941,7 +973,7 @@ def score_run(
             missing.append(q["id"])
             pred = Prediction(kind="missing")
         else:
-            pred = from_record(rec, view)
+            pred = (adapter or from_record)(rec, view)
         row = score_question(q, pred, inv, gview, corpus_dir)
         row["linker_test_seen"] = q["id"] in (flagged or set())
         rows.append(row)
@@ -1171,6 +1203,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="pre-S10 records only: build the manifest from the records' own fields",
     )
     ns = ap.parse_args(argv)
+    if adapter_for(ns.system) is from_s1_record and ns.view != "validated":
+        print(f"metrics: S1 has no {ns.view!r} view (no validator)", file=sys.stderr)
+        return 2
     records = [json.loads(x) for x in ns.records.read_text().splitlines() if x.strip()]
     mpath = manifest_path(ns.records)
     if mpath.exists():
@@ -1189,6 +1224,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         view=ns.view,
         flagged=flagged,
         required=manifest.get("required"),
+        adapter=adapter_for(ns.system),
     )
     attach_costs(result, records, qs.items)
     result.update(

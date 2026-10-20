@@ -978,3 +978,8 @@ Notes:
     dev.jsonl gold or to spec §8 (which answers per candidate for ≤ 3 tied candidates).
   - **R3 disagreement count (bug fix):** counts only ids the R3 check actually ran on (ledger ids
     of a record whose validation ran). Found in Step 5, diagnostic only, no headline value changes.
+- 20 Oct 2026 (S11): **S1 records supported** (metrics.py 1.2.0; no definition change, this
+  document stays v1.1). An S1 adapter (`from_s1_record`: validated view only, no edge citations)
+  and the M5 verdict accessor reading the ADR 0024 `Answer` fields (`reach_verdict`,
+  `reach_verdict_source`) and S0's record-level key; the nested `{value, set_by}` shape guessed in
+  S10 is no longer read (no committed record used it). S0 reports re-score byte for byte.

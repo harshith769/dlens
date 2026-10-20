@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
 import sys
 import time
 from collections import defaultdict, deque
@@ -31,9 +30,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # eval/: systems.* as a script
+
 from dlens.agent.tools.entity import AMBIGUOUS_GAP, link
 from dlens.agent.tools.provenance import Provenance
 from dlens.graph import AmbiguousColumn, ColumnNotFound, LineageGraph, load_or_build
+from systems.manifest import base_manifest, write_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = "corpora/synthetic_shop"
@@ -418,33 +420,30 @@ def run(system: str, questions: list[dict[str, Any]], G: Graph) -> list[dict[str
     return out
 
 
-def git_commit() -> str | None:
-    try:
-        return subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return None
-
-
 def manifest(system: str, records: list[dict[str, Any]], records_file: Path) -> dict[str, Any]:
-    text = QUESTIONS.read_text()
     return {
-        "system": system,
-        "view": "validated",
-        "provider": system,
-        "model": "dlens-graph",
-        "records_file": records_file.name,
-        "record_count": len(records),
-        "questions_file": "eval/questions/dev.jsonl",
-        "questions_sha256": hashlib.sha256(text.encode()).hexdigest(),
-        "git_commit": git_commit(),
+        **base_manifest(
+            system=system,
+            provider=system,
+            model="dlens-graph",
+            records_file=records_file,
+            record_count=len(records),
+            required=[r["run_id"].removeprefix(f"{system}-") for r in records],
+            questions=QUESTIONS,
+        ),
         "hybrid": False,
         "linker": "link() without the hybrid stage" if system == "s0-linked" else None,
         "max_depth": MAX_DEPTH,
-        "required": [r["run_id"].removeprefix(f"{system}-") for r in records],
         "note": "S0-linked (hybrid off)" if system == "s0-linked" else "S0-gold (no linker)",
     }
+
+
+def _shown(path: Path) -> str:
+    """The path relative to the repo when it is inside it (never an absolute local path)."""
+    try:
+        return str(path.resolve().relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -459,11 +458,8 @@ def main(argv: list[str] | None = None) -> int:
         records = run(system, questions, G)
         path = ns.out / f"{system}-dev.jsonl"
         path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in records))
-        man = manifest(system, records, path)
-        path.with_name(f"{system}-dev.manifest.json").write_text(
-            json.dumps(man, indent=1, sort_keys=True) + "\n"
-        )
-        print(f"{system}: {len(records)} records → {path.relative_to(ROOT)}", file=sys.stderr)
+        write_manifest(path, manifest(system, records, path))
+        print(f"{system}: {len(records)} records → {_shown(path)}", file=sys.stderr)
     return 0
 
 
