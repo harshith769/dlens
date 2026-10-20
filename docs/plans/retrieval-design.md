@@ -358,3 +358,9 @@ dbt_jira, only index size and build time are reported. Output: `eval/reports/ret
   changed the 73 seed-card ids (ids hash the line range) and, through rank tie-breaking, one frozen
   linker-test top-1 and dev-10's sanity rank, so it waits until after the pilot, together with
   making tie order independent of citation metadata.
+- 20 Oct 2026 (S11, owner decision after a citation audit): the shared helper
+  `dlens.retrieval.citation.chunk_citation` also cites a YAML description (a column card with a
+  description, or a model description) from its entry's `- name:` line through the end of the
+  description, so the cited lines name the entity. Before, only the `description:` line was cited
+  (110 column cards and 49 model descriptions didn't name their entity). The chunker, chunk ids
+  and the index are unchanged. Audit: `eval/reports/citation_audit.md`.

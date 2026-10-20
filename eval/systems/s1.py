@@ -89,6 +89,12 @@ REPAIR = (
     "Reply again with JSON only, matching the schema."
 )
 CLARIFY = '"{text}" could mean several different columns. Which one do you mean?'
+# B4 ledger citations (dlens.retrieval.citation). v2 (B8 freeze change, 20 Oct 2026, citation
+# audit): YAML descriptions are cited from their entry's `- name:` line.
+CITATION_RULE = (
+    "chunk_citation v2: seed card -> CSV header line; YAML description -> its entry from the "
+    "'- name:' line; else the chunk's own range"
+)
 
 # S4's DRAFT_SCHEMA in every shared property, plus reach_verdict and clarification_candidates.
 S1_DRAFT_SCHEMA: dict[str, Any] = {
@@ -149,6 +155,7 @@ def frozen_hashes() -> dict[str, str]:
         "schema": sha256_text(json.dumps(S1_DRAFT_SCHEMA, sort_keys=True)),
         "repair": sha256_text(REPAIR),
         "clarification": sha256_text(CLARIFY),
+        "citation_rule": sha256_text(CITATION_RULE),
         "budget_rule": sha256_text(
             json.dumps(
                 {
@@ -506,7 +513,7 @@ def manifest(
             },
             "index_key": key,
             "index_status": index_status,
-            "citation_rule": "dlens.retrieval.citation.chunk_citation (seed card: CSV header)",
+            "citation_rule": CITATION_RULE,
         },
         "note": "S1 vector RAG: hybrid BM25 + dense + RRF on project text; no graph, no validator",
     }

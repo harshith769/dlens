@@ -1,0 +1,285 @@
+{
+ "chunk_metadata": {
+  "column card (SQL)": {
+   "contains": 186,
+   "examples": [
+    {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "id": "c_05e58cdd",
+     "lines": [
+      2,
+      2
+     ],
+     "names": [
+      "sales_tax"
+     ],
+     "title": "int_customer_order_history.sales_tax \u00b7 column"
+    },
+    {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "id": "c_133a10bb",
+     "lines": [
+      2,
+      2
+     ],
+     "names": [
+      "items_subtotal"
+     ],
+     "title": "int_customer_order_history.items_subtotal \u00b7 column"
+    },
+    {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "id": "c_1f32a5b8",
+     "lines": [
+      2,
+      2
+     ],
+     "names": [
+      "order_date"
+     ],
+     "title": "int_customer_order_history.order_date \u00b7 column"
+    }
+   ],
+   "missing": 19,
+   "n/a": 0
+  },
+  "column card (YAML description)": {
+   "contains": 3,
+   "examples": [
+    {
+     "file": "models/intermediate/schema.yml",
+     "id": "c_1f012663",
+     "lines": [
+      8,
+      8
+     ],
+     "names": [
+      "order_item_id"
+     ],
+     "title": "int_order_items_enriched.order_item_id \u00b7 column"
+    },
+    {
+     "file": "models/intermediate/schema.yml",
+     "id": "c_532c2db9",
+     "lines": [
+      13,
+      13
+     ],
+     "names": [
+      "line_amount"
+     ],
+     "title": "int_order_items_enriched.line_amount \u00b7 column"
+    },
+    {
+     "file": "models/intermediate/schema.yml",
+     "id": "c_be32aedd",
+     "lines": [
+      15,
+      15
+     ],
+     "names": [
+      "is_discounted"
+     ],
+     "title": "int_order_items_enriched.is_discounted \u00b7 column"
+    }
+   ],
+   "missing": 110,
+   "n/a": 0
+  },
+  "column card (seed CSV)": {
+   "contains": 73,
+   "examples": [],
+   "missing": 0,
+   "n/a": 0
+  },
+  "doc chunk (exposure)": {
+   "contains": 2,
+   "examples": [],
+   "missing": 0,
+   "n/a": 0
+  },
+  "doc chunk (model_description)": {
+   "contains": 0,
+   "examples": [
+    {
+     "file": "models/intermediate/schema.yml",
+     "id": "c_04d82518",
+     "lines": [
+      5,
+      5
+     ],
+     "names": [
+      "int_order_items_enriched"
+     ],
+     "title": "int_order_items_enriched \u00b7 description"
+    },
+    {
+     "file": "models/intermediate/schema.yml",
+     "id": "c_d2712e29",
+     "lines": [
+      18,
+      18
+     ],
+     "names": [
+      "int_orders_enriched"
+     ],
+     "title": "int_orders_enriched \u00b7 description"
+    },
+    {
+     "file": "models/intermediate/schema.yml",
+     "id": "c_52b24413",
+     "lines": [
+      31,
+      31
+     ],
+     "names": [
+      "int_payment_events"
+     ],
+     "title": "int_payment_events \u00b7 description"
+    }
+   ],
+   "missing": 49,
+   "n/a": 0
+  },
+  "model chunk (SQL)": {
+   "contains": 62,
+   "examples": [
+    {
+     "file": "models/marts/fct_customer_cohorts.sql",
+     "id": "c_fa020bb1",
+     "lines": [
+      17,
+      20
+     ],
+     "names": [
+      "cohort_customers",
+      "cohort_month",
+      "cohort_net_paid"
+     ],
+     "title": "fct_customer_cohorts \u00b7 sql (part 2)"
+    },
+    {
+     "file": "models/marts/fct_payment_events.sql",
+     "id": "c_ea60485a",
+     "lines": [
+      1,
+      1
+     ],
+     "names": [
+      "event_amount_usd",
+      "event_at",
+      "event_id"
+     ],
+     "title": "fct_payment_events \u00b7 sql"
+    }
+   ],
+   "missing": 2,
+   "n/a": 0
+  }
+ },
+ "chunks": 506,
+ "ledger": {
+  "column card (SQL)": {
+   "contains": 186,
+   "examples": [
+    {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "id": "c_05e58cdd",
+     "lines": [
+      2,
+      2
+     ],
+     "names": [
+      "sales_tax"
+     ],
+     "title": "int_customer_order_history.sales_tax \u00b7 column"
+    },
+    {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "id": "c_133a10bb",
+     "lines": [
+      2,
+      2
+     ],
+     "names": [
+      "items_subtotal"
+     ],
+     "title": "int_customer_order_history.items_subtotal \u00b7 column"
+    },
+    {
+     "file": "models/intermediate/int_customer_order_history.sql",
+     "id": "c_1f32a5b8",
+     "lines": [
+      2,
+      2
+     ],
+     "names": [
+      "order_date"
+     ],
+     "title": "int_customer_order_history.order_date \u00b7 column"
+    }
+   ],
+   "missing": 19,
+   "n/a": 0
+  },
+  "column card (YAML description)": {
+   "contains": 113,
+   "examples": [],
+   "missing": 0,
+   "n/a": 0
+  },
+  "column card (seed CSV)": {
+   "contains": 73,
+   "examples": [],
+   "missing": 0,
+   "n/a": 0
+  },
+  "doc chunk (exposure)": {
+   "contains": 2,
+   "examples": [],
+   "missing": 0,
+   "n/a": 0
+  },
+  "doc chunk (model_description)": {
+   "contains": 49,
+   "examples": [],
+   "missing": 0,
+   "n/a": 0
+  },
+  "model chunk (SQL)": {
+   "contains": 62,
+   "examples": [
+    {
+     "file": "models/marts/fct_customer_cohorts.sql",
+     "id": "c_fa020bb1",
+     "lines": [
+      17,
+      20
+     ],
+     "names": [
+      "cohort_customers",
+      "cohort_month",
+      "cohort_net_paid"
+     ],
+     "title": "fct_customer_cohorts \u00b7 sql (part 2)"
+    },
+    {
+     "file": "models/marts/fct_payment_events.sql",
+     "id": "c_ea60485a",
+     "lines": [
+      1,
+      1
+     ],
+     "names": [
+      "event_amount_usd",
+      "event_at",
+      "event_id"
+     ],
+     "title": "fct_payment_events \u00b7 sql"
+    }
+   ],
+   "missing": 2,
+   "n/a": 0
+  }
+ }
+}

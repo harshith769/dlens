@@ -57,6 +57,8 @@ FROZEN = {
     "schema": "6036435098ff605e8903f6fd711ee099975339141c3d9d7c1306c957d9f3f65d",
     "repair": "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b",
     "clarification": "40fd7a42eff2255149fcebd964d1677664232bb30c3eb6dcc8a1ea38251efa92",
+    # B8 freeze change, 20 Oct 2026 (citation audit): chunk_citation v2
+    "citation_rule": "82c70ab0069a38291bf0855fbeabcb7c1ee95535f175b0a1a115a48a4ec53a69",
     "budget_rule": "c2ec079e87e8ef5e99ce68df2e408da841791621e89060cec69df944269cd1a9",
 }
 
@@ -177,7 +179,7 @@ def test_fake_run_writes_records_and_manifest(index: Any, tmp_path: Path) -> Non
     )
     assert ret["kinds"] == "all (model, column, doc)" and ret["query"] == "raw question text"
     assert ret["embedder"]["model"] == "fake" and ret["index_key"]["chunker_version"] == 1
-    assert ret["index_status"] == "index reused" and "seed" in ret["citation_rule"]
+    assert ret["index_status"] == "index reused" and ret["citation_rule"] == s1.CITATION_RULE
     assert str(Path.home()) not in mpath.read_text() + path.read_text()
 
 

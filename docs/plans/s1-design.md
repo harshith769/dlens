@@ -471,3 +471,12 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   setting changed after the numbers were seen. Report: `eval/reports/s11_session.md`. Structural
   finding raised for the owner (not acted on): YAML-description column cards cite only their
   `description:` line, which doesn't hold the column name, so M7 marks those citations invalid.
+- 20 Oct 2026: B8 freeze change: citation ranges fixed by audit; affects the evidence header
+  lines; S1 re-run. Owner decision (citation-metadata bug, found structurally, applies to S1 and
+  S4 alike). `scripts/citation_audit.py` checked every chunk's cited range for its own entity
+  name (`eval/reports/citation_audit.md`). The shared helper now also cites a YAML description
+  (column card or model description) from its entry's `- name:` line through the description:
+  110 + 49 ranges fixed. Star pass-through column cards (19) and 2 SQL chunks name no entity in
+  any range inside their statement and stay unchanged. No change to chunk ids, chunk text, the
+  index or the linker. `CITATION_RULE` joins the frozen block (its sha256 is in every manifest).
+  The first S1 run's reports are kept as `eval/reports/s1_smoke_dev_v1.*`.

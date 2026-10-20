@@ -143,6 +143,15 @@ header line names the column as a whole word, it returns line 1 at `level: line`
 the column is defined. Every other chunk keeps its own citation. S1's ledger uses it now, and S4's
 will when `search_docs` is wired in (S12), so both systems' seed citations follow one rule.
 
+The same helper fixes YAML descriptions (S11, after `scripts/citation_audit.py` checked every
+chunk). A column card with a description, or a model description, is cited by the chunker at its
+`description:` line, which doesn't name the column or model: the name sits on the entry's
+`- name:` line above. `yaml_entry_citation` scans up from the description to the list item that
+opens its entry, and cites from that `- name: <name>` line through the description's end. It
+gives up, keeping the chunk's own range, if a sibling entry intervenes or the entry is named
+after something else. Star pass-through column cards (the `select *` line names no column) can't
+be fixed this way and keep their range.
+
 Why not fix it in the chunker? Chunk ids hash the line range, so new seed-card ranges mean new
 ids. Rows are stored sorted by id, and BM25/dense/RRF break score ties by row order or id. That
 attempt left text and vectors byte-identical but still moved one frozen linker result and one
@@ -161,3 +170,6 @@ doesn't depend on ids.
 4. The seed-card fix first went into the chunker's metadata, and text and vectors stayed
    byte-identical, yet a linker result changed. Trace the path from a citation line range to a
    linker top-1, and say why the fix lives in `citation.py` until the pilot.
+5. A column card's YAML entry is `- name: amt` / `tests: [...]` / `description: Amount.`. Which
+   lines does the ledger cite, and what if a `- name: other` entry sat between the name line and
+   the description? Why can't the same trick fix a star pass-through card?
