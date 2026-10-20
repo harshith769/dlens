@@ -241,6 +241,13 @@ S12a (A1):
   S4-only line legitimately?
 - C. Why is the S4 text a literal copy checked by a test rather than an import of `S1_SYSTEM`?
 
+S12a (A4, A5):
+- D. A run makes 4 LLM calls; 3 come from the cache. What is the record's `cache` value, and why
+  does M15 need it at record level?
+- E. dev-67's answer prompt is over the cap and `trim()` cuts 6 indirect columns of
+  `fct_orders`. What does the model read about them, and why is the line counted inside the
+  budget check?
+
 Earlier:
 1. The tool phase compacted a `get_model_sql` result down to its `excerpt_id` and range. Why can
    the answer phase still quote the SQL, and why would that be impossible in a single-phase loop
