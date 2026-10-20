@@ -149,7 +149,7 @@ def test_impact_truncates_under_the_cap(tmp_path: Path) -> None:
     assert 0 < kept < 150 and p["dropped"]["columns"] == 150 - kept
     assert tokens(r) <= MAX_RESULT_TOKENS
     # never silent: 150 - kept cut columns in 150 - kept models -> one collapsed line
-    assert p["more"] == [f"+{150 - kept} more columns in {150 - kept} models (direct, depth 1)"]
+    assert p["more"] == [f"+{150 - kept} more columns in {150 - kept} models (direct)"]
     # no dangling ids: everything shown has a side record, nothing unseen was emitted
     via = {v for _, v in shown(p)}
     assert via == set(r.side_records["edges"]) == set(box.emitted_ids)
@@ -508,6 +508,4 @@ def test_more_lines_per_model_then_per_group() -> None:
         "+1 more columns in fct_b (JOIN)",
     ]
     many = [x(1, "direct", f"m{i:02d}", "c") for i in range(MAX_MORE_LINES + 1)]
-    assert more_lines(many) == [
-        f"+{len(many)} more columns in {len(many)} models (direct, depth 1)"
-    ]
+    assert more_lines(many) == [f"+{len(many)} more columns in {len(many)} models (direct)"]

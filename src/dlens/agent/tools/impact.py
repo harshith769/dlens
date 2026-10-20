@@ -15,7 +15,8 @@ Over the token cap, columns are cut in a fixed order (depth, model, column), kep
 and every cut (depth, kind, model) leaves one visible line in ``more``: "+K more columns in
 <model> (<kind>)". If that would take more than ``MAX_MORE_LINES`` lines (a wide project where
 each cut model loses one column, so the lines would be as long as the columns they replace), the
-lines are per (depth, kind) instead: "+K more columns in N models (<kind>, depth D)".
+lines are per (depth, kind) instead, stating both counts: "+K more columns in M models (<kind>)"
+(owner, 20 Oct 2026). Lines come in cut order, so depth increases down the list.
 ``side["full"]`` always holds every column with its whole via chain.
 """
 
@@ -115,8 +116,7 @@ def more_lines(cut: list[Reached]) -> list[str]:
         n, models = groups.get((x.depth, x.label), (0, set()))
         groups[(x.depth, x.label)] = (n + 1, models | {x.model})
     return [
-        f"+{n} more columns in {len(models)} model{'s' if len(models) > 1 else ''} "
-        f"({label}, depth {depth})"
+        f"+{n} more columns in {len(models)} model{'s' if len(models) > 1 else ''} ({label})"
         for (depth, label), (n, models) in groups.items()
     ]
 

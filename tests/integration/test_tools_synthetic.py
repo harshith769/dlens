@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 from dlens.agent.tools import Toolbox
+from dlens.gold_spec import expand_indirect
 from dlens.graph import LineageGraph, build_graph
 from dlens.lineage import short_id
 
@@ -25,6 +26,15 @@ def box(synthetic_graph: LineageGraph, synthetic_project: Path) -> Toolbox:
 def gold_kinds() -> dict[tuple[str, str], str]:
     spec = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())["edges"]
     return {(e["from"].lower(), e["to"].lower()): e["kind"] for e in spec}
+
+
+def gold_indirect() -> set[tuple[str, str, str]]:
+    """The gold spec's indirect edges as (from, to, type), expanded as the spec checker does."""
+    spec = yaml.safe_load((CORPUS / "lineage_spec.yml").read_text())
+    models = {m: list(v["columns"]) for m, v in spec["models"].items()}
+    direct = {(e["from"], e["to"]) for e in spec["edges"]}
+    pairs = expand_indirect(spec["indirect_edges"], models, direct).pairs
+    return {(p.from_column.lower(), p.to_column.lower(), p.type) for p in pairs}
 
 
 GAPS = yaml.safe_load((CORPUS / "engine_gaps.yml").read_text())
@@ -50,7 +60,8 @@ def test_every_edge_returned_by_trace_and_impact_is_in_the_gold_spec(
     seen: set[str] = set()
     seen_indirect: set[str] = set()
     seen_gaps: set[tuple[str, str]] = set()
-    indirect_ids = {box._prov.edge_record(x)["edge_id"] for x in synthetic_graph.indirect_edges()}
+    gold_ind = gold_indirect()
+    assert len(gold_ind) == 621
     for col in synthetic_graph.columns():
         box.reset()
         for tool in ("trace_upstream", "impact_downstream"):
@@ -58,7 +69,8 @@ def test_every_edge_returned_by_trace_and_impact_is_in_the_gold_spec(
             assert not r.is_error, (tool, col, r.llm_payload)
             for eid, rec in r.side_records["edges"].items():
                 if rec.get("indirect"):  # impact is direct + indirect since S12a (A5)
-                    assert eid in indirect_ids and rec["kind"] != "IDENTITY"
+                    triple = (short_id(rec["from"]), short_id(rec["to"]), rec["kind"])
+                    assert triple in gold_ind, triple  # checked against the gold, not the engine
                     seen_indirect.add(eid)
                     continue
                 key = (short_id(rec["from"]), short_id(rec["to"]))

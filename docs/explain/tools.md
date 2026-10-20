@@ -150,7 +150,7 @@ parts and `closest` stay in the side record.
   and every cut (depth, kind, model) gets one line in `more`: "+K more columns in <model>
   (<kind>)", with `truncated` and `dropped`. When that would be more than 12 lines (a wide project
   where each cut model loses one column, so the lines would be as long as what they replace) the
-  lines are per (depth, kind): "+K more columns in N models (<kind>, depth D)". Only
+  lines are per (depth, kind), stating both counts: "+K more columns in M models (<kind>)". Only
   `stg_products.product_id` (175 columns, in no dev question) is cut on synthetic_shop.
 - **Side records.** `edges` and `columns` hold the shown columns (what the ledger emits and the
   validator's evidence reads); `full` holds every reached column with its whole via chain and
