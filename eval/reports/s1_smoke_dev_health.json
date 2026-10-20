@@ -15,7 +15,7 @@
    "p50": 138,
    "p95": 162
   },
-  "cited_ids": 293,
+  "cited_ids": 278,
   "est_input_tokens": {
    "max": 2800,
    "mean": 2786.6,
@@ -43,34 +43,34 @@
    "p95": 39
   },
   "latency_ms_uncached": {
-   "max": 19832.1,
-   "mean": 8505.8,
-   "min": 3508.2,
-   "n": 95,
-   "p50": 7727.6,
-   "p95": 14699.8
+   "max": 43114.4,
+   "mean": 9381.6,
+   "min": 3668.8,
+   "n": 96,
+   "p50": 9265.5,
+   "p95": 13691.1
   },
   "llm_calls": {
    "1": 96
   },
   "llm_calls_total": 96,
   "output_tokens": {
-   "max": 778,
-   "mean": 264.8,
+   "max": 591,
+   "mean": 259.7,
    "min": 87,
    "n": 96,
-   "p50": 283,
-   "p95": 417
+   "p50": 262,
+   "p95": 414
   },
   "provider_errors_retried": 0,
   "records": 96,
   "repairs_succeeded": 0,
-  "seed_card_citations": 14,
+  "seed_card_citations": 11,
   "stop_reason": {
    "answered": 96
   },
-  "uncached_records": 95,
-  "uncited_ids": 1,
+  "uncached_records": 96,
+  "uncited_ids": 4,
   "unused_budget_tokens": {
    "max": 38,
    "mean": 13.4,
@@ -92,8 +92,8 @@
    },
    "identifier": {
     "card_shown": 42,
-    "llm_miss": 31,
-    "losses": 31,
+    "llm_miss": 32,
+    "losses": 32,
     "retrieval_miss": 0,
     "with_card": 42
    },
@@ -114,8 +114,8 @@
   },
   "overall": {
    "card_shown": 86,
-   "llm_miss": 64,
-   "losses": 65,
+   "llm_miss": 65,
+   "losses": 66,
    "retrieval_miss": 1,
    "with_card": 87
   },
@@ -319,7 +319,7 @@
     "wording": "identifier"
    },
    {
-    "fully_correct": 1.0,
+    "fully_correct": 0.0,
     "id": "dev-23",
     "rank": 1,
     "status": "shown",

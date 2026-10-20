@@ -30,7 +30,9 @@ identically in all three views. S0's records and manifests are unchanged after t
 manifest-writer refactor (timings and commit hash aside). The `uv.lock` diff only removes
 groq 1.7.0 and lists `httpx` under the `agent` extra. `demo/requirements.txt` is unchanged.
 
-## S1 smoke beside S0 (96 dev questions)
+## S1 smoke beside S0 (96 dev questions): run 1 (v1)
+
+*Superseded as the frozen S1 by v2 (B8 freeze change, section at the end). Kept as `s1_smoke_dev_v1.*`, records in `eval/runs/s1/v1/`.*
 
 Report only, not the pilot table. S1 = local qwen3:4b-instruct-2507-q4_K_M via Ollama, hybrid
 retrieval (index reused), metrics.py 1.2.0 / metrics-design 1.1. The S0 rows are the committed S10
@@ -116,3 +118,78 @@ citation metadata.
 S4 ~480 expected, 768 worst. Pilot total **≈ 576 expected, ≈ 960 worst** (was 864), 2–3 quota days
 at 380 usable/day. On local qwen, S1 needed 0 repairs on dev. S1 on Gemini must be launched by
 the owner with `--allow-cloud` after confirming the quota plan.
+
+## B8 freeze change: citation audit, S1 re-run (v2 is the frozen S1)
+
+**Owner decision** (citation-metadata bug, found structurally, applies to S1 and S4 alike).
+`scripts/citation_audit.py` checked every chunk's cited range for its own entity name
+(`citation_audit.md`; report only, no scores). The ledger, before the fix: YAML column cards
+3 contain / 110 missing; model descriptions 0 / 49; SQL column cards 186 / 19; SQL model chunks
+62 / 2; seed cards 73 / 0; exposures 2 / 0. The shared helper now cites a YAML description from
+its entry's `- name:` line through the description, inside the same entry: YAML column cards
+113 / 0, model descriptions 49 / 0. **Not fixable this way, left unchanged:** 19 star
+pass-through column cards (their `select *` line names no column, and nothing in the statement
+does) and 2 SQL chunks that name no entity. No change to chunk ids, chunk text, the index or the
+linker. `linker.md`, `linker.json` and `retrieval-sanity.md` are identical to main (build times
+aside). The S0 and S4 smoke reports are unchanged.
+
+**Re-run** (local qwen3:4b, Ollama, free): 96/96 records, complete, index reused, 96 uncached
+calls, 0 JSON failures or repairs, 1 call per question. **The shown chunk sets are identical in
+all 96 questions** (same k, same ranks); the only prompt difference is the citation ranges
+printed in the evidence headers. Every answer change below is therefore the model reacting to
+those header lines, plus the citation re-check. Old → new, every headline value:
+
+| metric | S1 v1 (run 1) | S1 v2 (frozen) |
+|---|---|---|
+| node_f1 | 0.248 [0.17, 0.33] (n=68) | 0.243 [0.17, 0.32] (n=68) |
+| trace_f1 | 0.303 [0.19, 0.41] (n=44) | 0.270 [0.16, 0.38] (n=44) |
+| impact_f1 | 0.148 [0.07, 0.24] (n=24) | 0.193 [0.10, 0.29] (n=24) |
+| upstream_f1 | 0.361 [0.22, 0.49] (n=29) | 0.334 [0.20, 0.47] (n=29) |
+| inputs_f1 | 0.189 [0.04, 0.39] (n=15) | 0.144 [0.00, 0.33] (n=15) |
+| inputs_f1_tolerant | 0.231 [0.05, 0.46] (n=15) | 0.187 [0.00, 0.43] (n=15) |
+| columns_f1 | 0.154 [0.08, 0.25] (n=24) | 0.199 [0.11, 0.29] (n=24) |
+| models_f1 | 0.468 [0.36, 0.56] (n=24) | 0.453 [0.34, 0.55] (n=24) |
+| exposures_f1 | 0.375 [0.17, 0.54] (n=24) | 0.375 [0.17, 0.54] (n=24) |
+| yesno_correct | 0.500 (n=6) | 0.500 (n=6) |
+| refusal_correct | 0.556 (n=9) | 0.556 (n=9) |
+| false_refusal | 0.011 [0.00, 0.05] (n=87) | 0.011 [0.00, 0.03] (n=87) |
+| chain_correct | 0.000 (n=2) | 0.000 (n=2) |
+| clarify_correct | 0.000 (n=1) | 0.000 (n=1) |
+| premise_rejected | 0.250 (n=4) | 0.250 (n=4) |
+| path_node_coverage | 0.207 [0.07, 0.34] (n=29) | 0.207 [0.07, 0.34] (n=29) |
+| fully_correct | 0.179 [0.11, 0.26] (n=84) | 0.167 [0.10, 0.25] (n=84) |
+| hallucination_rate | 0.000 [0.00, 0.00] (n=76) | 0.004 [0.00, 0.01] (n=76) |
+| has_hallucination | 0.000 [0.00, 0.00] (n=90) | 0.011 [0.00, 0.03] (n=90) |
+| citation_valid_answer | 0.322 [0.22, 0.42] (n=90) | 0.478 [0.37, 0.59] (n=90) |
+| citation_coverage | 1.000 [1.00, 1.00] (n=90) | 1.000 [1.00, 1.00] (n=90) |
+
+Per citation (as scored, deduplicated per answer): v1 132 / 282 valid → v2 163 / 262.
+Fully correct changed on one question: dev-23 (1 → 0). One v2 answer has a hallucinated node
+(v1: none).
+
+Invalid citations before / after (counted per claim occurrence, so slightly above the deduplicated
+report counts):
+
+| invalid citations: reason | v1 | v2 |
+|---|---|---|
+| excerpt names no column of its claim | 157 | 105 |
+| no citation attached | 1 | 4 |
+
+| invalid citations: cited chunk kind, claim | v1 | v2 |
+|---|---|---|
+| column card (SQL), claim names ids | 7 | 8 |
+| column card (SQL), claim names no id | 16 | 12 |
+| column card (YAML description), claim names ids | 42 | 0 |
+| column card (YAML description), claim names no id | 19 | 17 |
+| column card (seed CSV), claim names no id | 7 | 6 |
+| doc chunk (model_description), claim names ids | 1 | 2 |
+| doc chunk (model_description), claim names no id | 5 | 5 |
+| model chunk (SQL), claim names ids | 5 | 4 |
+| model chunk (SQL), claim names no id | 55 | 51 |
+| unknown id, claim names ids | 1 | 3 |
+| unknown id, claim names no id | 0 | 1 |
+
+What moved: the 42 invalid citations of YAML column cards whose claim names ids are gone (0).
+What is left is mostly claims that name no `model.column` id (model behaviour; M7's excerpt rule
+needs a named column), plus the unfixable star pass-through cards. **v2 is the frozen S1**:
+`s1_smoke_dev.*`, `s1_smoke_dev_health.*`, records in `eval/runs/s1/`.

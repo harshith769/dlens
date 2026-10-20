@@ -1,0 +1,995 @@
+{
+ "health": {
+  "answer_kinds": {
+   "answered": 90,
+   "refused": 6
+  },
+  "budget_stop": {
+   "budget_full": 96
+  },
+  "candidates": {
+   "max": 169,
+   "mean": 136.9,
+   "min": 100,
+   "n": 96,
+   "p50": 138,
+   "p95": 162
+  },
+  "cited_ids": 293,
+  "est_input_tokens": {
+   "max": 2800,
+   "mean": 2786.6,
+   "min": 2762,
+   "n": 96,
+   "p50": 2789,
+   "p95": 2800
+  },
+  "input_tokens_reported": {
+   "max": 2257,
+   "mean": 2064.6,
+   "min": 1892,
+   "n": 96,
+   "p50": 2068,
+   "p95": 2199
+  },
+  "json_failed_after_repair": 0,
+  "json_parse_failures_first_try": 0,
+  "k_used": {
+   "max": 45,
+   "mean": 29.3,
+   "min": 21,
+   "n": 96,
+   "p50": 28,
+   "p95": 39
+  },
+  "latency_ms_uncached": {
+   "max": 19832.1,
+   "mean": 8505.8,
+   "min": 3508.2,
+   "n": 95,
+   "p50": 7727.6,
+   "p95": 14699.8
+  },
+  "llm_calls": {
+   "1": 96
+  },
+  "llm_calls_total": 96,
+  "output_tokens": {
+   "max": 778,
+   "mean": 264.8,
+   "min": 87,
+   "n": 96,
+   "p50": 283,
+   "p95": 417
+  },
+  "provider_errors_retried": 0,
+  "records": 96,
+  "repairs_succeeded": 0,
+  "seed_card_citations": 14,
+  "stop_reason": {
+   "answered": 96
+  },
+  "uncached_records": 95,
+  "uncited_ids": 1,
+  "unused_budget_tokens": {
+   "max": 38,
+   "mean": 13.4,
+   "min": 0,
+   "n": 96,
+   "p50": 10,
+   "p95": 31
+  }
+ },
+ "index_status": "index reused",
+ "retrieval": {
+  "by_wording": {
+   "description": {
+    "card_shown": 10,
+    "llm_miss": 8,
+    "losses": 8,
+    "retrieval_miss": 0,
+    "with_card": 10
+   },
+   "identifier": {
+    "card_shown": 42,
+    "llm_miss": 31,
+    "losses": 31,
+    "retrieval_miss": 0,
+    "with_card": 42
+   },
+   "name_words": {
+    "card_shown": 16,
+    "llm_miss": 11,
+    "losses": 11,
+    "retrieval_miss": 0,
+    "with_card": 16
+   },
+   "paraphrase": {
+    "card_shown": 18,
+    "llm_miss": 14,
+    "losses": 15,
+    "retrieval_miss": 1,
+    "with_card": 19
+   }
+  },
+  "overall": {
+   "card_shown": 86,
+   "llm_miss": 64,
+   "losses": 65,
+   "retrieval_miss": 1,
+   "with_card": 87
+  },
+  "questions": [
+   {
+    "fully_correct": 1.0,
+    "id": "dev-01",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_payments.amount_usd",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-02",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_customers.country_code",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-03",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_items_enriched.line_amount",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-04",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_financials.sales_tax",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-05",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.net_paid_usd",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-06",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_daily_revenue.revenue_marketing",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-07",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_products.list_price",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-08",
+    "rank": 1,
+    "status": "shown",
+    "target": "raw_refunds.refund_amt",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-09",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_financials.order_date",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-10",
+    "rank": 1,
+    "status": "shown",
+    "target": "raw_payments.amt",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-11",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.revenue_finance",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-12",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_orders_enriched.order_status_group",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-13",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_financials.order_total",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-14",
+    "rank": 2,
+    "status": "shown",
+    "target": "int_order_items_enriched.product_category",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-15",
+    "rank": 64,
+    "status": "retrieved, not shown",
+    "target": "dim_customers.order_count",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-16",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.previous_order_date",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-17",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.revenue_finance",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-18",
+    "rank": 2,
+    "status": "shown",
+    "target": "int_order_financials.net_paid_usd",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-19",
+    "rank": null,
+    "status": "no card",
+    "target": "stg_orders.ship_date",
+    "type": "unanswerable",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-20",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_payment_events.event_at",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-21",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_shipments.shipped_at",
+    "type": "trace",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-22",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_shipments.carrier",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-23",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_product_costs.product_id",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-24",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_order_items.quantity",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-25",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_refunds.refund_reason",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-26",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_order_items.order_item_id",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-27",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_promotions.promo_codes",
+    "type": "trace",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-28",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_payment_events.event_id",
+    "type": "trace",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-29",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_item_margins.line_margin",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-30",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_shipments_enriched.days_to_ship",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-31",
+    "rank": 2,
+    "status": "shown",
+    "target": "int_web_sessions_clean.session_started_at",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-32",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_items_enriched.product_id",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-33",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_channel_performance_monthly.spend_usd",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-34",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_customer_order_history.sales_tax",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-35",
+    "rank": 1,
+    "status": "shown",
+    "target": "dim_customer_segments.customer_id",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-36",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_order_margins.cogs_total",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-37",
+    "rank": 2,
+    "status": "shown",
+    "target": "fct_orders.order_status_group",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-38",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_financials.items_subtotal",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-39",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.refunded_amount",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-40",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_profit.order_id",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-41",
+    "rank": 1,
+    "status": "shown",
+    "target": "dim_customer_segments.customer_segment",
+    "type": "trace",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-42",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_monthly_finance.revenue_marketing",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-43",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_channel_performance_monthly.roas",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-44",
+    "rank": 1,
+    "status": "shown",
+    "target": "dim_customer_segments.rfm_score",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-45",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_monthly_finance.contribution_margin",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-46",
+    "rank": 2,
+    "status": "shown",
+    "target": "fct_segment_monthly.order_month",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-47",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_segment_monthly.segment_order_count",
+    "type": "trace",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-48",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.item_count",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-49",
+    "rank": 5,
+    "status": "shown",
+    "target": "int_customer_sessions.customer_id",
+    "type": "trace",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-50",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_segment_monthly.active_customers",
+    "type": "trace",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-51",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_items_enriched.is_discounted",
+    "type": "impact",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-52",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_web_sessions_clean.session_started_at",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-53",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_product_costs.product_id",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-54",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.net_paid_usd",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-55",
+    "rank": 2,
+    "status": "shown",
+    "target": "raw_product_costs.id",
+    "type": "impact",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-56",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_daily_revenue.revenue_marketing",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-57",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_orders_enriched.order_status_group",
+    "type": "impact",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-58",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_item_margins.line_margin",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-59",
+    "rank": 1,
+    "status": "shown",
+    "target": "raw_products.list_price",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-60",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_items_enriched.product_id",
+    "type": "impact",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-61",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_order_items.order_item_id",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-62",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_product_costs_current.unit_cost",
+    "type": "impact",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-63",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_order_promotions.discount_usd",
+    "type": "impact",
+    "wording": "description"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-64",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_items_enriched.quantity",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-65",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_orders.refunded_amount",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-66",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_customer_order_history.sales_tax",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-67",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_order_items.quantity",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-68",
+    "rank": 2,
+    "status": "shown",
+    "target": "int_order_financials.sales_tax",
+    "type": "impact",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-69",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_items_enriched.line_amount",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-70",
+    "rank": 1,
+    "status": "shown",
+    "target": "dim_customer_segments.customer_id",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-71",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_customer_sessions.customer_id",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-72",
+    "rank": 3,
+    "status": "shown",
+    "target": "int_order_financials.items_subtotal",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-73",
+    "rank": 2,
+    "status": "shown",
+    "target": "raw_payments.created_at",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-74",
+    "rank": 3,
+    "status": "shown",
+    "target": "int_product_costs_current.product_id",
+    "type": "impact",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-75",
+    "rank": 2,
+    "status": "shown",
+    "target": "raw_customers.last_name",
+    "type": "impact",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-76",
+    "rank": 5,
+    "status": "shown",
+    "target": "stg_marketing_spend.impressions",
+    "type": "impact",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-77",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_channel_performance_monthly.roas",
+    "type": "ask",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-78",
+    "rank": 2,
+    "status": "shown",
+    "target": "fct_daily_revenue.revenue_marketing",
+    "type": "ask",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-79",
+    "rank": 1,
+    "status": "shown",
+    "target": "dim_customers.lifetime_value",
+    "type": "ask",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-80",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_monthly_finance.revenue_marketing",
+    "type": "ask",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-81",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_item_margins.line_margin",
+    "type": "ask",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-82",
+    "rank": 1,
+    "status": "shown",
+    "target": "int_order_financials.refund_amount",
+    "type": "ask",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-83",
+    "rank": 1,
+    "status": "shown",
+    "target": "stg_shipments.shipping_cost_usd",
+    "type": "ask",
+    "wording": "description"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-84",
+    "rank": 4,
+    "status": "shown",
+    "target": "int_orders_enriched.order_status_group",
+    "type": "ask",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-85",
+    "rank": 1,
+    "status": "shown",
+    "target": "dim_customer_segments.customer_segment",
+    "type": "ask",
+    "wording": "description"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-86",
+    "rank": 3,
+    "status": "shown",
+    "target": "fct_order_margins.order_id",
+    "type": "ask",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-87",
+    "rank": 6,
+    "status": "shown",
+    "target": "int_web_sessions_clean.session_id",
+    "type": "ask",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": null,
+    "id": "dev-88",
+    "rank": 1,
+    "status": "shown",
+    "target": "fct_shipping_performance.late_shipment_count",
+    "type": "ask",
+    "wording": "paraphrase"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-89",
+    "rank": null,
+    "status": "no card",
+    "target": "int_order_shipping.shipping_cost",
+    "type": "unanswerable",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-90",
+    "rank": null,
+    "status": "no card",
+    "target": "fct_orders.discount_total",
+    "type": "unanswerable",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-91",
+    "rank": null,
+    "status": "no card",
+    "target": "dim_customers.segment",
+    "type": "unanswerable",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-92",
+    "rank": null,
+    "status": "no card",
+    "target": "fct_daily_revenue.revnue_finance",
+    "type": "unanswerable",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 0.0,
+    "id": "dev-93",
+    "rank": null,
+    "status": "no card",
+    "target": "fct_returns.return_amount",
+    "type": "unanswerable",
+    "wording": "identifier"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-94",
+    "rank": null,
+    "status": "no card",
+    "target": "gift card balance",
+    "type": "unanswerable",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-95",
+    "rank": null,
+    "status": "no card",
+    "target": "loyalty points",
+    "type": "unanswerable",
+    "wording": "name_words"
+   },
+   {
+    "fully_correct": 1.0,
+    "id": "dev-96",
+    "rank": null,
+    "status": "no card",
+    "target": "payroll.employee_salary",
+    "type": "unanswerable",
+    "wording": "paraphrase"
+   }
+  ],
+  "rank_check_mismatches": [],
+  "status": {
+   "no card": 9,
+   "retrieved, not shown": 1,
+   "shown": 86
+  }
+ }
+}

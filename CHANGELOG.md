@@ -37,6 +37,10 @@ All notable changes to this project are documented here. The format follows
   endpoint needs a key and a daily call budget.
 - **`Answer.reach_verdict` / `reach_verdict_source`** (ADR 0024, additive): the structured yes/no
   verdict metrics scores, and who set it. S4 adopts it in S12.
+- **Citation audit** (`scripts/citation_audit.py`, `eval/reports/citation_audit.md`): the
+  ledger citation helper also cites a YAML description from its entry's `- name:` line, so the
+  cited lines name the column or model (110 column cards, 49 model descriptions). S1 was re-run
+  under that rule (B8 freeze change), and v2 is the frozen S1.
 - **Shared run-manifest writer** `eval/systems/manifest.py` (S0, S1; S4 in S12) and the
   seed-card citation helper `dlens.retrieval.citation` (a seed column card is cited at its CSV
   header line).

@@ -11,7 +11,7 @@
   "repair_reserve": 200
  },
  "date": "2026-10-20",
- "git_commit": "f0efd336c0302cc44d45088962d062b1a5b4b6bb",
+ "git_commit": "a484ba1683997fc15ddb61121531b64878a25b9b",
  "hybrid": true,
  "metrics_versions": {
   "design": "1.1",
@@ -26,6 +26,7 @@
  },
  "prompt_sha256": {
   "budget_rule": "c2ec079e87e8ef5e99ce68df2e408da841791621e89060cec69df944269cd1a9",
+  "citation_rule": "82c70ab0069a38291bf0855fbeabcb7c1ee95535f175b0a1a115a48a4ec53a69",
   "clarification": "40fd7a42eff2255149fcebd964d1677664232bb30c3eb6dcc8a1ea38251efa92",
   "evidence_rule": "56973cf48a60bd249c3282cb83e097b9d6c4549b6622100206286f1fc378c6e4",
   "repair": "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b",
@@ -138,7 +139,7 @@
  ],
  "retrieval": {
   "candidates": 200,
-  "citation_rule": "dlens.retrieval.citation.chunk_citation (seed card: CSV header)",
+  "citation_rule": "chunk_citation v2: seed card -> CSV header line; YAML description -> its entry from the '- name:' line; else the chunk's own range",
   "embedder": {
    "max_length": 512,
    "model": "BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
