@@ -41,7 +41,8 @@
     }
    ],
    "missing": 19,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "column card (YAML description)": {
    "contains": 3,
@@ -84,19 +85,22 @@
     }
    ],
    "missing": 110,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "column card (seed CSV)": {
    "contains": 73,
    "examples": [],
    "missing": 0,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "doc chunk (exposure)": {
    "contains": 2,
    "examples": [],
    "missing": 0,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "doc chunk (model_description)": {
    "contains": 0,
@@ -139,7 +143,8 @@
     }
    ],
    "missing": 49,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "model chunk (SQL)": {
    "contains": 62,
@@ -174,7 +179,8 @@
     }
    ],
    "missing": 2,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   }
  },
  "chunks": 506,
@@ -220,31 +226,36 @@
     }
    ],
    "missing": 19,
-   "n/a": 0
+   "n/a": 0,
+   "star": 16
   },
   "column card (YAML description)": {
    "contains": 113,
    "examples": [],
    "missing": 0,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "column card (seed CSV)": {
    "contains": 73,
    "examples": [],
    "missing": 0,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "doc chunk (exposure)": {
    "contains": 2,
    "examples": [],
    "missing": 0,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "doc chunk (model_description)": {
    "contains": 49,
    "examples": [],
    "missing": 0,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   },
   "model chunk (SQL)": {
    "contains": 62,
@@ -279,7 +290,8 @@
     }
    ],
    "missing": 2,
-   "n/a": 0
+   "n/a": 0,
+   "star": 0
   }
  }
 }

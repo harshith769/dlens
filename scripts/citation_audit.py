@@ -11,6 +11,9 @@ name, as a whole word, case-insensitive:
 * doc chunk: the entity it describes (model description: the model name; exposure: its name;
   README: none, so not applicable).
 
+A citation's ``level`` is counted too: star pass-through column cards keep their range and are
+cited at ``level: star`` (M7 checks such lines for ``*``, not for the name).
+
 Writes ``eval/reports/citation_audit.{md,json}``. ``--before`` adds the counts of an earlier run
 (a JSON written by this script) as a "before" column.
 
@@ -87,12 +90,15 @@ def audit(
             columns_by_model[c.model].add(c.column.rsplit(".", 1)[-1])
     out: dict[str, dict[str, Any]] = {}
     for c in sorted(chunks, key=lambda c: (kind_of(c), c.file, c.line_start, c.id)):
-        k = out.setdefault(kind_of(c), {"contains": 0, "missing": 0, "n/a": 0, "examples": []})
+        k = out.setdefault(
+            kind_of(c), {"contains": 0, "missing": 0, "n/a": 0, "star": 0, "examples": []}
+        )
         names = entity_names(c, columns_by_model)
         if not names:
             k["n/a"] += 1
             continue
         ci = cite(c, project)
+        k["star"] += ci["level"] == "star"
         if contains(cited_lines(ci, project), names):
             k["contains"] += 1
         else:
@@ -119,7 +125,8 @@ def render(result: Mapping[str, Any], before: Mapping[str, Any] | None) -> str:
         "column name; a model chunk's model name or any column the model defines (from its own "
         "column cards); a doc chunk's described entity (README: n/a). **ledger** is what S1's "
         "ledger cites (`dlens.retrieval.citation.chunk_citation`); **chunk metadata** is the "
-        "chunk's own range, which the chunker, the ids and the linker keep unchanged.",
+        "chunk's own range, which the chunker, the ids and the linker keep unchanged. "
+        "\"level star N\": N of the missing citations are cited at `level: star`.",
         "",
     ]
     cols = ["chunk metadata", *(["ledger, before"] if before else []), "ledger"]
@@ -135,7 +142,9 @@ def render(result: Mapping[str, Any], before: Mapping[str, Any] | None) -> str:
         out.append(
             f"| {kind} | "
             + " | ".join(
-                f"{x['contains']} / {x['missing']}" + (f" (n/a {x['n/a']})" if x.get("n/a") else "")
+                f"{x['contains']} / {x['missing']}"
+                + (f" (n/a {x['n/a']})" if x.get("n/a") else "")
+                + (f" (level star {x['star']})" if x.get("star") else "")
                 for x in cells
             )
             + " |"
@@ -145,9 +154,14 @@ def render(result: Mapping[str, Any], before: Mapping[str, Any] | None) -> str:
         "## Not fixable by the helper (left unchanged)",
         "",
         "- **column card (SQL), star pass-through**: the card cites the `select *` line that "
-        "passes the column through. The column's name is written nowhere in that model's file, "
-        "so no range inside the same SQL statement contains it. Metrics M7 scores these as "
-        "excerpts (the lines must name a claimed column), so they stay invalid.",
+        "passes the column through, so the cited line doesn't contain the name. The range is "
+        "kept. When the column is named nowhere in the model's statement (16 cards), the ledger "
+        "cites it at **`level: star`**, the level S4's provenance gives the same citation, and "
+        "metrics M7 checks the lines for `*` (pre-merge fix, S11). The other 3 name their "
+        "column elsewhere in the statement, inside a window or an expression "
+        "(`int_customer_order_history.order_date` / `customer_id`, "
+        "`fct_order_margins.net_revenue`), so the star rule doesn't apply and they stay at "
+        "`level: line`.",
         "- **model chunk (SQL)** with no entity name: `fct_payment_events` is a one-line "
         "`select * from {{ ref(...) }}`, and a 40-line fallback window of `fct_customer_cohorts` "
         "holds only its `from` / `join` / `group by` clauses. A chunk's range is its own text, and "

@@ -150,7 +150,10 @@ chunk). A column card with a description, or a model description, is cited by th
 opens its entry, and cites from that `- name: <name>` line through the description's end. It
 gives up, keeping the chunk's own range, if a sibling entry intervenes or the entry is named
 after something else. Star pass-through column cards (the `select *` line names no column) can't
-be fixed this way and keep their range.
+be fixed this way and keep their range. When the column is named nowhere in the model's statement
+(16 of the 19), `star_citation` keeps the range and marks it `level: star`, the level S4's
+provenance gives the same citation; M7 then checks the lines for `*`. The other 3 name their
+column elsewhere in the statement (inside a window or an expression), so they stay `level: line`.
 
 Why not fix it in the chunker? Chunk ids hash the line range, so new seed-card ranges mean new
 ids. Rows are stored sorted by id, and BM25/dense/RRF break score ties by row order or id. That

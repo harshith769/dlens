@@ -2,7 +2,7 @@
 
 The chunker's own ranges are right for search but sometimes cite lines that don't name the
 chunk's entity. Metrics M7 needs a citation's lines to name the column a claim is about.
-``chunk_citation`` corrects two kinds, found by ``scripts/citation_audit.py``, and keeps every
+``chunk_citation`` corrects three kinds, found by ``scripts/citation_audit.py``, and keeps every
 other chunk's own range:
 
 * **Seed column card**: the chunker cites the whole CSV (``level: model``). The ledger cites the
@@ -12,9 +12,13 @@ other chunk's own range:
   cites only the ``description:`` line(s). The ledger cites from the entry's ``- name: <name>``
   line through the end of the description, still inside the same YAML entry.
 
-Each correction applies only when the corrected range really names the entity; otherwise the
-chunk's own range is kept. Star pass-through column cards (the cited ``*`` line names no column)
-and SQL chunks that name no entity can't be corrected this way and are left as they are.
+* **Star pass-through column card**: the chunker cites the ``*`` line that passes the column
+  through (``level: line``), but the column is named nowhere in its statement. The ledger keeps
+  the range and marks it ``level: star``, the level S4's provenance gives the same citation
+  (metrics M7: a star citation's lines must contain ``*``).
+
+Each correction applies only when its condition holds on disk; otherwise the chunk's own range is
+kept. SQL model chunks that name no entity can't be corrected this way and are left as they are.
 
 This lives here, not in the chunker, on purpose: chunk ids hash the line range, so changing the
 chunker's metadata changes ids and with them the rank tie-breaking the frozen linker sees. One
@@ -119,10 +123,35 @@ def yaml_entry_citation(chunk: Chunk, project_dir: Path) -> dict[str, Any] | Non
     return None
 
 
+def star_citation(chunk: Chunk, project_dir: Path) -> dict[str, Any] | None:
+    """The card's own range at ``level: star``, if ``chunk`` is a SQL column card cited at line
+    level whose cited lines contain ``*`` and whose column is named nowhere in its statement (the
+    model's SQL file); else None."""
+    if not (
+        chunk.kind == "column"
+        and chunk.level == "line"
+        and chunk.file.endswith(".sql")
+        and chunk.column
+    ):
+        return None
+    lines = _read(chunk, project_dir)
+    if not lines or not 1 <= chunk.line_start <= chunk.line_end <= len(lines):
+        return None
+    cited = "\n".join(lines[chunk.line_start - 1 : chunk.line_end])
+    if "*" not in cited or _names("\n".join(lines), chunk.column.rsplit(".", 1)[-1]):
+        return None
+    return {**_line(chunk.line_start, chunk.line_end, chunk), "level": "star"}
+
+
 def chunk_citation(chunk: Chunk, project_dir: Path) -> dict[str, Any]:
-    """The citation a ledger records for ``chunk``: a corrected range when one applies (seed
-    header line, YAML entry from its ``- name:`` line), else the chunk's own range."""
-    fixed = seed_header_citation(chunk, project_dir) or yaml_entry_citation(chunk, project_dir)
+    """The citation a ledger records for ``chunk``: a corrected citation when one applies (seed
+    header line, YAML entry from its ``- name:`` line, star pass-through), else the chunk's own
+    range."""
+    fixed = (
+        seed_header_citation(chunk, project_dir)
+        or yaml_entry_citation(chunk, project_dir)
+        or star_citation(chunk, project_dir)
+    )
     if fixed is not None:
         return fixed
     return {

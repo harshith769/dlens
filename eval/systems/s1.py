@@ -92,8 +92,9 @@ CLARIFY = '"{text}" could mean several different columns. Which one do you mean?
 # B4 ledger citations (dlens.retrieval.citation). v2 (B8 freeze change, 20 Oct 2026, citation
 # audit): YAML descriptions are cited from their entry's `- name:` line.
 CITATION_RULE = (
-    "chunk_citation v2: seed card -> CSV header line; YAML description -> its entry from the "
-    "'- name:' line; else the chunk's own range"
+    "chunk_citation v3: seed card -> CSV header line; YAML description -> its entry from the "
+    "'- name:' line; star pass-through SQL column card -> its range at level star; else the "
+    "chunk's own range"
 )
 
 # S4's DRAFT_SCHEMA in every shared property, plus reach_verdict and clarification_candidates.

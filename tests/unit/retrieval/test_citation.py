@@ -1,5 +1,6 @@
 """Ledger citation helper (S11 owner decisions): seed cards cite their CSV header line, YAML
-descriptions cite their entry from its `- name:` line; every other chunk keeps its own range."""
+descriptions cite their entry from its `- name:` line, star pass-through cards are level star;
+every other chunk keeps its own range."""
 
 import re
 import sys
@@ -13,6 +14,7 @@ from dlens.retrieval.chunks import Chunk, ChunkSet
 from dlens.retrieval.citation import (
     chunk_citation,
     seed_header_citation,
+    star_citation,
     yaml_entity,
     yaml_entry_citation,
 )
@@ -66,7 +68,52 @@ def test_sql_and_exposure_chunks_keep_their_citation(ss_chunks: ChunkSet) -> Non
     for c in others:
         assert seed_header_citation(c, SS_PROJECT) is None
         assert yaml_entry_citation(c, SS_PROJECT) is None
-        assert chunk_citation(c, SS_PROJECT) == _own(c)
+        if star_citation(c, SS_PROJECT) is None:
+            assert chunk_citation(c, SS_PROJECT) == _own(c)
+
+
+def test_star_pass_through_cards_are_level_star(ss_chunks: ChunkSet) -> None:
+    """The 16 SQL column cards whose `*` line passes a column named nowhere in the model's SQL:
+    same range, level star (S4's level for the same citation); ids and chunk metadata unchanged.
+    3 more pass-through cards name their column elsewhere in the statement (a window or an
+    expression), so the rule leaves them at line level."""
+    stars = [c for c in ss_chunks.chunks if star_citation(c, SS_PROJECT)]
+    assert len(stars) == 16
+    named = {
+        c.column for c in ss_chunks.chunks
+        if c.kind == "column" and c.file.endswith(".sql") and not star_citation(c, SS_PROJECT)
+        and "*" in audit.cited_lines(_own(c), SS_PROJECT)
+        and not audit.contains(audit.cited_lines(_own(c), SS_PROJECT), audit.entity_names(c, {}))
+    }  # fmt: skip
+    assert named == {
+        "model.synthetic_shop.int_customer_order_history.order_date",
+        "model.synthetic_shop.int_customer_order_history.customer_id",
+        "model.synthetic_shop.fct_order_margins.net_revenue",
+    }
+    assert {c.file for c in stars} == {
+        "models/intermediate/int_customer_order_history.sql",
+        "models/marts/fct_order_margins.sql",
+        "models/marts/fct_payment_events.sql",
+    }
+    for c in stars:
+        assert c.kind == "column" and c.level == "line"  # the chunker itself is unchanged
+        assert chunk_citation(c, SS_PROJECT) == {**_own(c), "level": "star"}
+        assert "*" in audit.cited_lines(chunk_citation(c, SS_PROJECT), SS_PROJECT)
+
+
+@pytest.mark.parametrize(
+    ("sql", "line", "level"),
+    [
+        ("select\n    *,\n    1 as x\nfrom t\n", 2, "star"),  # amt named nowhere: star
+        ("select\n    *,\n    amt * 2 as y\nfrom t\n", 2, "line"),  # amt named elsewhere
+        ("select\n    a,\n    b\nfrom t\n", 2, "line"),  # no `*` in the cited lines
+    ],
+)
+def test_star_rule_cases(tmp_path: Path, sql: str, line: int, level: str) -> None:
+    _write(tmp_path, "models/m.sql", sql)
+    card = replace(_card("models/m.sql", line), doc_kind=None)
+    assert chunk_citation(card, tmp_path)["level"] == level
+    assert chunk_citation(card, tmp_path)["line_start"] == line
 
 
 def _yaml_chunks(cs: ChunkSet) -> list:
@@ -133,7 +180,7 @@ def test_yaml_entry_rule_cases(tmp_path: Path, yaml: str, line: int, want: int |
 
 def test_audit_after_the_helper(ss_chunks: ChunkSet) -> None:
     """Every chunk the helper covers names its own entity inside its cited range; what is still
-    missing is exactly the kinds the helper can't fix (star pass-through cards, 2 SQL chunks)."""
+    missing is the 19 star pass-through cards (16 now at level star) and 2 SQL chunks."""
     covered = [
         c for c in ss_chunks.chunks
         if seed_header_citation(c, SS_PROJECT) or yaml_entry_citation(c, SS_PROJECT)
@@ -142,6 +189,7 @@ def test_audit_after_the_helper(ss_chunks: ChunkSet) -> None:
     result = audit.audit(ss_chunks.chunks, SS_PROJECT, chunk_citation)
     missing = {k: v["missing"] for k, v in result.items() if v["missing"]}
     assert missing == {"column card (SQL)": 19, "model chunk (SQL)": 2}
+    assert result["column card (SQL)"]["star"] == 16
     for c in covered:
         names = audit.entity_names(c, {})
         assert audit.contains(audit.cited_lines(chunk_citation(c, SS_PROJECT), SS_PROJECT), names)

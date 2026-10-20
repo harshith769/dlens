@@ -419,13 +419,15 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   refused without `--allow-cloud`. `DLENS_CACHE_DIR=eval/cache`, so re-runs are free.
 - **Ask questions** (12) are run and recorded (for the owner's blind hand scoring, M11), as for S4.
   S0 skips them (no LLM).
-- **Report-only retrieval diagnostic** (S11 step 5, `scripts/s1_retrieval_diag.py`, outside
+- **Report-only retrieval diagnostic** (S11 step 5, `scripts/s1_diagnostics.py`, outside
   metrics.py, never fed back into S1): for each dev question with a gold `target`, whether the
   target's own column card was shown, retrieved but not shown, or not retrieved, and its rank.
   It splits S1 losses into "retrieval miss" vs "LLM miss", overall and by wording.
 
 ## Owner notes
 
+- **Seed cards and M7: resolved.** Decided and done: shared helper `dlens.retrieval.citation`,
+  see change log.
 - **Seed cards and M7 (decided by the owner, 20 Oct 2026, before any S1 run).** A seed column
   card is cited at its CSV **header line** (line 1, `level: line`), where a seed column is
   defined, when that line names the column as a whole word; otherwise its citation is unchanged.
@@ -480,3 +482,13 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   any range inside their statement and stay unchanged. No change to chunk ids, chunk text, the
   index or the linker. `CITATION_RULE` joins the frozen block (its sha256 is in every manifest).
   The first S1 run's reports are kept as `eval/reports/s1_smoke_dev_v1.*`.
+- 20 Oct 2026 (pre-merge fix, owner decision): star pass-through column cards cite at
+  `level: star`, the M7 rule S4's star citations get. In `dlens.retrieval.citation`, a SQL column
+  card whose cited range contains `*` and whose column is named nowhere in its statement keeps
+  its range at `level: star` (`star_citation`; `CITATION_RULE` v3, new sha256 in the manifest).
+  16 of the 19 star pass-through cards qualify; 3 name their column elsewhere in the statement
+  (a window or an expression) and stay `level: line`. No change to chunk ids, chunk text, the
+  index or the linker. No S1 re-run: the evidence header shows no level, so prompts and answers
+  are unchanged; `scripts/s1_reattach_citations.py` re-attached the v2 records' citation levels
+  (4 citations) and the records were re-scored. Moved: citation validity per answer 0.478 →
+  0.511, per citation 163 → 167 / 262; nothing else.
