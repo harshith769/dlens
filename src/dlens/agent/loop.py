@@ -325,6 +325,9 @@ class Agent:
             except ValidationError as e2:
                 raise _Refuse(f"invalid answer JSON: {_clip(_one_line(e2))}") from e2
         self.record.draft = draft.model_dump(mode="json")
+        clarification = self._llm_clarification(question, draft)
+        if clarification is not None:
+            return clarification
 
         answer = attach(draft, self.toolbox, partial_evidence=bool(partial))
         return self._validate(question, msgs, answer, bool(partial))
@@ -415,6 +418,34 @@ class Agent:
         return validate(answer, self.toolbox, question)
 
     # -- ambiguity policy --------------------------------------------------------------------
+
+    def _llm_clarification(self, question: str, draft: AnswerDraft) -> Answer | None:
+        """s12-design A1: code decides first. The model's ``clarification_candidates`` are logged
+        (in the draft) and ignored when the ambiguity policy decided, when code linked the
+        question to a column (an exact ``model.column`` in it, or any resolve_entity result with
+        candidates), or when a candidate is not an exact graph column. Otherwise they become the
+        answer's clarification. Only the first draft is read; regenerate drafts never ask."""
+        cands = draft.clarification_candidates
+        if not cands or draft.refused:
+            return None
+        linked = bool(self._question_columns(question)) or any(
+            r.tool == "resolve_entity" and not r.is_error and r.llm_payload.get("candidates")
+            for r in self.toolbox.log
+        )
+        exact = all(self._exact_column(c) is not None for c in cands)
+        if self.record.ambiguity is not None or linked or not exact:
+            self.record.stop_reason += "+candidates_ignored"
+            return None
+        clar = Clarification(question=prompts.clarification_question(question), candidates=cands)
+        self.record.clarification = clar.model_dump()
+        self.record.stop_reason += "+llm_clarification"
+        return Answer(
+            answer_text=clar.question,
+            clarification=clar,
+            confidence=draft.confidence,
+            reach_verdict=draft.reach_verdict,
+            reach_verdict_source="llm" if draft.reach_verdict else None,
+        )
 
     def _ambiguity(self, question: str) -> dict[str, Any] | None:
         """Decide chain / per-candidate / clarification for the first ambiguous resolve_entity
@@ -509,20 +540,24 @@ class Agent:
 
     def _question_columns(self, question: str) -> list[str]:
         """Distinct exact, existing ``model.column`` ids the question names, in order."""
-        g = self.toolbox.graph
         names: list[str] = []
         for m in _QUESTION_COLUMN.finditer(question):
-            text = m.group(0).lower()
-            try:
-                column = g.resolve(text)
-            except Exception:
-                continue
-            if g.display_name(column).lower() != text and short_id(column) != text:
-                continue
-            name = g.display_name(column)
-            if name not in names:
+            name = self._exact_column(m.group(0))
+            if name is not None and name not in names:
                 names.append(name)
         return names
+
+    def _exact_column(self, text: str) -> str | None:
+        """The display name of the graph column ``text`` names exactly, else None."""
+        g = self.toolbox.graph
+        text = text.strip().lower()
+        try:
+            column = g.resolve(text)
+        except Exception:
+            return None
+        if g.display_name(column).lower() != text and short_id(column) != text:
+            return None
+        return g.display_name(column)
 
     def _reachability_fact(self, question: str) -> None:
         """A yes/no reachability question (exactly 2 exact columns named, plus affect / impact /

@@ -46,10 +46,15 @@ class AnswerDraft(BaseModel):
     )
     refused: bool = False
     refusal_reason: str | None = None
+    # s12-design A1/A2: the yes/no verdict metrics M5 scores, and the model's own clarification
+    # (used only when code made no linking decision, see loop.py)
+    reach_verdict: ReachVerdict | None = None
+    clarification_candidates: list[str] = Field(default_factory=list)
 
 
 # Hand-written and flat (no $ref) so Ollama's grammar compiler and Gemini both accept it.
-# tests/unit/agent/loop/test_answer.py keeps it in step with AnswerDraft.
+# tests/unit/agent/loop/test_answer.py keeps it in step with AnswerDraft; tests/unit/eval/test_s1.py
+# keeps it byte-equal to S1's frozen schema (s12-design A2).
 DRAFT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -69,8 +74,17 @@ DRAFT_SCHEMA: dict[str, Any] = {
         "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
         "refused": {"type": "boolean"},
         "refusal_reason": {"type": ["string", "null"]},
+        "reach_verdict": {"type": ["string", "null"], "enum": ["yes", "no", None]},
+        "clarification_candidates": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["answer_text", "claims", "confidence", "refused"],
+    "required": [
+        "answer_text",
+        "claims",
+        "confidence",
+        "refused",
+        "reach_verdict",
+        "clarification_candidates",
+    ],
     "additionalProperties": False,
 }
 

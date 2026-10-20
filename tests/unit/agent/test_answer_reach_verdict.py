@@ -1,5 +1,6 @@
 """ADR 0024: additive ``reach_verdict`` / ``reach_verdict_source`` on ``Answer``. Old records still
-load, and S4's draft schema and answer prompts are byte-identical, so S4 cache keys don't move."""
+load. S4's answer prompt and draft schema are pinned: they changed once, in S12a (A1: S1's text
+with one named substitution, and S1's schema), and any further change is a recorded decision."""
 
 import hashlib
 import json
@@ -13,10 +14,10 @@ from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft
 
 ROOT = Path(__file__).resolve().parents[3]
 
-# sha256 at 776724f (before S11). A change here changes every S4 answer-phase cache key and is an
-# S12 decision, never a side effect.
-S4_ANSWER_SYSTEM = "4bb98f41f1ded060e11ed771ab94e7cea931e3fb9c1bd03555564c02fb857041"
-S4_DRAFT_SCHEMA = "a945c5b8ada9b624477420a536411827dd096f30282fa01ca7476cd289878e6f"
+# sha256 after S12a A1 (was 4bb98f41… / a945c5b8… at 776724f). A change here changes every S4
+# answer-phase cache key and is a recorded decision, never a side effect.
+S4_ANSWER_SYSTEM = "1bbca639d93b9e997425f2059c4a579b9d7c610263a72240b3e2161fb4e01ad5"
+S4_DRAFT_SCHEMA = "6036435098ff605e8903f6fd711ee099975339141c3d9d7c1306c957d9f3f65d"
 S4_ANSWER_REPAIR = "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b"
 
 
@@ -28,7 +29,7 @@ def test_s4_answer_phase_is_unchanged() -> None:
     assert _sha(prompts.ANSWER_SYSTEM) == S4_ANSWER_SYSTEM
     assert _sha(json.dumps(DRAFT_SCHEMA, sort_keys=True)) == S4_DRAFT_SCHEMA
     assert _sha(prompts.ANSWER_REPAIR) == S4_ANSWER_REPAIR
-    assert "reach_verdict" not in AnswerDraft.model_fields  # S4's draft gets it in S12
+    assert "reach_verdict" in AnswerDraft.model_fields  # S12a
 
 
 def test_fields_default_to_null() -> None:

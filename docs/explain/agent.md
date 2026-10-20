@@ -83,6 +83,35 @@ one of them has), nothing happens. Otherwise:
 - **clarification**: not one chain and >3 candidates. Code returns `clarification {question,
   candidates}` with no answer call, so the LLM cannot invent a candidate.
 
+**The model's own clarification (S12a, s12-design A1).** The answer prompt (S1's text, see
+below) lets the model list `clarification_candidates`. Code decides first: the list is logged (it
+stays in the record's `draft`) and ignored when
+1. the ambiguity policy above decided (chain, per-candidate, or code clarification), or
+2. code linked the question to a column: an exact `model.column` in the question, or any
+   resolve_entity result with candidates, or
+3. any candidate is not an exact graph column (an invented id is never shown to the user).
+
+Only when none of these hold does the list become `Answer.clarification` (question text from
+`prompts.clarification_question`, no claims, not validated). `stop_reason` ends with
+`+llm_clarification` or `+candidates_ignored`. Only the first draft is read: a regenerate cannot
+turn an answer into a question.
+
+## The answer prompt: S1's text, one named substitution (S12a, A1)
+`prompts.ANSWER_SYSTEM` is S1's frozen answer instructions (`eval/systems/s1.py::S1_SYSTEM`) with
+exactly one literal substitution: S1's claims line says "the c_ ids", S4's says "the e_/s_ ids"
+(S4's wording since 776724f). So both systems get the same three extra lines: write columns as
+`model.column`, set `reach_verdict`, list `clarification_candidates`. `DRAFT_SCHEMA` is
+byte-equal to `S1_DRAFT_SCHEMA`.
+
+`tests/unit/eval/test_s1.py::test_s1_frozen_vs_s4_live` holds a named `ALLOWED_DIFFERENCES` list:
+(i) literal substitutions (each source phrase must occur exactly once in S1's text) and (ii)
+S4-only lines appended before the last line, in a fixed order (empty in S12a; S12b adds the
+`uncovered_parts` / `premise_corrected` lines and the `c_` phrase as one-line entries). The test
+builds S4's text from S1's frozen text and asserts byte equality, and checks that S1's frozen
+hashes did not move. Any other drift on either side fails CI. The copy is literal, not an import:
+`src/dlens/agent` never imports from `eval/`. The change moved every S4 answer-phase cache key
+once (sha256 `4bb98f41…` → `1bbca639…`).
+
 ## Answers and citations (`answer.py`)
 The LLM writes `AnswerDraft {answer_text, claims[{text, ids}], confidence, refused,
 refusal_reason}` under a flat JSON schema (Ollama `format`, Gemini `response_json_schema`). Code
@@ -100,10 +129,9 @@ benchmark scoring never use it.
 **Structured yes/no verdict (ADR 0024, S11).** `Answer` has two additive fields:
 `reach_verdict` (`yes` | `no` | null) and `reach_verdict_source` (`llm` | `code` | null). A source
 without a verdict is rejected. Metrics M5 scores yes/no questions only on this field, never on
-prose. In S11 only S1 sets it (from its draft, source `llm`). S4's `AnswerDraft`, `DRAFT_SCHEMA`
-and answer prompts are unchanged (a test pins their sha256 at 776724f), so S4 cache keys and
-records are unaffected until S12 adds the field to S4's draft. R9 salvage will then mark a
-replaced verdict `code`, and the S4-raw view counts only `llm` values. Old records and presets load
+prose. S1 sets it from its draft (source `llm`); from S12a S4's `AnswerDraft` has the field too
+(A1 schema). R9 salvage marks a replaced verdict `code`, and the S4-raw view counts only `llm`
+values. Old records and presets load
 unchanged; new dumps carry two extra `null` keys.
 
 ## Failure handling
@@ -190,6 +218,16 @@ That is enough to replay the no-validator ablation offline.
   the lineage chain exactly.
 
 ## Explain-back questions
+S12a (A1):
+- A. "Where does fct.total come from?" and the model's draft lists two
+  `clarification_candidates`. Does the user get a clarification? Which of the three ignore
+  conditions applies, and where can you still see what the model proposed?
+- B. Someone edits S1's frozen system prompt to fix a typo in the "confidence" line. Which test
+  fails, and why does the S4 prompt not silently follow? What would S12b have to do to add an
+  S4-only line legitimately?
+- C. Why is the S4 text a literal copy checked by a test rather than an import of `S1_SYSTEM`?
+
+Earlier:
 1. The tool phase compacted a `get_model_sql` result down to its `excerpt_id` and range. Why can
    the answer phase still quote the SQL, and why would that be impossible in a single-phase loop
    that answers from its own history?
