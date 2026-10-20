@@ -134,6 +134,21 @@ top 5 for 18/19 dev questions, for bm25, dense and hybrid alike. 16 of the 19 na
 verbatim. dev-15 ("number of orders per customer" → `dim_customers.order_count`) is missed by all
 three. That is the paraphrase case the S08 linker targets.
 
+## Seed-card citations for ledgers (`citation.py`, S11)
+
+A CSV has no per-column line, so the chunker cites a seed column card as the whole file
+(`level: model`). Metrics M7 scores every model-level citation as invalid. `chunk_citation(chunk,
+project_dir)` is what a ledger attaches for a retrieved chunk. For a seed column card whose CSV
+header line names the column as a whole word, it returns line 1 at `level: line`, which is where
+the column is defined. Every other chunk keeps its own citation. S1's ledger uses it now, and S4's
+will when `search_docs` is wired in (S12), so both systems' seed citations follow one rule.
+
+Why not fix it in the chunker? Chunk ids hash the line range, so new seed-card ranges mean new
+ids. Rows are stored sorted by id, and BM25/dense/RRF break score ties by row order or id. That
+attempt left text and vectors byte-identical but still moved one frozen linker result and one
+sanity rank. The rule moves into the chunker after the pilot, together with tie-breaking that
+doesn't depend on ids.
+
 ## Explain-back questions
 1. A teammate proposes adding "3 direct inputs: a, b, c" to each column card, because it would
    lift recall on "what feeds X" questions. What would that do to the S1 vs S4 comparison, and
@@ -143,3 +158,6 @@ three. That is the paraphrase case the S08 linker targets.
 3. The same model is chunked twice, once with the project files and once from `target/` alone.
    Why do the line numbers differ, how does a reader of a `search_docs` hit know which basis
    they're in, and why does the index key not need the basis as a separate part?
+4. The seed-card fix first went into the chunker's metadata, and text and vectors stayed
+   byte-identical, yet a linker result changed. Trace the path from a citation line range to a
+   linker top-1, and say why the fix lives in `citation.py` until the pilot.

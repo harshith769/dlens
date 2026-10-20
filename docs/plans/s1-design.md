@@ -426,11 +426,18 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
 
 ## Owner notes
 
-- **Seed cards and M7 (decided by the owner, 20 Oct 2026, before any S1 run).** Seed column cards
-  now cite their CSV **header line** (line 1, `level: line`), where a seed column is defined,
-  instead of the whole file at `level: model`. This is a data-correctness fix to the chunker's
-  citation metadata (its own commit, index rebuilt locally), not an M7 change; metrics-design
-  stays v1.1. The original note follows.
+- **Seed cards and M7 (decided by the owner, 20 Oct 2026, before any S1 run).** A seed column
+  card is cited at its CSV **header line** (line 1, `level: line`), where a seed column is
+  defined, when that line names the column as a whole word; otherwise its citation is unchanged.
+  It is not an M7 change; metrics-design stays v1.1. The rule lives in **one shared helper**,
+  `dlens.retrieval.citation.chunk_citation` / `seed_header_citation`, and S1's ledger uses it (B4).
+  The chunker and the index are **unchanged**. A first attempt put the rule in the chunker's
+  metadata. Chunk ids hash the line range, so the 73 seed-card ids changed, rows re-sorted, and
+  rank ties broke differently: chunk text, meta and vectors were byte-identical, yet one
+  linker-test top-1 was lost (lk-description-040, linker-test v2 hybrid 95/109 → 94/109) and
+  dev-10's sanity rank went 1 → 2. The linker is frozen until the pilot, so the owner chose the
+  helper instead. The chunker change was reverted, and `linker_report.py` and
+  `retrieval_sanity.py` were confirmed identical to main (build times aside).
 - *Original note:* The 73 seed column cards cite their whole CSV at `level: model`, which M7
   rule 4 always marks invalid (§0). S1 citations of seed columns are therefore invalid by
   construction, while S4 cites seeds through edge citations on model SQL lines. This is a fact
@@ -439,9 +446,24 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   that is a retrieval or metrics decision outside S11's scope, and it should be made before the
   S13 pilot. S11 reports the count of S1 citations that hit seed cards as a diagnostic.
 
+## Carry-forwards
+
+- **S12 (G4):** when `search_docs` is wired into S4, S4's ledger cites chunks through the same
+  `chunk_citation` helper, so S1 and S4 seed citations are judged by the same rule. S12 also adopts
+  S1's shared and new answer-prompt lines verbatim for S4, and the parity test becomes "S1 frozen
+  vs S4 live" (B3).
+- **After the pilot (linker unfrozen):** move the seed-header rule into the chunker's metadata,
+  and find out why rank tie-breaking depends on chunk ids. A metadata-only change (the citation
+  range, which the id hashes) moved one linker-test top-1 and dev-10's sanity rank 1 → 2. Tie
+  order should not depend on citation metadata.
+
 ## Change log
 
 - 20 Oct 2026: first draft (S11 step 1). Every Decision PENDING. No S1 result exists.
 - 20 Oct 2026: owner decisions. B2 takes (b) skip-and-pack with no ceiling; B5 defers
   interpretation; the rest as recommended. Seed-card citation to be fixed in the chunker before any
   S1 run. No S1 result exists.
+- 20 Oct 2026: seed-card citation fixed before any S1 run; S1 and S4 citations of seed columns are
+  now judged by the same rule. Implemented as the shared helper `dlens.retrieval.citation` (not in
+  the chunker: a chunker-metadata version changed chunk ids and, through rank tie-breaking, one
+  frozen linker result; reverted, linker and sanity reports confirmed identical to main).

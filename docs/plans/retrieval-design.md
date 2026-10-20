@@ -347,3 +347,14 @@ dbt_jira, only index size and build time are reported. Output: `eval/reports/ret
   isn't the pinned BAAI revision.
 - A fixed number of lines per model chunk: it ignores the CTE structure the questions are
   about.
+
+## Change log
+
+- 20 Oct 2026 (S11, owner decision): seed-card citation fixed before any S1 run; S1 and S4
+  citations of seed columns are now judged by the same rule. A seed column card is cited at its
+  CSV header line (line 1, `level: line`) when that line names the column as a whole word, through
+  one shared helper, `dlens.retrieval.citation.chunk_citation`, which ledgers use (S1 now, S4 with
+  G4 in S12). The chunker, chunk ids and the index are unchanged. Putting the rule in the chunker
+  changed the 73 seed-card ids (ids hash the line range) and, through rank tie-breaking, one frozen
+  linker-test top-1 and dev-10's sanity rank, so it waits until after the pilot, together with
+  making tie order independent of citation metadata.
