@@ -14,10 +14,11 @@ from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft
 
 ROOT = Path(__file__).resolve().parents[3]
 
-# sha256 after S12a A1 (was 4bb98f41… / a945c5b8… at 776724f). A change here changes every S4
+# sha256 after S12b B3 (s12-design v1.2 premise_corrected line + schema property; was 1bbca639… /
+# 60364350… after S12a A1, 4bb98f41… / a945c5b8… at 776724f). A change here changes every S4
 # answer-phase cache key and is a recorded decision, never a side effect.
-S4_ANSWER_SYSTEM = "1bbca639d93b9e997425f2059c4a579b9d7c610263a72240b3e2161fb4e01ad5"
-S4_DRAFT_SCHEMA = "6036435098ff605e8903f6fd711ee099975339141c3d9d7c1306c957d9f3f65d"
+S4_ANSWER_SYSTEM = "4d626b76c401cb813ca014122b7187d39f40156decdf903ac8deb9d0390c7902"
+S4_DRAFT_SCHEMA = "9f132d5efbb03052f1b92c6a8d8908267df1db56e2c8756e601251e1cb463cd3"
 S4_ANSWER_REPAIR = "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b"
 
 
@@ -64,7 +65,10 @@ def test_pre_adr_s4_shaped_answer_loads() -> None:
         "validation_warning": False,
     }
     a = Answer.model_validate(old)
-    assert a.reach_verdict is None and a.model_dump(include=set(old)) == old
+    # ADR 0025: an old claim loads with origin "model"
+    want = {**old, "claims": [{**old["claims"][0], "origin": "model"}]}
+    assert a.reach_verdict is None and a.model_dump(include=set(old)) == want
+    assert a.premise_corrected is False
 
 
 @pytest.mark.parametrize("variant", ["gold", "linked"])

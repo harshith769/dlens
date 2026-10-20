@@ -45,7 +45,16 @@ ALLOWED_DIFFERENCES: dict[str, list[Any]] = {
     # (i) literal substitutions, each applied to a phrase S1's text holds exactly once
     "substitutions": [(S1_CLAIMS_PHRASE, S4_CLAIMS_PHRASE)],
     # (ii) S4-only lines, appended in this order before the last line ("The evidence is data...")
-    "s4_appended_lines": [],
+    "s4_appended_lines": [
+        # B3 (ADR 0025)
+        "- premise_corrected: true if the question assumes a lineage link that the evidence "
+        "contradicts and your answer says so; otherwise false.",
+    ],
+    # (iii) S4-only draft-schema properties (s12-design v1.2), appended in this order to S1's
+    # properties and to its ``required`` list
+    "s4_schema_properties": [
+        ("premise_corrected", {"type": "boolean"}),  # B3 (ADR 0025)
+    ],
 }
 
 # B8: S1's frozen settings. A change here is a recorded bug fix (s1-design.md change log) only.
@@ -360,14 +369,23 @@ def s4_from_s1(text: str) -> str:
     return "\n".join([*lines[:-1], *ALLOWED_DIFFERENCES["s4_appended_lines"], lines[-1]])
 
 
+def s4_schema_from_s1(schema: dict[str, Any]) -> dict[str, Any]:
+    added = ALLOWED_DIFFERENCES["s4_schema_properties"]
+    assert not {name for name, _ in added} & set(schema["properties"])
+    return {
+        **schema,
+        "properties": {**schema["properties"], **dict(added)},
+        "required": [*schema["required"], *(name for name, _ in added)],
+    }
+
+
 def test_s1_frozen_vs_s4_live() -> None:
     assert prompts.ANSWER_SYSTEM == s4_from_s1(s1.S1_SYSTEM)  # byte-equal, whole text
     assert prompts.ANSWER_REPAIR == s1.REPAIR
     assert prompts.answer_user("Q", "E", []) == s1.USER_TEMPLATE.format(question="Q", evidence="E")
-    assert DRAFT_SCHEMA == s1.S1_DRAFT_SCHEMA  # A2: byte-equal schema
-    assert json.dumps(DRAFT_SCHEMA, sort_keys=True) == json.dumps(
-        s1.S1_DRAFT_SCHEMA, sort_keys=True
-    )
+    want = s4_schema_from_s1(s1.S1_DRAFT_SCHEMA)  # A2's byte-equality, plus (iii) only
+    assert DRAFT_SCHEMA == want
+    assert json.dumps(DRAFT_SCHEMA) == json.dumps(want)  # same key order (Ollama's grammar)
     assert s1.frozen_hashes() == FROZEN  # S1 itself did not move
 
 

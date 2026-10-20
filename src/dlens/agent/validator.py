@@ -40,7 +40,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from dlens.agent.answer import Answer, Claim, Ledger
+from dlens.agent.answer import Answer, Claim, Ledger, Origin
 from dlens.agent.tools.provenance import (
     Citation,
     contains_word,
@@ -294,9 +294,15 @@ def repair_candidates(bad: str, emitted: Iterable[str]) -> list[str]:
     return sorted(set(out))
 
 
-def _with_ids(claim: Claim, ids: list[str]) -> Claim:
+def _with_ids(claim: Claim, ids: list[str], origin: Origin | None = None) -> Claim:
+    """``claim`` with ``ids``; ``origin`` relabels it (ADR 0025), else it keeps its own."""
     edges = [i for i in ids if i.startswith("e_")]
-    return Claim(text=claim.text, edge_ids=edges, chunk_ids=[i for i in ids if i not in edges])
+    return Claim(
+        text=claim.text,
+        edge_ids=edges,
+        chunk_ids=[i for i in ids if i not in edges],
+        origin=origin or claim.origin,
+    )
 
 
 def recite(answer: Answer, ledger: Ledger, claims: list[Claim]) -> Answer:
@@ -377,7 +383,14 @@ def rule_in_ledger(
                 failures.append(failure)
             ids.append(to or i)
         text = _check_prose_ids(c.text, emitted, k, repairs, failures)
-        claims.append(_with_ids(c.model_copy(update={"text": text}), list(dict.fromkeys(ids))))
+        repaired = any(r["claim_index"] == k for r in repairs)
+        claims.append(
+            _with_ids(
+                c.model_copy(update={"text": text}),
+                list(dict.fromkeys(ids)),
+                "repaired" if repaired and c.origin == "model" else None,
+            )
+        )
     answer_text = _check_prose_ids(answer.answer_text, emitted, None, repairs, failures)
     out = recite(answer.model_copy(update={"answer_text": answer_text}), ctx.ledger, claims)
     return out, repairs, failures
@@ -686,7 +699,7 @@ def complete_citations(
         if not added:
             claims.append(c)
             continue
-        claims.append(_with_ids(c, list(dict.fromkeys([*c.ids, *added]))))
+        claims.append(_with_ids(c, list(dict.fromkeys([*c.ids, *added])), "completed"))
         completions.append({"claim_index": k, "added": added})
     if not completions:
         return answer, []
@@ -859,7 +872,7 @@ def _sentence(text: str) -> str:
 def verdict_claim(fact: dict[str, Any]) -> Claim:
     """Code's own verdict sentence for a yes/no reachability question, citing the r_ fact."""
     head = "Yes" if fact["reaches"] else "No"
-    return Claim(text=f"{head}: {fact['fact']}", chunk_ids=[fact["fact_id"]])
+    return Claim(text=f"{head}: {fact['fact']}", chunk_ids=[fact["fact_id"]], origin="verdict")
 
 
 def salvage(result: ValidationResult, ledger: Ledger) -> Answer | None:

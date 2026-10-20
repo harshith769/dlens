@@ -142,6 +142,25 @@ an R9 failure sets the fact's verdict with source `code` (validator.md, R9). The
 the pre-validation `draft`, so it counts only the model's own value. Old records and presets load
 unchanged; new dumps carry two extra `null` keys.
 
+**`premise_corrected` and claim `origin` (S12b B3, ADR 0025, amends 0015).**
+- *What:* `AnswerDraft` and `Answer` gain `premise_corrected: bool` (default false); every
+  `Claim` gains `origin`: `model` (as drafted), `repaired` (R2r replaced an id), `completed` (R8c
+  added an edge; wins over `repaired`), `augmented` (G1 coverage completion, S4-augmented only) or
+  `verdict` (salvage's code verdict claim, S4-validated).
+- *How:* the prompt gains one S4-only line (`- premise_corrected: true if the question assumes a
+  lineage link that the evidence contradicts and your answer says so; otherwise false.`) and the
+  draft schema one required boolean, both recorded in the parity test's `ALLOWED_DIFFERENCES`
+  (the schema category `s4_schema_properties` is new: A2's byte-equality now holds for S1's
+  schema plus exactly the listed properties). `attach` copies the flag and labels every claim
+  `model`; the validator relabels only where it already acts.
+- *Why LLM-only:* there is no general premise detector to trust, and one built from the 4 dev
+  false-premise questions would be tuned on dev. So the field measures the model; S1 and S0,
+  which have no field, are scored on the same M10 rule through the negated-mention branch.
+- *Rejected:* a code detector with a source field; labelling the salvage claim `augmented` (it
+  would take a validator output out of S4-validated).
+- The change moved every S4 answer-phase cache key (`ANSWER_SYSTEM` sha256 `1bbca639…` →
+  `4d626b76…`) and added 67 est. tokens to each answer call's fixed cost.
+
 ## Failure handling
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
   turn with the error, then a refused answer.
@@ -281,3 +300,10 @@ Earlier:
 5. A yes/no answer says "No, X does not reach Y" in prose, but `reach_verdict` is null. How does
    metrics score it, and why? In S12, R9 salvage replaces the LLM's "yes" with code's "no": what
    do `reach_verdict` and `reach_verdict_source` hold, and which S4 view counts that verdict?
+6. (S12b, B3) A claim cites a miscopied id and also skips a hop. Which `origin` does it end with,
+   and why does the order R2r → R8c make that the only possible answer? Which view of metrics
+   counts it?
+7. (S12b, B3) Why is `premise_corrected` not given a source field like `reach_verdict`, and what
+   would have to change in the code before one were needed?
+8. (S12b, B3) S4's draft schema is no longer byte-equal to S1's. What exactly does the parity
+   test now assert, and which edit to S4's schema would still fail it?

@@ -27,6 +27,10 @@ if TYPE_CHECKING:
 Confidence = Literal["high", "medium", "low"]
 ReachVerdict = Literal["yes", "no"]
 VerdictSource = Literal["llm", "code"]
+# ADR 0025: who made a claim. model = as drafted; repaired = an id replaced by R2r; completed =
+# an edge added by R8c (wins over repaired); augmented = coverage completion (G1, S4-augmented
+# only); verdict = salvage's code verdict claim (S4-validated).
+Origin = Literal["model", "repaired", "completed", "augmented", "verdict"]
 
 
 class DraftClaim(BaseModel):
@@ -50,6 +54,8 @@ class AnswerDraft(BaseModel):
     # (used only when code made no linking decision, see loop.py)
     reach_verdict: ReachVerdict | None = None
     clarification_candidates: list[str] = Field(default_factory=list)
+    # S4-only (s12-design v1.2 ALLOWED_DIFFERENCES): set by the LLM only (ADR 0025)
+    premise_corrected: bool = False
 
 
 # Hand-written and flat (no $ref) so Ollama's grammar compiler and Gemini both accept it.
@@ -76,6 +82,7 @@ DRAFT_SCHEMA: dict[str, Any] = {
         "refusal_reason": {"type": ["string", "null"]},
         "reach_verdict": {"type": ["string", "null"], "enum": ["yes", "no", None]},
         "clarification_candidates": {"type": "array", "items": {"type": "string"}},
+        "premise_corrected": {"type": "boolean"},
     },
     "required": [
         "answer_text",
@@ -84,6 +91,7 @@ DRAFT_SCHEMA: dict[str, Any] = {
         "refused",
         "reach_verdict",
         "clarification_candidates",
+        "premise_corrected",
     ],
     "additionalProperties": False,
 }
@@ -93,6 +101,7 @@ class Claim(BaseModel):
     text: str
     edge_ids: list[str] = Field(default_factory=list)
     chunk_ids: list[str] = Field(default_factory=list)  # excerpt ids (s_) live here
+    origin: Origin = "model"  # ADR 0025; old records load as "model"
 
     @property
     def ids(self) -> list[str]:
@@ -123,6 +132,8 @@ class Answer(BaseModel):
     # (``llm``: the model's draft; ``code``: set or replaced by code). Both null otherwise.
     reach_verdict: ReachVerdict | None = None
     reach_verdict_source: VerdictSource | None = None
+    # Additive (ADR 0015 / 0025): the model says its answer corrects a false premise. LLM only.
+    premise_corrected: bool = False
 
     @model_validator(mode="after")
     def _source_needs_verdict(self) -> Answer:
@@ -153,7 +164,8 @@ class Ledger(Protocol):
 def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False) -> Answer:
     """Split ids, compute the subgraph and attach citations from the ledger. Ids the ledger does
     not know get no citation (the validator decides what to do with them). The draft's
-    ``reach_verdict`` is copied with source ``llm`` (s12-design A2)."""
+    ``reach_verdict`` is copied with source ``llm`` (s12-design A2), and ``premise_corrected``
+    as drafted (ADR 0025)."""
     claims: list[Claim] = []
     subgraph: list[str] = []
     citations: dict[str, Citation] = {}
@@ -179,6 +191,7 @@ def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False
         citations=citations,
         reach_verdict=draft.reach_verdict,
         reach_verdict_source="llm" if draft.reach_verdict else None,
+        premise_corrected=draft.premise_corrected,
     )
 
 

@@ -328,6 +328,17 @@ The run record keeps the untouched first draft (`draft_raw`, `draft`), the regen
 with failures, repairs and per-rule counts. That is everything the no-validator ablation and the
 raw-vs-repaired benchmark split need.
 
+## Claim labels (S12b B3, ADR 0025): `origin`, set where the validator already acts
+The validator labels claims but never decides anything from a label. R2r sets `repaired` on a
+claim whose cited id or prose id it rewrote; R8c sets `completed` on a claim it added edges to
+(after R2r, so `completed` wins); `verdict_claim` (salvage) is `verdict`. The rule outcomes are
+pinned: `tests/unit/agent/validator/conftest.py` digests every `validate` / `salvage` call of the
+validator tests (failures, repairs, completions, dropped claims, counts, cleaned and salvaged
+answers) with the S12b labels stripped and compares them with a snapshot recorded on the pre-B3
+code (`tests/fixtures/validator/outcomes_pre_b3.json`: 106 tests, 81 calls; hypothesis tests
+excluded because their draws vary). Not stripping `origin` makes 50 of them fail, so the check
+is live. `premise_corrected` is never read or written by the validator.
+
 ## Never used: `confidence`
 `confidence` is the model's self-report. It is not evidence, it is not calibrated, and a model
 that is confidently wrong is exactly the case the validator exists for. Using it would let the
@@ -413,3 +424,10 @@ Earlier:
 10. "Does raw.id affect fct.total or fct_star.total?" names three columns. Why does code make no
    fact, and what still checks that answer? What would go wrong with a fact for only the first
    two?
+11. (S12b, B3) The outcome snapshot strips `origin` before hashing. What would a validator change
+    have to look like to pass every rule test but fail the snapshot, and why exclude the
+    hypothesis tests from it?
+12. (S12b, B3) Salvage leads with code's verdict claim. Which `origin` does it carry, which
+    metrics view counts it, and why would `augmented` be wrong?
+13. (S12b, B3) R2r rewrites an `e_` id written in a claim's prose but leaves the cited ids alone.
+    Is the claim `repaired`? Point to the line that decides it.

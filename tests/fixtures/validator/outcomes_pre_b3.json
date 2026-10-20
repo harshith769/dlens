@@ -1,0 +1,247 @@
+{
+ "test_completion.py::test_a_two_hop_bridge": [
+  "validate:97d33c44b6e225b5"
+ ],
+ "test_completion.py::test_completed_edges_are_rechecked_by_r3": [
+  "validate:dc901e70e786bd25"
+ ],
+ "test_completion.py::test_completed_edges_are_rechecked_by_r5": [
+  "validate:1536d8bad33d46a3"
+ ],
+ "test_completion.py::test_directly_over_more_than_one_hop_is_not_completed": [
+  "validate:f6fbc2dd68f16525",
+  "validate:817094b6aef8bf04",
+  "validate:ab6ca9f147f9f516"
+ ],
+ "test_completion.py::test_directly_with_a_one_hop_bridge_is_completed": [
+  "validate:3b546f7d2b63abff"
+ ],
+ "test_completion.py::test_hop_cap": [
+  "validate:02fc3259134e5256"
+ ],
+ "test_completion.py::test_indirectly_is_not_the_direct_guard": [
+  "validate:a0d1cf19574d0c05"
+ ],
+ "test_completion.py::test_no_anchor_no_completion": [
+  "validate:2ea220d4b4280b10"
+ ],
+ "test_completion.py::test_only_ledger_edges_are_used": [
+  "validate:f61fab2e7a0bfdde"
+ ],
+ "test_completion.py::test_passing_claims_get_no_completion": [
+  "validate:3a3a69e442210f27"
+ ],
+ "test_completion.py::test_siblings_sharing_a_descendant_are_not_connected": [
+  "validate:7ccb7c63ede4b3fe",
+  "validate:affc94264d07ec1f"
+ ],
+ "test_completion.py::test_skipped_hop_is_completed_and_reported": [
+  "validate:b3c1f48494989296"
+ ],
+ "test_completion.py::test_the_input_answer_is_not_modified": [
+  "validate:b3c1f48494989296"
+ ],
+ "test_flow.py::test_all_claims_failing_is_refused": [
+  "validate:5c45c29a750a23d3",
+  "validate:5c45c29a750a23d3",
+  "salvage:74234e98afe7498f"
+ ],
+ "test_flow.py::test_both_fail_keeps_passing_claims_with_a_warning": [
+  "validate:d11d9191a5d92a6b",
+  "validate:d11d9191a5d92a6b",
+  "salvage:87d5965b6cc768e0"
+ ],
+ "test_flow.py::test_fallback_needs_an_exact_existing_column": [],
+ "test_flow.py::test_first_fails_second_passes_is_regenerated": [
+  "validate:5f9dc827acb29a03",
+  "validate:3e97da7ae26a1a51"
+ ],
+ "test_flow.py::test_invalid_json_on_regenerate_salvages_the_first_draft": [
+  "validate:5f9dc827acb29a03",
+  "salvage:87d5965b6cc768e0"
+ ],
+ "test_flow.py::test_model_refusal_is_recorded_as_skipped": [
+  "validate:3b89ae1e443bb3e5"
+ ],
+ "test_flow.py::test_no_regenerate_when_the_budget_is_spent": [
+  "validate:5f9dc827acb29a03",
+  "salvage:87d5965b6cc768e0"
+ ],
+ "test_flow.py::test_no_tool_calls_falls_back_to_a_code_trace_of_the_named_column": [
+  "validate:3e97da7ae26a1a51"
+ ],
+ "test_flow.py::test_raw_view_reads_the_first_draft_never_the_regenerate": [
+  "validate:de2de869a41cde5a",
+  "validate:6f685c0efb80d7d9"
+ ],
+ "test_flow.py::test_regenerate_is_the_eighth_call": [
+  "validate:5f9dc827acb29a03",
+  "validate:3e97da7ae26a1a51"
+ ],
+ "test_flow.py::test_salvage_rebuilds_prose_when_a_claim_is_dropped": [
+  "validate:44d2595b48108c98",
+  "validate:44d2595b48108c98",
+  "salvage:87d5965b6cc768e0"
+ ],
+ "test_flow.py::test_wrong_verdict_and_bad_regenerate_json_still_get_code_verdict": [
+  "validate:241f780faf3228a3",
+  "salvage:ec01d6ed58593730"
+ ],
+ "test_flow.py::test_wrong_verdict_regenerates_with_the_graph_check": [
+  "validate:de2de869a41cde5a",
+  "validate:6f685c0efb80d7d9"
+ ],
+ "test_flow.py::test_wrong_verdict_twice_is_salvaged_to_code_verdict": [
+  "validate:de2de869a41cde5a",
+  "validate:de2de869a41cde5a",
+  "salvage:cde66ea9ee0f862f"
+ ],
+ "test_indirect.py::test_fact_on_a_direct_no_indirect_yes_pair": [],
+ "test_indirect.py::test_indirect_edge_records_carry_key_and_flag": [],
+ "test_indirect.py::test_provenance_cites_indirect_edges_by_kind": [],
+ "test_indirect.py::test_r3_keeps_the_to_name_rule_for_direct_edges": [],
+ "test_indirect.py::test_r3_on_the_shared_indirect_cases[cast alias is not a relation]": [],
+ "test_indirect.py::test_r3_on_the_shared_indirect_cases[clause key under a CTE]": [],
+ "test_indirect.py::test_r3_on_the_shared_indirect_cases[from column on the lines]": [],
+ "test_indirect.py::test_r3_on_the_shared_indirect_cases[neither from column nor key]": [],
+ "test_indirect.py::test_r3_on_the_shared_indirect_cases[table alias is not a relation]": [],
+ "test_indirect.py::test_r8c_never_bridges_through_an_indirect_edge": [
+  "validate:7b6e4a194e7cc1d8"
+ ],
+ "test_indirect.py::test_r9_holds_the_answer_to_the_indirect_verdict": [
+  "validate:301a17950001d2a9",
+  "validate:0a617d93b68690d1"
+ ],
+ "test_rules.py::test_a_clean_answer_passes": [
+  "validate:cd708efd2e0473aa"
+ ],
+ "test_rules.py::test_r1_claim_without_ids": [],
+ "test_rules.py::test_r2_fake_id": [
+  "validate:f11f919c27088d4b"
+ ],
+ "test_rules.py::test_r2_id_from_a_previous_question": [
+  "validate:22869d8dea112432"
+ ],
+ "test_rules.py::test_r2_prose_id_miscopy_is_repaired_and_rewritten": [
+  "validate:6fb0191b13de2e08"
+ ],
+ "test_rules.py::test_r2_prose_ids_must_be_in_the_ledger": [
+  "validate:dba2db29283ba531",
+  "validate:68dab83c774923a4"
+ ],
+ "test_rules.py::test_r2_wrong_prefix_is_never_repaired": [
+  "validate:cab75c29974c3295"
+ ],
+ "test_rules.py::test_r2r_ambiguous_miscopy_is_not_repaired": [
+  "validate:2bd61e2eb6140254"
+ ],
+ "test_rules.py::test_r2r_one_char_miscopy_is_repaired": [
+  "validate:b8803e54ccf0b02d"
+ ],
+ "test_rules.py::test_r2r_seven_hex_prefix_is_repaired": [
+  "validate:400bcce569158125"
+ ],
+ "test_rules.py::test_r3_file_edited_after_ingest": [],
+ "test_rules.py::test_r3_path_traversal": [],
+ "test_rules.py::test_r3_range_not_containing_the_column": [],
+ "test_rules.py::test_r3_range_past_eof": [],
+ "test_rules.py::test_r3_star_and_seed_levels": [],
+ "test_rules.py::test_r4_false_premise_question_does_not_exempt_a_hallucination": [
+  "validate:bec683b491295649"
+ ],
+ "test_rules.py::test_r4_identifiers_shown_in_sql_excerpts_are_evidence": [],
+ "test_rules.py::test_r4_ignores_paths_and_abbreviations": [],
+ "test_rules.py::test_r4_invented_column_is_hallucinated": [],
+ "test_rules.py::test_r4_real_column_not_in_evidence_is_unsupported": [],
+ "test_rules.py::test_r5_aggregated_claim_citing_an_identity_edge": [],
+ "test_rules.py::test_r5_matching_kinds_pass": [],
+ "test_rules.py::test_r5_skips_claims_citing_only_excerpts": [],
+ "test_rules.py::test_r6_claim_is_checked_against_its_own_citations": [],
+ "test_rules.py::test_r6_covered_line_and_matching_path_pass": [],
+ "test_rules.py::test_r6_line_not_covered_by_any_citation": [],
+ "test_rules.py::test_r6_path_without_a_citation_in_that_file": [],
+ "test_rules.py::test_r7_a_repair_cannot_launder_an_unrelated_id": [
+  "validate:b0304e9e08bec8cc"
+ ],
+ "test_rules.py::test_r7_does_not_double_count_ids_that_failed_r2": [
+  "validate:cd398dab5bb892da"
+ ],
+ "test_rules.py::test_r7_excerpt_touches_its_model_and_entity_free_claims_are_exempt": [],
+ "test_rules.py::test_r7_model_level_mention_touches_an_edge_out_of_that_model": [],
+ "test_rules.py::test_r7_real_edge_cited_for_an_unrelated_claim": [],
+ "test_rules.py::test_r8_exemptions": [],
+ "test_rules.py::test_r8_false_premise_direct_claim": [],
+ "test_rules.py::test_r8_skipped_hop_fails_and_the_full_chain_passes": [],
+ "test_rules.py::test_r8_two_inputs_feeding_one_column": [],
+ "test_rules.py::test_refused_and_clarification_answers_are_skipped": [
+  "validate:58aaf03bc7814ee7",
+  "validate:1a9146356cb14727"
+ ],
+ "test_rules.py::test_within_one_edit": [],
+ "test_verdict.py::test_a_claim_citing_the_fact_with_the_opposite_verdict_fails": [
+  "validate:d573e365ea00566a"
+ ],
+ "test_verdict.py::test_a_no_with_zero_claims_passes": [
+  "validate:fa690565eae626e9"
+ ],
+ "test_verdict.py::test_answer_verdict[-None]": [],
+ "test_verdict.py::test_answer_verdict[No, raw.id does not affect fct.total.-no]": [],
+ "test_verdict.py::test_answer_verdict[No.-no]": [],
+ "test_verdict.py::test_answer_verdict[There is no lineage path from raw.id to fct.total.-no]": [],
+ "test_verdict.py::test_answer_verdict[Yes, it does.-yes]": [],
+ "test_verdict.py::test_answer_verdict[Yes. raw.amt does not reach it directly, but through stg.amount.-yes]": [],
+ "test_verdict.py::test_answer_verdict[fct.total is the sum of stg.amount.-None]": [],
+ "test_verdict.py::test_answer_verdict[raw.amt affects fct_star.total through stg.amount and fct.total.-yes]": [],
+ "test_verdict.py::test_answer_verdict[raw.amt flows into fct.total. It does not reach x_id.-yes]": [],
+ "test_verdict.py::test_answer_verdict[raw.id does not affect fct.total.-no]": [],
+ "test_verdict.py::test_answer_verdict[raw.id doesn't feed fct.total.-no]": [],
+ "test_verdict.py::test_negation_passes_and_r8_does_not_demand_a_path": [
+  "validate:336a6e506db16e59"
+ ],
+ "test_verdict.py::test_no_fact_no_r9": [],
+ "test_verdict.py::test_no_verdict_fails_r9": [
+  "validate:1ed86ed680ea7686"
+ ],
+ "test_verdict.py::test_r2_accepts_and_repairs_r_ids": [
+  "validate:0e77133e452fc5aa"
+ ],
+ "test_verdict.py::test_r2_checks_r_ids_written_in_prose": [
+  "validate:eede5813debcba33"
+ ],
+ "test_verdict.py::test_r3_reruns_the_graph_check": [
+  "validate:218dee8213f2b4ec"
+ ],
+ "test_verdict.py::test_r7_a_fact_does_not_touch_other_columns": [
+  "validate:aa2aabb802ba3cbf"
+ ],
+ "test_verdict.py::test_r8_a_fact_connects_only_its_own_two_columns": [
+  "validate:a589088c4c8b487a"
+ ],
+ "test_verdict.py::test_r8c_a_fact_is_not_an_anchor_for_completion": [
+  "validate:193f6edcefd90032"
+ ],
+ "test_verdict.py::test_r9_field_mismatch_fails": [
+  "validate:5a47c1dcdd74363c"
+ ],
+ "test_verdict.py::test_r9_field_on_a_question_without_a_fact_never_fails": [],
+ "test_verdict.py::test_r9_null_field_with_a_prose_verdict_fails": [
+  "validate:e4eb44c88784f8b7"
+ ],
+ "test_verdict.py::test_r9_null_field_without_a_prose_verdict_adds_nothing": [
+  "validate:1ed86ed680ea7686"
+ ],
+ "test_verdict.py::test_salvage_sets_the_fact_verdict_with_source_code": [
+  "validate:de2de869a41cde5a",
+  "salvage:cde66ea9ee0f862f"
+ ],
+ "test_verdict.py::test_salvage_without_an_r9_failure_keeps_the_llm_verdict": [
+  "validate:1f6a2d1dc61c9d64",
+  "salvage:bdc97227bdd5a803"
+ ],
+ "test_verdict.py::test_wrong_verdict_fails_r9_with_the_fact": [
+  "validate:e0f802dcf944c906"
+ ],
+ "test_verdict.py::test_yes_passes_when_the_fact_reaches": [
+  "validate:73074819ab0ba113"
+ ]
+}

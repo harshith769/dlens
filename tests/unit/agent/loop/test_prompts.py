@@ -11,5 +11,7 @@ def test_tool_phase_fixed_cost_stays_small():
 
 
 def test_answer_phase_fixed_cost_leaves_room_for_evidence():
+    """591 est. after S12a; the two S4-only lines and schema properties of s12-design v1.2 add
+    135 (726, measured and approved at S12b STOP 1). Any further growth is a recorded decision."""
     fixed = estimate_tokens([Message(role="system", content=ANSWER_SYSTEM)], None, DRAFT_SCHEMA)
-    assert fixed <= 600
+    assert fixed <= 730
