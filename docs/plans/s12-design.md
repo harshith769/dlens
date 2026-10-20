@@ -1,6 +1,6 @@
 # S12 design: agent parity (S12a) and agent upgrades G1–G4 (S12b)
 
-**Version:** 1.0 (20 Oct 2026). **Status:** decided. Every item has an owner decision (20 Oct
+**Version:** 1.1 (20 Oct 2026). **Status:** decided; A6 added before merge. Every item has an owner decision (20 Oct
 2026); A1–A5 are implemented in S12a, B1–B8 in S12b.
 **Inputs:** spec v1.6 §0 rows 30–32, §8, §11; `docs/plans/v0.3-plan.md` (G1–G4, D4);
 `docs/plans/metrics-design.md` v1.1 (M3–M5, M7, M9, M10, M12, M15, §18); `docs/plans/s1-design.md`
@@ -516,6 +516,54 @@ ADR 0026 → Accepted. All as written, plus:
 
 ---
 
+## A6. Regenerate budget fix (S12a, owner decision 20 Oct 2026, before merge)
+
+**Problem.** The S12a crash smoke refused dev-67 with `InputTooLarge`. The answer phase trimmed the
+evidence to the full cap (3,827 → 2,958 est.), and the validator's regenerate then appended its
+failure list (3,107 > 3,000). `_regenerate` could shorten the list only to one line (the fact
+line was never clipped) and sent anyway. A1 (a longer prompt) and A5 (larger impact evidence)
+made it reachable, so it is fixed in S12a.
+
+**Decision: a two-stage bound.**
+- **Reserve:** the answer prompt is trimmed to `cap − REGENERATE_RESERVE`, mirroring S1's
+  `REPAIR_RESERVE`. The regenerate request is built on the original answer prompt, not on the
+  JSON-repair exchange: `_answer_phase` keeps the repair in a local list and passes the original
+  `msgs` to `_validate`, and `_regenerate_messages` builds `[*msgs, regenerate turn]`. So
+  `REGENERATE_RESERVE = max(worst repair turn, minimal regenerate turn)`, both computed from the
+  constants: the repair user message with a 300-char error (170 est.; the echo is dropped by the
+  code when it doesn't fit) and the template + the fact line at 240 chars + one max-length failure
+  line + "+K more failures" (**278 est.**). The reserve is 278.
+- **At regenerate time:** `room = cap − estimate(answer prompt + empty template)`. The list is the
+  fact line first (when R9 failed), then failure lines in rule order R1–R9, at most
+  `MAX_REGENERATE_FAILURES = 9` (one per rule: the template's structure), each clipped (item 48
+  chars, message 100), added while they fit in `room`, then "+K more failures" if any were cut.
+- **Fallback:** if not even the minimal list fits, or the final message is over the cap, the
+  regenerate is not sent. The run is salvaged and `stop_reason` gets
+  `+regenerate_skipped_budget`. No path sends a call over the cap, so the regenerate and repair
+  paths never raise `InputTooLarge`.
+
+**Rejected: a worst-case reserve** (template + fact + 9 max-length lines, ~803 est.). It would cut
+the evidence budget of every question from 2,409 to ~1,600 (−33%) to protect a turn only some
+questions take, and trimming drops evidence. Offline replay (18 Oct tool calls, today's tools,
+hybrid off; `scripts/replay_answer_budget.py`), on 67 answer-phase records:
+
+| threshold | answer prompts trimmed |
+|---|---|
+| cap (before A6) | 2 / 67 (dev-67, dev-69) |
+| cap − 278 (A6) | 2 / 67 (dev-67, dev-69) |
+| cap − 803 (rejected) | 5 / 67 (+ dev-08, dev-09, dev-72) |
+
+**Files.** `src/dlens/agent/loop.py`, `eval/systems/s4.py` (manifest tool settings),
+`scripts/replay_answer_budget.py`, tests, `docs/explain/agent.md`, `docs/explain/validator.md`.
+**Rule 9.** None: no validator rule, engine, linker or metrics change. The regenerate's failure
+list is loop code.
+**Tests.** The reserve formula; room for exactly the minimal message; ample room (9 lines +
+"+K more"); trimmed evidence + a forced regenerate fits; repair + regenerate in one run fits;
+no room → skipped regenerate, salvage, `stop_reason` set; the A2 raw-view test unchanged. CI:
+`lint-test`.
+
+---
+
 ## B1. G1 coverage completion (S12b)
 
 **Problem.** Spec §8 G1: for where-from / how-computed questions, code appends trace inputs the
@@ -798,3 +846,7 @@ expected R9 regenerates for this line.
   and the impact group-label rule. ADR 0026 accepted (spec §0 row 33). S12b: B1 (b), B3 (a) with
   `verdict`, B4 rest as proposed plus hybrid-off / hybrid-on S0-linked reporting, B5 view/source
   rule for ADR 0028, B6 (a), B7 (a), B8 (a) with the `make test` confirmation.
+- 20 Oct 2026: v1.1. A6 regenerate budget fix (owner decision before merge): two-stage bound,
+  `REGENERATE_RESERVE` = max(worst repair, minimal regenerate) = 278 est., skip-and-salvage
+  fallback; the worst-case reserve (~803) rejected with the replay numbers (2 / 2 / 5 of 67
+  trimmed).

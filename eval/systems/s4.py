@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # eval/: systems.* as a script
 
-from dlens.agent import prompts
+from dlens.agent import loop, prompts
 from dlens.agent.answer import DRAFT_SCHEMA
 from dlens.agent.llm.base import LLMClient
 from dlens.agent.loop import _DEFAULTS, MAX_LLM_CALLS, MAX_TOOL_PHASE_CALLS, Agent
@@ -91,6 +91,14 @@ def tool_settings() -> dict[str, Any]:
         "max_llm_calls": MAX_LLM_CALLS,
         "max_tool_phase_calls": MAX_TOOL_PHASE_CALLS,
         "max_result_tokens": MAX_RESULT_TOKENS,
+        # s12-design A6: the answer phase trims to cap - regenerate_reserve
+        "regenerate_reserve": loop.REGENERATE_RESERVE,
+        "max_regenerate_failures": loop.MAX_REGENERATE_FAILURES,
+        "regen_clip_chars": {
+            "fact": loop.REGEN_FACT_CHARS,
+            "item": loop.REGEN_ITEM_CHARS,
+            "message": loop.REGEN_MESSAGE_CHARS,
+        },
         "defaults": {name: dict(args) for name, args in sorted(_DEFAULTS.items())},
     }
 

@@ -16,6 +16,7 @@ import pytest
 pytest.importorskip("httpx")
 
 import metrics as M  # noqa: E402
+from dlens.agent import loop  # noqa: E402
 from dlens.agent.llm.base import LLMClient, Provider  # noqa: E402
 from dlens.agent.llm.cache import ResponseCache  # noqa: E402
 from dlens.agent.llm.quota import QuotaCounter  # noqa: E402
@@ -125,6 +126,8 @@ def test_fake_run_writes_records_and_a_manifest_metrics_scores(graph: Any, tmp_p
         1500,
     )
     assert ts["defaults"]["impact_downstream"]["include_indirect"] is True
+    assert ts["regenerate_reserve"] == loop.REGENERATE_RESERVE > 0
+    assert ts["max_regenerate_failures"] == 9
     assert ts["defaults"]["trace_upstream"]["include_indirect"] is False
     calls = sum(r["tokens"]["llm_calls"] for r in loaded)
     assert m["cache"] == {

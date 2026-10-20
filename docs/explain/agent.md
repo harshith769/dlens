@@ -146,6 +146,16 @@ unchanged; new dumps carry two extra `null` keys.
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
   turn with the error, then a refused answer.
 - **Invalid answer JSON**: one repair with the error, then a refused answer.
+- **Regenerate budget (S12a, s12-design A6).** The answer prompt is trimmed to
+  `cap − REGENERATE_RESERVE`. The reserve is the larger of the repair turn (170 est.) and a
+  *minimal* regenerate turn (template + fact line + one failure line + "+K more failures", 278
+  est.), computed from the constants. It is the larger, not the sum, because the regenerate is
+  built on the original answer prompt and never includes the repair exchange. At regenerate time
+  the failure list fills the room actually left: the fact first, then lines in rule order R1–R9,
+  at most 9, then "+K more failures". If not even the minimal list fits, the regenerate is skipped
+  (`+regenerate_skipped_budget`) and the answer is salvaged. No call is sent over the cap. A
+  worst-case reserve (~803) was rejected: it would cost every question a third of its evidence
+  budget to protect a turn only some take.
 - **Tool error payloads** go back to the model as normal tool results.
 - **Provider errors**: a non-retryable `ProviderError`, `QuotaExceeded` or `InputTooLarge`
   becomes a refused answer with the reason. A retryable provider error gets one retry.
@@ -240,6 +250,12 @@ S12a (A1):
   fails, and why does the S4 prompt not silently follow? What would S12b have to do to add an
   S4-only line legitimately?
 - C. Why is the S4 text a literal copy checked by a test rather than an import of `S1_SYSTEM`?
+
+S12a (A6):
+- F. dev-67's answer prompt is trimmed and its first draft fails R2 on 12 ids. How many failure
+  lines does the regenerate show, in what order, and what happens if not even one fits?
+- G. Why is `REGENERATE_RESERVE` the max of the repair and regenerate turns rather than their
+  sum, and why was a worst-case reserve rejected?
 
 S12a (A4, A5):
 - D. A run makes 4 LLM calls; 3 come from the cache. What is the record's `cache` value, and why

@@ -8,11 +8,16 @@ LLM calls.
 Token budget: every call is measured with ``estimate_tokens`` against ``client.max_input_tokens``
 before it is sent. The tool phase compacts older tool messages (``context.fit``) and stops when
 even that cannot fit. The answer prompt is rebuilt from the Toolbox log, never from history, and
-is trimmed (``partial_evidence``) if it does not fit.
+is trimmed (``partial_evidence``) to ``cap - REGENERATE_RESERVE``, so a JSON repair turn and a
+minimal regenerate turn always fit after it (s12-design A6). The regenerate's failure list then
+fills the room actually left; if even the minimal list does not fit, the regenerate is skipped
+and the answer is salvaged. No path sends a call over the cap.
 """
 
 from __future__ import annotations
 
+import json
+import math
 import re
 import time
 import uuid
@@ -55,7 +60,12 @@ MAX_TOOL_PHASE_CALLS = 5
 MAX_DUPLICATE_TURNS = 2
 REPAIR_ECHO_CHARS = 600
 REPAIR_ERROR_CHARS = 300
-REGENERATE_LIST_TOKENS = 300
+# The regenerate turn (s12-design A6): a two-stage bound, not a worst-case reserve.
+REGEN_FACT_CHARS = 240  # the graph-check fact, clipped
+REGEN_ITEM_CHARS = 48  # a failure's item (an id, a model.column, a path)
+REGEN_MESSAGE_CHARS = 100  # a failure's message
+MAX_REGENERATE_FAILURES = 9  # one line per rule R1-R9 (the template's structure)
+RULE_ORDER = ("R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9")
 
 _TOOL_NAMES = "resolve_entity|trace_upstream|impact_downstream|get_model_sql"
 _TEXT_TOOL_CALL = re.compile(rf'<tool_call>|\{{\s*"name"\s*:\s*"({_TOOL_NAMES})"')
@@ -73,6 +83,71 @@ _FILE_SUFFIXES = {"sql", "csv", "yml", "yaml", "md", "py", "json", "txt"}
 MAX_CODE_EVIDENCE_COLUMNS = 2
 UNKNOWN_COLUMN_SUGGESTIONS = 3
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
+
+
+def _clip(text: str, n: int = REPAIR_ERROR_CHARS) -> str:
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
+def failure_line(where: str, rule: str, item: str, message: str) -> str:
+    return f"- {where}: {rule} {item[:REGEN_ITEM_CHARS]}: {_clip(message, REGEN_MESSAGE_CHARS)}"
+
+
+def fact_line(fact_id: str, fact: str) -> str:
+    return f"- The graph check says: {fact_id}: {_clip(fact, REGEN_FACT_CHARS)}"
+
+
+def more_line(k: int) -> str:
+    return f"- +{k} more failures"
+
+
+def list_tokens(lines: list[str]) -> int:
+    """Est. tokens the lines add to the regenerate message (their JSON-escaped length / 3, as
+    ``estimate_tokens`` counts, rounded up once more)."""
+    text = "\n".join(lines)
+    return math.ceil((len(json.dumps(text, ensure_ascii=False)) - 2) / 3) + 1
+
+
+def regenerate_lines(
+    failures: list[tuple[str, str, str, str]], fact: str | None, room: int
+) -> list[str]:
+    """The regenerate turn's failure list within ``room`` est. tokens: the fact line first (when
+    given), then failure lines ``(where, rule, item, message)`` in rule order R1-R9 (stable
+    within a rule), at most ``MAX_REGENERATE_FAILURES``, while they fit with the pending
+    "+K more failures" line; then that line if anything was cut. No failure line at all means
+    not even the minimal message fits (the caller skips the regenerate)."""
+    head = [fact] if fact else []
+    ranked = sorted(failures, key=lambda f: RULE_ORDER.index(f[1].split(".")[0]))
+    body: list[str] = []
+    for i, f in enumerate(ranked[:MAX_REGENERATE_FAILURES]):
+        cut = len(ranked) - i - 1
+        candidate = [*head, *body, failure_line(*f), *([more_line(cut)] if cut else [])]
+        if list_tokens(candidate) > room:
+            break
+        body.append(failure_line(*f))
+    cut = len(ranked) - len(body)
+    return [*head, *body, *([more_line(cut)] if cut else [])] if body else head
+
+
+def _minimal_regenerate_tokens() -> int:
+    worst = failure_line(
+        "answer_text", "R4.hallucinated", "x" * REGEN_ITEM_CHARS, "y" * REGEN_MESSAGE_CHARS
+    )
+    lines = [fact_line("r_00000000", "z" * REGEN_FACT_CHARS), worst, more_line(999)]
+    text = prompts.REGENERATE.format(failures="\n".join(lines))
+    return estimate_tokens([Message(role="user", content=text)])
+
+
+def _worst_repair_tokens() -> int:
+    """The repair turn the loop always sends: its user message (the echo is dropped when it
+    does not fit)."""
+    text = prompts.ANSWER_REPAIR.format(error="y" * REPAIR_ERROR_CHARS)
+    return estimate_tokens([Message(role="user", content=text)])
+
+
+# The regenerate request does not include the JSON-repair exchange (``_regenerate`` builds on the
+# original answer prompt), so the answer budget reserves the larger of the two turns.
+REGENERATE_RESERVE = max(_worst_repair_tokens(), _minimal_regenerate_tokens())
 
 
 class _Refuse(Exception):
@@ -282,12 +357,13 @@ class Agent:
         def tokens(its: list[EvidenceItem], extra: list[str]) -> int:
             return estimate_tokens(messages(its, extra), None, DRAFT_SCHEMA)
 
+        budget = cap - REGENERATE_RESERVE  # a repair or a minimal regenerate always fits after it
         partial: list[str] = []
         dropped: list[str] = []
-        if tokens(items, []) > cap:
+        if tokens(items, []) > budget:
             partial = [prompts.PARTIAL_DIRECTIVE]
             before = tokens(items, partial)
-            items, dropped = trim(items, lambda its: tokens(its, partial) <= cap)
+            items, dropped = trim(items, lambda its: tokens(its, partial) <= budget)
             self.record.compactions.append(
                 {
                     "step": len(self.record.steps),
@@ -357,8 +433,12 @@ class Agent:
 
         second: ValidationResult | None = None
         if self.record.llm_calls < MAX_LLM_CALLS:  # the budget reserves this call
-            v["regenerated"] = True
-            second = self._regenerate(question, msgs, first, partial)
+            regen = self._regenerate_messages(msgs, first)
+            if regen is None:  # not even the minimal failure list fits: salvage instead
+                self.record.stop_reason += "+regenerate_skipped_budget"
+            else:
+                v["regenerated"] = True
+                second = self._regenerate(question, regen, partial)
             if second is not None:
                 v["second"] = _summary(second)
                 if second.passed:
@@ -384,32 +464,42 @@ class Agent:
             return Answer.refusal(reason).model_copy(update={"validation_warning": True})
         return salvaged
 
-    def _regenerate(
-        self, question: str, msgs: list[Message], failed: ValidationResult, partial: bool
-    ) -> ValidationResult | None:
-        """One more answer call listing what failed. None if the reply is not valid JSON."""
-        lines = [
-            f"- {'answer_text' if f.claim_index is None else f'claim {f.claim_index}'}: "
-            f"{f.rule} {f.item_id or ''}: {_clip(f.message, 100)}"
-            for f in failed.failures
-        ]
-        if failed.fact is not None and any(f.rule == "R9" for f in failed.failures):
-            # first, so trimming the list never drops it; the fact is not clipped
-            fact = failed.fact
-            lines.insert(0, f"- The graph check says: {fact['fact_id']}: {fact['fact']}")
+    def _regenerate_messages(
+        self, msgs: list[Message], failed: ValidationResult
+    ) -> list[Message] | None:
+        """The regenerate request (s12-design A6): the original answer prompt plus the template
+        with as many failure lines as the room left under the cap allows. None when not even the
+        minimal list fits, or the final message is still over the cap (never sent)."""
         cap = self.client.max_input_tokens
 
-        def build(n: int) -> list[Message]:
-            text = prompts.REGENERATE.format(failures="\n".join(lines[:n]))
+        def build(lines: list[str]) -> list[Message]:
+            text = prompts.REGENERATE.format(failures="\n".join(lines))
             return [*msgs, Message(role="user", content=text)]
 
-        n = len(lines)
-        while n > 1 and (
-            estimate_tokens([build(n)[-1]]) > REGENERATE_LIST_TOKENS
-            or estimate_tokens(build(n), None, DRAFT_SCHEMA) > cap
-        ):
-            n -= 1
-        resp, _ = self._llm(build(n), None, DRAFT_SCHEMA, "regenerate")
+        room = cap - estimate_tokens(build([]), None, DRAFT_SCHEMA)
+        fact = None
+        if failed.fact is not None and any(f.rule == "R9" for f in failed.failures):
+            fact = fact_line(failed.fact["fact_id"], failed.fact["fact"])  # first: never cut
+        failures = [
+            (
+                "answer_text" if f.claim_index is None else f"claim {f.claim_index}",
+                f.rule,
+                f.item_id or "",
+                f.message,
+            )
+            for f in failed.failures
+        ]
+        lines = regenerate_lines(failures, fact, room)
+        if not lines or lines == [fact]:
+            return None
+        out = build(lines)
+        return out if estimate_tokens(out, None, DRAFT_SCHEMA) <= cap else None
+
+    def _regenerate(
+        self, question: str, regen: list[Message], partial: bool
+    ) -> ValidationResult | None:
+        """One more answer call listing what failed. None if the reply is not valid JSON."""
+        resp, _ = self._llm(regen, None, DRAFT_SCHEMA, "regenerate")
         self.record.regenerate_draft_raw = resp.text
         try:
             draft = _parse_draft(resp.text)
@@ -760,10 +850,6 @@ def _intent_tool(question: str) -> str | None:
     if _TRACE_WORDING.search(question):
         return "trace_upstream"
     return None
-
-
-def _clip(text: str, n: int = REPAIR_ERROR_CHARS) -> str:
-    return text if len(text) <= n else text[: n - 1] + "…"
 
 
 def _one_line(e: ValidationError) -> str:

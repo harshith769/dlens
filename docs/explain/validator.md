@@ -271,7 +271,8 @@ whitespace, so `model.column` does not split it):
   states the fact, so the model usually rewrites it as "Yes, through Z". A claim citing the fact
   that describes the *reverse* direction ("Y reaches X") reads as "yes".
 - **Flow:** on an R9 failure the regenerate prompt gets the line `The graph check says: r_…:
-  <fact>` first (never trimmed away). If the second draft still fails, salvage leads the rebuilt
+  <fact>` first (clipped to 240 chars, never cut). The failure lines that follow are bounded by
+  the room left under the cap (A6, see agent.md "Failure handling"). If the second draft still fails, salvage leads the rebuilt
   answer with **code's verdict claim** (`No: <fact>`, citing `r_`) and sets `validation_warning`.
   This verdict claim is kept even if every LLM claim failed, so the answer is not refused.
   Whenever salvage runs after an R9 failure it also sets `reach_verdict` to the fact's verdict

@@ -8,7 +8,13 @@ from dlens.agent.answer import DRAFT_SCHEMA
 from dlens.agent.evidence import build_evidence, render_evidence
 from dlens.agent.llm.tokens import estimate_tokens
 from dlens.agent.llm.types import LLMResponse, Message, ProviderError, QuotaExceeded
-from dlens.agent.loop import MAX_LLM_CALLS, MAX_TOOL_PHASE_CALLS, Agent, ask
+from dlens.agent.loop import (
+    MAX_LLM_CALLS,
+    MAX_TOOL_PHASE_CALLS,
+    REGENERATE_RESERVE,
+    Agent,
+    ask,
+)
 from dlens.agent.prompts import ANSWER_SYSTEM, PARTIAL_DIRECTIVE, answer_user
 from dlens.agent.runlog import RunLogger
 from dlens.agent.tools import Toolbox
@@ -125,7 +131,8 @@ def test_over_budget_answer_prompt_is_trimmed_and_flagged(box, make_client):
     holder = {}
 
     def shrink_then_done():
-        # One token short of the full answer prompt: some evidence must be trimmed.
+        # One token short of the full answer prompt plus the regenerate reserve (A6: the answer
+        # phase trims to cap - REGENERATE_RESERVE): some evidence must be trimmed.
         items = build_evidence(box)
         user = answer_user("where does fct_star.total come from?", render_evidence(items), [])
         full = estimate_tokens(
@@ -133,7 +140,7 @@ def test_over_budget_answer_prompt_is_trimmed_and_flagged(box, make_client):
             None,
             DRAFT_SCHEMA,
         )
-        holder["client"].max_input_tokens = full - 1
+        holder["client"].max_input_tokens = full - 1 + REGENERATE_RESERVE
         return done()
 
     script = [call("trace_upstream", column_id="fct_star.total"), shrink_then_done, draft()]
