@@ -227,7 +227,7 @@
    ],
    "missing": 19,
    "n/a": 0,
-   "star": 16
+   "star": 19
   },
   "column card (YAML description)": {
    "contains": 113,
@@ -293,5 +293,9 @@
    "n/a": 0,
    "star": 0
   }
+ },
+ "star_edge_check": {
+  "match": 19,
+  "star cards": 19
  }
 }

@@ -41,8 +41,8 @@ All notable changes to this project are documented here. The format follows
   ledger citation helper also cites a YAML description from its entry's `- name:` line, so the
   cited lines name the column or model (110 column cards, 49 model descriptions). S1 was re-run
   under that rule (B8 freeze change), and v2 is the frozen S1.
-  Star pass-through column cards whose column is named nowhere in the statement (16) are cited
-  at `level: star`, as S4 cites them; the v2 records' levels were re-attached without an LLM call
+  Star pass-through column cards (19; cited range has `*` and doesn't name the column, S4's
+  rule, checked 19 / 19 against the engine's edges) are cited at `level: star`; the v2 records' levels were re-attached without an LLM call
   (`scripts/s1_reattach_citations.py`) and re-scored.
 - **Shared run-manifest writer** `eval/systems/manifest.py` (S0, S1; S4 in S12) and the
   seed-card citation helper `dlens.retrieval.citation` (a seed column card is cited at its CSV

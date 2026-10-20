@@ -1,5 +1,6 @@
 """Re-attach the citations of committed S1 records under the current ``chunk_citation`` rule
-(S11 pre-merge fix: star pass-through cards cite at ``level: star``). No LLM call.
+(S11 pre-merge fixes: star pass-through cards cite at ``level: star``; rule v3, then v4). No
+LLM call.
 
 The evidence header shows only a chunk's file and lines, never its level, so a rule change that
 moves only levels leaves every prompt, and with it every answer, unchanged. Each citation in
@@ -53,8 +54,9 @@ def main() -> int:
     m["prompt_sha256"]["citation_rule"] = sha256_text(CITATION_RULE)
     m["retrieval"]["citation_rule"] = CITATION_RULE
     m["citations_reattached"] = (
-        "citation levels re-attached under chunk_citation v3 (star pass-through cards: level "
-        "star) by scripts/s1_reattach_citations.py; no LLM call, ranges and answers unchanged"
+        f"citation levels re-attached under {CITATION_RULE.split(':')[0]} (star pass-through "
+        "cards: level star) by scripts/s1_reattach_citations.py; no LLM call, ranges and "
+        "answers unchanged"
     )
     mpath.write_text(json.dumps(m, indent=1, sort_keys=True) + "\n")
     print(f"{changed} citation levels changed")

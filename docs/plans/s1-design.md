@@ -492,3 +492,12 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   are unchanged; `scripts/s1_reattach_citations.py` re-attached the v2 records' citation levels
   (4 citations) and the records were re-scored. Moved: citation validity per answer 0.478 →
   0.511, per citation 163 → 167 / 262; nothing else.
+- 20 Oct 2026 (owner decision): star rule wording corrected to match S4: cited range, not
+  statement. `star_citation` now marks a SQL column card `level: star` when its cited range
+  contains `*` and does not name the column (`CITATION_RULE` v4), so all 19 star pass-through
+  cards are star; the 3 left at `line` by v3 (`int_customer_order_history.order_date` /
+  `customer_id`, `fct_order_margins.net_revenue`) now follow S4. `citation_audit.md` checks all
+  19 against S4's provenance citation of the engine's pass-through edge: 19 / 19 same file,
+  lines and level (the audit and a test read the graph; S1 never does). v2 records re-attached
+  (2 citations) and re-scored: citation validity per answer 0.511 → 0.533, per citation 167 →
+  169 / 262; nothing else moved.

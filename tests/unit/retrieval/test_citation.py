@@ -2,6 +2,7 @@
 descriptions cite their entry from its `- name:` line, star pass-through cards are level star;
 every other chunk keeps its own range."""
 
+import json
 import re
 import sys
 from collections import Counter
@@ -10,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from dlens.graph import build_graph_from_artifacts
 from dlens.retrieval.chunks import Chunk, ChunkSet
 from dlens.retrieval.citation import (
     chunk_citation,
@@ -73,23 +75,10 @@ def test_sql_and_exposure_chunks_keep_their_citation(ss_chunks: ChunkSet) -> Non
 
 
 def test_star_pass_through_cards_are_level_star(ss_chunks: ChunkSet) -> None:
-    """The 16 SQL column cards whose `*` line passes a column named nowhere in the model's SQL:
-    same range, level star (S4's level for the same citation); ids and chunk metadata unchanged.
-    3 more pass-through cards name their column elsewhere in the statement (a window or an
-    expression), so the rule leaves them at line level."""
+    """The 19 SQL column cards whose `*` line passes the column through without naming it: same
+    range, level star (S4's rule: cited range, not statement); ids and chunk metadata unchanged."""
     stars = [c for c in ss_chunks.chunks if star_citation(c, SS_PROJECT)]
-    assert len(stars) == 16
-    named = {
-        c.column for c in ss_chunks.chunks
-        if c.kind == "column" and c.file.endswith(".sql") and not star_citation(c, SS_PROJECT)
-        and "*" in audit.cited_lines(_own(c), SS_PROJECT)
-        and not audit.contains(audit.cited_lines(_own(c), SS_PROJECT), audit.entity_names(c, {}))
-    }  # fmt: skip
-    assert named == {
-        "model.synthetic_shop.int_customer_order_history.order_date",
-        "model.synthetic_shop.int_customer_order_history.customer_id",
-        "model.synthetic_shop.fct_order_margins.net_revenue",
-    }
+    assert len(stars) == 19
     assert {c.file for c in stars} == {
         "models/intermediate/int_customer_order_history.sql",
         "models/marts/fct_order_margins.sql",
@@ -101,11 +90,30 @@ def test_star_pass_through_cards_are_level_star(ss_chunks: ChunkSet) -> None:
         assert "*" in audit.cited_lines(chunk_citation(c, SS_PROJECT), SS_PROJECT)
 
 
+CORPUS_TARGET = SS_PROJECT / "target"
+CORPUS_INDEX = CORPUS_TARGET / "dlens_index" / "chunks.jsonl"
+
+
+@pytest.mark.skipif(
+    not (CORPUS_TARGET / "manifest.json").is_file() or not CORPUS_INDEX.is_file(),
+    reason="needs a local synthetic_shop ingest and index (make ingest CORPUS=synthetic_shop)",
+)
+def test_star_level_matches_the_engine_pass_through_edge() -> None:
+    """On the graph and index S1 actually ran on: for each of the 19 star cards, the engine's
+    pass-through edge into that column, cited by S4's provenance, has the same range and the same
+    level (star). The test reads the graph; S1's code path never does."""
+    graph = build_graph_from_artifacts(CORPUS_TARGET)[0]
+    chunks = [Chunk.from_json(json.loads(x)) for x in CORPUS_INDEX.read_text().splitlines()]
+    assert audit.star_edge_check(chunks, graph, SS_PROJECT) == {"star cards": 19, "match": 19}
+
+
 @pytest.mark.parametrize(
     ("sql", "line", "level"),
     [
         ("select\n    *,\n    1 as x\nfrom t\n", 2, "star"),  # amt named nowhere: star
-        ("select\n    *,\n    amt * 2 as y\nfrom t\n", 2, "line"),  # amt named elsewhere
+        # amt named elsewhere in the statement, not in the cited range: still star (S4's rule)
+        ("select\n    *,\n    amt * 2 as y\nfrom t\n", 2, "star"),
+        ("select\n    *, amt\nfrom t\n", 2, "line"),  # the cited range names amt
         ("select\n    a,\n    b\nfrom t\n", 2, "line"),  # no `*` in the cited lines
     ],
 )
@@ -180,7 +188,7 @@ def test_yaml_entry_rule_cases(tmp_path: Path, yaml: str, line: int, want: int |
 
 def test_audit_after_the_helper(ss_chunks: ChunkSet) -> None:
     """Every chunk the helper covers names its own entity inside its cited range; what is still
-    missing is the 19 star pass-through cards (16 now at level star) and 2 SQL chunks."""
+    missing is the 19 star pass-through cards (all at level star) and 2 SQL chunks."""
     covered = [
         c for c in ss_chunks.chunks
         if seed_header_citation(c, SS_PROJECT) or yaml_entry_citation(c, SS_PROJECT)
@@ -189,7 +197,7 @@ def test_audit_after_the_helper(ss_chunks: ChunkSet) -> None:
     result = audit.audit(ss_chunks.chunks, SS_PROJECT, chunk_citation)
     missing = {k: v["missing"] for k, v in result.items() if v["missing"]}
     assert missing == {"column card (SQL)": 19, "model chunk (SQL)": 2}
-    assert result["column card (SQL)"]["star"] == 16
+    assert result["column card (SQL)"]["star"] == 19
     for c in covered:
         names = audit.entity_names(c, {})
         assert audit.contains(audit.cited_lines(chunk_citation(c, SS_PROJECT), SS_PROJECT), names)

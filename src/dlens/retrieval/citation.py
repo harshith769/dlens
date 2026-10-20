@@ -13,9 +13,9 @@ other chunk's own range:
   line through the end of the description, still inside the same YAML entry.
 
 * **Star pass-through column card**: the chunker cites the ``*`` line that passes the column
-  through (``level: line``), but the column is named nowhere in its statement. The ledger keeps
-  the range and marks it ``level: star``, the level S4's provenance gives the same citation
-  (metrics M7: a star citation's lines must contain ``*``).
+  through (``level: line``), and that range doesn't name the column. The ledger keeps the range
+  and marks it ``level: star``, the rule S4's provenance applies to the same citation (cited
+  range, not statement; metrics M7: a star citation's lines must contain ``*``).
 
 Each correction applies only when its condition holds on disk; otherwise the chunk's own range is
 kept. SQL model chunks that name no entity can't be corrected this way and are left as they are.
@@ -125,8 +125,8 @@ def yaml_entry_citation(chunk: Chunk, project_dir: Path) -> dict[str, Any] | Non
 
 def star_citation(chunk: Chunk, project_dir: Path) -> dict[str, Any] | None:
     """The card's own range at ``level: star``, if ``chunk`` is a SQL column card cited at line
-    level whose cited lines contain ``*`` and whose column is named nowhere in its statement (the
-    model's SQL file); else None."""
+    level whose cited lines contain ``*`` and don't name its column (S4's provenance rule); else
+    None."""
     if not (
         chunk.kind == "column"
         and chunk.level == "line"
@@ -138,7 +138,7 @@ def star_citation(chunk: Chunk, project_dir: Path) -> dict[str, Any] | None:
     if not lines or not 1 <= chunk.line_start <= chunk.line_end <= len(lines):
         return None
     cited = "\n".join(lines[chunk.line_start - 1 : chunk.line_end])
-    if "*" not in cited or _names("\n".join(lines), chunk.column.rsplit(".", 1)[-1]):
+    if "*" not in cited or _names(cited, chunk.column.rsplit(".", 1)[-1]):
         return None
     return {**_line(chunk.line_start, chunk.line_end, chunk), "level": "star"}
 

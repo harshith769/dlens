@@ -191,31 +191,41 @@ needs a named column), plus the unfixable star pass-through cards. **v2 is the f
 
 ## Pre-merge fix: star pass-through cards cite at `level: star` (no S1 re-run)
 
-**Owner decision.** In `dlens.retrieval.citation`, `star_citation`: a SQL column card whose cited
-range contains `*` and whose column is named nowhere in its statement keeps its range at
-`level: star`, the M7 rule S4's star citations get. `CITATION_RULE` v3 (new sha256 in the
-manifest). Chunk ids, chunk text, the index and the linker are unchanged. Of the 19 star
-pass-through cards, **16 qualify**. **3 stay at `level: line`**: their column is named elsewhere in
-the statement, so the rule as written doesn't apply (`int_customer_order_history.order_date` and
-`customer_id` in the `lag(order_date) over (partition by customer_id …)` window,
-`fct_order_margins.net_revenue` in `nullif(net_revenue, 0)`). The B8 section above says
-"nothing in the statement does" name them; that holds for 16, not all 19. `citation_audit.md`
-now shows the level ("level star 16").
+**Owner decisions.** In `dlens.retrieval.citation`, `star_citation`: a SQL column card whose cited
+range contains `*` and does not name the column keeps its range at `level: star`, the rule S4's
+provenance applies to the same citation (cited range, not statement). Chunk ids, chunk text, the
+index and the linker are unchanged. All **19** star pass-through cards qualify.
+
+- **v3** (first wording: "column named nowhere in the statement") covered 16. 3 cards name their
+  column elsewhere in the statement and stayed `level: line`: `int_customer_order_history.order_date`
+  and `customer_id` (in the `lag(order_date) over (partition by customer_id …)` window) and
+  `fct_order_margins.net_revenue` (in `nullif(net_revenue, 0)`).
+- **v4** (wording corrected to match S4: cited range, not statement) covers all 19.
+
+**Check against the engine.** `citation_audit.md` ("Star cards vs the engine's pass-through
+edges"): for each star card, S4's provenance citation of the engine's edge into that column has
+the same file, lines and level, **19 / 19**. A test checks the same on the local graph and index
+(skipped when they aren't built). Only the audit and the test read the graph; S1's code path
+never does. The committed test-fixture artifacts give some of these edges a different citation
+than the corpus graph S1 ran on, so the check uses the corpus graph.
 
 **No re-run.** The evidence header shows a chunk's file and lines, never its level, so every
 prompt and answer is unchanged. `scripts/s1_reattach_citations.py` recomputed every citation of
-the v2 records from the index (ranges checked unchanged); 4 citations changed level (dev-17,
-dev-34, dev-57, dev-89). The manifest's `citation_rule` and a `citations_reattached` note were
-updated; nothing else in the records changed. Re-scored with metrics.py 1.2.0.
+the v2 records from the index (ranges checked unchanged). The manifest's `citation_rule` (text and
+sha256) and its `citations_reattached` note were updated; nothing else in the records changed.
+Re-scored with metrics.py 1.2.0. `s1_smoke_dev_health.*` is unchanged.
 
 Every headline value that moved (all others identical):
 
-| metric | v2 before | v2 now (frozen S1) |
-|---|---|---|
-| citation_valid_answer | 0.478 [0.37, 0.59] (n=90) | 0.511 [0.40, 0.61] (n=90) |
-| citations valid / checked | 163 / 262 | 167 / 262 |
+| metric | v2 as run (rule v2) | v3 | v4 (frozen S1) |
+|---|---|---|---|
+| citation_valid_answer | 0.478 [0.37, 0.59] | 0.511 [0.40, 0.61] | **0.533** [0.42, 0.63] (n=90) |
+| citations valid / checked | 163 / 262 | 167 / 262 | **169** / 262 |
 
-Answers whose citations all became valid: dev-17, dev-34, dev-89 (dev-57 has another invalid
-citation). Invalid citations per claim occurrence: "excerpt names no column of its claim" 105 →
-101; column card (SQL), claim names ids 8 → 5; column card (SQL), claim names no id 12 → 11.
-`s1_smoke_dev_health.*` is unchanged.
+- v3 re-attached 4 citations (dev-17, dev-34, dev-57, dev-89). dev-17, dev-34 and dev-89 became
+  fully citation-valid; dev-57 still has another invalid citation.
+- v4 re-attached 2 more (dev-09 `order_date`, dev-54 `net_revenue`). Both answers became fully
+  citation-valid.
+- Invalid citations per claim occurrence: "excerpt names no column of its claim" 105 → 101 →
+  99. Column card (SQL), claim names ids: 8 → 5 → 3. Column card (SQL), claim names no id:
+  12 → 11 → 11.

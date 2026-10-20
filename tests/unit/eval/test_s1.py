@@ -58,7 +58,7 @@ FROZEN = {
     "repair": "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b",
     "clarification": "40fd7a42eff2255149fcebd964d1677664232bb30c3eb6dcc8a1ea38251efa92",
     # B8 freeze change, 20 Oct 2026 (citation audit): chunk_citation v2
-    "citation_rule": "7953fc61537a7660ffe962c58bf0f9f46740aebbbf95795e3e1c9c709be39802",
+    "citation_rule": "159a00209f321637296387c7e47fa32c4ae1a3e5b97347a6b7871e95e321bd88",
     "budget_rule": "c2ec079e87e8ef5e99ce68df2e408da841791621e89060cec69df944269cd1a9",
 }
 

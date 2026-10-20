@@ -116,6 +116,31 @@ def audit(
     return out
 
 
+def star_edge_check(chunks: list[Chunk], graph: Any, project: Path) -> dict[str, Any]:
+    """For each column card the ledger cites at level star, the engine's edge into that column
+    (S4's provenance citation) must cite the same file and lines at the same level. Reads the
+    graph; S1 never does."""
+    from dlens.agent.tools.provenance import Provenance
+
+    prov = Provenance(graph, project)
+    into: dict[str, list[Any]] = defaultdict(list)
+    for e in graph.edges():
+        into[e.to_column].append(e)
+    stars = [c for c in chunks if chunk_citation(c, project)["level"] == "star"]
+    match, mismatched = 0, []
+    for c in stars:
+        mine = chunk_citation(c, project)
+        theirs = [prov.edge_citation(e).model_dump() for e in into.get(c.column or "", [])]
+        if mine in theirs:
+            match += 1
+        else:
+            mismatched.append({"id": c.id, "column": c.column, "edges": theirs})
+    out: dict[str, Any] = {"star cards": len(stars), "match": match}
+    if mismatched:
+        out["mismatched"] = mismatched
+    return out
+
+
 def render(result: Mapping[str, Any], before: Mapping[str, Any] | None) -> str:
     out = [
         "# Citation audit: does each chunk's cited range contain its own name? (S11)",
@@ -155,13 +180,9 @@ def render(result: Mapping[str, Any], before: Mapping[str, Any] | None) -> str:
         "",
         "- **column card (SQL), star pass-through**: the card cites the `select *` line that "
         "passes the column through, so the cited line doesn't contain the name. The range is "
-        "kept. When the column is named nowhere in the model's statement (16 cards), the ledger "
-        "cites it at **`level: star`**, the level S4's provenance gives the same citation, and "
-        "metrics M7 checks the lines for `*` (pre-merge fix, S11). The other 3 name their "
-        "column elsewhere in the statement, inside a window or an expression "
-        "(`int_customer_order_history.order_date` / `customer_id`, "
-        "`fct_order_margins.net_revenue`), so the star rule doesn't apply and they stay at "
-        "`level: line`.",
+        "kept and the ledger cites it at **`level: star`**, the rule S4's provenance applies: "
+        "the cited range contains `*` and doesn't name the column (cited range, not "
+        "statement). Metrics M7 then checks the lines for `*` (pre-merge fix, S11).",
         "- **model chunk (SQL)** with no entity name: `fct_payment_events` is a one-line "
         "`select * from {{ ref(...) }}`, and a 40-line fallback window of `fct_customer_cohorts` "
         "holds only its `from` / `join` / `group by` clauses. A chunk's range is its own text, and "
@@ -179,6 +200,17 @@ def render(result: Mapping[str, Any], before: Mapping[str, Any] | None) -> str:
                 f"lacks {', '.join(e['names'])}"
                 for e in v["examples"]
             ]
+    if "star_edge_check" in result:
+        chk = result["star_edge_check"]
+        out += [
+            "",
+            "## Star cards vs the engine's pass-through edges",
+            "",
+            f"{chk['match']} of {chk['star cards']} star column cards have the same file, lines "
+            "and level as S4's provenance citation of the engine's edge into that column (graph "
+            "read by this script only).",
+        ]
+        out += [f"- mismatch: `{m['id']}` {m['column']}" for m in chk.get("mismatched", [])]
     return "\n".join(out) + "\n"
 
 
@@ -194,6 +226,12 @@ def main(argv: list[str] | None = None) -> int:
         "chunk_metadata": audit(chunks, PROJECT, raw_citation),
         "ledger": audit(chunks, PROJECT, chunk_citation),
     }
+    graph_target = PROJECT / "target"
+    if (graph_target / "manifest.json").is_file():
+        from dlens.graph import build_graph_from_artifacts
+
+        graph = build_graph_from_artifacts(graph_target)[0]
+        result["star_edge_check"] = star_edge_check(chunks, graph, PROJECT)
     before = json.loads(ns.before.read_text()) if ns.before else None
     ns.out.parent.mkdir(parents=True, exist_ok=True)
     ns.out.with_suffix(".json").write_text(json.dumps(result, indent=1, sort_keys=True) + "\n")
