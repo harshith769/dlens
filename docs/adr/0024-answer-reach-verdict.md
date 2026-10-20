@@ -1,6 +1,6 @@
 # 0024. Structured yes/no verdict on `Answer`: `reach_verdict` and `reach_verdict_source`
 
-- Status: Proposed (draft, S11 step 1, 20 Oct 2026; owner decision pending)
+- Status: Accepted (owner, 20 Oct 2026; s1-design.md B7)
 - Date: 2026-10-20
 - Amends: spec §8 answer schema (additive)
 - Implemented in: S11 (field + S1), S12 (S4 sets it)
@@ -14,7 +14,7 @@ verdict in a record-level key (`structured.reach_verdict`). S1 (S11) and S4 (S12
 shared `Answer` schema, and S4 also needs a record of who set it: the LLM, or code when R9 salvage
 replaces the verdict. The S4-raw view must count only the LLM's own value.
 
-## Decision (proposed)
+## Decision
 
 Two additive fields on `Answer`, both defaulting to `null`:
 

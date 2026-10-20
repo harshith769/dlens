@@ -1,6 +1,6 @@
 # S1 design: the vector-RAG baseline (S11, v0.3 D2 S1 part)
 
-**Status:** draft for owner review (S11 step 1, 20 Oct 2026). Every `Decision:` is **PENDING**.
+**Status:** approved by the owner, 20 Oct 2026 (decisions on each `Decision` line). Drafted in S11 step 1.
 No S1 code exists and no S1 result has been produced. This document holds no S1 or S4 score.
 **Inputs:** spec §8 (answer schema, agent loop, token cap) and §11.3–11.6; `docs/plans/v0.3-plan.md`
 D1, D2; `docs/plans/retrieval-design.md`; `docs/plans/metrics-design.md` v1.1 (M3, M5, M7, M9, M12,
@@ -134,7 +134,7 @@ Chunks are separated by a blank line, in the order they were added (B2), inside 
 `<evidence>…</evidence>` wrapper. The file and line range in the header are there for the reader,
 as in S4's excerpt lines. The model is still told never to write a file name or line number.
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` as recommended: raw question, hybrid, all three chunk kinds, no linker.
 
 ---
 
@@ -183,7 +183,7 @@ and S4's `PARTIAL_DIRECTIVE` ("say the answer may be incomplete") is not added.
 **No tuning.** The rule, `REPAIR_RESERVE` and the cap are fixed by this decision. They are not
 changed after dev results are seen (B8).
 
-`Decision: PENDING` (fill rule (a) / (b); ceiling (i) / (ii))
+`Decision (owner, 20 Oct 2026):` **(b) skip-and-pack**, **(i) no k ceiling**; `REPAIR_RESERVE = 200`; per-question fields as listed.
 
 ---
 
@@ -244,7 +244,7 @@ divergence fails CI unless a recorded decision changes it. Until S12, S4's promp
 `reach_verdict` line, and S4's existing records are not scorable on yes/no (M5), as metrics-design
 already states.
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` (a) frozen literal + 776724f snapshot test; from S12, S4 adopts the lines verbatim and the test becomes "S1 frozen vs S4 live".
 
 ---
 
@@ -270,7 +270,7 @@ never saw).
 
 **Recommendation.** (a).
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` (a) ledger = shown chunks; unknown ids kept uncited.
 
 ---
 
@@ -305,7 +305,7 @@ systems. Consequence: before D5b's test questions with `gold.interpretation` are
 add the structured field, and S1 either gets it (owner decision, recorded re-run) or scores 0 on
 those questions under M9.
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` refusal and clarification as proposed; interpretation **(a) deferred** to S12's structured field.
 
 ---
 
@@ -333,7 +333,7 @@ gives S1 one fewer chance than S4.
 
 **Recommendation.** (a).
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` (a) one repair, one provider retry, all counted.
 
 ---
 
@@ -361,7 +361,7 @@ record-level key only (like S0), no `Answer` field.
 reliably, and they read naturally in the UI and in `render`. (c) would keep a scored value out of
 the public answer schema.
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` (a) two flat fields (ADR 0024 accepted).
 
 ---
 
@@ -375,7 +375,7 @@ repair text, budget rule (B2 option, cap, `REPAIR_RESERVE`) and retrieval settin
 sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec system freeze
 (spec §11.7) then covers S1 as well as S4.
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` as proposed.
 
 ---
 
@@ -404,7 +404,7 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   `eval/systems/manifest.py`. S0 calls it and its manifests stay byte-identical (a test), and S12's
   S4 runner reuses it.
 
-`Decision: PENDING`
+`Decision (owner, 20 Oct 2026):` as proposed.
 
 ---
 
@@ -424,9 +424,14 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   target's own column card was shown, retrieved but not shown, or not retrieved, and its rank.
   It splits S1 losses into "retrieval miss" vs "LLM miss", overall and by wording.
 
-## Owner notes (raised, not decided here)
+## Owner notes
 
-- **Seed cards and M7.** The 73 seed column cards cite their whole CSV at `level: model`, which M7
+- **Seed cards and M7 (decided by the owner, 20 Oct 2026, before any S1 run).** Seed column cards
+  now cite their CSV **header line** (line 1, `level: line`), where a seed column is defined,
+  instead of the whole file at `level: model`. This is a data-correctness fix to the chunker's
+  citation metadata (its own commit, index rebuilt locally), not an M7 change; metrics-design
+  stays v1.1. The original note follows.
+- *Original note:* The 73 seed column cards cite their whole CSV at `level: model`, which M7
   rule 4 always marks invalid (§0). S1 citations of seed columns are therefore invalid by
   construction, while S4 cites seeds through edge citations on model SQL lines. This is a fact
   about the corpus + M7, not an S1 setting. If the owner wants it handled (for example, the CSV
@@ -437,3 +442,6 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
 ## Change log
 
 - 20 Oct 2026: first draft (S11 step 1). Every Decision PENDING. No S1 result exists.
+- 20 Oct 2026: owner decisions. B2 takes (b) skip-and-pack with no ceiling; B5 defers
+  interpretation; the rest as recommended. Seed-card citation to be fixed in the chunker before any
+  S1 run. No S1 result exists.
