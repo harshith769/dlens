@@ -2,7 +2,6 @@
 descriptions cite their entry from its `- name:` line, star pass-through cards are level star;
 every other chunk keeps its own range."""
 
-import json
 import re
 import sys
 from collections import Counter
@@ -11,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-from dlens.graph import build_graph_from_artifacts
 from dlens.retrieval.chunks import Chunk, ChunkSet
 from dlens.retrieval.citation import (
     chunk_citation,
@@ -90,21 +88,8 @@ def test_star_pass_through_cards_are_level_star(ss_chunks: ChunkSet) -> None:
         assert "*" in audit.cited_lines(chunk_citation(c, SS_PROJECT), SS_PROJECT)
 
 
-CORPUS_TARGET = SS_PROJECT / "target"
-CORPUS_INDEX = CORPUS_TARGET / "dlens_index" / "chunks.jsonl"
-
-
-@pytest.mark.skipif(
-    not (CORPUS_TARGET / "manifest.json").is_file() or not CORPUS_INDEX.is_file(),
-    reason="needs a local synthetic_shop ingest and index (make ingest CORPUS=synthetic_shop)",
-)
-def test_star_level_matches_the_engine_pass_through_edge() -> None:
-    """On the graph and index S1 actually ran on: for each of the 19 star cards, the engine's
-    pass-through edge into that column, cited by S4's provenance, has the same range and the same
-    level (star). The test reads the graph; S1's code path never does."""
-    graph = build_graph_from_artifacts(CORPUS_TARGET)[0]
-    chunks = [Chunk.from_json(json.loads(x)) for x in CORPUS_INDEX.read_text().splitlines()]
-    assert audit.star_edge_check(chunks, graph, SS_PROJECT) == {"star cards": 19, "match": 19}
+# The engine-agreement check (star cards vs the engine's pass-through edge) needs a real ingest;
+# it runs in CI as tests/integration/test_engine_citation_agreement.py (s12-design B8).
 
 
 @pytest.mark.parametrize(

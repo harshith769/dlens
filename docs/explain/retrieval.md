@@ -155,6 +155,14 @@ be fixed this way and keep their range. `star_citation` marks all 19 `level: sta
 provenance rule: the cited range contains `*` and doesn't name the column (cited range, not
 statement). M7 then checks the lines for `*`. `scripts/citation_audit.py` checks each star card
 against S4's citation of the engine's edge into that column: same file, lines and level.
+That check runs in CI since S12b (B8): `tests/integration/test_engine_citation_agreement.py`
+ingests a temporary copy of `corpora/synthetic_shop`, builds the chunks with `build_chunks` (no
+index, no embedder) and expects 19 of 19 to match. It used to skip unless a local ingest and
+index existed. The committed fixture artifacts can't replace the ingest: graphs built from them
+have no compiled-to-source mapping, so their line ranges differ. It is marked `integration`, so
+it runs in the `lint-test` job (`make test`, Python 3.12 and 3.13) and not in the core-install
+step. Rejected: committing compiled SQL into the fixture (it would move fixture chunk ranges and
+the chunk ids other tests pin).
 
 **`search_docs` cites through `chunk_citation` (S12a, A3).** The side record's `citation` is
 exactly what `S1Ledger.record(id)["citation"]` returns for the same chunk (the chunker's
@@ -198,3 +206,7 @@ Earlier:
 5. A column card's YAML entry is `- name: amt` / `tests: [...]` / `description: Amount.`. Which
    lines does the ledger cite, and what if a `- name: other` entry sat between the name line and
    the description? Why can't the same trick fix a star pass-through card?
+6. (S12b, B8) The engine-agreement test ingests a copy of synthetic_shop instead of reading
+   `tests/fixtures/artifacts/synthetic_shop`. What would differ if it used the fixture, and why
+   does that make the fixture unable to test this rule? Which CI step skips the test, and why is
+   that fine?
