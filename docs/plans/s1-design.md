@@ -467,3 +467,7 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   now judged by the same rule. Implemented as the shared helper `dlens.retrieval.citation` (not in
   the chunker: a chunker-metadata version changed chunk ids and, through rank tie-breaking, one
   frozen linker result; reverted, linker and sanity reports confirmed identical to main).
+- 20 Oct 2026 (S11 step 5): S1 smoke run on the 96 dev questions with local qwen3:4b; no S1
+  setting changed after the numbers were seen. Report: `eval/reports/s11_session.md`. Structural
+  finding raised for the owner (not acted on): YAML-description column cards cite only their
+  `description:` line, which doesn't hold the column name, so M7 marks those citations invalid.

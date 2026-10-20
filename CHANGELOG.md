@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **`groq` left the `agent` extra** (ADR 0012); Groq is now a preset of the OpenAI-compatible
+  adapter (`httpx`, already installed). `eval/metrics.py` 1.2.0: an S1 record adapter and the
+  ADR 0024 verdict accessor, with no metric definition changed (metrics-design stays v1.1).
 - **Entity linker v2** (`resolve_entity`, S08; ADR 0022, docs/plans/linker-design.md): stage 1
   exact matches always rank first; stage 2 surface / rewritten (plural, an 18-entry abbreviation
   table, phrase rules "number of / how many / count of / total X", weak `usd`, word order) /
@@ -19,6 +22,24 @@ All notable changes to this project are documented here. The format follows
   refusal; code prefixes the answer with "Interpreted X as Y.".
 
 ### Added
+- **S1 vector-RAG baseline** (S11; docs/plans/s1-design.md): `eval/systems/s1.py` and
+  `make eval-s1`. Hybrid search on the raw question over the S07 index, chunks skip-and-packed
+  into the 3K cap minus a repair reserve, S4's answer-phase instructions plus three S1 lines
+  (frozen and snapshot-tested), citations attached by code from the shown chunks, no validator.
+  Cloud providers are refused without `--allow-cloud`. Smoke run on the 96 dev questions with
+  local qwen3:4b: `eval/reports/s1_smoke_dev.md`, health and retrieval diagnostic in
+  `s1_smoke_dev_health.md` (`scripts/s1_diagnostics.py`), summary beside S0 in
+  `eval/reports/s11_session.md`.
+- **OpenAI-compatible LLM adapter** (S11, ADR 0012): `DLENS_PROVIDER=openai` for any
+  `/chat/completions` endpoint (OpenRouter, LM Studio, vLLM, OpenAI, Ollama's `/v1`);
+  `DLENS_PROVIDER=groq` is a preset of it. The base URL is part of the cache key. The API key is
+  read at send time only and never stored, cached, logged or put in error text. A non-local
+  endpoint needs a key and a daily call budget.
+- **`Answer.reach_verdict` / `reach_verdict_source`** (ADR 0024, additive): the structured yes/no
+  verdict metrics scores, and who set it. S4 adopts it in S12.
+- **Shared run-manifest writer** `eval/systems/manifest.py` (S0, S1; S4 in S12) and the
+  seed-card citation helper `dlens.retrieval.citation` (a seed column card is cited at its CSV
+  header line).
 - **Benchmark metrics v1** (S10; ADR 0023, docs/plans/metrics-design.md v1.0): `eval/metrics.py`
   scores run records of any system the same way: a shared prose extractor (identifier filter,
   tested negation rule, CTE references apart), node-set F1 in each question's primary mode with
