@@ -6,7 +6,7 @@ import time
 from collections import deque
 from collections.abc import Callable
 
-RPM_LIMITS: dict[str, int | None] = {"gemini": 15, "groq": 30, "ollama": None}
+RPM_LIMITS: dict[str, int | None] = {"gemini": 15, "groq": 30, "openai": None, "ollama": None}
 WINDOW_SECONDS = 60.0
 
 

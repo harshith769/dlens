@@ -4,7 +4,7 @@ from .conftest import FakeClock
 
 
 def test_limits_table():
-    assert RPM_LIMITS == {"gemini": 15, "groq": 30, "ollama": None}
+    assert RPM_LIMITS == {"gemini": 15, "groq": 30, "openai": None, "ollama": None}
 
 
 def test_first_n_immediate_then_waits_exact_remainder():

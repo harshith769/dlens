@@ -3,7 +3,7 @@
 ## What it does
 `LLMClient.chat(messages, tools=None) -> LLMResponse(text, tool_calls, usage, cached)` is the only
 way DLens talks to a model. `make_client()` picks the provider from `DLENS_PROVIDER` (default
-`ollama`; `gemini` also works; `groq` is a clear "not yet" error). Around every call the client
+`ollama`; also `gemini`, `openai` and `groq`, the last two through one OpenAI-compatible adapter). Around every call the client
 enforces, in this order:
 
 1. **Token cap**: estimate input tokens, raise `InputTooLarge` above 3,000.
@@ -42,6 +42,29 @@ option existed still hit.
 - **`gemini.py`**: `google-genai` with automatic function calling disabled (we run our own loop).
   Key from `GEMINI_API_KEY` in the process environment only; `.env` is never opened. The model ID
   comes from `DLENS_GEMINI_MODEL` and `-latest` aliases are rejected.
+- **`openai_compat.py`** (S11, ADR 0012): one adapter for any OpenAI-compatible
+  `/chat/completions` endpoint (Groq, OpenRouter, LM Studio, vLLM, OpenAI, Ollama's own `/v1`),
+  written on plain `httpx`. `DLENS_PROVIDER=openai` reads `DLENS_OPENAI_BASE_URL`,
+  `DLENS_OPENAI_MODEL` and `DLENS_OPENAI_KEY_ENV` (the *name* of the variable holding the key), plus
+  `DLENS_OPENAI_TEMPERATURE` (default 0), `DLENS_OPENAI_JSON_MODE`, `DLENS_OPENAI_DAILY_BUDGET`
+  (calls/day) and `DLENS_OPENAI_RPM`. **Groq is a preset**: `DLENS_PROVIDER=groq` is this
+  adapter with Groq's base URL, key variable `GROQ_API_KEY`, model `DLENS_GROQ_MODEL`, budget
+  `GROQ_DAILY_BUDGET` and 30 RPM. Messages map to the OpenAI shape: assistant `tool_calls` with
+  JSON-string arguments, `tool` messages with `tool_call_id`. A `response_schema` becomes
+  `response_format: json_schema` (or `json_object`, or nothing, via the JSON mode, for endpoints
+  that lack schema support). Returned tool-call ids are renumbered `call_{i}`, as in Ollama, and
+  `<think>` blocks are stripped. `params` = base URL, temperature and JSON mode, so **the same
+  model id on two endpoints never shares a cache entry**, with no change to `cache.py`.
+  - **The key.** Only the variable's name is kept. The value is read at send time for the
+    `Authorization` header and nowhere else: not in `params` (the cache key), the cache, the quota
+    file, run records, manifests or exception text. Errors are built from the status and at most
+    300 characters of the response body and raised `from None`, because a chained httpx exception
+    holds the request and the request holds the header. A test sets the key to a sentinel string
+    and searches every written file and raised message for it. Never put a key in the base URL.
+  - **Cloud guard.** A base URL whose host isn't `localhost`, `127.0.0.1` or `::1` needs a key and
+    a daily call budget, or `make_client` refuses: a cloud call is never unmetered. Groq's
+    documented tokens/day limit (`GROQ_DAILY_TOKENS`) is not enforced by the counter; the
+    calls/day budget is the guard.
 - **`config.py`**: cache at `$XDG_CACHE_HOME/dlens/llm.sqlite` (override `DLENS_CACHE_DIR`), quota
   at `$XDG_STATE_HOME/dlens/quota.sqlite` (override `DLENS_STATE_DIR`).
 
@@ -69,6 +92,10 @@ option existed still hit.
   safety net: it handles closed blocks, unterminated blocks and a bare closing tag.
 
 ## Alternatives rejected
+- **The Groq SDK** (the original plan): it locks the cross-check and judge to one free tier, and
+  real users want their own provider. `groq` left the `agent` extra in S11 (ADR 0012).
+- **The `openai` SDK for the compatible adapter**: another dependency for one POST. Plain `httpx`
+  (already installed by `ollama` and `google-genai`) gives full control over headers and error text.
 - **LiteLLM / LangChain wrappers**: a big dependency and they hide the thought-signature and quota
   details this layer exists to control (spec: no agent framework).
 - **A real tokenizer** (tiktoken, model tokenizers): none matches both Gemini and Qwen, and
@@ -85,3 +112,10 @@ option existed still hit.
 3. You change `DLENS_GEMINI_TEMPERATURE` from 1.0 to 0.5. What happens to old cache entries, and
    why is that the right behaviour? What goes wrong if a tool call's `thought_signature` is dropped
    when history is replayed?
+4. A teammate points `DLENS_OPENAI_BASE_URL` at a hosted endpoint and gets "needs a daily call
+   budget". Why does the local endpoint not need one, and why is the base URL part of `params`
+   while the API key is not?
+5. An httpx call to the endpoint fails with a 401. Walk through what the user sees, and why the
+   adapter raises `ProviderError(...) from None` instead of chaining the httpx exception.
+6. Groq returns tool calls with ids like `call_abc123xyz`. What does the adapter do with them,
+   and what would happen to the cache on a replayed tool-phase history if it kept them?

@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-agent = ["google-genai", "ollama", "groq", "tzdata"]
+agent = ["google-genai", "ollama", "httpx", "tzdata"]  # httpx: the OpenAI-compatible adapter (ADR 0012)
 retrieval = ["bm25s", "onnxruntime", "tokenizers", "huggingface-hub", "numpy"]  # ADR 0021
 ui = ["streamlit>=1.65,<1.66"]  # style.py targets 1.65 internal selectors
 

@@ -17,7 +17,7 @@ from typing import Any
 
 from dlens.agent.llm.cache import ResponseCache, cache_key
 from dlens.agent.llm.config import cache_path, quota_path
-from dlens.agent.llm.quota import QuotaCounter, default_budgets
+from dlens.agent.llm.quota import BUDGET_ENV, QuotaCounter, default_budgets
 from dlens.agent.llm.ratelimit import RPM_LIMITS, RateLimiter
 from dlens.agent.llm.tokens import MAX_INPUT_TOKENS, estimate_tokens
 from dlens.agent.llm.types import InputTooLarge, LLMResponse, Message, ToolSpec
@@ -97,13 +97,26 @@ def make_client(provider: str | None = None, env: Mapping[str, str] | None = Non
         from dlens.agent.llm.gemini import GeminiProvider
 
         prov = GeminiProvider.from_env(env)
-    elif name == "groq":
-        raise ValueError("The Groq adapter is not implemented yet (v0.3).")
+    elif name in ("openai", "groq"):
+        from dlens.agent.llm.openai_compat import OpenAICompatConfigError, OpenAICompatProvider
+
+        compat = OpenAICompatProvider.from_env(env, preset=name)
+        if not compat.local and default_budgets(env).get(name) is None:
+            raise OpenAICompatConfigError(
+                f"{name}: a non-local endpoint needs a daily call budget "
+                f"({BUDGET_ENV[name]}); a cloud call is never unmetered."
+            )
+        prov = compat
     else:
-        raise ValueError(f"Unknown DLENS_PROVIDER {name!r}; expected ollama or gemini.")
+        raise ValueError(
+            f"Unknown DLENS_PROVIDER {name!r}; expected ollama, gemini, openai or groq."
+        )
+    rpm = RPM_LIMITS[name]
+    if name == "openai" and env.get("DLENS_OPENAI_RPM"):
+        rpm = int(env["DLENS_OPENAI_RPM"])
     return LLMClient(
         prov,
         ResponseCache(cache_path(env)),
         QuotaCounter(quota_path(env), default_budgets(env)),
-        RateLimiter(RPM_LIMITS[name]),
+        RateLimiter(rpm),
     )

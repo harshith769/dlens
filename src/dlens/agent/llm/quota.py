@@ -15,10 +15,20 @@ PACIFIC = ZoneInfo("America/Los_Angeles")
 DEFAULT_GEMINI_BUDGET = 400
 
 
+# Daily call budgets for the OpenAI-compatible adapter (no default: make_client refuses a
+# non-local endpoint without one).
+BUDGET_ENV = {"openai": "DLENS_OPENAI_DAILY_BUDGET", "groq": "GROQ_DAILY_BUDGET"}
+
+
+def _optional_int(value: str | None) -> int | None:
+    return int(value) if value else None
+
+
 def default_budgets(env: Mapping[str, str]) -> dict[str, int | None]:
     return {
         "gemini": int(env.get("GEMINI_DAILY_BUDGET") or DEFAULT_GEMINI_BUDGET),
-        "groq": None,  # Groq is limited in tokens/day; added with the Groq adapter
+        "groq": _optional_int(env.get(BUDGET_ENV["groq"])),
+        "openai": _optional_int(env.get(BUDGET_ENV["openai"])),
         "ollama": None,
     }
 
