@@ -13,20 +13,24 @@ from typing import Any
 
 import pytest
 
-import metrics as M
-from dlens.agent.answer import DRAFT_SCHEMA, Answer
-from dlens.agent.llm.base import LLMClient, Provider
-from dlens.agent.llm.cache import ResponseCache
-from dlens.agent.llm.openai_compat import OpenAICompatProvider
-from dlens.agent.llm.quota import QuotaCounter
-from dlens.agent.llm.ratelimit import RateLimiter
-from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolSpec, Usage
-from dlens.agent.runlog import RunRecord
-from dlens.graph import LineageGraph, build_graph_from_artifacts
-from dlens.retrieval.dense import FakeEmbedder
-from dlens.retrieval.index import SearchIndex
-from systems import s1
-from systems.manifest import manifest_path
+# S1 runs on the agent extra (httpx: the OpenAI-compatible adapter); the core-install CI step has
+# no extras, so this module skips there.
+pytest.importorskip("httpx")
+
+import metrics as M  # noqa: E402
+from dlens.agent.answer import DRAFT_SCHEMA, Answer  # noqa: E402
+from dlens.agent.llm.base import LLMClient, Provider  # noqa: E402
+from dlens.agent.llm.cache import ResponseCache  # noqa: E402
+from dlens.agent.llm.openai_compat import OpenAICompatProvider  # noqa: E402
+from dlens.agent.llm.quota import QuotaCounter  # noqa: E402
+from dlens.agent.llm.ratelimit import RateLimiter  # noqa: E402
+from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolSpec, Usage  # noqa: E402
+from dlens.agent.runlog import RunRecord  # noqa: E402
+from dlens.graph import LineageGraph, build_graph_from_artifacts  # noqa: E402
+from dlens.retrieval.dense import FakeEmbedder  # noqa: E402
+from dlens.retrieval.index import SearchIndex  # noqa: E402
+from systems import s1  # noqa: E402
+from systems.manifest import manifest_path  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 SS_TARGET = ROOT / "tests" / "fixtures" / "artifacts" / "synthetic_shop"
@@ -112,6 +116,10 @@ def cite_first(messages: Sequence[Message], n: int) -> str:
 
 @pytest.fixture(scope="module")
 def index(tmp_path_factory: pytest.TempPathFactory) -> tuple[LineageGraph, SearchIndex]:
+    # Building an index needs the retrieval extra: the tests that use it skip without it (CI
+    # runs them in the retrieval job); the rest of this file needs no extra.
+    pytest.importorskip("bm25s")
+    pytest.importorskip("numpy")
     tmp = tmp_path_factory.mktemp("s1idx")
     graph = build_graph_from_artifacts(SS_TARGET)[0]
     gfile = tmp / "graph.json"

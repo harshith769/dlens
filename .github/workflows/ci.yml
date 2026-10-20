@@ -55,6 +55,7 @@ jobs:
       - name: retrieval tests (fake embedder, then the real model)
         run: >
           uv run pytest -q tests/unit/retrieval tests/unit/agent/tools/test_search_docs.py
+          tests/unit/eval/test_s1.py
           tests/integration/test_retrieval_real.py
       - name: dlens search on eph_shop, then again offline (index reused)
         run: |
