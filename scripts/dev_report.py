@@ -5,6 +5,10 @@ uv run python scripts/dev_report.py --only dev-05   # one question
 uv run python scripts/dev_report.py --show          # also print each rendered answer
 uv run python scripts/dev_report.py --json out.json # per-question rows as JSON
 
+DEPRECATED (S12a, s12-design A4): kept until the v0.3 tag and removed in S15. The S4 benchmark
+runner is eval/systems/s4.py (`make eval-s4`), scored by eval/metrics.py; its records carry a
+question id, a relative project path and a manifest. This script's records do not.
+
 DEV-ONLY scoring for v0.2. It is NOT the benchmark metric (eval/metrics.py is owner-written for
 v0.3); see docs/explain/eval-dev.md. Only the local ollama provider is allowed, and the LLM cache
 defaults to eval/cache (DLENS_CACHE_DIR), so a re-run makes no model calls.

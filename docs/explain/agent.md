@@ -205,6 +205,12 @@ record holds:
 
 That is enough to replay the no-validator ablation offline.
 
+**S12a (A4) additions.** `RunRecord.question_id` (set by a runner: `Agent.ask(question,
+question_id)`) and `RunRecord.cache`: `hit` when every LLM call came from the response cache,
+`miss` when none did, `partial` otherwise, null when the run made no LLM call. Both are additive;
+`SCHEMA_VERSION` stays 1 and old records load. The benchmark runner is `eval/systems/s4.py`
+(see `eval-dev.md`); the CLI and UI still log through `RunLogger`.
+
 ## Alternatives rejected
 - **Single-phase ReAct with full history.** Simple, but a 3K cap overflows after 2–3 traces,
   and the final answer is then written from a truncated or compacted history. The answer would

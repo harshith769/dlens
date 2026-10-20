@@ -1,8 +1,9 @@
-"""The run manifest (metrics-design M15), shared by every system runner (S0, S1; S4 in S12).
+"""The run manifest (metrics-design M15), shared by every system runner (S0, S1, S4).
 
 A manifest is one JSON file beside a records file. ``metrics.py`` refuses to score records without
 one. The base fields are the same for every system; each runner adds its own settings (S0: depth
-and linker; S1: prompt hashes, retrieval and budget settings).
+and linker; S1: prompt hashes, retrieval and budget settings; S4: prompt and agent-code hashes,
+tool settings, cache).
 """
 
 from __future__ import annotations
@@ -12,7 +13,10 @@ import json
 import subprocess
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from dlens.agent.llm.base import Provider
 
 ROOT = Path(__file__).resolve().parents[2]
 QUESTIONS = ROOT / "eval" / "questions" / "dev.jsonl"
@@ -66,3 +70,11 @@ def write_manifest(records_file: Path, manifest: Mapping[str, Any]) -> Path:
     path = manifest_path(records_file)
     path.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
     return path
+
+
+def is_cloud(provider: Provider) -> bool:
+    """Ollama and an OpenAI-compatible endpoint on localhost are local; everything else is cloud.
+    (S4's copy; ``s1.py`` keeps its own, frozen.)"""
+    if provider.name == "ollama":
+        return False
+    return not bool(getattr(provider, "local", False))

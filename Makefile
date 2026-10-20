@@ -1,4 +1,4 @@
-.PHONY: test test-fast lint ingest eval-smoke eval-s0 eval-s1 eval-full oracle ui demo-bundle demo-requirements check-review
+.PHONY: test test-fast lint ingest eval-smoke eval-s0 eval-s1 eval-s4 eval-full oracle ui demo-bundle demo-requirements check-review
 
 test:
 	uv run pytest
@@ -15,7 +15,8 @@ ingest:
 	@test -n "$(CORPUS)" || { echo "usage: make ingest CORPUS=jaffle_shop"; exit 1; }
 	uv run dlens ingest corpora/$(CORPUS)
 
-# Dev-set report on local Ollama; the LLM cache in eval/cache makes re-runs free (no quota).
+# DEPRECATED (S12a): v0.2 dev scoring (scripts/dev_report.py), not the benchmark; kept until the
+# v0.3 tag (removed in S15). The S4 benchmark runner is `make eval-s4`. Local Ollama, cached.
 eval-smoke:
 	DLENS_PROVIDER=ollama DLENS_CACHE_DIR=eval/cache uv run python scripts/dev_report.py
 
@@ -37,6 +38,14 @@ eval-s1:
 	uv run python eval/metrics.py --records $(S1_RECORDS) --system s1-qwen3-4b \
 	  --out eval/reports/s1_smoke_dev \
 	  --title "S1 (vector RAG, local qwen3:4b) on the 96 dev questions"
+
+# S4 DLens agent (S12a): provider from DLENS_PROVIDER (default ollama, local and free); a cloud
+# provider is refused unless s4.py gets --allow-cloud. Linker hybrid stage on (needs the retrieval
+# extra and the S07 index). Writes eval/runs/s4/ with a manifest; score each view with
+# eval/metrics.py --view raw|validated|augmented. DLENS_CACHE_DIR sets the cache (M15 latency).
+eval-s4:
+	DLENS_CACHE_DIR=$${DLENS_CACHE_DIR:-eval/cache} uv run --extra agent --extra retrieval \
+	  python eval/systems/s4.py
 
 # Dev question review gate (S09): every owner decision set, counts match the table.
 check-review:

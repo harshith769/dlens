@@ -121,13 +121,14 @@ class Agent:
 
     # -- public ----------------------------------------------------------------------------
 
-    def ask(self, question: str) -> AgentRun:
+    def ask(self, question: str, question_id: str | None = None) -> AgentRun:
         self.toolbox.reset()
         prov = self.client.provider
         self.record = RunRecord(
             run_id=uuid.uuid4().hex,
             started_at=now_iso(),
             question=question,
+            question_id=question_id,
             project=self.project,
             provider=prov.name,
             model=prov.model,
@@ -691,6 +692,9 @@ class Agent:
             "llm_calls": len(llm),
             "cached_calls": sum(s.cached for s in llm),
         }
+        hits = self.record.tokens["cached_calls"]
+        if llm:
+            self.record.cache = "hit" if hits == len(llm) else "miss" if hits == 0 else "partial"
 
 
 def ask(

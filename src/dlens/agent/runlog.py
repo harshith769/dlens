@@ -63,6 +63,11 @@ class RunRecord(BaseModel):
     run_id: str
     started_at: str
     question: str
+    # Additive (S12a A4): the benchmark question id when a runner knows it (metrics still joins
+    # on the exact question text, M12), and whether the LLM calls came from the response cache:
+    # "hit" (all), "miss" (none), "partial"; None when the run made no LLM call (M15 latency).
+    question_id: str | None = None
+    cache: Literal["hit", "miss", "partial"] | None = None
     project: str = ""
     provider: str = ""
     model: str = ""

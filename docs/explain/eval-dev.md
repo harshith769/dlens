@@ -1,5 +1,22 @@
 # Explain: the v0.2 dev set and dev report (`eval/questions/dev.jsonl`, `scripts/dev_report.py`)
 
+> **Deprecated (S12a, s12-design A4 (a)).** `scripts/dev_report.py` and `make eval-smoke` are
+> v0.2 dev scoring, kept until the v0.3 tag (removed in S15) because this page and the R8c
+> threshold measurement in `validator.md` cite them. The S4 benchmark runner is
+> `eval/systems/s4.py` (`make eval-s4`), scored by `eval/metrics.py`.
+>
+> **What the S4 runner adds over this script.** One `Toolbox` and `Agent` per run (linker hybrid
+> stage on by default, B4 (a)); records in `eval/runs/s4/s4-<model>-dev.jsonl` with `project`
+> relative (`corpora/synthetic_shop`, never an absolute path), `question_id` and a record-level
+> `cache` (`hit` / `miss` / `partial`, null without an LLM call). Before writing, the runner
+> checks each record's `question_id` against metrics' exact-text join (M12; metrics still joins on
+> text, so `metrics.py` did not change). A manifest beside the records (M15) holds the base fields,
+> the sha256 of every prompt text, the draft schema and the tool specs, one sha256 over
+> `src/dlens/agent/**/*.py` (validator rules, tools and loop: the spec §11.7 freeze), the tool
+> settings, the hybrid flag and index key, and the cache directory (relative to the repo) with hit
+> / miss counts, so M15's "uncached runs only" latency filter can read records directly. This
+> script writes none of that, which is why metrics had to build a legacy manifest for its records.
+
 ## What it is
 20 hand-written questions on `corpora/synthetic_shop` (v0.1, 15 models), used to check that the
 v0.2 agent answers with valid citations (spec §14: "Live demo answers 20 dev questions with valid
@@ -139,6 +156,16 @@ None of the fixes looks at question text beyond generic patterns (dotted ids, ef
 there is no dev-question-specific logic.
 
 ## Explain-back questions
+S12a (A4):
+- A. Two S4 runs of the same 96 questions: one fresh, one after it from the same cache. What
+  do their records' `cache` fields and the manifests' `cache` blocks say, and which run's latency
+  can M15 report?
+- B. A record's `question_id` says dev-12 but its question text is dev-13's. Where is that
+  caught, and why does metrics not simply join on `question_id`?
+- C. You change one validator rule and re-run S4. Which manifest field changes, and why does
+  that matter for the 7 Dec system freeze?
+
+Earlier:
 1. Why must a dev question never appear in the frozen test set, and why is a different *target
    column* not enough on its own once the corpus grows (think: what else did the dev set tune)?
 2. dev-10 refuses. Why is that scored as a fail, while the same refusal on dev-18 passes? Point to
