@@ -189,9 +189,12 @@ def _fact_id(box: Toolbox) -> str:
 
 
 def _verdict_draft(box: Toolbox, text: str):
+    """A draft whose structured reach_verdict agrees with its prose (A2)."""
+    verdict = "yes" if text.startswith("Yes") else "no"
+
     def make():
         agg = eid(box, "stg.amount", "fct.total")
-        return draft(text, [("fct.total aggregates stg.amount", [agg])])
+        return draft(text, [("fct.total aggregates stg.amount", [agg])], reach_verdict=verdict)
 
     return make
 
@@ -206,7 +209,7 @@ def test_wrong_verdict_regenerates_with_the_graph_check(box, make_client):
     client, prov = make_client(script)
     run = ask(RQ, client, box)
     v = run.record.validation
-    assert v["first"]["counts"] == {"R9": 1} and v["regenerated"] and v["passed"]
+    assert v["first"]["counts"] == {"R9": 2} and v["regenerated"] and v["passed"]  # prose + field
     regen = prov.requests[-1]["messages"][-1].content
     assert f"The graph check says: {_fact_id(box)}: raw.id does NOT reach fct.total" in regen
     assert run.answer.answer_text.startswith("No") and not run.answer.validation_warning
@@ -227,6 +230,7 @@ def test_wrong_verdict_twice_is_salvaged_to_code_verdict(box, make_client):
     assert a.answer_text.startswith("No: raw.id does NOT reach fct.total (graph check).")
     assert a.claims[0].chunk_ids == [rid] and a.claims[0].text.startswith("No:")
     assert [c.text for c in a.claims[1:]] == ["fct.total aggregates stg.amount"]  # still true
+    assert (a.reach_verdict, a.reach_verdict_source) == ("no", "code")  # A2: salvage sets code
     assert "Yes" not in a.answer_text
 
 
@@ -243,3 +247,25 @@ def test_wrong_verdict_and_bad_regenerate_json_still_get_code_verdict(box, make_
     assert not a.refused and a.validation_warning  # every LLM claim failed, code's verdict stays
     assert [c.chunk_ids for c in a.claims] == [[_fact_id(box)]]
     assert a.answer_text == "No: raw.id does NOT reach fct.total (graph check)."
+
+
+def test_raw_view_reads_the_first_draft_never_the_regenerate(box, make_client):
+    """s12-design A2 (verify only): after an R9 regenerate the record's ``draft`` is still the
+    pre-validation draft, and metrics' raw view reads it; validated reads the final answer."""
+    import metrics
+
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        _verdict_draft(box, "Yes, raw.id affects fct.total."),
+        _verdict_draft(box, "No, raw.id does not affect fct.total."),
+    ]
+    client, _ = make_client(script)
+    run = ask(RQ, client, box)
+    rec = run.record.model_dump(mode="json")
+    assert run.record.validation is not None and run.record.validation["regenerated"]
+    assert rec["draft"]["reach_verdict"] == "yes"
+    assert rec["regenerate_draft_raw"] and '"no"' in rec["regenerate_draft_raw"]
+    assert metrics.reach_verdict(rec, "raw") == "yes"
+    assert metrics.reach_verdict(rec, "validated") == "no"
+    assert rec["final_answer"]["reach_verdict_source"] == "llm"

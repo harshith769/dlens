@@ -226,6 +226,17 @@ Runs only when an `r_` fact exists.
   No verdict is a failure (`claim_index` None).
 - a claim that **cites** the `r_` id must not state the opposite verdict (a claim with no verdict
   is fine; it may just describe a path).
+- **the structured field** (S12a, s12-design A2 option (b)): `Answer.reach_verdict` (copied from
+  the draft by `attach`, source `llm`) fails when it is set and disagrees with the fact, or when it
+  is null while the first sentence states a verdict. Null with no prose verdict adds no second
+  failure (the prose check already failed it), and the field is never checked when there is no
+  `r_` fact, so an impact or trace answer that sets or leaves it is not failed by R9.
+
+**R9 reads only the system's own signals:** the `r_` fact (made by code from the question's
+exact ids and wording, `loop._reachability_fact`) and the answer. It never reads a question
+family, a gold label or anything under `eval/`; `tests/unit/agent/test_eval_boundary.py` checks
+that `src/dlens/agent` imports nothing from `eval/` and names no `eval/` path or question file.
+Metrics reads the field only on yes/no questions (M5).
 
 **Verdict heuristic** (`answer_verdict`), on the first sentence (split at `.`/`!`/`?` followed by
 whitespace, so `model.column` does not split it):
@@ -249,6 +260,13 @@ whitespace, so `model.column` does not split it):
   <fact>` first (never trimmed away). If the second draft still fails, salvage leads the rebuilt
   answer with **code's verdict claim** (`No: <fact>`, citing `r_`) and sets `validation_warning`.
   This verdict claim is kept even if every LLM claim failed, so the answer is not refused.
+  Whenever salvage runs after an R9 failure it also sets `reach_verdict` to the fact's verdict
+  with `reach_verdict_source = "code"`. Without an R9 failure the model's field is kept (`llm`).
+- **Calls:** an R9-triggered regenerate is the existing "regenerate once" call (phase
+  `regenerate`, inside the 8-call cap). The raw view never sees it: `record.draft` is set once
+  from the first answer draft, the regenerate is logged only in `regenerate_draft_raw`, and
+  metrics' raw view reads `draft` (metrics-design M3 rule 5; pinned by
+  `test_flow.py::test_raw_view_reads_the_first_draft_never_the_regenerate`).
 
 **Why not R8 on `answer_text` instead?** It would reject correct answers. A correct "No,
 raw_payments.amt does not affect dim_customers.lifetime_value" names two columns that are *not*
@@ -336,6 +354,17 @@ added, for a claim naming 4 columns along the deep chain). dev-03 went from fail
 calls fell from 4 to 0 (73 → 69 LLM calls). See docs/explain/eval-dev.md.
 
 ## Explain-back questions
+S12a (A2):
+- A. The fact says raw.id does NOT reach fct.total. The draft's prose says "No, …" but its
+  `reach_verdict` is "yes". Which R9 failures fire, what does the regenerate prompt start with, and
+  if the second draft is also wrong, what do `reach_verdict` and `reach_verdict_source` hold?
+- B. An impact question names two columns with "affect" wording, so a fact exists, but the model
+  answers with a column list and leaves the field null. When does R9 fail it, and when not? Why
+  doesn't R9 decide "is this a yes/no question" from the question's family?
+- C. After an R9 regenerate, which draft does metrics' S4-raw view score, and where in the
+  record is the regenerated draft?
+
+Earlier:
 1. `s_b3ece5f` is repaired to `s_b3ece5f8`, but a bad id `e_12345678` with two emitted ids
    `e_12345679` and `e_1234567a` is not. Walk through R2r for both. Which later rule would still
    catch a repair that picked the wrong edge, and why?

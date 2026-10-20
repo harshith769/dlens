@@ -16,6 +16,25 @@ from ..loop.conftest import call, done, draft
 PROJECT_DIR = demo.projects({})[demo.PROJECT]
 REAL = sorted(demo.presets_dir({}).glob("*.json"))
 
+# Presets recorded with the v0.2 system: ANSWER_SYSTEM sha256 at 5996c09 (unchanged 3-20 Oct
+# 2026). S12a changed the answer prompt, R9 and the impact payload, so their byte-equal replay and
+# revalidation no longer apply. S15 re-records all 10 and empties this list; the v0.3.0 tag is
+# blocked while it is non-empty (v0.3-plan "done when" 8).
+V02_ANSWER_SYSTEM = "4bb98f41f1ded060e11ed771ab94e7cea931e3fb9c1bd03555564c02fb857041"
+SKIP_REASON = "recorded with the v0.2 system; re-record in S15"
+SKIP_REPLAY = {
+    "dev-01",
+    "dev-05",
+    "dev-06",
+    "dev-07",
+    "dev-10",
+    "dev-13",
+    "dev-14",
+    "dev-16",
+    "dev-17",
+    "dev-19",
+}
+
 
 def _graph():
     return demo.load_graph(PROJECT_DIR)
@@ -38,6 +57,17 @@ def _scripted_record(make_client, question="Where does stg_payments.amount_usd c
     run = ask(question, client, Toolbox(graph, PROJECT_DIR), project=demo.PROJECT)
     assert run.answer.claims, run.answer
     return run.record
+
+
+def _check_citations_resolve(p: demo.Preset) -> None:
+    """Every id the recorded final answer cites is emitted again by the replayed tools, and every
+    cited edge id resolves in the current graph's provenance."""
+    run, box = demo.replay(p, _graph(), PROJECT_DIR)
+    cited = {i for c in run.answer.claims for i in [*c.edge_ids, *c.chunk_ids]}
+    assert cited <= box.emitted_ids, (p.id, sorted(cited - box.emitted_ids))
+    for i in cited:
+        if i.startswith("e_"):
+            assert box.edge_string(i) is not None, (p.id, i)
 
 
 def _check_preset(p: demo.Preset) -> None:
@@ -86,6 +116,7 @@ def test_preset_file_round_trips_and_revalidates(make_client, tmp_path):
     (tmp_path / "dev-01.json").write_text(demo.preset_json("dev-01", "upstream", record))
     [p] = demo.load_presets(tmp_path)
     assert p.question == record.question and p.badge == "Precomputed with local qwen3:4b"
+    assert p.answer_system_sha256 == demo.answer_system_sha256()
     _check_preset(p)
 
 
@@ -115,9 +146,26 @@ def test_all_ten_presets_are_recorded_with_the_local_model():
 
 
 @pytest.mark.parametrize("path", REAL, ids=[p.stem for p in REAL])
+def test_recorded_preset_loads_and_its_citations_resolve(path: Path):
+    [p] = [x for x in demo.load_presets(path.parent) if x.id == path.stem]  # loads: schema ok
+    _check_citations_resolve(p)
+
+
+@pytest.mark.parametrize("path", REAL, ids=[p.stem for p in REAL])
 def test_recorded_preset_replays_and_revalidates(path: Path):
     [p] = [x for x in demo.load_presets(path.parent) if x.id == path.stem]
+    if p.id in SKIP_REPLAY:
+        pytest.skip(SKIP_REASON)
     _check_preset(p)
+
+
+@pytest.mark.skipif(not REAL, reason="no recorded presets yet: run scripts/record_presets.py")
+def test_the_skip_list_is_exactly_the_v02_presets():
+    loaded = demo.load_presets(demo.presets_dir({}))
+    assert all(p.answer_system_sha256 for p in loaded)  # every preset names its recorder
+    v02 = {p.id for p in loaded if p.answer_system_sha256 == V02_ANSWER_SYSTEM}
+    assert v02 == SKIP_REPLAY
+    assert demo.answer_system_sha256() != V02_ANSWER_SYSTEM  # a new recording can't skip
 
 
 # -- in the app -----------------------------------------------------------------------------------

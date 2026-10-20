@@ -152,7 +152,8 @@ class Ledger(Protocol):
 
 def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False) -> Answer:
     """Split ids, compute the subgraph and attach citations from the ledger. Ids the ledger does
-    not know get no citation (the validator decides what to do with them)."""
+    not know get no citation (the validator decides what to do with them). The draft's
+    ``reach_verdict`` is copied with source ``llm`` (s12-design A2)."""
     claims: list[Claim] = []
     subgraph: list[str] = []
     citations: dict[str, Citation] = {}
@@ -176,6 +177,8 @@ def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False
         refusal_reason=draft.refusal_reason,
         partial_evidence=partial_evidence,
         citations=citations,
+        reach_verdict=draft.reach_verdict,
+        reach_verdict_source="llm" if draft.reach_verdict else None,
     )
 
 

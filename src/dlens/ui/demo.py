@@ -13,12 +13,14 @@ No Streamlit import here, so it is unit-tested directly.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from dlens.agent import prompts
 from dlens.agent.answer import Answer
 from dlens.agent.llm.config import quota_path
 from dlens.agent.llm.quota import QuotaCounter
@@ -183,6 +185,8 @@ class Preset:
     subtype: str
     question: str
     record: RunRecord
+    # sha256 of the agent's ANSWER_SYSTEM when the preset was recorded: which system made it
+    answer_system_sha256: str | None = None
 
     @property
     def tag(self) -> str:
@@ -197,8 +201,18 @@ def presets_dir(env: Mapping[str, str] | None = None) -> Path:
     return bundle_dir(env) / "presets"
 
 
+def answer_system_sha256() -> str:
+    return hashlib.sha256(prompts.ANSWER_SYSTEM.encode()).hexdigest()
+
+
 def preset_json(qid: str, subtype: str, record: RunRecord) -> str:
-    body = {"id": qid, "subtype": subtype, "record": record.model_dump(mode="json")}
+    """A preset file, stamped with the sha256 of the answer prompt that recorded it."""
+    body = {
+        "id": qid,
+        "subtype": subtype,
+        "record": record.model_dump(mode="json"),
+        "answer_system_sha256": answer_system_sha256(),
+    }
     return json.dumps(body, indent=1, ensure_ascii=False, sort_keys=True) + "\n"
 
 
@@ -210,7 +224,15 @@ def load_presets(directory: Path) -> list[Preset]:
         if path.is_file():
             raw = json.loads(path.read_text())
             record = RunRecord.model_validate(raw["record"])
-            out.append(Preset(raw["id"], raw["subtype"], record.question, record))
+            out.append(
+                Preset(
+                    raw["id"],
+                    raw["subtype"],
+                    record.question,
+                    record,
+                    raw.get("answer_system_sha256"),
+                )
+            )
     return out
 
 

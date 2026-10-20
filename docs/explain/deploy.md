@@ -42,6 +42,16 @@ Everything else (agent loop, tools, validator, renderer) is the same code.
   takes the answer from `record.final_answer`. Tool calls are deterministic graph code, so the
   ledger (emitted ids, `r_` facts, citations) is rebuilt exactly, with no LLM client at all. Tests
   compare every replayed tool payload with the record and re-run the validator on each preset.
+- **Which system recorded a preset (S12a).** `preset_json` stamps each file with
+  `answer_system_sha256`, the sha256 of the agent's `ANSWER_SYSTEM` at recording time. The 10
+  committed presets carry `4bb98f41…`, the v0.2 prompt (unchanged 3–20 Oct 2026; stamped from
+  git history, not re-recorded). S12a changed the prompt, R9 and the impact payload, so for
+  those presets the byte-equal replay and the revalidation are skipped ("recorded with the v0.2
+  system; re-record in S15"). They still must load with the current schema, and every id their
+  final answer cites must be emitted again by the replayed tools (edge ids resolve in the current
+  provenance). A test asserts the skip list is exactly the presets stamped with the v0.2 sha. The
+  live demo is unaffected: it shows the recorded answer. S15 re-records all 10; the v0.3.0 tag is
+  blocked while the skip list is non-empty.
 
 ## Why this design
 - **Same app, one flag.** A separate demo app would drift from the real one. The flag changes
@@ -80,3 +90,6 @@ Everything else (agent loop, tools, validator, renderer) is the same code.
    what do you run to fix them?
 3. Why can a preset show an `r_` reachability fact in the Source tab even though no `Toolbox`
    was stored in the preset file?
+4. (S12a) A preset recorded today and one recorded on 17 Oct both sit in `demo/presets/`. How
+   does the test tell them apart, which checks does each get, and why is the recorder identified
+   by a prompt sha rather than a date?

@@ -15,7 +15,8 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
   R8c completion      ... after code adds the shortest connecting path (<= 4 hops) from this
                       question's emitted edges; not for "directly" claims over > 1 hop
   R9 verdict          if code made a reachability fact (r_ id), the yes/no verdict in the first
-                      sentence of answer_text matches it
+                      sentence of answer_text matches it, and so does the structured
+                      reach_verdict field (null fails only while the prose states a verdict)
   R6 prose_refs       file paths and "line N" written in prose match an attached citation
 
 r_ ids (reachability facts) are accepted by R2, re-checked on the graph by R3, and count as
@@ -732,7 +733,12 @@ def fact_verdict(fact: dict[str, Any]) -> str:
 def rule_verdict(answer: Answer, ctx: ValidationContext) -> list[ValidationFailure]:
     """R9: when code made a reachability fact, the answer_text's yes/no verdict must match it
     (no verdict in its first sentence fails too). A claim that cites the r_ id must not state
-    the opposite verdict (a claim with no verdict is fine: it may describe the path)."""
+    the opposite verdict (a claim with no verdict is fine: it may describe the path).
+
+    The structured ``reach_verdict`` field (s12-design A2, option b) fails when it is set and
+    disagrees with the fact, or when it is null while the first sentence states a verdict. Null
+    with no prose verdict, and any value when there is no fact, never fail here. Inputs: the r_
+    fact and the answer only (never a question family or a gold label)."""
     if ctx.fact is None:
         return []
     rid, want = ctx.fact["fact_id"], fact_verdict(ctx.fact)
@@ -749,6 +755,11 @@ def rule_verdict(answer: Answer, ctx: ValidationContext) -> list[ValidationFailu
                 None, "no yes/no verdict in the first sentence" if said is None else f"says {said}"
             )
         )
+    field = answer.reach_verdict
+    if field is not None and field != want:
+        out.append(failure(None, f"the reach_verdict field says {field}"))
+    elif field is None and said is not None:
+        out.append(failure(None, f"the reach_verdict field is null but the answer says {said}"))
     for k, c in enumerate(answer.claims):
         said = answer_verdict(c.text) if rid in c.ids else None
         if said is not None and said != want:
@@ -845,7 +856,8 @@ def salvage(result: ValidationResult, ledger: Ledger) -> Answer | None:
     the kept claims whenever a claim was dropped or the text itself failed, so a warned answer
     never states a relationship the validator rejected. When code made a reachability fact, a
     rebuilt text leads with code's verdict claim (citing the r_ id), so an R9 failure ends with
-    the graph's yes/no. None when no claim passes (and there is no fact)."""
+    the graph's yes/no, and the structured ``reach_verdict`` is set to the fact's verdict with
+    source ``code``. None when no claim passes (and there is no fact)."""
     a = result.cleaned_answer
     keep = [c for k, c in enumerate(a.claims) if k not in set(result.dropped_claims)]
     rebuild = bool(result.dropped_claims) or result.answer_text_failed
@@ -856,4 +868,7 @@ def salvage(result: ValidationResult, ledger: Ledger) -> Answer | None:
         return None
     out = recite(a, ledger, keep)
     text = " ".join(_sentence(c.text) for c in keep) if rebuild else a.answer_text
-    return out.model_copy(update={"answer_text": text, "validation_warning": True})
+    update: dict[str, Any] = {"answer_text": text, "validation_warning": True}
+    if fact is not None and any(f.rule == "R9" for f in result.failures):
+        update |= {"reach_verdict": fact_verdict(fact), "reach_verdict_source": "code"}
+    return out.model_copy(update=update)

@@ -23,12 +23,20 @@ def eid(toolbox: Toolbox, src: str, dst: str) -> str:
     raise KeyError(f"{src} -> {dst} not emitted")
 
 
-def answer(text: str, *claims: tuple[str, list[str]]) -> Answer:
+def answer(text: str, *claims: tuple[str, list[str]], verdict: str | None = None) -> Answer:
+    """An answer; ``verdict`` sets the structured ``reach_verdict`` (source ``llm``), which R9
+    holds to the r_ fact (s12-design A2)."""
     out = []
     for t, ids in claims:
         edges = [i for i in ids if i.startswith("e_")]
         out.append(Claim(text=t, edge_ids=edges, chunk_ids=[i for i in ids if i not in edges]))
-    return Answer(answer_text=text, claims=out, confidence="high")
+    return Answer(
+        answer_text=text,
+        claims=out,
+        confidence="high",
+        reach_verdict=verdict,  # type: ignore[arg-type]
+        reach_verdict_source="llm" if verdict else None,
+    )
 
 
 @pytest.fixture

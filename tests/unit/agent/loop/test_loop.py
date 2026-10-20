@@ -416,7 +416,11 @@ def test_real_columns_model_names_ctes_and_files_are_not_refused(box, make_clien
 
 def test_no_evidence_runs_impact_in_code_for_effect_wording(box, make_client):
     # The model traces in the wrong direction (no citable edge), then stops.
-    script = [call("trace_upstream", column_id="raw.amt"), done(), draft("Yes, it does.")]
+    script = [
+        call("trace_upstream", column_id="raw.amt"),
+        done(),
+        draft("Yes, it does.", reach_verdict="yes"),
+    ]
     client, prov = make_client(script)
     run = ask("If raw.amt changes, does it affect fct_star.total?", client, box)
     code = [s for s in run.record.steps if s.phase == "code"]
@@ -471,7 +475,11 @@ def _fact(box) -> tuple[str, dict]:
 
 
 def test_reachability_fact_is_emitted_with_its_shortest_path(box, make_client):
-    script = [call("trace_upstream", column_id="fct_star.total"), done(), draft("Yes.")]
+    script = [
+        call("trace_upstream", column_id="fct_star.total"),
+        done(),
+        draft("Yes.", reach_verdict="yes"),
+    ]
     client, prov = make_client(script)
     run = ask("Does raw.amt affect fct_star.total?", client, box)
     assert _reach_steps(run) == [{"from_column": "raw.amt", "to_column": "fct_star.total"}]
@@ -485,7 +493,11 @@ def test_reachability_fact_is_emitted_with_its_shortest_path(box, make_client):
 
 
 def test_reachability_fact_says_not_reached_and_shows_the_reverse_path(box, make_client):
-    script = [call("trace_upstream", column_id="fct.total"), done(), draft("No.")]
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        draft("No.", reach_verdict="no"),
+    ]
     client, _ = make_client(script)
     ask("If fct.total changes, does it impact raw.amt?", client, box)
     _, rec = _fact(box)
@@ -497,7 +509,11 @@ def test_reachability_fact_says_not_reached_and_shows_the_reverse_path(box, make
 
 
 def test_reachability_fact_unconnected_has_no_path(box, make_client):
-    script = [call("trace_upstream", column_id="fct.total"), done(), draft("No.")]
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        draft("No.", reach_verdict="no"),
+    ]
     client, _ = make_client(script)
     ask("Does raw.id feed fct.total?", client, box)
     _, rec = _fact(box)
@@ -505,7 +521,11 @@ def test_reachability_fact_unconnected_has_no_path(box, make_client):
 
 
 def test_reachability_depend_wording_asks_the_reverse_direction(box, make_client):
-    script = [call("trace_upstream", column_id="fct.total"), done(), draft("Yes.")]
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        draft("Yes.", reach_verdict="yes"),
+    ]
     client, _ = make_client(script)
     run = ask("Does fct.total depend on raw.amt?", client, box)
     assert _reach_steps(run) == [{"from_column": "raw.amt", "to_column": "fct.total"}]
@@ -522,7 +542,11 @@ def test_reachability_depend_wording_asks_the_reverse_direction(box, make_client
     ],
 )
 def test_no_reachability_fact_unless_exactly_two_columns_and_wording(box, make_client, question):
-    script = [call("trace_upstream", column_id="fct.total"), done(), draft("Yes.")]
+    script = [
+        call("trace_upstream", column_id="fct.total"),
+        done(),
+        draft("Yes.", reach_verdict="yes"),
+    ]
     client, _ = make_client(script)
     run = ask(question, client, box)
     assert not _reach_steps(run)

@@ -129,9 +129,10 @@ benchmark scoring never use it.
 **Structured yes/no verdict (ADR 0024, S11).** `Answer` has two additive fields:
 `reach_verdict` (`yes` | `no` | null) and `reach_verdict_source` (`llm` | `code` | null). A source
 without a verdict is rejected. Metrics M5 scores yes/no questions only on this field, never on
-prose. S1 sets it from its draft (source `llm`); from S12a S4's `AnswerDraft` has the field too
-(A1 schema). R9 salvage marks a replaced verdict `code`, and the S4-raw view counts only `llm`
-values. Old records and presets load
+prose. S1 sets it from its draft (source `llm`). From S12a S4's `AnswerDraft` has the field too
+(A1 schema); `attach` copies it with source `llm`, R9 holds it to the `r_` fact, and salvage after
+an R9 failure sets the fact's verdict with source `code` (validator.md, R9). The S4-raw view reads
+the pre-validation `draft`, so it counts only the model's own value. Old records and presets load
 unchanged; new dumps carry two extra `null` keys.
 
 ## Failure handling
