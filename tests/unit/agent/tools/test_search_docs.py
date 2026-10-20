@@ -56,7 +56,8 @@ def test_payload_within_cap_with_truncated_flag(shop: tuple[SearchIndex, Provena
     assert p["dropped"]["hits"] == 20 - len(p["hits"])
     assert set(out.side["chunks"]) == {h["id"] for h in p["hits"]}
     for rec in out.side["chunks"].values():
-        assert {"file", "line_start", "line_end", "level", "line_basis"} <= set(rec["citation"])
+        assert set(rec["citation"]) == {"file", "line_start", "line_end", "level"}
+        assert rec["line_basis"] in ("source", "compiled")
 
 
 def test_doc_text_is_quoted_with_the_stale_note(shop: tuple[SearchIndex, Provenance]) -> None:
@@ -126,3 +127,45 @@ def test_no_index_is_a_tool_error(shop: tuple[SearchIndex, Provenance]) -> None:
 def test_not_wired_into_the_agent_yet() -> None:
     assert "search_docs" not in {s.name for s in TOOL_SPECS}
     assert "search_docs" not in _TOOLS
+
+
+# -- A3: one citation rule for S1 and S4 (s12-design A3) ----------------------------------------
+
+# sha256 of the fixture index's chunk ids, in index order, measured before A3 (20 Oct 2026):
+# routing citations through chunk_citation must not move a single id.
+CHUNK_IDS_SHA256 = "bae30993fa2eabd067d99cd6a08478e702bee82fbb983de266f70f88bfcebbe1"
+CHUNK_COUNT = 506
+
+
+def test_chunk_ids_are_unchanged(shop: tuple[SearchIndex, Provenance]) -> None:
+    import hashlib
+
+    ids = [c.id for c in shop[0].chunks]
+    assert len(ids) == CHUNK_COUNT
+    assert hashlib.sha256("\n".join(ids).encode()).hexdigest() == CHUNK_IDS_SHA256
+
+
+def test_every_chunk_cites_as_s1_does(shop: tuple[SearchIndex, Provenance]) -> None:
+    """For every chunk: the side citation equals S1's ledger citation, and the payload shows the
+    same range and level (a line-level hit omits ``level``)."""
+    pytest.importorskip("httpx")  # systems.s1 needs the agent extra
+    from dlens.agent.tools.search import _hit, _record
+    from systems.s1 import S1Ledger
+
+    idx, prov = shop
+    ledger = S1Ledger(prov.graph, SS_PROJECT, {c.id: c for c in idx.chunks})
+    corrected = 0
+    for c in idx.chunks:
+        want = ledger.record(c.id)
+        assert want is not None
+        rec, hit = _record(prov, c), _hit(prov, c)
+        assert rec["citation"] == want["citation"], c.id
+        cite = want["citation"]
+        assert (hit["file"], hit["lines"]) == (cite["file"], [cite["line_start"], cite["line_end"]])
+        assert hit.get("level", "line") == cite["level"]
+        corrected += (cite["line_start"], cite["line_end"], cite["level"]) != (
+            c.line_start,
+            c.line_end,
+            c.level,
+        )
+    assert corrected > 0  # the fixture exercises at least one corrected citation

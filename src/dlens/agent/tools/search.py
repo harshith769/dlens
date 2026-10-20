@@ -9,8 +9,12 @@ SQL wins; trap ``stale_doc``). SQL goes under ``sql``. Graph facts on a card
 (``direct_inputs``, ``downstream``) are added here from chunk meta. They are never part of the
 indexed text, so S1 (vector RAG) never sees parser output.
 
+Citations go through ``dlens.retrieval.citation.chunk_citation`` (s12-design A3), the rule S1's
+ledger uses: the side record's ``citation`` and the ``file`` / ``lines`` / ``level`` the payload
+shows are the same corrected range, so the model sees the range it will be cited by.
+
 Not wired into the agent loop yet: it is not in ``TOOL_SPECS`` or ``Toolbox``, and ``c_`` ids
-are not known to the validator. S12 (G4) decides both.
+are not known to the validator. S12b (G4) wires both.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 from dlens.agent.tools.budget import MAX_RESULT_TOKENS, largest_fit
 from dlens.agent.tools.common import ToolError, ToolOutput, as_int, as_str
 from dlens.agent.tools.provenance import Provenance
+from dlens.retrieval.citation import chunk_citation
 
 if TYPE_CHECKING:
     from dlens.retrieval.chunks import Chunk
@@ -49,8 +54,9 @@ def _clip(text: str) -> tuple[str, bool]:
     return text[: MAX_HIT_CHARS - 1] + "…", True
 
 
-def _record(c: Chunk) -> dict[str, Any]:
-    """The full side record: what the ledger (S12) and the UI use."""
+def _record(prov: Provenance, c: Chunk) -> dict[str, Any]:
+    """The full side record: what the ledger (S12b) and the UI use. ``citation`` is exactly what
+    S1's ledger attaches for the same chunk; ``line_basis`` is the chunker's."""
     return {
         "chunk_id": c.id,
         "kind": c.kind,
@@ -59,13 +65,8 @@ def _record(c: Chunk) -> dict[str, Any]:
         "column": c.column,
         "title": c.title,
         "text": c.text,
-        "citation": {
-            "file": c.file,
-            "line_start": c.line_start,
-            "line_end": c.line_end,
-            "level": c.level,
-            "line_basis": c.line_basis,
-        },
+        "citation": chunk_citation(c, prov.project_dir),
+        "line_basis": c.line_basis,
         "meta": dict(c.meta),
     }
 
@@ -76,11 +77,12 @@ def _hit(prov: Provenance, c: Chunk) -> dict[str, Any]:
         out["doc_kind"] = c.doc_kind
     if c.column and prov.graph.has_column(c.column):
         out["column"] = prov.graph.display_name(c.column)
-    out["file"] = c.file
-    out["lines"] = [c.line_start, c.line_end]
+    cite = chunk_citation(c, prov.project_dir)
+    out["file"] = cite["file"]
+    out["lines"] = [cite["line_start"], cite["line_end"]]
     out["line_basis"] = c.line_basis
-    if c.level == "model":
-        out["level"] = "model"
+    if cite["level"] != "line":
+        out["level"] = cite["level"]
     text, clipped = _clip(c.text)
     if c.kind == "model":
         out["sql"] = text
@@ -118,5 +120,5 @@ def search_docs(index: SearchIndex | None, prov: Provenance, args: dict[str, Any
         }
 
     kept = largest_fit(len(shown), render, MAX_RESULT_TOKENS)
-    side = {"chunks": {h.chunk.id: _record(h.chunk) for h in hits[:kept]}}
+    side = {"chunks": {h.chunk.id: _record(prov, h.chunk) for h in hits[:kept]}}
     return ToolOutput(render(kept), side)
