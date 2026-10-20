@@ -8,7 +8,7 @@
 
 ## 0. What changed from v1.0, and why
 
-Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come from the v0.3 plan (4 Oct 2026); row 31 from S03; row 32 from S10. Rows 1–8 became ADRs 0001–0008 and row 17 became ADR 0009 (superseded by 0010). Rows 19 and 21–31 are recorded in ADRs 0010–0020, row 32 in ADR 0023; each ADR names its row.
+Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come from the v0.3 plan (4 Oct 2026); row 31 from S03; row 32 from S10; row 33 from S12. Rows 1–8 became ADRs 0001–0008 and row 17 became ADR 0009 (superseded by 0010). Rows 19 and 21–31 are recorded in ADRs 0010–0020, row 32 in ADR 0023, row 33 in ADR 0026; each ADR names its row.
 
 | # | Change | Reason |
 |---|---|---|
@@ -44,6 +44,7 @@ Rows 1–20 were decided on 3–4 Oct 2026 after research; rows 21–30 come fro
 | 30 | **Two-track roadmap:** research (to v1.0) + product (v1.1 MCP server, v1.2 PR impact bot) | Build velocity is higher than planned; product work uses the surplus without blocking research gates |
 | 31 | **Indirect-edge classification and targets final** (ADR 0020): the clause decides first (WHERE/HAVING/QUALIFY → FILTER, also inside an OVER within QUALIFY); function arguments and CASE conditions are direct; OVER → WINDOW, aggregate `FILTER (WHERE)` → CONDITIONAL, ORDER BY → SORT; row-set clauses target every output column computed through their SELECT, function-attached clauses only the column containing the function; direct edges win. Indirect edges carry model-level citations until a clause locator ships with their exposure | DESIGN_v2 D1/D7 were working rules for the gold; the engine now emits the edges, so one rule binds both. Deviates from OpenLineage (CASE conditions are not CONDITIONAL) to keep the frozen v1 gold |
 | 32 | **Metric definitions v1** (ADR 0023, 19 Oct 2026; `docs/plans/metrics-design.md` v1.0): one prose extractor for every system; primary mode per question family (trace direct, impact direct + indirect), both modes reported; node-set F1 pools 68 dev questions (trace 44, impact 24); yes/no scored only on a structured `reach_verdict`; "path exact match" renamed path node coverage; citation validity re-checked on disk by metrics; false-refusal rate added; S0 split into S0-gold and S0-linked | Definitions had to exist before any S1/S4 number: gold differs by mode on 50 of 96 dev questions, S1 cites chunks not edges, and prose verdicts score phrasing |
+| 33 | **Indirect traversal in S4** (ADR 0026, S12, 20 Oct 2026): `trace_upstream` direct, `impact_downstream` direct + indirect (spec §7/§8 defaults now honoured); impact payload as full dotted ids grouped by (depth, kind) with a deterministic, visible over-cap cut; indirect edges citable (`key`, `indirect: true`); R3 checks citations by edge kind as metrics M7 (iv); R8c bridges over direct edges only; the `r_` fact's verdict uses direct + indirect and states the direct reading; direct-only call sites carry recorded decision ids | Metrics M4 makes direct + indirect the primary mode for impact; direct-only tools made indirect-only gold (dev-70, dev-71, dev-74) unreachable for S4 by construction |
 
 ---
 

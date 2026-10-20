@@ -1,6 +1,6 @@
 # 0026. Indirect traversal in S4's tools, R3 by edge kind, R9 in direct + indirect mode
 
-- Status: Proposed (S12 Phase 1, 20 Oct 2026)
+- Status: Accepted (owner, 20 Oct 2026; S12 Phase 2). Spec §0 row 33.
 - Date: 2026-10-20
 - Amends: spec §8 tools (defaults now honoured), validator R3, R8c and R9; ADR 0020's
   "tools, validator, UI and demo stay direct-only until S10/S12"
@@ -15,7 +15,7 @@ indirect-only gold (dev-70, dev-71) and a direct-"no" / indirect-"yes" verdict (
 S4's reach by construction. Uncapped indirect impact payloads exceed the 1,500-token tool cap on
 4 of the 5 largest dev impact questions in today's per-item shape.
 
-## Decision (proposed)
+## Decision
 
 - **Modes:** `trace_upstream` defaults to direct, `impact_downstream` to direct + indirect (spec
   §7/§8 defaults, now honoured); the code-made `r_` reachability fact checks direct + indirect for
@@ -34,7 +34,17 @@ S4's reach by construction. Uncapped indirect impact payloads exceed the 1,500-t
   matching M7 (iv); R8c bridges over direct edges only; R9's fact uses direct + indirect.
 - **Pinned call sites** that stay direct carry a recorded decision id (`_chain_end`:
   A5-CHAIN; chunk meta: A5-CHUNK-META), enforced by an allowlist in
-  `tests/unit/test_traversal_calls.py`.
+  `tests/unit/test_traversal_calls.py`. Every `.upstream(` / `.downstream(` call in `src/` passes
+  `include_indirect` explicitly; a literal `False` needs an allowlist entry with its decision id.
+- **A5-IMPACT-DIRECT-LABEL / impact group labels:** a column is in a `[direct]` group only if an
+  all-direct path reaches it, at its direct depth (a second, direct-only traversal decides this;
+  allowlisted). Otherwise its label is the kind of the FIRST indirect hop on its shortest
+  (all-hop) path, and its depth is that path's length. A column reachable both ways appears once,
+  under `[direct]`. `side_records` keep the full via chain.
+- **A5-R9-DIRECT-READING:** the fact's direct reading (`direct_reaches`, `direct_hops`) is the
+  shortest path over DERIVES edges, so the fact text can state both readings. Not a traversal
+  call; recorded in the allowlist test's docstring.
+- Decided options: s12-design A5.1 (i) family defaults; R9 fact mode (a).
 
 ## Consequences
 

@@ -1,7 +1,7 @@
 # S12 design: agent parity (S12a) and agent upgrades G1–G4 (S12b)
 
-**Version:** 0.2 (draft, 20 Oct 2026). **Status:** four owner decisions recorded (A2 R9 option, A5.2 shape,
-B2 + B5 policy, B4 hybrid); every other `Decision` is PENDING.
+**Version:** 1.0 (20 Oct 2026). **Status:** decided. Every item has an owner decision (20 Oct
+2026); A1–A5 are implemented in S12a, B1–B8 in S12b.
 **Inputs:** spec v1.6 §0 rows 30–32, §8, §11; `docs/plans/v0.3-plan.md` (G1–G4, D4);
 `docs/plans/metrics-design.md` v1.1 (M3–M5, M7, M9, M10, M12, M15, §18); `docs/plans/s1-design.md`
 (B3, B5, B8, carry-forwards); ADRs 0015, 0016, 0020, 0021, 0023, 0024; `docs/explain/agent.md`,
@@ -167,7 +167,26 @@ wins, all-real candidates → clarification, one unknown id → ignored. CI: `te
 `retrieval` job (as today); the agent tests run in `lint-test` (`make test`).
 **Session.** S12a.
 
-`Decision:` PENDING
+`Decision (owner, 20 Oct 2026):` **(a)** verbatim adoption + the "S1 frozen vs S4 live" test, and
+the clarification-candidates rule (code decides first; the LLM list counts only if every id is a
+graph column). Conditions:
+- The parity test holds an explicit, named `ALLOWED_DIFFERENCES` list with (i) literal
+  substitutions, starting with `S1_CLAIMS_PHRASE` → `S4_CLAIMS_PHRASE`, and (ii) S4-only appended
+  lines, in a fixed order (empty in S12a). It asserts `ANSWER_SYSTEM` == S1's text with exactly
+  these applied, nothing else. S12b adds the `uncovered_parts` / `premise_corrected` lines and the
+  `c_` phrase as one-line entries.
+- `S4_CLAIMS_PHRASE` equals S4's wording at 5996c09: `"the e_/s_ ids"` (checked: it occurs once in
+  `ANSWER_SYSTEM`, sha256 `4bb98f41…`; `"the c_ ids"` occurs once in `S1_SYSTEM`). The new
+  `ANSWER_SYSTEM` sha256 is `1bbca639…`.
+- **Clarification rule, as decided.** The LLM's `clarification_candidates` are logged and ignored
+  when (i) the code ambiguity policy decided (chain, per-candidate or clarification), or (ii) code
+  linked the question's target to exactly one column (an exact `model.column` id in the question,
+  or a single unambiguous resolve_entity column result). The list is honoured only when no code
+  linking decision exists (no target resolved, or the linker returned nothing) and every id is an
+  exact graph column. The record's `stop_reason` gets `+llm_clarification` or
+  `+candidates_ignored`.
+- The `AnswerDraft` / `DRAFT_SCHEMA` fields land with A1 (one cache-key change); A2 does `attach`,
+  R9 and salvage.
 
 ---
 
@@ -217,7 +236,7 @@ reads `final_answer.reach_verdict` (LLM or code). Confirmed against `eval/metric
 it can never fail a non-yes/no answer that leaves the field null.
 
 `Decision (owner, 20 Oct 2026):` (b) mismatch, or null while the prose states a verdict. The rest
-of A2 (schema, edge rules, files) PENDING with the Phase-2 decisions.
+of A2 is decided below.
 **Files.** `src/dlens/agent/answer.py`, `src/dlens/agent/validator.py` (`rule_verdict`,
 `salvage`), `docs/explain/agent.md`, `docs/explain/validator.md`.
 **Rule 9.** **Validator: R9 gains the structured-field check (named here).** Engine, linker,
@@ -228,7 +247,22 @@ citations passes; the metrics raw view reads the draft value and ignores a code 
 accessor, new fixture). CI: `lint-test`.
 **Session.** S12a.
 
-`Decision:` PENDING
+`Decision (owner, 20 Oct 2026):` schema byte-equal to `S1_DRAFT_SCHEMA`; `attach` sets source
+`llm`; R9 (b) as recorded; salvage sets source `code`; edge rules as written. Conditions:
+- R9 decides "yes/no answer" only from the system's own signals (the `r_` fact and the answer's
+  first sentence). It never reads `eval/` files, question families or gold labels. An
+  import-boundary test checks that `src/dlens/agent` imports nothing from `eval/` (`metrics`,
+  `systems`, `dlens_oracle`) and opens no path under `eval/` (matched at a path boundary, so
+  `retrieval/` does not match), and no agent module imports `dlens.gold_spec`.
+- **Verify only, no change:** after an R9 regenerate, which draft does the record's `draft` hold,
+  and which does metrics' raw view read? Checked against the code: `loop.py` sets
+  `record.draft` once, from the answer-phase draft (after at most one JSON repair, which is not
+  validator-triggered); `_regenerate` writes only `record.regenerate_draft_raw`. metrics'
+  `from_record` / `reach_verdict` raw view reads `record["draft"]`, matching metrics-design v1.1
+  M3 rule 5 ("S4-raw = the record's `draft` (pre-validation)"). So raw never includes a
+  validator-triggered regenerate. A loop test pins it. `eval/metrics.py` is not edited.
+- Salvage sets `reach_verdict` = the fact's verdict with source `code` whenever the result has a
+  fact and an R9 failure.
 
 ---
 
@@ -255,7 +289,9 @@ are byte-identical** before and after (the fixture's id list is pinned by its sh
 `retrieval` job (`pytest.importorskip("bm25s")`, in `tests/unit/agent/tools/test_search_docs.py`).
 **Session.** S12a.
 
-`Decision:` PENDING
+`Decision (owner, 20 Oct 2026):` **(a)**, approved. `docs/explain/retrieval.md` notes how the
+`dlens search` citation output changes (or that it doesn't, if the CLI does not go through
+`search.py`).
 
 ---
 
@@ -308,7 +344,10 @@ fields, hashes); the id↔text check fails on a mismatch; `metrics.py` scores th
 a legacy manifest; S0 and S1 manifests byte-identical (existing tests). CI: `lint-test`.
 **Session.** S12a.
 
-`Decision:` PENDING
+`Decision (owner, 20 Oct 2026):` proposed fields, the `eval/systems/s4.py` runner and
+`make eval-s4`; join (a) on exact text, no metrics.py change; `dev_report.py` (a), deprecated until
+the v0.3 tag; the record-level cache field. Approved. The S4 runner runs hybrid on by default (B4
+(a)); the manifest records the flag.
 
 ---
 
@@ -451,8 +490,25 @@ rejects (a shared fixture, no import between them); R9 fact on a direct-no / ind
 R8c never bridges through an indirect edge; the traversal allowlist. CI: `lint-test`.
 **Session.** S12a.
 
-`Decision:` A5.2 **B, with the over-cap rule above** (owner, 20 Oct 2026). A5.1 option and the
-R9 fact mode: PENDING.
+`Decision:` A5.2 **B, with the over-cap rule above** (owner, 20 Oct 2026).
+`Decision (owner, 20 Oct 2026):` A5.1 **(i)** family defaults. R9 fact mode **(a)**: direct +
+indirect verdict, the text states both. R3 by kind, R8c direct-only bridges, R5 unchanged.
+A5-CHAIN and A5-CHUNK-META stay direct with their recorded decisions. Traversal allowlist test.
+ADR 0026 → Accepted. All as written, plus:
+- **Allowlist rule.** Every `.upstream(` / `.downstream(` call in `src/` passes `include_indirect`
+  explicitly (a literal or a variable); a literal `False` must be in the allowlist with its
+  decision id.
+- **A5-R9-DIRECT-READING.** The `r_` fact's direct reading (`direct_reaches`, `direct_hops`) is
+  the shortest path over DERIVES edges (`nx_graph`), so the fact can state both readings. It is
+  not an `.upstream` / `.downstream` call, so the scan does not see it; the test's docstring
+  records it.
+- **A5-IMPACT-DIRECT-LABEL.** `impact_downstream` makes a second, direct-only traversal to decide
+  which columns are labelled `[direct]` (rule below). Allowlisted.
+- **Impact group labels.** A column is in a `[direct]` group only if an all-direct path reaches
+  it, at its direct depth. Otherwise its label is the kind of the FIRST indirect hop on its
+  shortest (all-hop) path from the queried column, and its depth is that path's length. A column
+  reachable both ways appears once, under `[direct]`. `side_records` keep the full via chain (the
+  edge record of every hop on that path).
 
 ---
 
@@ -475,7 +531,9 @@ paragraph, so it is an owner decision (and a §8 note).
 `origin: augmented` per view).
 **Tests.** Augmented claims appear only in the augmented view; each cites a ledger edge; nothing
 is added on a refusal or clarification.
-**Session.** S12b. `Decision:` PENDING
+**Session.** S12b. `Decision (owner, 20 Oct 2026):` **(b)** trace direct inputs + impact
+columns from the A5 side set, with a spec §8 note. G1 adds only from tool results already in the
+run's ledger; it never runs new traversals.
 
 ---
 
@@ -534,6 +592,9 @@ three conditions:
    at a STOP from dev definitions, before any S1 or S4 result is read, with a version bump of
    metrics-design and a change-log line (and a metrics.py minor bump when implemented).
 
+`Decision (owner, 20 Oct 2026), B5 addition:` ADR 0028 must state which views count the code-set
+interpretation, with a source field, as ADR 0024 did for `reach_verdict`.
+
 ---
 
 ## B3. G3 `premise_corrected` and claim `origin` (S12b) — ADR 0025
@@ -556,7 +617,9 @@ for every system, which is how S1 (no field) is scored too (rule 12 holds).
 already: no rule changes), `prompts.py` (one S4-only line), ADR 0025.
 **Rule 9.** Validator: labels only, no rule outcome changes (stated here so the diff is
 expected). Metrics: none (M10 already reads `premise_corrected`; M3 already reads `origin`).
-**Session.** S12b. `Decision:` PENDING
+**Session.** S12b. `Decision (owner, 20 Oct 2026):` **(a)** `premise_corrected` LLM-only;
+`origin` values `model` / `repaired` / `completed` / `augmented` / `verdict` (`verdict` for
+salvage's code claim). ADR 0025 amends 0015.
 
 ---
 
@@ -581,10 +644,12 @@ A1 parity test becomes `"the e_/s_/c_ ids"`.
 **Recommendation.** (a): the designed configuration, and one flag across the table.
 
 `Decision (owner, 20 Oct 2026):` (a) S4 hybrid on; S0-linked re-run hybrid on (no LLM) so the
-pilot table uses one flag. The rest of B4 PENDING.
+pilot table uses one flag. The rest of B4: see the decision below.
 **Rule 9.** Validator: R2/R3 for `c_` (named). Linker: none (its code is not touched; under (a)
 its configured stage runs).
-**Session.** S12b. `Decision:` PENDING
+**Session.** S12b. `Decision (owner, 20 Oct 2026):` the rest as proposed (`c_` in `_ids_in`,
+the ledger, evidence, R2/R3). Keep the existing S0-linked reports, labelled hybrid-off. The pilot
+table uses hybrid-on. Report S0-linked hybrid-off vs hybrid-on as a diagnostic.
 
 ---
 
@@ -603,7 +668,8 @@ match; underscores in the question still match; a name-word yes/no question with
 unambiguous links gets an `r_` fact in both directions ("does Y depend on X" reverses); one
 ambiguous link → no fact; three linked columns → no fact.
 **Rule 9.** None (`loop.py`, not `entity.py`).
-**Session.** S12b. `Decision:` PENDING
+**Session.** S12b. `Decision (owner, 20 Oct 2026):` **(a)** `loop.py` only, tests as listed.
+Re-count the expected R9 regenerates (new `r_` facts) in the S13 quota line.
 
 ---
 
@@ -623,7 +689,8 @@ policy/gold disagreement, as `s0_dev.md` reports for S0-linked. B7 does not touc
 answer; the traces fail → clarification, not refusal; 4 candidates → clarification, no trace;
 chain mode unchanged.
 **Rule 9.** None (`loop.py`).
-**Session.** S12b. `Decision:` PENDING
+**Session.** S12b. `Decision (owner, 20 Oct 2026):` **(a)**; more than 3 candidates unchanged
+(dev-55 stays a recorded policy/gold disagreement).
 
 ---
 
@@ -639,7 +706,10 @@ it local-only and record why.
 **Recommendation.** (a); about a minute of CI, and it shares the module fixture pattern already
 in use.
 **Rule 9.** None (test only).
-**Session.** S12b. `Decision:` PENDING
+**Session.** S12b. `Decision (owner, 20 Oct 2026):` **(a)**. Confirmed (20 Oct 2026):
+`make test` is `uv run pytest` with no marker filter, so `integration`-marked tests run in the
+`lint-test` job on Python 3.12 and 3.13; only that job's "core install (no extras)" step excludes
+them (`-m "not integration"`).
 
 ---
 
@@ -658,13 +728,13 @@ Branch names must match CI's `s[0-9][0-9]-*` push trigger (`.github/workflows/ci
 | ADR | title | status | session |
 |---|---|---|---|
 | 0025 | Amends 0015: who sets `premise_corrected`; exact `origin` values (+ `verdict`) | Proposed | S12b |
-| 0026 | Indirect traversal in S4 tools, R3 by kind, R9 fact mode, payload shape | Proposed | S12a |
+| 0026 | Indirect traversal in S4 tools, R3 by kind, R9 fact mode, payload shape | **Accepted** (20 Oct 2026) | S12a |
 | 0027 | `uncovered_parts` on `Answer` (G2) | Proposed | S12b |
 | 0028 | `interpretation {from, to}` on `Answer` (B5) | Proposed | S12b |
 
 A1–A4 need no new ADR: A1 is the s1-design B3 carry-forward, A2 is ADR 0024's S12 part, and A3 /
-A4 change no public interface (`RunRecord.question_id` is additive). Spec §0 rows are added for
-accepted ADRs in Phase 2 step 7.
+A4 change no public interface (`RunRecord.question_id` is additive). Spec §0 row 33 records ADR 0026 (Phase 2 step 1);
+rows for 0025, 0027 and 0028 are added when they are accepted (S12b).
 
 ## Test plan
 
@@ -683,7 +753,8 @@ Every module-level test that needs an extra uses `pytest.importorskip`.
 
 **0 cloud calls in S12.** Every run in S12a and S12b is local Ollama. S13 estimate after A2:
 S4 ≈ 480 → **≤ ~486** expected on Gemini (R9 regenerates), worst case unchanged (768); S1
-unchanged (96 / 192).
+unchanged (96 / 192). B6 adds `r_` facts on name-word yes/no questions; S12b re-counts the
+expected R9 regenerates for this line.
 
 ## S4 dev re-run plan (end of S12b, local, free)
 
@@ -714,3 +785,12 @@ unchanged (96 / 192).
   B5 policy (a) with deterministic prose branches, Appendix-B test sentences, pass-route
   reporting and a v1.2 draft decided at a STOP before any result; B4 hybrid on with S0-linked
   re-run. product_id indirect size under B added (3,196). Everything else PENDING.
+- 20 Oct 2026: v1.0. Owner decisions on every item (Phase 2). A1 (a) with a named
+  `ALLOWED_DIFFERENCES` list and the clarification rule (code linking decision first, including a
+  unique link); A2 schema / attach / R9 (b) / salvage, the system-signals-only condition with an
+  import-boundary test, and the raw-view check (raw = the pre-validation draft, never a
+  validator-triggered regenerate); A3 (a); A4 as proposed, join (a), `dev_report.py` (a); A5.1
+  (i), R9 mode (a), the allowlist rule, decisions A5-R9-DIRECT-READING and A5-IMPACT-DIRECT-LABEL,
+  and the impact group-label rule. ADR 0026 accepted (spec §0 row 33). S12b: B1 (b), B3 (a) with
+  `verdict`, B4 rest as proposed plus hybrid-off / hybrid-on S0-linked reporting, B5 view/source
+  rule for ADR 0028, B6 (a), B7 (a), B8 (a) with the `make test` confirmation.
