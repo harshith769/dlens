@@ -23,8 +23,10 @@ S4's reach by construction. Uncapped indirect impact payloads exceed the 1,500-t
   code uses metrics' M4 wording rule.
 - **Impact payload shape:** full dotted `model.column` ids with one `via` edge id each, grouped
   by (depth, kind); the same grouping in the answer-phase evidence. The full per-column set stays
-  in `side_records`. A payload that still exceeds the cap is depth-ordered and flagged
-  `truncated`.
+  in `side_records`. Above the tool cap, columns are cut in a fixed order (depth, then model,
+  then column), each cut group leaves one visible line "+K more columns in <model> (<kind>)",
+  the payload is flagged `truncated`, and the full set stays in `side_records`. Columns are
+  never dropped silently. (Shape B chosen by the owner, 20 Oct 2026.)
 - **Indirect edges are citable:** ids as for direct edges; records carry `key` and
   `indirect: true`; citations are checked by kind (the `from` name, or the clause key under
   metrics M7's CTE / derived-alias guard).

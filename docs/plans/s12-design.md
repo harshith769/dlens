@@ -1,6 +1,7 @@
 # S12 design: agent parity (S12a) and agent upgrades G1–G4 (S12b)
 
-**Version:** 0.1 (draft, 20 Oct 2026). **Status:** every `Decision` is PENDING; the owner decides.
+**Version:** 0.2 (draft, 20 Oct 2026). **Status:** four owner decisions recorded (A2 R9 option, A5.2 shape,
+B2 + B5 policy, B4 hybrid); every other `Decision` is PENDING.
 **Inputs:** spec v1.6 §0 rows 30–32, §8, §11; `docs/plans/v0.3-plan.md` (G1–G4, D4);
 `docs/plans/metrics-design.md` v1.1 (M3–M5, M7, M9, M10, M12, M15, §18); `docs/plans/s1-design.md`
 (B3, B5, B8, carry-forwards); ADRs 0015, 0016, 0020, 0021, 0023, 0024; `docs/explain/agent.md`,
@@ -214,6 +215,9 @@ reads `final_answer.reach_verdict` (LLM or code). Confirmed against `eval/metric
 
 **Recommendation.** (b). It holds the field to the fact without guessing the question type, and
 it can never fail a non-yes/no answer that leaves the field null.
+
+`Decision (owner, 20 Oct 2026):` (b) mismatch, or null while the prose states a verdict. The rest
+of A2 (schema, edge rules, files) PENDING with the Phase-2 decisions.
 **Files.** `src/dlens/agent/answer.py`, `src/dlens/agent/validator.py` (`rule_verdict`,
 `salvage`), `docs/explain/agent.md`, `docs/explain/validator.md`.
 **Rule 9.** **Validator: R9 gains the structured-field check (named here).** Engine, linker,
@@ -366,13 +370,27 @@ touches each named column. "Group" = (depth, indirect kind); in A also the model
   so `largest_fit` would drop columns. Truncation is exactly what A5 must avoid.
 - **B fits the tool cap on all 5 dev rows** (1,054–1,376), and its evidence (895–1,094) fits the
   2,409 answer budget with room for the rest of the evidence. A is ~20–30% smaller.
-- Only the 175-column `stg_products.product_id` overflows under both (B 3,196, A 2,388). Such a
-  payload is still capped by `largest_fit`, keeping depth order, so the full set lives only in
-  `side_records` (for code / G1). No dev question has that size.
+- Only the 175-column `stg_products.product_id` overflows under both: **B 3,196** est. tokens
+  (A 2,388) against 4,376 for today's per-item shape. (`docs/explain/graph.md` quotes 4,469 for
+  the old shape, measured by `scripts/measure_indirect_reach.py` on a slightly different payload
+  that also carries `depth_limited` / `dropped` / notes; same order of size.) No dev question has
+  that size; the over-cap rule below applies.
 - **M3.** Under A, the model reads `order_month` under a `fct_segment_monthly` heading. A 4B
   model that copies what it reads writes `order_month`, which M3 never counts (bare names, rule
   2 (i)), and R4 can't check it either. Under B, every column the model can copy is already a
   scoreable, checkable `model.column` id. The token saving of A is real but small next to that.
+
+**Over-cap rule (owner, with the B decision).** A payload above the 1,500-token tool cap is cut
+deterministically, never silently:
+- columns are ordered by (depth, model, column name) and kept from the front until the payload
+  fits (`largest_fit` over that order);
+- every group that loses columns gets one visible line in the payload,
+  `"+K more columns in <model> (<kind>)"`, and the payload keeps `truncated: true` and its
+  `dropped` counts;
+- the full per-column set (with edge records) always goes into `side_records`, for code and for
+  G1 (augmented).
+The answer-phase `trim` keeps its existing rule (most distant evidence first) and also writes a
+"+K more" line per group it drops.
 
 **Recommendation: B** (full dotted ids, grouped by depth and kind, one `via` id per column) for
 the impact payload, and the same grouped form for the impact evidence lines. Direct hops keep
@@ -433,7 +451,8 @@ rejects (a shared fixture, no import between them); R9 fact on a direct-no / ind
 R8c never bridges through an indirect edge; the traversal allowlist. CI: `lint-test`.
 **Session.** S12a.
 
-`Decision:` PENDING (sub-decisions: A5.1 option, A5.2 shape, R9 option)
+`Decision:` A5.2 **B, with the over-cap rule above** (owner, 20 Oct 2026). A5.1 option and the
+R9 fact mode: PENDING.
 
 ---
 
@@ -502,7 +521,18 @@ line, recorded in the parity test's allowed differences), `loop.py` (interpretat
 ADRs 0027 / 0028, metrics-design v1.2 draft (text only).
 **Rule 9.** Metrics: **v1.2 draft only** (no metrics.py change until decided). Engine, linker,
 validator: none.
-**Session.** S12b. `Decision:` PENDING (one question to the owner)
+**Session.** S12b.
+
+`Decision (owner, 20 Oct 2026):` **(a) structured field + prose fallback for every system**, on
+three conditions:
+1. Both prose branches are deterministic, like the M3 extractor, and each gets Appendix-B-style
+   test sentences (input sentence → expected result) in metrics-design v1.2: "out-of-scope intent
+   stated" (M10) and "gold column mentioned, not negated" (M9).
+2. Every report shows the pass route per system: `field` / `prose` / `both` / `neither`, so
+   readers see how much S4 gains from the structured field.
+3. The v1.2 text is written here, in s12-design.md, as a **draft only** (in S12b). It is decided
+   at a STOP from dev definitions, before any S1 or S4 result is read, with a version bump of
+   metrics-design and a change-log line (and a metrics.py minor bump when implemented).
 
 ---
 
@@ -549,6 +579,9 @@ A1 parity test becomes `"the e_/s_/c_ ids"`.
   untouched, and S0-linked stays hybrid off.
 - (c) No `search_docs` in the pilot.
 **Recommendation.** (a): the designed configuration, and one flag across the table.
+
+`Decision (owner, 20 Oct 2026):` (a) S4 hybrid on; S0-linked re-run hybrid on (no LLM) so the
+pilot table uses one flag. The rest of B4 PENDING.
 **Rule 9.** Validator: R2/R3 for `c_` (named). Linker: none (its code is not touched; under (a)
 its configured stage runs).
 **Session.** S12b. `Decision:` PENDING
@@ -675,3 +708,9 @@ unchanged (96 / 192).
   new S1 or S4 score. Owner amendments to the Phase-1 plan applied (A5 shapes measured against M3,
   A5 vs M4 table, one B2+B5 policy, A2 edge rules, A4 cache/latency, A1 named substitution, B3 as
   an amendment of 0015, A3 id stability, B6/B7 cases, branch naming).
+- 20 Oct 2026: v0.2. Owner decisions on four multiple-choice questions: A2 R9 field check (b);
+  A5.2 payload shape B plus a deterministic over-cap rule (cut order depth → model → column,
+  one "+K more columns in <model> (<kind>)" line per cut group, full set in `side_records`); B2 +
+  B5 policy (a) with deterministic prose branches, Appendix-B test sentences, pass-route
+  reporting and a v1.2 draft decided at a STOP before any result; B4 hybrid on with S0-linked
+  re-run. product_id indirect size under B added (3,196). Everything else PENDING.
