@@ -13,8 +13,9 @@ Citations go through ``dlens.retrieval.citation.chunk_citation`` (s12-design A3)
 ledger uses: the side record's ``citation`` and the ``file`` / ``lines`` / ``level`` the payload
 shows are the same corrected range, so the model sees the range it will be cited by.
 
-Not wired into the agent loop yet: it is not in ``TOOL_SPECS`` or ``Toolbox``, and ``c_`` ids
-are not known to the validator. S12b (G4) wires both.
+Wired into S4 in S12b (G4, s12-design B4): the Toolbox advertises and runs it only when it has
+an index; hit ids (``c_``) enter the ledger with the side record, the evidence lists them and the
+validator's R2 / R3 check them.
 """
 
 from __future__ import annotations

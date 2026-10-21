@@ -328,6 +328,26 @@ The run record keeps the untouched first draft (`draft_raw`, `draft`), the regen
 with failures, repairs and per-rule counts. That is everything the no-validator ablation and the
 raw-vs-repaired benchmark split need.
 
+## `c_` chunk ids (S12b, B4): R2, R3 and R4
+- **R2 / R2r:** `c_` is an id prefix like `e_`, `s_`, `r_`, so a cited chunk id must have been
+  shown in this question, and a one-character miscopy of a shown one is repaired.
+- **R3 (named in s12-design B4):** a chunk citation is checked by the rule S1's ledger citations
+  follow: the file exists and the range is in bounds; at `star` level the lines contain `*`; at
+  `line` level they name the chunk's entity (its column for a column card, its model for a model
+  description cited from `- name:`); a model's SQL chunk must cite that model's own file; other
+  docs (exposures, README) have no entity to check. All 506 fixture chunks pass.
+- **R4 (owner decision, 21 Oct 2026, found from code before any run):** the evidence R4 accepts
+  also takes each **shown** hit's **own** entity: the column / model in its side record, only if
+  it resolves in the graph. A name that only appears in the hit's text never counts. Without
+  this, a claim naming the column a hit is about would fail `R4.unsupported` whenever no lineage
+  tool returned that column, so G4 would do nothing in the validated view.
+- **c_ supports existence and description, never an edge.** A chunk is not a link: R8 counts only
+  `e_` / `r_` ids as links, so a claim joining two columns ("A is derived from B") that cites
+  only chunks fails R8, exactly as one citing only `s_` excerpts does today (test). R5 checks
+  kind words only against cited edges, so it does not fire on a chunk-only claim. A one-column
+  claim with a lineage word ("A is derived from raw data", `c_` only) names no second column, so
+  no rule catches it; that is the same gap as for `s_` excerpts (known limitation).
+
 ## Claim labels (S12b B3, ADR 0025): `origin`, set where the validator already acts
 The validator labels claims but never decides anything from a label. R2r sets `repaired` on a
 claim whose cited id or prose id it rewrote; R8c sets `completed` on a claim it added edges to
@@ -431,3 +451,11 @@ Earlier:
     metrics view counts it, and why would `augmented` be wrong?
 13. (S12b, B3) R2r rewrites an `e_` id written in a claim's prose but leaves the cited ids alone.
     Is the claim `repaired`? Point to the line that decides it.
+14. (S12b, B4) A search_docs hit about `stg_payments.amount_usd` quotes text naming
+    `fct_orders.revenue_finance`. Which of the two columns may an answer name with only that
+    hit's `c_` id, and which rule decides?
+15. (S12b, B4) Why does "int_payment_events.event_amount_usd is derived from
+    stg_payments.amount_usd" citing two `c_` ids fail, and which rule fails it? What would make it
+    pass?
+16. (S12b, B4) A model's SQL chunk is cited at `line` level but its lines never name the model.
+    What does R3 check instead, and why?

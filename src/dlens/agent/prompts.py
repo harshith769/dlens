@@ -16,11 +16,27 @@ Rules:
 - When you have enough evidence, or a tool cannot help, reply with one short sentence and no \
 tool call."""
 
+# s12-design v1.2 (B4): appended to the steps paragraph only when the toolbox has a search index,
+# so without one (the demo install) the tool prompt is TOOL_SYSTEM unchanged.
+SEARCH_DOCS_STEP = (
+    " For what a column or model means, or for project documentation, call search_docs."
+)
+_STEPS_END = "get_model_sql (how is it computed)."
+
+
+def tool_system(docs: bool) -> str:
+    """The tool-phase system prompt; ``docs``: the toolbox can run search_docs."""
+    if not docs:
+        return TOOL_SYSTEM
+    assert TOOL_SYSTEM.count(_STEPS_END) == 1
+    return TOOL_SYSTEM.replace(_STEPS_END, _STEPS_END + SEARCH_DOCS_STEP)
+
+
 # S1's answer instructions with the named differences of s12-design A1 / v1.2 (substitutions and
 # S4-only appended lines); tests/unit/eval/test_s1.py holds the ALLOWED_DIFFERENCES list.
 ANSWER_SYSTEM = """Answer the user's lineage question using only the evidence. Reply with JSON only.
 - answer_text: 1-4 plain sentences.
-- claims: one per factual statement; ids = the e_/s_ ids from the evidence that support it. \
+- claims: one per factual statement; ids = the e_/s_/c_ ids from the evidence that support it. \
 Every claim needs at least one id. Copy ids exactly. Never invent an id or write a file name or \
 line number.
 - confidence: high, medium or low.

@@ -1,5 +1,6 @@
 """search_docs (S07, retrieval-design.md §5): cap and truncated flag, quoted data with the stale
-note, graph facts only in the payload, kind filter, errors, and not wired into the agent."""
+note, graph facts only in the payload, kind filter, errors; S12b (B4): wired into the Toolbox with
+an index, c_ ids in the ledger, the evidence, the digest and the validator's R2 / R3."""
 
 import json
 import shutil
@@ -9,11 +10,24 @@ import pytest
 
 pytest.importorskip("bm25s")
 
-from dlens.agent.tools import TOOL_SPECS  # noqa: E402
-from dlens.agent.tools.budget import MAX_RESULT_TOKENS, payload_tokens  # noqa: E402
+from dlens.agent import prompts  # noqa: E402
+from dlens.agent.answer import Answer, Claim  # noqa: E402
+from dlens.agent.context import digest  # noqa: E402
+from dlens.agent.evidence import ID_RE, build_evidence  # noqa: E402
+from dlens.agent.llm.tokens import estimate_tokens  # noqa: E402
+from dlens.agent.llm.types import Message  # noqa: E402
+from dlens.agent.tools import TOOL_SPECS, Toolbox  # noqa: E402
+from dlens.agent.tools.budget import (  # noqa: E402
+    MAX_RESULT_TOKENS,
+    payload_json,  # noqa: E402
+    payload_tokens,
+)
 from dlens.agent.tools.provenance import Provenance  # noqa: E402
 from dlens.agent.tools.search import NOTE, search_docs  # noqa: E402
+from dlens.agent.tools.search import _record as search_record  # noqa: E402
+from dlens.agent.tools.specs import SEARCH_DOCS_SPEC  # noqa: E402
 from dlens.agent.tools.toolbox import _TOOLS  # noqa: E402
+from dlens.agent.validator import ValidationContext, _citation_problem, validate  # noqa: E402
 from dlens.graph import LineageGraph, build_graph_from_artifacts  # noqa: E402
 from dlens.retrieval.dense import FakeEmbedder  # noqa: E402
 from dlens.retrieval.index import SearchIndex  # noqa: E402
@@ -124,9 +138,138 @@ def test_no_index_is_a_tool_error(shop: tuple[SearchIndex, Provenance]) -> None:
     assert e.value.code == "no_index"
 
 
-def test_not_wired_into_the_agent_yet() -> None:
-    assert "search_docs" not in {s.name for s in TOOL_SPECS}
-    assert "search_docs" not in _TOOLS
+# -- B4: search_docs in S4 (s12-design B4) -----------------------------------------------------
+
+
+@pytest.fixture
+def docs_box(shop: tuple[SearchIndex, Provenance]) -> Toolbox:
+    idx, prov = shop
+    return Toolbox(prov.graph, SS_PROJECT, idx)
+
+
+def _card_hit(box: Toolbox, column: str) -> dict:
+    r = box.call("search_docs", {"query": column.replace(".", " ")})
+    assert not r.is_error, r.llm_payload
+    return next(h for h in r.llm_payload["hits"] if h.get("column") == column)
+
+
+def test_with_an_index_search_docs_is_advertised_and_runs(docs_box: Toolbox) -> None:
+    names = [s.name for s in docs_box.specs()]
+    assert names == [*(s.name for s in TOOL_SPECS), "search_docs"]
+    assert "search_docs" not in _TOOLS  # dispatched only when an index is open
+    assert prompts.tool_system(True).count(prompts.SEARCH_DOCS_STEP) == 1
+    hit = _card_hit(docs_box, "stg_payments.amount_usd")
+    rec = docs_box.record(hit["id"])
+    assert hit["id"].startswith("c_") and hit["id"] in docs_box.emitted_ids
+    assert rec is not None and rec["citation"]["file"] == hit["file"]
+    assert [rec["citation"]["line_start"], rec["citation"]["line_end"]] == hit["lines"]
+
+
+def test_only_shown_hits_enter_the_ledger(docs_box: Toolbox) -> None:
+    r = docs_box.call("search_docs", {"query": "order revenue amount refund"})
+    shown = {h["id"] for h in r.llm_payload["hits"]}
+    assert {i for i in docs_box.emitted_ids if i.startswith("c_")} == shown
+
+
+def test_evidence_lists_chunk_lines(docs_box: Toolbox) -> None:
+    hit = _card_hit(docs_box, "stg_payments.amount_usd")
+    [item] = [it for it in build_evidence(docs_box) if it.id == hit["id"]]
+    a, b = hit["lines"]
+    span = f"{hit['file']}:{a}" if a == b else f"{hit['file']}:{a}-{b}"
+    assert item.line.startswith(f'{hit["id"]} | {span} | {hit["title"]} "')
+    assert "direct inputs" in item.line  # the graph facts the payload carries
+    assert ID_RE.findall(item.line) == [hit["id"]]
+
+
+def test_digest_keeps_every_hit_id(docs_box: Toolbox) -> None:
+    r = docs_box.call("search_docs", {"query": "customer lifetime value"})
+    ids = set(ID_RE.findall(r.content))
+    for level in (1, 2):
+        d = payload_json(digest(r, level))
+        assert set(ID_RE.findall(d)) >= ids and len(d) < len(r.content)
+
+
+def test_r2_r3_accept_a_shown_chunk_and_r2_rejects_an_unshown_one(docs_box: Toolbox) -> None:
+    hit = _card_hit(docs_box, "stg_payments.amount_usd")
+    good = Claim(text="stg_payments.amount_usd is described here", chunk_ids=[hit["id"]])
+    r = validate(Answer(answer_text="t", claims=[good]), docs_box)
+    assert r.passed, r.failures
+    bad = Claim(text="stg_payments.amount_usd is described here", chunk_ids=["c_00000000"])
+    r = validate(Answer(answer_text="t", claims=[bad]), docs_box)
+    assert [f.rule for f in r.failures] == ["R2"]
+
+
+def test_r4_counts_only_the_hits_own_entity(docs_box: Toolbox) -> None:
+    """Owner decision (B4): a shown hit's own column counts as R4 evidence; a column that only
+    appears in the hit's text does not."""
+    hit = _card_hit(docs_box, "stg_payments.amount_usd")
+    for r in docs_box.log:  # the hit's text now also names another real column
+        for h in r.llm_payload.get("hits", []):
+            if h["id"] == hit["id"]:
+                h["quoted_text"] = "Feeds fct_orders.revenue_finance."
+    own = Claim(text="stg_payments.amount_usd is the payment amount", chunk_ids=[hit["id"]])
+    assert validate(Answer(answer_text="t", claims=[own]), docs_box).passed
+    other = Claim(text="fct_orders.revenue_finance is described here", chunk_ids=[hit["id"]])
+    r = validate(Answer(answer_text="t", claims=[other]), docs_box)
+    assert "R4.unsupported" in [f.rule for f in r.failures]
+
+
+def test_a_lineage_claim_citing_only_chunks_fails_r8(docs_box: Toolbox) -> None:
+    """c_ ids support existence / description claims, never an edge: a claim joining two
+    columns needs a cited e_ or r_ link (R8), whatever chunks it cites."""
+    a = _card_hit(docs_box, "stg_payments.amount_usd")
+    b = _card_hit(docs_box, "int_payment_events.event_amount_usd")
+    text = "int_payment_events.event_amount_usd is derived from stg_payments.amount_usd"
+    claim = Claim(text=text, chunk_ids=[a["id"], b["id"]])
+    r = validate(Answer(answer_text="t", claims=[claim]), docs_box)
+    assert [f.rule for f in r.failures] == ["R8"]
+
+
+def test_r2r_repairs_a_miscopied_chunk_id(docs_box: Toolbox) -> None:
+    hit = _card_hit(docs_box, "stg_payments.amount_usd")
+    real = hit["id"]
+    miscopy = real[:-1] + ("0" if real[-1] != "0" else "1")
+    claim = Claim(text="stg_payments.amount_usd is described here", chunk_ids=[miscopy])
+    r = validate(Answer(answer_text="t", claims=[claim]), docs_box)
+    assert r.passed and r.repairs == [{"claim_index": 0, "from": miscopy, "to": real}]
+
+
+def test_r3_fails_a_chunk_whose_lines_lost_its_entity(docs_box: Toolbox) -> None:
+    hit = _card_hit(docs_box, "stg_payments.amount_usd")
+    rec = docs_box.record(hit["id"])
+    assert rec is not None
+    ctx = ValidationContext.build(docs_box)
+    assert _citation_problem(hit["id"], rec, ctx) is None
+    moved = {**rec, "column": "model.synthetic_shop.stg_payments.no_such_column"}
+    assert "does not contain 'no_such_column'" in str(_citation_problem(hit["id"], moved, ctx))
+    star = {**rec, "citation": {**rec["citation"], "level": "star"}}
+    if "*" not in (SS_PROJECT / hit["file"]).read_text():
+        assert "has no '*'" in str(_citation_problem(hit["id"], star, ctx))
+
+
+def test_every_fixture_chunk_passes_r3(shop: tuple[SearchIndex, Provenance]) -> None:
+    """All 506 chunks, through the side record search_docs makes: the R3 chunk rule agrees with
+    the A3 citation on every kind (column / star / YAML / model SQL / doc)."""
+    idx, prov = shop
+    box = Toolbox(prov.graph, SS_PROJECT, idx)
+    ctx = ValidationContext.build(box)
+    problems = {
+        c.id: p
+        for c in idx.chunks
+        if (p := _citation_problem(c.id, search_record(prov, c), ctx)) is not None
+    }
+    assert len(idx.chunks) == CHUNK_COUNT and problems == {}
+
+
+def test_tool_phase_growth_per_call() -> None:
+    """s12-design v1.2: what search_docs adds to every tool-phase call (est. tokens), printed for
+    the session report and capped so a longer spec is a recorded decision."""
+    base = estimate_tokens([Message(role="system", content=prompts.TOOL_SYSTEM)], TOOL_SPECS)
+    docs = estimate_tokens(
+        [Message(role="system", content=prompts.tool_system(True))], [*TOOL_SPECS, SEARCH_DOCS_SPEC]
+    )
+    print(f"tool-phase fixed cost: {base} -> {docs} (+{docs - base})")
+    assert docs <= 900 and docs - base <= 130  # measured +129 (721 -> 850)
 
 
 # -- A3: one citation rule for S1 and S4 (s12-design A3) ----------------------------------------

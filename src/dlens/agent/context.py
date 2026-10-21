@@ -3,7 +3,8 @@
 Older tool messages are replaced by digests, oldest first and the newest last:
   level 1  trace: edge lines deduplicated across paths; impact: the grouped ``model.column e_id``
            items (and its "+K more" lines);
-           get_model_sql: window excerpt ids + ranges (SQL text dropped); resolve: candidate ids
+           get_model_sql: window excerpt ids + ranges (SQL text dropped); resolve: candidate ids;
+           search_docs: hit ids with kind, title, file and lines (text dropped)
   level 2  as level 1, minus edge expressions and impact models/exposures
 Every id the original payload showed survives both levels (``ID_RE`` finds the same set or more).
 Error payloads are small and left as they are.
@@ -56,6 +57,12 @@ def digest(result: ToolResult, level: int) -> dict[str, Any]:
             "query": p.get("query"),
             "candidates": [c["id"] for c in p.get("candidates", [])],
             "ambiguous": p.get("ambiguous", False),
+        }
+    elif result.tool == "search_docs":
+        keep = ("id", "kind", "title") if level >= 2 else ("id", "kind", "title", "file", "lines")
+        out |= {
+            "query": p.get("query"),
+            "hits": [{k: h[k] for k in keep if k in h} for h in p.get("hits", [])],
         }
     else:
         return p

@@ -40,7 +40,7 @@ QUESTIONS = [json.loads(x) for x in (ROOT / "eval/questions/dev.jsonl").read_tex
 # S1 frozen vs S4 live (s12-design A1, owner decision 20 Oct 2026). S4's answer instructions are
 # S1's text with exactly these differences applied, nothing else. S12b adds its lines here.
 S1_CLAIMS_PHRASE = "the c_ ids"
-S4_CLAIMS_PHRASE = "the e_/s_ ids"  # S4's wording at 5996c09
+S4_CLAIMS_PHRASE = "the e_/s_/c_ ids"  # S12b B4 (was "the e_/s_ ids", S4 at 5996c09)
 ALLOWED_DIFFERENCES: dict[str, list[Any]] = {
     # (i) literal substitutions, each applied to a phrase S1's text holds exactly once
     "substitutions": [(S1_CLAIMS_PHRASE, S4_CLAIMS_PHRASE)],

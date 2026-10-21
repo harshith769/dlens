@@ -267,7 +267,7 @@ class Agent:
     def _tool_phase(self, question: str) -> None:
         history = History(
             [
-                Message(role="system", content=prompts.TOOL_SYSTEM),
+                Message(role="system", content=prompts.tool_system(self.toolbox.has_docs)),
                 Message(role="user", content=question),
             ]
         )

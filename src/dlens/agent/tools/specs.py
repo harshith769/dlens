@@ -3,6 +3,9 @@
 Kept short on purpose: specs ride along on every tool-phase call, inside the ~3K input cap. Only
 the arguments a model needs are advertised; the tools still accept ``k`` (resolve_entity) and
 ``include_indirect`` (trace/impact) with their spec §8 defaults.
+
+``SEARCH_DOCS_SPEC`` is shown only when the Toolbox has a search index (s12-design B4); the demo
+install has none, so its specs stay ``TOOL_SPECS``.
 """
 
 from __future__ import annotations
@@ -55,3 +58,16 @@ TOOL_SPECS: list[ToolSpec] = [
         },
     ),
 ]
+
+SEARCH_DOCS_SPEC = ToolSpec(
+    name="search_docs",
+    description=(
+        "Search project text (model SQL, column and model descriptions, docs): ranked hits, "
+        "each with a c_ id, file and lines. Descriptions may be stale; the SQL wins."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {"query": {"type": "string"}},
+        "required": ["query"],
+    },
+)

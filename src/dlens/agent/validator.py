@@ -51,7 +51,7 @@ from dlens.agent.tools.provenance import (
 )
 from dlens.agent.tools.reach import check, fact_record
 
-ID_PREFIXES = ("e_", "s_", "r_")
+ID_PREFIXES = ("e_", "s_", "r_", "c_")
 LINK_PREFIXES = ("e_", "r_")  # ids with from/to columns: edges and reachability facts
 MIN_PREFIX_HEX = 7
 MAX_COMPLETION_HOPS = 4  # R8c: longest bridge citation completion may add
@@ -215,6 +215,22 @@ class ValidationContext:
             if r.tool == "get_model_sql":
                 self.evidence_models.add(str(p.get("model", "")).lower())
                 self.evidence_sql += "\n" + "\n".join(p.get("excerpt", [])).lower()
+            if r.tool == "search_docs":
+                self._add_hit_entities(p, side)
+
+    def _add_hit_entities(self, p: dict[str, Any], side: dict[str, Any]) -> None:
+        """R4 evidence from search_docs (owner decision, S12b B4): only a shown hit's own entity,
+        the column / model in its side record (chunk metadata), and only if it resolves in the
+        graph. Never a name that merely appears in the hit's text."""
+        g = self.ledger.graph
+        chunks = side.get("chunks", {})
+        for h in p.get("hits", []):
+            rec = chunks.get(h.get("id")) or {}
+            column, model = rec.get("column"), rec.get("model")
+            if isinstance(column, str) and g.has_column(column):
+                self._add_column(column)
+            elif isinstance(model, str) and g.model_info(model) is not None:
+                self.evidence_models.add(self.model_name(model))
 
     def entities(self, text: str) -> list[Entity]:
         """Dotted model.column chains and bare model names (those containing "_") in prose."""
@@ -434,6 +450,8 @@ def _citation_problem(item_id: str, rec: dict[str, Any], ctx: ValidationContext)
     if not 1 <= a <= b <= max(len(lines), 1):
         return f"lines {a}-{b} are outside {file} ({len(lines)} lines)"
     chunk = "\n".join(lines[a - 1 : b])
+    if item_id.startswith("c_"):
+        return _chunk_problem(rec, cite, chunk, ctx)
     if item_id.startswith("s_"):
         want = rec.get("text_sha1")
         if want and text_sha1(text, a, b) != want:
@@ -456,6 +474,32 @@ def _citation_problem(item_id: str, rec: dict[str, Any], ctx: ValidationContext)
                 return f"{file} header has no column {name!r}"
         elif not contains_word(text, name):
             return f"{file} does not mention {name!r}"
+    return None
+
+
+def _chunk_problem(
+    rec: dict[str, Any], cite: dict[str, Any], chunk: str, ctx: ValidationContext
+) -> str | None:
+    """R3 for a search_docs chunk (s12-design B4), the rule S1's ledger citations follow (the
+    caller has checked the file and that the range is in bounds). ``star``: the cited lines
+    contain ``*``. ``line``: they name the chunk's entity, its column (a column card) or its
+    model (a model description, cited from its ``- name:`` line); a model's SQL chunk must cite
+    that model's own file; other docs (exposures, README) have no entity to check."""
+    file, a, b = cite.get("file", ""), cite.get("line_start"), cite.get("line_end")
+    level = cite.get("level")
+    if level == "star":
+        return None if "*" in chunk else f"{file}:{a}-{b} has no '*'"
+    if level != "line":
+        return None
+    if rec.get("kind") == "model":
+        info = ctx.ledger.graph.model_info(str(rec.get("model", ""))) or {}
+        return None if info.get("file") == file else f"{file} is not the file of {rec.get('model')}"
+    entity = rec.get("column") or (
+        rec.get("model") if rec.get("doc_kind") == "model_description" else None
+    )
+    name = str(entity or "").rsplit(".", 1)[-1]
+    if name and not contains_word(chunk, name):
+        return f"{file}:{a}-{b} does not contain {name!r}"
     return None
 
 

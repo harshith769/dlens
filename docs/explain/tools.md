@@ -159,6 +159,24 @@ parts and `closest` stay in the side record.
   direct reading too ("… in 1 hop (graph check: with indirect dependencies; not through direct
   edges)"); the direct reading is the shortest DERIVES-only path (decision A5-R9-DIRECT-READING).
 
+## `search_docs` in S4 (S12b, B4)
+- **What:** with a search index open, the Toolbox advertises a fifth tool, `search_docs(query)`
+  (`specs.SEARCH_DOCS_SPEC`), and runs `tools/search.py` for it. Without an index (the demo
+  install) the specs are `TOOL_SPECS` exactly and a call by that name gets `unknown_tool`.
+- **How:** each shown hit's `id` (`c_…`) is read by `_ids_in` (`hits[].id`) and enters the
+  ledger with its side record (`side["chunks"]`, citation from `chunk_citation`, A3). Hits cut by
+  the 1,500-token cap are not shown, so they never enter the ledger. The tool prompt gains one
+  sentence only with an index (`prompts.tool_system(docs)`), and the budget manager has a
+  `search_docs` digest (level 1: id, kind, title, file, lines; level 2: id, kind, title), so
+  compaction keeps every hit id.
+- **Why:** Ask questions and the stale-doc trap need project text that the lineage tools don't
+  return. Advertising the tool only with an index keeps the demo's prompts, specs and cache keys
+  unchanged. The import of `dlens.retrieval` stays lazy (inside `call`).
+- **Cost:** the tool-phase fixed cost (system prompt + specs) goes 721 → 850 est. tokens (+129)
+  on every tool-phase call when an index is open (`test_tool_phase_growth_per_call`).
+- **Rejected:** advertising it always and failing with `no_index` (the demo would pay the tokens
+  for a tool it can't run); a separate `linker_hybrid` switch (s12-design B4 (b)).
+
 ## Explain-back questions (for you)
 S12a (A5):
 - A. `raw.id -> stg.x_id` (direct) `-> fct.total` (JOIN) `-> fct_star.total` (direct): under which
@@ -179,3 +197,9 @@ S12a (A5):
    failure in a 4B model does that remove?
 4. Why are the LLM payload and the side record logged separately, and which later experiment would
    be impossible if only one of them were kept?
+5. (S12b, B4) A search_docs call returns 20 hits but the payload keeps 9. Which ids can the model
+   cite, which ones does the ledger know, and what would R2 say about hit 12?
+6. (S12b, B4) Why does the demo install's tool prompt keep its hash after B4, and which test
+   would fail if `search_docs` were always advertised?
+7. (S12b, B4) A tool history with three search_docs results goes over the cap. What does the
+   level-2 digest keep, and why is that enough for the answer phase?

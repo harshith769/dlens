@@ -1,6 +1,6 @@
 # S12 design: agent parity (S12a) and agent upgrades G1–G4 (S12b)
 
-**Version:** 1.2 (20 Oct 2026). **Status:** decided; A6 added before merge; v1.2 adds the S12b
+**Version:** 1.3 (21 Oct 2026). **Status:** decided; A6 added before merge; v1.2 adds the S12b
 execution plan (step order, S4 pilot freeze, exact allowed differences). Every item has an owner
 decision (20 Oct 2026); A1–A6 are implemented in S12a, B1–B8 in S12b.
 **Inputs:** spec v1.6 §0 rows 30–32, §8, §11; `docs/plans/v0.3-plan.md` (G1–G4, D4);
@@ -704,6 +704,16 @@ its configured stage runs).
 the ledger, evidence, R2/R3). Keep the existing S0-linked reports, labelled hybrid-off. The pilot
 table uses hybrid-on. Report S0-linked hybrid-off vs hybrid-on as a diagnostic.
 
+`Decision (owner, 21 Oct 2026, during B4):` **R4 evidence from search_docs hits (named validator
+change).** R4's evidence also takes each shown hit's own entity (the column / model in its side
+record, only if it resolves in the graph; never a name that only appears in the hit's text).
+Reason: found from code before any run; without it a claim naming the column a hit is about
+fails `R4.unsupported`, so G4 would be a no-op in the validated view. `c_` ids support existence
+and description claims only: R8 still fails a claim joining two columns that cites only chunks
+(R8 counts `e_` / `r_` links only). Tests: an Ask claim naming the hit's column passes R4; a
+column only in the snippet text stays `R4.unsupported`; a chunk-only lineage claim fails R8; the
+pre-B3 outcome snapshot is unchanged.
+
 ---
 
 ## B6. Chain mode on name-word mentions (dev-75) (S12b)
@@ -909,3 +919,7 @@ expected R9 regenerates for this line.
   S4-only lines with no dev-gold example, the new `s4_schema_properties` category), the
   prompt-growth measurement (+135 est. tokens), the tool-phase budget check, S0-linked hybrid-on
   as new files.
+- 21 Oct 2026: v1.3. B4 owner decision: R4 evidence from search_docs hits (the hit's own entity
+  only, resolved in the graph), a named validator change found from code before any run; `c_`
+  stays non-link evidence (R8). Measured: tool-phase fixed cost 721 → 850 est. (+129) with an
+  index; all 506 fixture chunks pass the R3 chunk rule.

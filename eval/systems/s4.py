@@ -52,8 +52,9 @@ def slug(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------- hashes (§11.7)
-def prompt_hashes() -> dict[str, str]:
-    """sha256 of every text the agent sends besides the question and tool results."""
+def prompt_hashes(toolbox: Toolbox | None = None) -> dict[str, str]:
+    """sha256 of every text the agent sends besides the question and tool results. The tool
+    prompt and specs are the ones ``toolbox`` sends (with an index: search_docs, B4)."""
     directives = "\n".join(
         [
             prompts.chain_directive(["A", "B"], "B"),
@@ -63,9 +64,11 @@ def prompt_hashes() -> dict[str, str]:
             prompts.answer_user("Q", "E", ["D"]),
         ]
     )
-    specs = [s.model_dump(mode="json") for s in TOOL_SPECS]
+    docs = toolbox is not None and toolbox.has_docs
+    tool_specs = toolbox.specs() if toolbox is not None else TOOL_SPECS
+    specs = [s.model_dump(mode="json") for s in tool_specs]
     return {
-        "tool_system": sha256_text(prompts.TOOL_SYSTEM),
+        "tool_system": sha256_text(prompts.tool_system(docs)),
         "answer_system": sha256_text(prompts.ANSWER_SYSTEM),
         "draft_schema": sha256_text(json.dumps(DRAFT_SCHEMA, sort_keys=True)),
         "answer_repair": sha256_text(prompts.ANSWER_REPAIR),
@@ -178,7 +181,7 @@ def manifest(
         "hybrid": index is not None,
         "index_key": dict(index.meta.get("key") or {}) if index is not None else None,
         "index_status": index_status,
-        "prompt_sha256": prompt_hashes(),
+        "prompt_sha256": prompt_hashes(agent.toolbox),
         "agent_code_sha256": agent_code_sha256(),
         "tool_settings": tool_settings(),
         "cache": {

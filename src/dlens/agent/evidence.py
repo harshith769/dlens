@@ -1,7 +1,9 @@
 """The answer-phase evidence list, rebuilt from the Toolbox log (never from chat history).
 
 Each item is one line. Lines with an ``id`` are citable (``e_`` edges, ``s_`` excerpts, ``r_``
-graph-check facts) and appear only if the id is in ``toolbox.emitted_ids``. Lines without one
+graph-check facts, ``c_`` search_docs chunks) and appear only if the id is in
+``toolbox.emitted_ids``. A chunk line is ``c_… | file:a-b | title "<snippet>"``: the snippet is
+quoted project text (data, may be stale), plus the graph facts the hit carries. Lines without one
 are context: impact models and exposures, resolve_entity candidates, tool errors.
 
 ``priority`` is the hop distance from the column the tool was asked about (trace: position in the
@@ -21,11 +23,12 @@ import re
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from dlens.agent.tools import Toolbox, ToolResult
 
 SNIPPET_CHARS = 400
-ID_RE = re.compile(r"\b[es]_[0-9a-f]{8}\b")
+ID_RE = re.compile(r"\b[esc]_[0-9a-f]{8}\b")
 
 
 @dataclass
@@ -127,10 +130,27 @@ def build_evidence(toolbox: Toolbox) -> list[EvidenceItem]:
                 add(line.split(":", 1)[0], line, pos + 1)
         elif r.tool == "resolve_entity":
             note(describe_candidates(r), ambiguous if p.get("ambiguous") else resolved)
+        elif r.tool == "search_docs":
+            for h in p.get("hits", []):
+                add(h["id"], chunk_line(h), 0)
 
     citable = sorted(by_id.values(), key=lambda it: it.order)
     extra = ambiguous if citable else [*ambiguous, *resolved]
     return sorted([*citable, *context, *extra], key=lambda it: it.order)
+
+
+def chunk_line(hit: dict[str, Any]) -> str:
+    """``c_… | file:a-b | title "<snippet>"`` (+ the hit's graph facts) for a search_docs hit."""
+    a, b = hit["lines"]
+    span = f"{hit['file']}:{a}" if a == b else f"{hit['file']}:{a}-{b}"
+    body = _clip(str(hit.get("sql") or hit.get("quoted_text") or ""), SNIPPET_CHARS)
+    line = f'{hit["id"]} | {span} | {hit.get("title", "")} "{body.replace(chr(34), chr(39))}"'
+    if hit.get("level"):
+        line += f" [{hit['level']}]"
+    if g := hit.get("graph"):
+        ins, down = g.get("direct_inputs", 0), g.get("downstream", 0)
+        line += f" (graph: {ins} direct inputs, {down} downstream)"
+    return line
 
 
 def tool_errors(toolbox: Toolbox) -> list[str]:

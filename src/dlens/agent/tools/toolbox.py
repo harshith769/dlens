@@ -20,7 +20,7 @@ from dlens.agent.tools.entity import resolve_entity
 from dlens.agent.tools.impact import impact_downstream
 from dlens.agent.tools.provenance import Provenance
 from dlens.agent.tools.reach import reachability
-from dlens.agent.tools.specs import TOOL_SPECS
+from dlens.agent.tools.specs import SEARCH_DOCS_SPEC, TOOL_SPECS
 from dlens.agent.tools.sql import get_model_sql
 from dlens.agent.tools.trace import trace_upstream
 from dlens.graph import LineageGraph
@@ -63,9 +63,11 @@ class Toolbox:
     def __init__(
         self, graph: LineageGraph, project_dir: Path, index: SearchIndex | None = None
     ) -> None:
-        """``index`` (an already-built S07 search index) enables the linker's hybrid stage; without
-        it resolve_entity runs stages 1-2 and says ``"hybrid": "unavailable"`` (ADR 0022). The
-        toolbox never builds an index and never imports ``dlens.retrieval`` itself."""
+        """``index`` (an already-built S07 search index) enables the linker's hybrid stage and the
+        ``search_docs`` tool (s12-design B4); without it resolve_entity runs stages 1-2 and says
+        ``"hybrid": "unavailable"`` (ADR 0022), and search_docs is neither advertised nor
+        callable. The toolbox never builds an index and imports ``dlens.retrieval`` (through
+        ``tools.search``) only when search_docs runs."""
         self.graph = graph
         self.project_dir = project_dir
         self.index = index
@@ -73,8 +75,13 @@ class Toolbox:
         self.log: list[ToolResult] = []
         self._emitted: dict[str, dict[str, Any]] = {}
 
+    @property
+    def has_docs(self) -> bool:
+        """search_docs is available (a search index is open)."""
+        return self.index is not None
+
     def specs(self) -> list[ToolSpec]:
-        return list(TOOL_SPECS)
+        return [*TOOL_SPECS, SEARCH_DOCS_SPEC] if self.has_docs else list(TOOL_SPECS)
 
     def reset(self) -> None:
         """Start a new conversation: forget emitted ids and the call log."""
@@ -83,8 +90,8 @@ class Toolbox:
 
     @property
     def emitted_ids(self) -> frozenset[str]:
-        """Edge ids (``e_``, direct or indirect), excerpt ids (``s_``) and graph-check fact ids
-        (``r_``) shown to the LLM in this conversation."""
+        """Edge ids (``e_``, direct or indirect), excerpt ids (``s_``), graph-check fact ids
+        (``r_``) and search_docs chunk ids (``c_``) shown to the LLM in this conversation."""
         return frozenset(self._emitted)
 
     def record(self, item_id: str) -> dict[str, Any] | None:
@@ -108,12 +115,19 @@ class Toolbox:
         ``code_initiated`` with the loop ``rule`` that made it."""
         args = dict(args or {})
         tool = _TOOLS.get(name) or (_CODE_TOOLS.get(name) if code else None)
+        docs = name == "search_docs" and self.has_docs
         try:
-            if tool is None:
-                raise ToolError("unknown_tool", f"no tool {name!r}", suggestions=sorted(_TOOLS))
-            if name == "resolve_entity":
-                out: ToolOutput = resolve_entity(self._prov, args, self.index)
+            if tool is None and not docs:
+                names = sorted([*_TOOLS, *(["search_docs"] if self.has_docs else [])])
+                raise ToolError("unknown_tool", f"no tool {name!r}", suggestions=names)
+            if docs:
+                from dlens.agent.tools.search import search_docs
+
+                out: ToolOutput = search_docs(self.index, self._prov, args)
+            elif name == "resolve_entity":
+                out = resolve_entity(self._prov, args, self.index)
             else:
+                assert tool is not None
                 out = tool(self._prov, args)
         except ToolError as e:
             out = ToolOutput(e.payload())
@@ -127,7 +141,7 @@ class Toolbox:
         )
         if not result.is_error:
             shown = set(_ids_in(out.payload))
-            for kind in ("edges", "excerpts", "facts"):
+            for kind in ("edges", "excerpts", "facts", "chunks"):
                 for item_id, rec in out.side.get(kind, {}).items():
                     if item_id in shown:
                         self._emitted[item_id] = rec
@@ -137,8 +151,8 @@ class Toolbox:
 
 def _ids_in(payload: dict[str, Any]) -> list[str]:
     """Ids visible in a payload: edge ids in path strings and impact items
-    (``"model.column e_…"``, the via id last), the excerpt id of every SQL window, and a
-    reachability fact id with its path."""
+    (``"model.column e_…"``, the via id last), the excerpt id of every SQL window, a
+    reachability fact id with its path, and the ``c_`` id of every search_docs hit."""
     found: list[str] = []
     for path in payload.get("paths", []):
         found += [line.split(":", 1)[0] for line in path]
@@ -147,4 +161,5 @@ def _ids_in(payload: dict[str, Any]) -> list[str]:
     found += [w["excerpt_id"] for w in payload.get("windows", [])]
     if "fact_id" in payload:
         found += [payload["fact_id"], *(line.split(":", 1)[0] for line in payload["path"])]
+    found += [h["id"] for h in payload.get("hits", [])]
     return found

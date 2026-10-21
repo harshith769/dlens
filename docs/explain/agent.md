@@ -119,6 +119,11 @@ hashes did not move. Any other drift on either side fails CI. The copy is litera
 `src/dlens/agent` never imports from `eval/`. The change moved every S4 answer-phase cache key
 once (sha256 `4bb98f41…` → `1bbca639…`).
 
+**S12b B4: the `c_` phrase.** The claims line now says "the e_/s_/c_ ids" (the substitution in
+`ALLOWED_DIFFERENCES` changed once: `"the c_ ids"` → `"the e_/s_/c_ ids"`), because with an index
+the evidence can hold search_docs chunks. The text is the same with or without an index (one
+answer prompt, one cache key per question). sha256 `4d626b76…` → `1a35baaf…`.
+
 ## Answers and citations (`answer.py`)
 The LLM writes `AnswerDraft {answer_text, claims[{text, ids}], confidence, refused,
 refusal_reason}` under a flat JSON schema (Ollama `format`, Gemini `response_json_schema`). Code
@@ -160,6 +165,13 @@ unchanged; new dumps carry two extra `null` keys.
   would take a validator output out of S4-validated).
 - The change moved every S4 answer-phase cache key (`ANSWER_SYSTEM` sha256 `1bbca639…` →
   `4d626b76…`) and added 67 est. tokens to each answer call's fixed cost.
+
+**Chunk evidence (S12b, B4).** With an index, the evidence list also holds one line per shown
+search_docs hit: `c_… | file:a-b | title "<snippet>"`, the snippet clipped to 400 characters
+(double quotes turned into single so the line stays one quoted string), `[star]` / `[model]` when
+the citation level is not `line`, and the graph facts the hit carries (`(graph: N direct inputs,
+M downstream)`). Chunk lines have priority 0, like excerpts: `trim` drops distant edges first.
+The snippet is project text, quoted as data; it may be stale (the SQL wins).
 
 ## Failure handling
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
@@ -307,3 +319,5 @@ Earlier:
    would have to change in the code before one were needed?
 8. (S12b, B3) S4's draft schema is no longer byte-equal to S1's. What exactly does the parity
    test now assert, and which edit to S4's schema would still fail it?
+9. (S12b, B4) The same question runs with and without a search index. Which prompts, specs and
+   cache keys differ between the two runs, and why is the answer prompt the same in both?
