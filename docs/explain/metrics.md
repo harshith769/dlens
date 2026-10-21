@@ -111,6 +111,33 @@ rows ─► summarise (macro means, bootstrap CI, breakdowns) ─► report .jso
   verdict was replaced by the ADR 0024 shape; no committed record used it. A regression test
   re-scores the committed S0 records to the committed reports byte for byte (version stamps aside).
 
+## Field or prose (metrics-design v1.2, metrics.py 1.3.0, S12b)
+- **What:** three rules now pass either through a structured field or through deterministic
+  prose, one rule for every system (rule 12). M9 interpretation: the code-set
+  `interpretation.to`, a lead "Interpreted A as B.", or a mention of the gold column that no
+  **pre**-mention cue negates (`extract(..., identity=True)`: no post-mention rule, no value-word
+  exemption, owner change at STOP 1, so "No, G does not reach H" still names G). M10 uncovered
+  part (new row `uncovered_part_correct`, multi-part only): a field string with a content word,
+  or one sentence with a content word and a coverage cue. M10 premise: `premise_corrected` counts
+  only when answered and, in case O, the premise column is not a kept mention.
+- **How:** `content_words` (gold text minus `OOS_STOP`), `word_matches` (base + one of
+  `OOS_SUFFIXES`), `plain_words` (paths, every dotted candidate and every `_` token removed, so
+  `unit_cost` never yields `cost`), `coverage_sentence` (`COVERAGE_CUES`, `n't`, "out of scope";
+  "not only" excluded), `uncovered_part`, `interpretation_ok`, `premise_rejection`; each returns
+  its pass route (`field` / `prose` / `both` / `neither`), summed per report. Spurious-field
+  counts (a non-empty `uncovered_parts` off multi-part questions, `premise_corrected` off
+  false-premise questions) are reported, not scored.
+- **Views:** `uncovered_parts` and `premise_corrected` come from the view's answer (raw: the
+  draft); `interpretation` from the final answer in every view (ADR 0028: code sets it before the
+  LLM runs).
+- **Tests:** every Appendix D row (51) runs against the real extractor and is fixed by the owner
+  (a failing row stops the work; it is never edited to agree); the S0 and frozen S1 reports
+  re-score unchanged once the v1.2 additions are stripped; a test checks that S4's appended
+  prompt lines share no content word with any dev gold `out_of_scope` or false-premise question.
+- **Rejected:** a field-only rule (S1 could never pass); a non-empty field passing without a
+  content word (`["n/a"]` would score); the full M3 negation in the M9 mention branch (a correct
+  yes/no "No, G does not reach H" would fail M9, hurting S1 most since it has prose only).
+
 ## Explain-back questions
 1. "There is no direct edge from A to B." negates both A and B, and "A is not null and feeds B."
    negates neither. Walk through the clause ids, the cues and the value-word check that give
@@ -124,3 +151,11 @@ rows ─► summarise (macro means, bootstrap CI, breakdowns) ─► report .jso
 4. Someone runs `metrics.py --system s1-qwen3-4b --view raw`. What happens and why? An S1 answer
    cites `c_1a2b3c4d`, a chunk that was retrieved but did not fit the budget: what does M7 say
    about it, and which part of the pipeline decided that?
+
+5. (S12b, v1.2) "stg_product_costs.unit_cost is not derived from orders." on a question whose
+   out-of-scope part is "how much does it cost to compute": walk the M10 prose rule step by step
+   and say where it stops.
+6. (S12b, v1.2) "No, G does not reach H." negates G for M3's node sets but not for M9. Which
+   function call differs, and why would using the full rule in M9 be unfair to S1?
+7. (S12b, v1.2) A `premise_corrected = true` answer also says "P feeds the target directly." in a
+   case-O question. Which bucket and route, and what changes if the question is case U?

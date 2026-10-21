@@ -28,7 +28,14 @@ from typing import Any
 from pydantic import ValidationError
 
 from dlens.agent import prompts
-from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft, Clarification, attach
+from dlens.agent.answer import (
+    DRAFT_SCHEMA,
+    Answer,
+    AnswerDraft,
+    Clarification,
+    Interpretation,
+    attach,
+)
 from dlens.agent.augment import augment
 from dlens.agent.context import History, fit
 from dlens.agent.evidence import (
@@ -223,7 +230,14 @@ class Agent:
             self.record.error = reason
         if self.interpretations:  # amendment C.4: code, not the LLM, says how an id was read
             lead = " ".join(f"Interpreted {a} as {b}." for a, b in self.interpretations)
-            answer = answer.model_copy(update={"answer_text": f"{lead} {answer.answer_text}"})
+            a, b = self.interpretations[0]  # ADR 0028: the first reading, as data (code-set)
+            answer = answer.model_copy(
+                update={
+                    "answer_text": f"{lead} {answer.answer_text}",
+                    "interpretation": Interpretation(**{"from": a, "to": b}),
+                    "interpretation_source": "code",
+                }
+            )
         self.record.timings["total_ms"] = _ms(t0)
         self.record.final_answer = answer.model_dump(mode="json")
         self._totals()

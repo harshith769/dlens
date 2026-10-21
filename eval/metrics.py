@@ -1,4 +1,4 @@
-"""Benchmark metrics (S10, v0.3 D3): implements docs/plans/metrics-design.md v1.1 exactly.
+"""Benchmark metrics (S10, v0.3 D3): implements docs/plans/metrics-design.md v1.2 exactly.
 
 Every definition here is the owner's decision in that document; section names (M1-M16) point at
 it. Imports are limited on purpose: the gold spec helpers (``dlens.gold_spec``), the standard
@@ -33,8 +33,8 @@ import yaml
 
 from dlens import gold_spec as gs
 
-__version__ = "1.2.0"
-DESIGN_VERSION = "1.1"  # docs/plans/metrics-design.md
+__version__ = "1.3.0"
+DESIGN_VERSION = "1.2"  # docs/plans/metrics-design.md
 SEED = 20261019  # M13
 RESAMPLES = 1000  # M13
 MIN_CI_N = 10  # M13: a CI is shown only for n >= 10
@@ -180,7 +180,9 @@ def _voided(tokens: list[str], ids: list[int], start: int) -> bool:
     return False
 
 
-def _pre_negated(tokens: list[str], ids: list[int], i: int) -> bool:
+def _pre_negated(tokens: list[str], ids: list[int], i: int, void: bool = True) -> bool:
+    """A pre-mention cue in the mention's clause (M3 rule 4). ``void=False`` (M9 v1.2 identity
+    branch): the value-word exemption does not apply."""
     for p in range(i):
         if ids[p] != ids[i]:
             continue
@@ -190,7 +192,7 @@ def _pre_negated(tokens: list[str], ids: list[int], i: int) -> bool:
             or "n't" in tok
             or (tok, after) in PRE_PAIRS
         )
-        if cue and not _voided(tokens, ids, p):
+        if cue and not (void and _voided(tokens, ids, p)):
             return True
     return False
 
@@ -221,8 +223,10 @@ class Extraction:
         return seen - kept if negated else kept
 
 
-def extract(text: str, inv: Inventory) -> Extraction:
-    """M3: mentions of columns, models and exposures in prose, each with its negation flag."""
+def extract(text: str, inv: Inventory, identity: bool = False) -> Extraction:
+    """M3: mentions of columns, models and exposures in prose, each with its negation flag.
+    ``identity=True`` (M9 v1.2 mention branch): only pre-mention cues negate; the post-mention
+    rule and the value-word exemption do not apply."""
     text = text.replace("’", "'").replace('"', "")
     interp = interpretations(text)
     text = _INTERP.sub(lambda m: m.group(2) + ".", text)
@@ -259,9 +263,121 @@ def extract(text: str, inv: Inventory) -> Extraction:
         for i, tok in enumerate(tokens):
             if tok.startswith("\x00"):
                 node, kind = found[int(tok.strip("\x00"))]
-                neg = _pre_negated(tokens, ids, i) or _post_negated(tokens, ids, i)
+                if identity:
+                    neg = _pre_negated(tokens, ids, i, void=False)
+                else:
+                    neg = _pre_negated(tokens, ids, i) or _post_negated(tokens, ids, i)
                 mentions.append(Mention(node, kind, neg))
     return Extraction(mentions, interp)
+
+
+# ------------------------------------------------------- field-or-prose rules (M9 / M10, v1.2)
+OOS_STOP = frozenset(
+    """a an the it its this that these those is are was were be been being do does did done to of
+    for in on at by with from and or as i you we they them their who whom whose what which when
+    where why how much many can could would should will there here come comes came compute
+    computes computed computing derive derives derived depend depends use uses used feed feeds
+    column columns model models table tables lineage source sources upstream downstream""".split()
+)
+OOS_SUFFIXES = ("", "s", "es", "d", "ed", "er", "ers", "ership", "ing")
+COVERAGE_CUES = frozenset(
+    "not no never without neither nor cannot unable outside beyond unknown unavailable".split()
+)
+_WORDS = re.compile(r"[\w']+")
+
+
+def content_words(out_of_scope: str) -> list[str]:
+    """M10 v1.2: the gold out-of-scope text's word tokens minus the stop list."""
+    return [w for w in re.findall(r"[a-z']+", out_of_scope.lower()) if w not in OOS_STOP]
+
+
+def word_matches(token: str, word: str) -> bool:
+    """M10 v1.2 suffix rule: ``token`` is the word's base plus one of ``OOS_SUFFIXES``."""
+    base = word[:-1] if len(word) > 3 and word.endswith("s") and not word.endswith("ss") else word
+    return any(token == base + x for x in OOS_SUFFIXES)
+
+
+def plain_words(text: str) -> list[str]:
+    """Lower-case words of ``text`` with identifiers removed (M10 v1.2): paths, every dotted
+    candidate (2-4 parts) and every token containing ``_``."""
+    text = _PATH.sub(" ", text.replace("’", "'"))
+    text = _DOTTED.sub(" ", text)
+    return [w.lower() for w in _WORDS.findall(text) if "_" not in w]
+
+
+def _sentences(text: str) -> list[list[str]]:
+    """M3's sentence split; each sentence's plain words with a leading "Yes," / "No," removed."""
+    text = _INTERP.sub(lambda m: m.group(0) + " ", text.replace("’", "'").replace('"', ""))
+    out = []
+    for s in _SENT.split(text):
+        if re.match(r"\s*(yes|no)\s*,", s, re.I):
+            s = s.split(",", 1)[1]
+        out.append(plain_words(s))
+    return out
+
+
+def coverage_sentence(words: list[str], content: Sequence[str]) -> bool:
+    """M10 v1.2 prose branch: one sentence (plain words) holds a content word and a cue."""
+    has_word = any(word_matches(t, w) for t in words for w in content)
+    cue = any(
+        (t in COVERAGE_CUES or "n't" in t)
+        and not (t == "not" and i + 1 < len(words) and words[i + 1] == "only")
+        for i, t in enumerate(words)
+    ) or any(words[i : i + 3] == ["out", "of", "scope"] for i in range(len(words)))
+    return has_word and cue
+
+
+def _route(field_ok: bool, prose_ok: bool) -> str:
+    return {(True, True): "both", (True, False): "field", (False, True): "prose"}.get(
+        (field_ok, prose_ok), "neither"
+    )
+
+
+def uncovered_part(pred: Prediction, out_of_scope: str) -> tuple[bool, str]:
+    """M10 v1.2: answered, and a field string with a content word or a sentence with a content
+    word and a coverage cue. Returns (correct, pass route)."""
+    if pred.kind != "answered":
+        return False, "neither"
+    content = content_words(out_of_scope)
+    field_ok = any(
+        word_matches(t, w) for s in pred.uncovered_parts for t in plain_words(s) for w in content
+    )
+    texts = [pred.answer_text, *(c.get("text", "") for c in pred.claims)]
+    prose_ok = any(coverage_sentence(s, content) for x in texts for s in _sentences(x))
+    route = _route(field_ok, prose_ok)
+    return route != "neither", route
+
+
+def interpretation_ok(pred: Prediction, column: str, inv: Inventory) -> tuple[bool, str]:
+    """M9 v1.2: answered, and the structured ``interpretation.to``, a lead "Interpreted A as B."
+    with B = the gold column, or a mention of it that no pre-mention cue negates."""
+    if pred.kind != "answered":
+        return False, "neither"
+    want = short_id(column)
+    field_ok = pred.interpretation is not None and short_id(pred.interpretation[1]) == want
+    lead = any(b == want for _, b in interpretations(pred.answer_text))
+    kept = extract(pred.text, inv, identity=True).nodes("column", negated=False)
+    route = _route(field_ok, lead or want in kept)
+    return route != "neither", route
+
+
+def premise_rejection(
+    pred: Prediction, premise: str, ex: Extraction, upstream_case: bool
+) -> tuple[str, str]:
+    """M10 v1.2 false premise: (bucket, pass route). Field branch: ``premise_corrected`` and
+    answered and, in case O, no kept mention of the premise column; prose branch: answered and
+    every mention of it negated."""
+    answered = pred.kind == "answered"
+    kept = premise in ex.nodes("column", negated=False)
+    field_ok = bool(pred.premise_corrected) and answered and (upstream_case or not kept)
+    prose_ok = answered and premise in ex.nodes("column", negated=True)
+    route = _route(field_ok, prose_ok)
+    if route != "neither":
+        return "rejected", route
+    if upstream_case:
+        return "not_rejected", route
+    mentioned = premise in ex.nodes("column")
+    return ("asserted" if answered and mentioned else "silent"), route
 
 
 # ------------------------------------------------------------------------------ mode (M4)
@@ -318,6 +434,8 @@ class Prediction:
     clarification: list[str] = field(default_factory=list)
     reach_verdict: str | None = None
     premise_corrected: bool | None = None
+    uncovered_parts: list[str] = field(default_factory=list)  # ADR 0027 (S4 only)
+    interpretation: tuple[str, str] | None = None  # ADR 0028 (from, to), code-set
     ambiguity: dict[str, Any] | None = None  # S4 diagnostic only (M9)
     r3_failed: set[str] = field(default_factory=set)
     r3_checked: set[str] = field(default_factory=set)  # ids the validator's R3 ran on
@@ -386,7 +504,9 @@ def _r3_checked(record: Mapping[str, Any], edges: Mapping[str, EdgeInfo]) -> set
 def from_record(record: Mapping[str, Any], view: str = "validated") -> Prediction:
     """Adapter for the ``RunRecord`` JSON format (S4; S0 writes the same format). Views (M3):
     ``raw`` = the pre-validation ``draft``; ``validated`` = ``final_answer``; ``augmented`` =
-    validated plus claims with ``origin: augmented`` (identical to validated until S12)."""
+    validated plus claims with ``origin: augmented`` (S12b G1). ``uncovered_parts`` and
+    ``premise_corrected`` come from the view's answer; ``interpretation`` from the final answer in
+    every view (ADR 0028)."""
     edges, cits, truncated = _ledger(record)
     final = record.get("final_answer")
     base = Prediction(
@@ -418,6 +538,10 @@ def from_record(record: Mapping[str, Any], view: str = "validated") -> Predictio
     base.citations = {**cits, **(final.get("citations") or {})}
     base.reach_verdict = reach_verdict(record, view)
     base.premise_corrected = answer.get("premise_corrected")
+    base.uncovered_parts = [str(x) for x in answer.get("uncovered_parts") or []]
+    interp = final.get("interpretation")  # every view: code-set before the answer (ADR 0028)
+    if interp:
+        base.interpretation = (str(interp["from"]), str(interp["to"]))
     return base
 
 
@@ -697,12 +821,12 @@ def score_question(
     }
     m: dict[str, Any] = row["metrics"]
 
-    # interpretation (M9): an interpreted question is correct only with the lead and column
+    # interpretation (M9 v1.2): field, lead or a pre-cue-kept mention; gates the set metrics
     interp_ok = True
     if gold.get("interpretation"):
-        want = short_id(gold["interpretation"]["column"])
-        interp_ok = answered and any(b == want for _, b in interpretations(pred.answer_text))
+        interp_ok, route = interpretation_ok(pred, gold["interpretation"]["column"], inv)
         m["interpretation_correct"] = float(interp_ok)
+        row["diag"]["route_interpretation"] = route
 
     def setf(name: str, pred_set: set[str], gold_name: str) -> None:
         for md in ("direct", "all"):
@@ -769,16 +893,22 @@ def score_question(
             gold["premise"]["edge"]["to"],
             include_indirect=mode == "all",
         )
-        mentioned = prem in ex.nodes("column")
-        negated = prem in ex.nodes("column", negated=True)
-        rejected = bool(pred.premise_corrected) or (answered and negated)
-        if upstream_case:
-            bucket = "rejected" if rejected else "not_rejected"
-        else:
-            bucket = "rejected" if rejected else "asserted" if answered and mentioned else "silent"
+        bucket, route = premise_rejection(pred, prem, ex, upstream_case)
+        row["diag"]["route_premise"] = route
         row["diag"]["premise_case"] = "U" if upstream_case else "O"
         row["diag"]["premise_bucket"] = bucket
         m["premise_rejected"] = float(bucket == "rejected")
+
+    # M10 v1.2 multi-part: the uncovered part, field or prose (its own row, in no composite)
+    if sub == "multi_part" and gold.get("out_of_scope"):
+        ok, route = uncovered_part(pred, gold["out_of_scope"])
+        m["uncovered_part_correct"] = float(ok)
+        row["diag"]["route_uncovered"] = route
+
+    # spurious-field diagnostics (M10 v1.2, not scored)
+    if answered:
+        row["diag"]["uncovered_nonempty"] = bool(pred.uncovered_parts)
+        row["diag"]["premise_flag"] = bool(pred.premise_corrected)
 
     # M5 yes/no: structured verdict only
     if sub == "yesno":
@@ -1000,7 +1130,9 @@ METRIC_ORDER = [
     "false_refusal",
     "chain_correct",
     "clarify_correct",
+    "interpretation_correct",
     "premise_rejected",
+    "uncovered_part_correct",
     "path_node_coverage",
     "fully_correct",
     "hallucination_rate",
@@ -1053,7 +1185,27 @@ def summarise(
                 groups.setdefault(k, []).append(r)
         breakdown[dim] = {k: stat(_values(g, "node_f1")) for k, g in sorted(groups.items())}
     cites = [r["citations"] for r in rows if "citations" in r]
+    routes = {
+        rule: dict(
+            Counter(r["diag"][f"route_{rule}"] for r in rows if f"route_{rule}" in r["diag"])
+        )
+        for rule in ("interpretation", "uncovered", "premise")
+    }
+    spurious = {
+        "uncovered_nonempty": [
+            r["diag"]["uncovered_nonempty"]
+            for r in rows
+            if r["subtype"] != "multi_part" and "uncovered_nonempty" in r["diag"]
+        ],
+        "premise_flag": [
+            r["diag"]["premise_flag"]
+            for r in rows
+            if r["subtype"] != "false_premise" and "premise_flag" in r["diag"]
+        ],
+    }
     return {
+        "pass_routes": routes,
+        "spurious_fields": {k: {"n": len(v), "flagged": sum(v)} for k, v in spurious.items()},
         "metrics": overall,
         "node_f1_by": breakdown,
         "negation_removed": sum(r["negation_removed"] for r in rows),
@@ -1165,6 +1317,24 @@ def render_markdown(result: Mapping[str, Any], title: str) -> str:
             f"runs ({lat['n_cached']} cached, excluded). Tokens/question mean {tok['mean']}, "
             f"LLM calls/question mean {tok['llm_calls_mean']}."
         )
+    lines += [
+        "",
+        "## Pass routes (metrics-design v1.2: field / prose / both / neither)",
+        "",
+        "| rule | field | prose | both | neither | n |",
+        "|---|---|---|---|---|---|",
+    ]
+    for rule, counts in s["pass_routes"].items():
+        cells = [str(counts.get(k, 0)) for k in ("field", "prose", "both", "neither")]
+        lines.append(f"| {rule} | {' | '.join(cells)} | {sum(counts.values())} |")
+    sp = s["spurious_fields"]
+    lines += [
+        "",
+        "Spurious-field diagnostics (not scored; answered predictions): non-empty "
+        f"`uncovered_parts` on non-multi-part questions {sp['uncovered_nonempty']['flagged']} / "
+        f"{sp['uncovered_nonempty']['n']}; `premise_corrected = true` on non-false-premise "
+        f"questions {sp['premise_flag']['flagged']} / {sp['premise_flag']['n']}.",
+    ]
     lines += ["", "## node-set F1 by breakdown", ""]
     for dim, groups in s["node_f1_by"].items():
         lines.append(

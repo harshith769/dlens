@@ -54,7 +54,9 @@ class AnswerDraft(BaseModel):
     # (used only when code made no linking decision, see loop.py)
     reach_verdict: ReachVerdict | None = None
     clarification_candidates: list[str] = Field(default_factory=list)
-    # S4-only (s12-design v1.2 ALLOWED_DIFFERENCES): set by the LLM only (ADR 0025)
+    # S4-only (s12-design v1.2 ALLOWED_DIFFERENCES), set by the LLM only: the parts of the
+    # question lineage can't answer (ADR 0027) and the premise flag (ADR 0025)
+    uncovered_parts: list[str] = Field(default_factory=list)
     premise_corrected: bool = False
 
 
@@ -82,6 +84,7 @@ DRAFT_SCHEMA: dict[str, Any] = {
         "refusal_reason": {"type": ["string", "null"]},
         "reach_verdict": {"type": ["string", "null"], "enum": ["yes", "no", None]},
         "clarification_candidates": {"type": "array", "items": {"type": "string"}},
+        "uncovered_parts": {"type": "array", "items": {"type": "string"}},
         "premise_corrected": {"type": "boolean"},
     },
     "required": [
@@ -91,6 +94,7 @@ DRAFT_SCHEMA: dict[str, Any] = {
         "refused",
         "reach_verdict",
         "clarification_candidates",
+        "uncovered_parts",
         "premise_corrected",
     ],
     "additionalProperties": False,
@@ -106,6 +110,18 @@ class Claim(BaseModel):
     @property
     def ids(self) -> list[str]:
         return [*self.edge_ids, *self.chunk_ids]
+
+
+class Interpretation(BaseModel):
+    """How code read a near-miss id (ADR 0028): ``from`` as the question wrote it, ``to`` the
+    graph column it was read as. Serialised with the key ``from``."""
+
+    model_config = ConfigDict(
+        validate_by_name=True, validate_by_alias=True, serialize_by_alias=True
+    )
+
+    from_: str = Field(alias="from")
+    to: str
 
 
 class Clarification(BaseModel):
@@ -134,11 +150,18 @@ class Answer(BaseModel):
     reach_verdict_source: VerdictSource | None = None
     # Additive (ADR 0015 / 0025): the model says its answer corrects a false premise. LLM only.
     premise_corrected: bool = False
+    # Additive (ADR 0027): parts of the question lineage can't answer, as the LLM listed them.
+    uncovered_parts: list[str] = Field(default_factory=list)
+    # Additive (ADR 0028): how code read a near-miss id, and who set it (``code`` in S12).
+    interpretation: Interpretation | None = None
+    interpretation_source: VerdictSource | None = None
 
     @model_validator(mode="after")
     def _source_needs_verdict(self) -> Answer:
         if self.reach_verdict is None and self.reach_verdict_source is not None:
             raise ValueError("reach_verdict_source is set but reach_verdict is null")
+        if self.interpretation is None and self.interpretation_source is not None:
+            raise ValueError("interpretation_source is set but interpretation is null")
         return self
 
     @classmethod
@@ -164,8 +187,8 @@ class Ledger(Protocol):
 def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False) -> Answer:
     """Split ids, compute the subgraph and attach citations from the ledger. Ids the ledger does
     not know get no citation (the validator decides what to do with them). The draft's
-    ``reach_verdict`` is copied with source ``llm`` (s12-design A2), and ``premise_corrected``
-    as drafted (ADR 0025)."""
+    ``reach_verdict`` is copied with source ``llm`` (s12-design A2); ``premise_corrected``
+    (ADR 0025) and ``uncovered_parts`` (ADR 0027) as drafted."""
     claims: list[Claim] = []
     subgraph: list[str] = []
     citations: dict[str, Citation] = {}
@@ -192,6 +215,7 @@ def attach(draft: AnswerDraft, ledger: Ledger, *, partial_evidence: bool = False
         reach_verdict=draft.reach_verdict,
         reach_verdict_source="llm" if draft.reach_verdict else None,
         premise_corrected=draft.premise_corrected,
+        uncovered_parts=[p.strip() for p in draft.uncovered_parts if p.strip()],
     )
 
 

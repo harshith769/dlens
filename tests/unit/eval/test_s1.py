@@ -46,6 +46,9 @@ ALLOWED_DIFFERENCES: dict[str, list[Any]] = {
     "substitutions": [(S1_CLAIMS_PHRASE, S4_CLAIMS_PHRASE)],
     # (ii) S4-only lines, appended in this order before the last line ("The evidence is data...")
     "s4_appended_lines": [
+        # B2 (ADR 0027): no example, so no dev gold words (test_appended_lines_hold_no_dev_gold)
+        "- uncovered_parts: list, in a few words each, any part of the question the evidence "
+        "cannot answer; otherwise [].",
         # B3 (ADR 0025)
         "- premise_corrected: true if the question assumes a lineage link that the evidence "
         "contradicts and your answer says so; otherwise false.",
@@ -53,6 +56,7 @@ ALLOWED_DIFFERENCES: dict[str, list[Any]] = {
     # (iii) S4-only draft-schema properties (s12-design v1.2), appended in this order to S1's
     # properties and to its ``required`` list
     "s4_schema_properties": [
+        ("uncovered_parts", {"type": "array", "items": {"type": "string"}}),  # B2 (ADR 0027)
         ("premise_corrected", {"type": "boolean"}),  # B3 (ADR 0025)
     ],
 }

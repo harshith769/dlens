@@ -14,12 +14,12 @@ from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft
 
 ROOT = Path(__file__).resolve().parents[3]
 
-# sha256 after S12b B4 (the c_ claims phrase). Earlier: 4d626b76… / 9f132d5e… after B3 (the
-# premise_corrected line and schema property), 1bbca639… / 60364350… after S12a A1, 4bb98f41… /
-# a945c5b8… at 776724f. A change here changes every S4 answer-phase cache key and is a recorded
-# decision, never a side effect.
-S4_ANSWER_SYSTEM = "1a35baafc7272fd93d93db2053df9b29c4db2c89e136d3ae4db91be819072b9f"
-S4_DRAFT_SCHEMA = "9f132d5efbb03052f1b92c6a8d8908267df1db56e2c8756e601251e1cb463cd3"
+# sha256 after S12b B2 (the uncovered_parts line and schema property). Earlier: 1a35baaf… after
+# B4 (the c_ phrase); 4d626b76… / 9f132d5e… after B3 (premise_corrected); 1bbca639… / 60364350…
+# after S12a A1; 4bb98f41… / a945c5b8… at 776724f. A change here changes every S4 answer-phase
+# cache key and is a recorded decision, never a side effect.
+S4_ANSWER_SYSTEM = "627ab7179c2428a5ae11ee5482121211e51d301433a5644a40d76b28602ae548"
+S4_DRAFT_SCHEMA = "4ff0f6df8f946f4e00f070b2a19f6ed4a56e6b11d0d77734114880060c44d90b"
 S4_ANSWER_REPAIR = "cc417eb2aa5ab698cc0ed1052710865c4448b9b5e8feaab42ad8133b809bca9b"
 
 

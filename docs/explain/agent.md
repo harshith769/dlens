@@ -173,6 +173,19 @@ the citation level is not `line`, and the graph facts the hit carries (`(graph: 
 M downstream)`). Chunk lines have priority 0, like excerpts: `trim` drops distant edges first.
 The snippet is project text, quoted as data; it may be stale (the SQL wins).
 
+## Uncovered parts and interpretation (S12b B2 + B5, ADRs 0027 / 0028)
+- `uncovered_parts: list[str]` is LLM-set: `AnswerDraft` has it (required in the draft schema,
+  the `s4_schema_properties` entry) and the prompt one S4-only line with **no example** (`-
+  uncovered_parts: list, in a few words each, any part of the question the evidence cannot answer;
+  otherwise [].`), so no dev gold word reaches the model (a test checks it). `attach` copies it,
+  dropping blank entries; code never adds one.
+- `interpretation {from, to}` + `interpretation_source` are code-set in `Agent.ask` from the same
+  `entity.dotted_column` reading that writes the lead sentence (which stays): the first reading,
+  source `code`. The draft has no such field. It is set on any answer that has the lead, including
+  a refusal (metrics M9 only credits answered predictions).
+- Both moved the answer-phase cache key once more (the line and the schema property, s12-design
+  v1.2: system + schema 591 → 726 est. tokens across B2 + B3 + B4).
+
 ## Coverage completion (`augment.py`, S12b B1, spec §8 G1)
 - **What:** after validation, code appends what the tools returned and the answer left out, as
   claims with `origin: augmented`. Trace questions (where-from / how-computed wording): each
@@ -346,3 +359,6 @@ Earlier:
     columns does G1 add, from where, and why can those claims cite edges the model never saw?
 11. (S12b, B1) Why does a trace input count as covered when its edge is cited even if the answer
     never writes its id, and which metrics view would change if that rule were dropped?
+
+12. (S12b, B2/B5) Why does `interpretation` count in S4-raw while a code-set `reach_verdict`
+    does not? Point to where each is set relative to the LLM's answer call.
