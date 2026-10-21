@@ -1,0 +1,63 @@
+# Pilot design (S13, v0.3 done-when 5, D4)
+
+**Version:** 0.1 (21 Oct 2026). **Status:** records and sampling decided by the owner before any
+pilot run. The cloud plan (§3) is filled in at STOP B (v0.2).
+**Inputs:** `docs/plans/v0.3-plan.md` (done-when 5, D4, quota budget); `docs/plans/metrics-design.md`
+v1.2 (M11, M13, M14, M15, M16); `docs/plans/s12-design.md` v1.3 (S4 pilot freeze);
+`docs/plans/s1-design.md` (B8 freeze); `eval/reports/s12b_session.md`.
+
+Rules that hold throughout:
+- **Claude Code makes no cloud call** and never passes `--allow-cloud`. The owner runs every
+  Gemini command, after confirming the quota plan.
+- **S4 pilot freeze** (s12-design) holds until the pilot table is committed: S4 changes only for a
+  recorded crash-class bug, and only after the owner approves.
+- **S1 frozen** (B8): `s1.frozen_hashes() == FROZEN` at every commit. The linker is frozen.
+  `eval/metrics.py` stays at 1.3.0 (metrics-design v1.2).
+- `eval/questions/test.jsonl`, `external.jsonl` and their `.sha256` files are not touched.
+- Only the synthetic corpus (`corpora/synthetic_shop`) is sent to the free cloud API.
+
+---
+
+## 1. Pilot records (decided 21 Oct 2026, before any result)
+
+| panel | row | records | how |
+|---|---|---|---|
+| qwen3:4b (local) | S0-gold | `eval/runs/s0/s0-gold-dev.*` | committed, no LLM |
+| qwen3:4b (local) | S0-linked (hybrid on) | `eval/runs/s0/s0-linked-hybrid-dev.*` | committed, no LLM; same linker flag as S4 (M14) |
+| qwen3:4b (local) | S1 | `eval/runs/s1/pilot/s1-qwen3-4b-instruct-2507-q4-k-m-dev.*` | **fresh uncached local re-run** of frozen S1 v2, new empty cache `eval/cache/s1-pilot-qwen` |
+| qwen3:4b (local) | S4 raw / validated / augmented | `eval/runs/s4/s4-qwen3-4b-instruct-2507-q4-k-m-dev.*` | **the S12b run, reused**: its manifest's `agent_code_sha256` must equal main's |
+| Gemini Flash-Lite | S0-gold, S0-linked (hybrid on) | as above | S0 has no LLM, so it is the same in both panels |
+| Gemini Flash-Lite | S1 | `eval/runs/s1/pilot/s1-gemini-…-dev.*` | new uncached run, owner-run |
+| Gemini Flash-Lite | S4 raw / validated / augmented | `eval/runs/s4/s4-gemini-…-dev.*` | new uncached run, owner-run |
+
+**Reuse check (21 Oct 2026).** The S12b S4 manifest records `agent_code_sha256`
+`a6fb5b2e49fe9a104c3828c402d186196601c50c4ea25dadef0dbc982952b424` (git c007759).
+`s4.agent_code_sha256()` on main 7153bff gives the same value, and `git diff c007759 7153bff --
+src/dlens/agent eval/systems` is empty. The qwen S4 run is reused.
+
+The S1 v2 files (`eval/runs/s1/s1-qwen3-…-dev.*`, `eval/runs/s1/v1/`) are never overwritten. The
+pilot S1 runs write under `eval/runs/s1/pilot/`.
+
+## 2. Sampling (decided 21 Oct 2026, before any run)
+
+| model | temperature | thinking | seed |
+|---|---|---|---|
+| qwen3:4b-instruct-2507-q4_K_M (Ollama) | 0 | off (`think=False`) | none |
+| Gemini Flash-Lite | **1.0** (the configured provider default, Google's advice for Gemini 3) | **model default** (`DLENS_GEMINI_THINKING` unset) | none |
+
+- The manifest records the thinking setting actually sent to the API, not the word "default".
+- Gemini records are reproducible from the cache, not deterministic. A single run at temperature
+  1.0 carries more run-to-run noise than the qwen run-to-run difference seen in S12b (±0.04).
+- **S1 vs S4 is compared within each panel only.** The panels differ in model and temperature, so
+  no cross-panel difference is reported as a system effect. The pilot table states the
+  temperature difference.
+
+## 3. Cloud plan
+
+To be filled in at STOP B (v0.2): model id, expected and worst-case calls, the daily budget and
+its stop rule, the day order, exact commands, and the quota reset time in IST.
+
+## Change log
+
+- 21 Oct 2026: v0.1. Pilot records and sampling fixed by the owner before any pilot run (§1, §2).
+  qwen S4 reuse check passed (equal agent-code sha).
