@@ -207,6 +207,22 @@ The snippet is project text, quoted as data; it may be stale (the SQL wins).
 - **Rejected:** trace inputs only (spec text before the note); the full upstream closure on trace
   questions (that would turn G1 into an oracle answer, not a completion).
 
+## Name words and the reachability fact (S12b B6, dev-75)
+- **Chain mode:** `_named_candidate` settles a tie when the question names one candidate's
+  model, written as-is or with `_` read as a space ("last name in raw customers" →
+  `raw_customers.last_name`). All the graph's model names are matched longest first and consume
+  their words, so "orders daily" names `orders_daily`, never `orders` too.
+- **`r_` fact without exact ids:** with fewer than 2 exact dotted ids, the columns resolve_entity
+  linked count too (unambiguous, or a tie the question settles as above), ordered by where each
+  query is written in the question; an unsettled tie, a query not found in the question, or a
+  third column gives no fact.
+- **Relation wording (owner addition):** "upstream of", "downstream of" (spec §7 / §8) and
+  "derived from" (the DERIVES edge) now cue the fact; "Y downstream of X" and "Y derived from X"
+  ask X → Y, like "depend". Negation in the wording never flips the direction.
+- **Why loop.py only:** the linker is frozen until after the pilot; these rules read its output.
+- **Known limit:** with hybrid on, the frozen linker ties "customer segment in customer
+  leaderboard", so dev-75 still gets no fact (offline replay).
+
 ## Failure handling
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
   turn with the error, then a refused answer.
@@ -362,3 +378,8 @@ Earlier:
 
 12. (S12b, B2/B5) Why does `interpretation` count in S4-raw while a code-set `reach_verdict`
     does not? Point to where each is set relative to the LLM's answer call.
+13. (S12b, B6) "Is total in fct star downstream of amt in raw?" with two resolve_entity calls:
+    which columns does the fact use, in which direction, and what changes if the model calls the
+    two resolves in the other order?
+14. (S12b, B6) Why must "orders daily" not count as naming `orders`, and how does the matcher
+    prevent it?

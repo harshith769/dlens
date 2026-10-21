@@ -21,6 +21,7 @@ import math
 import re
 import time
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -85,8 +86,15 @@ _TRACE_WORDING = re.compile(
     re.IGNORECASE,
 )
 _IMPACT_WORDING = re.compile(r"\b(affect|impact|chang|break|downstream)\w*", re.IGNORECASE)
-_REACH_WORDING = re.compile(r"\b(affect|impact|depend|feed|flow|reach|chang)\w*", re.IGNORECASE)
-_DEPEND_WORDING = re.compile(r"\bdepend\w*", re.IGNORECASE)
+# Relation wording from DLens's own vocabulary (spec §7 upstream / downstream and the §8 tools,
+# the DERIVES edge; s12-design B6 addition, owner 21 Oct 2026), never from question sets.
+_RELATION = r"\b(?:upstream|downstream)\s+of\b|\bderived?\s+from\b"
+_REACH_WORDING = re.compile(
+    rf"\b(affect|impact|depend|feed|flow|reach|chang)\w*|{_RELATION}", re.IGNORECASE
+)
+# asks "does the SECOND-named column reach the first": "Y depends on X", "Y is downstream of X",
+# "Y is derived from X" (all X -> Y); "X is upstream of Y" keeps the order
+_DEPEND_WORDING = re.compile(r"\bdepend\w*|\bdownstream\s+of\b|\bderived?\s+from\b", re.IGNORECASE)
 _FILE_SUFFIXES = {"sql", "csv", "yml", "yaml", "md", "py", "json", "txt"}
 MAX_CODE_EVIDENCE_COLUMNS = 2
 UNKNOWN_COLUMN_SUGGESTIONS = 3
@@ -568,7 +576,7 @@ class Agent:
             top = cands[0]["score"]
             tie = [c for c in cands if c["score"] >= top - AMBIGUOUS_GAP - 1e-9]
             names = [c["id"] for c in tie]
-            if _named_once(q, names):
+            if _named_once(q, names, self._model_names()):
                 continue
             base = {"query": p.get("query", ""), "candidates": names}
             columns = [c for c in tie if c["kind"] == "column"]
@@ -668,17 +676,60 @@ class Agent:
         return g.display_name(column)
 
     def _reachability_fact(self, question: str) -> None:
-        """A yes/no reachability question (exactly 2 exact columns named, plus affect / impact /
-        depend / feed / flow / reach / change wording) gets a code-made ``r_`` fact: does the
-        first-named column reach the second? "depend" asks the reverse ("does Y depend on X":
-        X -> Y). The validator's R9 holds the answer's verdict to this fact."""
+        """A yes/no reachability question (exactly 2 columns, plus affect / impact / depend /
+        feed / flow / reach / change, upstream of / downstream of / derived from wording) gets a
+        code-made ``r_`` fact: does the first-named column reach the second? "depend",
+        "downstream of" and "derived from" ask the reverse ("does Y depend on X", "is Y
+        downstream of X": X -> Y); "X upstream of Y" keeps the order. Negation in the wording
+        never flips it: the verdict comes from the graph. The
+        validator's R9 holds the answer's verdict to this fact. The 2 columns are the exact
+        dotted ids the question names, or, with fewer than 2 (s12-design B6), those plus the
+        columns resolve_entity linked, ordered by where each is written in the question."""
+        if not _REACH_WORDING.search(question):
+            return
         names = self._question_columns(question)
-        if len(names) != 2 or not _REACH_WORDING.search(question):
+        if len(names) < 2:
+            names = self._mentioned_columns(question)
+        if len(names) != 2:
             return
         src, dst = names[::-1] if _DEPEND_WORDING.search(question) else names
         self._code_call(
             "reachability", {"from_column": src, "to_column": dst}, rule="reachability_fact"
         )
+
+    def _model_names(self) -> list[str]:
+        return list(model_uids_by_name(self.toolbox.graph))
+
+    def _mentioned_columns(self, question: str) -> list[str]:
+        """B6: the question's columns in the order it writes them: its exact dotted ids, plus
+        each resolve_entity result whose query occurs in the question and that linked one column
+        (unambiguous, or a tie in which the question names one candidate once). A result whose
+        top candidate is not a column is skipped; an unsettled tie or a query not found in the
+        question gives []."""
+        g = self.toolbox.graph
+        q = question.lower()
+        found = [(q.find(n.lower()), n) for n in self._question_columns(question)]
+        for r in self.toolbox.log:
+            p = r.llm_payload
+            if r.tool != "resolve_entity" or r.is_error:
+                continue
+            cands = p.get("candidates") or []
+            if not cands or cands[0].get("kind") != "column":
+                continue  # links no column (a model, or no match)
+            pos = q.find(str(p.get("query", "")).lower().strip())
+            if pos < 0:
+                return []
+            column: str | None = cands[0]["id"]
+            if p.get("ambiguous"):
+                top = cands[0]["score"]
+                tie = [c["id"] for c in cands if c["score"] >= top - AMBIGUOUS_GAP - 1e-9]
+                column = _named_candidate(q, tie, self._model_names())
+            if column is None:
+                return []
+            name = g.display_name(g.resolve(column))
+            if all(name != n for _, n in found):
+                found.append((pos, name))
+        return [n for _, n in sorted(found)]
 
     def _linked_evidence(self, question: str) -> None:
         """Rule ``linked_evidence`` (owner, 17 Oct 2026). After the tool phase, if the question
@@ -814,18 +865,36 @@ def ask(
     return Agent(client, toolbox, logger, project).ask(question)
 
 
-def _named_once(question: str, names: list[str]) -> bool:
-    """The question picks exactly one candidate: by its full id, or by a model name only it has."""
+def _named_models(question: str, models: Iterable[str]) -> set[str]:
+    """Model names the question writes, as-is or with ``_`` read as a space ("raw customers" ->
+    raw_customers), as whole words (s12-design B6). Longer names are matched first and consume
+    their words, so "orders daily" names orders_daily and not orders."""
+    text = question.lower()
+    found: set[str] = set()
+    for name in sorted({m.lower() for m in models}, key=len, reverse=True):
+        for form in dict.fromkeys([name, name.replace("_", " ")]):
+            pattern = rf"(?<![\w.]){re.escape(form)}(?![\w])"
+            if re.search(pattern, text):
+                found.add(name)
+                text = re.sub(pattern, " ", text)
+    return found
+
+
+def _named_candidate(question: str, names: list[str], models: Iterable[str] = ()) -> str | None:
+    """The one candidate the question picks: by its full id, or by a model name only it has
+    (``_named_models``; ``models``: the graph's model names, the candidates' own included)."""
     full = [n for n in names if re.search(rf"(?<![\w.]){re.escape(n.lower())}(?!\w)", question)]
     if len(full) == 1:
-        return True
-    by_model = [
-        n
-        for n in names
-        if "." in n
-        and re.search(rf"(?<![\w.]){re.escape(n.rsplit('.', 1)[0].lower())}(?!\w)", question)
-    ]
-    return len(by_model) == 1
+        return full[0]
+    own = {n.rsplit(".", 1)[0] for n in names if "." in n}
+    named = _named_models(question, [*models, *own])
+    by_model = [n for n in names if "." in n and n.rsplit(".", 1)[0].lower() in named]
+    return by_model[0] if len(by_model) == 1 else None
+
+
+def _named_once(question: str, names: list[str], models: Iterable[str] = ()) -> bool:
+    """The question picks exactly one candidate (``_named_candidate``)."""
+    return _named_candidate(question, names, models) is not None
 
 
 def _summary(r: ValidationResult) -> dict[str, Any]:

@@ -734,6 +734,31 @@ ambiguous link → no fact; three linked columns → no fact.
 **Session.** S12b. `Decision (owner, 20 Oct 2026):` **(a)** `loop.py` only, tests as listed.
 Re-count the expected R9 regenerates (new `r_` facts) in the S13 quota line.
 
+`Decision (owner, 21 Oct 2026, during B6):` **named B6 addition: relation wording.** Found from
+code: `_reachability_fact` fired only on affect / impact / depend / feed / flow / reach / change
+wording, so dev-75 and dev-72 ("Is A downstream of B …?") got no `r_` fact whatever B6 did about
+ids. Added, from DLens's own vocabulary (never because a dev question uses a term):
+- "upstream of" / "downstream of": spec §7 `upstream(column_id)` / `downstream(column_id)`
+  (DLENS_SPEC.md lines 284–285) and the §8 tools `trace_upstream` ("Paths as edge lists") /
+  `impact_downstream` ("Affected columns, models and exposures by depth", lines 319–320).
+  "X downstream of Y" → fact Y → X; "X upstream of Y" → X → Y.
+- "derived from": the `DERIVES` column → column edge (DLENS_SPEC.md line 236). "X derived from
+  Y" → Y → X.
+- The terms already cued (depend, feed, flow, reach, affect, impact, change) are unchanged.
+The fact still needs exactly two columns (exact ids or B6-linked); wording negation never flips
+the direction (the verdict comes from the graph). Tests: one column → no fact; both directions
+of upstream-of / downstream-of; negated form; derived from; dev-72 / dev-75 shapes on synthetic
+ids.
+
+**Offline `r_` recount on dev (B6, no LLM).** The 18 Oct smoke's LLM tool calls replayed on a
+fresh Toolbox with today's rule: facts on 4 questions before (dev-10, 73, 74, 76); with B6 and
+the wording addition, hybrid on (the S4 configuration): **6** (+ dev-72, + dev-50); hybrid off:
+7 (+ dev-75). dev-50 is a false-premise "why … depend on" question that now links its second
+column. dev-75 gets no fact with hybrid on because the frozen linker's hybrid stage ties
+"customer segment in customer leaderboard" (`full_name` 0.852 over `customer_segment` 0.84), an
+unsettled tie; recorded, not changed (linker frozen). The replay uses the 18 Oct model's calls;
+the full run's calls will differ.
+
 ---
 
 ## B7. dev-46 false refusal (S12b)
@@ -868,9 +893,10 @@ Every module-level test that needs an extra uses `pytest.importorskip`.
 ## Quota
 
 **0 cloud calls in S12.** Every run in S12a and S12b is local Ollama. S13 estimate after A2:
-S4 ≈ 480 → **≤ ~486** expected on Gemini (R9 regenerates), worst case unchanged (768); S1
-unchanged (96 / 192). B6 adds `r_` facts on name-word yes/no questions; S12b re-counts the
-expected R9 regenerates for this line.
+S4 ≈ 480 → **≤ ~487** expected on Gemini (at most one R9 regenerate per question with an `r_`
+fact: 7 possible on dev after B6 and its wording addition, 6 in the hybrid-on replay; A2's bound
+was 6), worst case unchanged (768); S1 unchanged (96 / 192). The S12b dev run's measured calls
+per question replace this estimate in the session report.
 
 ## S4 dev re-run plan (end of S12b, local, free)
 
@@ -923,3 +949,6 @@ expected R9 regenerates for this line.
   only, resolved in the graph), a named validator change found from code before any run; `c_`
   stays non-link evidence (R8). Measured: tool-phase fixed cost 721 → 850 est. (+129) with an
   index; all 506 fixture chunks pass the R3 chunk rule.
+- 21 Oct 2026: v1.3 (cont.). B6 named addition (owner): "upstream of" / "downstream of" /
+  "derived from" wording for the `r_` fact, from spec §7 / §8 and the DERIVES edge; offline
+  recount 4 → 6 fact questions (hybrid on), 7 (hybrid off); S13 quota line ≤ ~487.
