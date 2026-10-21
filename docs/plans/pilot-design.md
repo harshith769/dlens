@@ -163,6 +163,29 @@ DLENS_PROVIDER=gemini DLENS_GEMINI_MODEL=gemini-3.5-flash-lite GEMINI_DAILY_BUDG
   (`corpora/synthetic_shop`: its SQL, YAML and docs, plus the dev questions) is sent. No other
   code or data is sent.
 
+### 3.1 Run log (Gemini)
+
+- **S1, quota day 21 Oct 2026 (PT):** complete in one pass. 96/96 records, 96 calls, 0 cached,
+  0 errors. Committed in 8ae3284.
+- **S4, quota day 21 Oct 2026 (PT): partial, not committed.**
+  - First attempt: the run crashed at dev-38 with `httpx.RemoteProtocolError` ("Server
+    disconnected without sending a response"), after the SDK's own retry gave up.
+  - Resume (same command): dev-01–37 replayed from the cache (hits), dev-38 was partly cached,
+    then fresh calls ran until `QuotaExceeded` at dev-82. 82 records were written, and dev-82
+    carries the `QuotaExceeded` error. This used up the 475 budget for the day.
+  - The partial file is not committed. The owner re-runs the same command after the next reset
+    (12:30 IST on 22 Oct 2026). That run rewrites the full file, and the result is committed
+    only when it meets "Complete" (above).
+- **Crash-class gap (recorded, not fixed now; owner decision, 21 Oct 2026):** the Gemini adapter
+  does not map transport errors (`httpx.RemoteProtocolError` and other connection drops) to a
+  retryable `ProviderError`. The error escapes the runner's retry-once path and stops the run
+  instead of becoming one failed record. It is not fixed during the pilot: a resume from the
+  cache is cheap, and an adapter fix would change the agent-code sha (pilot freeze). Revisit if
+  it recurs. The session report records this as well.
+- **Latency (M15):** the S4 Gemini latency figures use **uncached questions only, with n
+  shown**. Questions replayed from the cache on a resume are excluded, because their latency is
+  not a provider latency.
+
 ## 4. Post-pilot fix candidates (dev-found; verified on test only after the 7 Dec freeze)
 
 Source: `eval/reports/s13/prep_audit.md` (S12b S4 qwen dev run). **No code change now** (pilot
@@ -191,3 +214,6 @@ F1–F4 change the validator rules, so each needs an approved plan that names it
 - 21 Oct 2026: v0.3. Owner confirmed the quota plan: AI Studio RPM 15 / TPM 250K / RPD 500,
   B = 475; RPM limiter stays at the 15 code constant; 429 behaviour from code; Google's RPD is
   project-wide; thinking unset; ±0.04 note cited (prompt sensitivity, S11) vs 0 (temperature 0, S13).
+- 21 Oct 2026: §3.1 run log. S1 Gemini complete. S4 Gemini partial: a transport-error crash at
+  dev-38, recorded as a crash-class gap (no fix, owner decision), then QuotaExceeded at dev-82.
+  Resume after 12:30 IST on 22 Oct. Latency uses uncached questions only (M15).
