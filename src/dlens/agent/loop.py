@@ -29,6 +29,7 @@ from pydantic import ValidationError
 
 from dlens.agent import prompts
 from dlens.agent.answer import DRAFT_SCHEMA, Answer, AnswerDraft, Clarification, attach
+from dlens.agent.augment import augment
 from dlens.agent.context import History, fit
 from dlens.agent.evidence import (
     EvidenceItem,
@@ -262,7 +263,9 @@ class Agent:
         t1 = time.perf_counter()
         answer = self._answer_phase(question, directives)
         self.record.timings["answer_ms"] = _ms(t1)
-        return answer
+        # G1 (s12-design B1): code appends what the tools returned and the answer left out, as
+        # origin "augmented" claims (S4-augmented view only); never a new traversal
+        return augment(answer, self.toolbox, _intent_tool(question))
 
     def _tool_phase(self, question: str) -> None:
         history = History(

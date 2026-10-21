@@ -387,6 +387,13 @@ the trace tool returned N direct inputs and the answer cites fewer, code appends
 as claims with `origin: augmented`, each citing its trace edge. Augmented claims are counted only in
 the S4-augmented view.
 
+*v0.3 note (S12b, s12-design B1, owner decision 20 Oct 2026):* G1 also covers impact questions:
+every column of `impact_downstream`'s full side set that the answer neither names nor cites is
+appended, one augmented claim per (depth, kind) group, as dotted ids citing their `via` edges.
+G1 reads only tool results already in the run's log (it never runs a traversal), adds nothing to
+a refusal or a clarification, and a trace input counts as covered when the answer names it or
+cites its edge. Only direct edges into the traced column are "direct inputs".
+
 **S4 reporting views (v0.3, ADR 0016).** Separate from the per-answer validator outcome labels
 above (raw / repaired / completed / regenerated / salvaged), which the code emits and which stay:
 - **S4 raw:** the agent's draft before the validator runs.

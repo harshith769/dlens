@@ -116,6 +116,8 @@ def score(
     verdict = verdict_of(answer, record)
     v_ok = verdict_ok(q, verdict, record)
     claims = [] if answer.get("refused") else answer.get("claims", [])
+    # v0.2 dev scoring reads the validated answer: G1's augmented claims (S12b B1) are not in it
+    claims = [c for c in claims if c.get("origin") != "augmented"]
     cited_ids = [i for c in claims for i in [*c.get("edge_ids", []), *c.get("chunk_ids", [])]]
     cited = {p for i in cited_ids if i.startswith("e_") and (p := edge_of(i)) is not None}
     gold_set = {_pair(e) for e in gold.get("edges", [])}

@@ -173,6 +173,27 @@ the citation level is not `line`, and the graph facts the hit carries (`(graph: 
 M downstream)`). Chunk lines have priority 0, like excerpts: `trim` drops distant edges first.
 The snippet is project text, quoted as data; it may be stale (the SQL wins).
 
+## Coverage completion (`augment.py`, S12b B1, spec §8 G1)
+- **What:** after validation, code appends what the tools returned and the answer left out, as
+  claims with `origin: augmented`. Trace questions (where-from / how-computed wording): each
+  direct input of a traced column (a direct edge into it in a `trace_upstream` result) that the
+  answer neither names (dotted id in its text or claims) nor cites gets one claim, `"<input> is a
+  direct input of <column>."`, citing that edge. Impact questions: every column in
+  `impact_downstream`'s `side["full"]` set (which keeps columns the payload cut) not named or
+  cited, one claim per (depth, kind) group, `"Also affected at depth N (<kind>): a.x, b.y."`,
+  citing the `via` edges.
+- **How it stays honest:** it reads `toolbox.log` only, never runs a traversal (a test counts the
+  log); nothing is added to a refusal or a clarification; the answer text, the model's claims and
+  the subgraph are unchanged. Citations of augmented edges come from the tool's own edge records
+  (also for cut impact columns, whose edges were never shown to the model). Augmented claims skip
+  the validator and only the S4-augmented view counts them (metrics M3 rule 5; the deprecated
+  `dev_report.py` scoring drops them too).
+- **Why:** it measures how much of a complete answer the tools had already found, separately from
+  what the model wrote (ADR 0016). Impact is included (B1 (b)) so A5's promise, the full set stays
+  available to code, holds in the augmented view.
+- **Rejected:** trace inputs only (spec text before the note); the full upstream closure on trace
+  questions (that would turn G1 into an oracle answer, not a completion).
+
 ## Failure handling
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
   turn with the error, then a refused answer.
@@ -321,3 +342,7 @@ Earlier:
    test now assert, and which edit to S4's schema would still fail it?
 9. (S12b, B4) The same question runs with and without a search index. Which prompts, specs and
    cache keys differ between the two runs, and why is the answer prompt the same in both?
+10. (S12b, B1) An impact payload was cut at 40 of 62 columns, and the answer names 10. How many
+    columns does G1 add, from where, and why can those claims cite edges the model never saw?
+11. (S12b, B1) Why does a trace input count as covered when its edge is cited even if the answer
+    never writes its id, and which metrics view would change if that rule were dropped?
