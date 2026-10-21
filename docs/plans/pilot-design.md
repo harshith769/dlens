@@ -203,6 +203,7 @@ set for its primary mode. It does **not** mean the relation the claim states was
 | F4 | **Target preservation:** if no kept claim names the question's target, salvage the first draft's target claim when it fails only on a repairable id (R2) | The answer must stay about the question asked; an id problem is a citation fault, not a content fault | dev-16: the target claim failed R2 (truncated `e_81a3f`), and its rewrite failed R5. Chain 1.0 → 0.5 (n = 2), upstream F1 1.0 → 0.0 |
 
 F1–F4 change the validator rules, so each needs an approved plan that names it (CLAUDE.md).
+Design options per fix, and F5 (the transport-error gap, §3.1): `docs/plans/post-pilot-fixes.md`.
 
 ## Change log
 
