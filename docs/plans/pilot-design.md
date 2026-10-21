@@ -1,7 +1,7 @@
 # Pilot design (S13, v0.3 done-when 5, D4)
 
-**Version:** 0.1 (21 Oct 2026). **Status:** records and sampling decided by the owner before any
-pilot run. The cloud plan (§3) is filled in at STOP B (v0.2).
+**Version:** 0.2 (21 Oct 2026). **Status:** records and sampling decided by the owner before any
+pilot run (§1, §2); cloud plan drafted (§3), budget B pending the owner's AI Studio reading.
 **Inputs:** `docs/plans/v0.3-plan.md` (done-when 5, D4, quota budget); `docs/plans/metrics-design.md`
 v1.2 (M11, M13, M14, M15, M16); `docs/plans/s12-design.md` v1.3 (S4 pilot freeze);
 `docs/plans/s1-design.md` (B8 freeze); `eval/reports/s12b_session.md`.
@@ -52,10 +52,85 @@ pilot S1 runs write under `eval/runs/s1/pilot/`.
   no cross-panel difference is reported as a system effect. The pilot table states the
   temperature difference.
 
-## 3. Cloud plan
+## 3. Cloud plan (v0.2, STOP B; the owner runs every command)
 
-To be filled in at STOP B (v0.2): model id, expected and worst-case calls, the daily budget and
-its stop rule, the day order, exact commands, and the quota reset time in IST.
+**Model.** The Gemini adapter has no built-in model id: it reads `DLENS_GEMINI_MODEL` and refuses
+an empty or `-latest` value (`src/dlens/agent/llm/gemini.py`). Every command below sets
+`DLENS_GEMINI_MODEL=gemini-3.5-flash-lite` (spec §15.2, `docs/deploy.md`), so the run does not
+depend on what is in the owner's environment. The manifest records the id, the temperature (1.0)
+and the `thinkingConfig` exactly as sent (§2).
+
+**Key.** The adapter reads the dev AI Studio key from the environment variable `GEMINI_API_KEY`
+(the name only; the value never appears in the repo, in a command or in a chat). Nothing loads
+`.env`: export it in the shell that runs the commands.
+
+**Confirm the limits yourself.** Before the first call, open AI Studio for the **dev** project and
+read the free-tier **RPD** and **RPM** for `gemini-3.5-flash-lite`. The plan below uses them.
+
+**Expected calls.**
+
+| system | expected | worst case | basis |
+|---|---|---|---|
+| S1 | 96 | 192 | one answer call per question; at most one JSON repair each |
+| S4 | **≈ 319** | 768 | 3.32 calls/question × 96 from the **qwen** S12b run: an **estimate**, since Gemini's regenerates and tool turns may differ; 8-call cap × 96 |
+| total | ≈ 415 | 960 | |
+
+**Daily budget and stop rule.**
+- **Budget B = floor(0.95 × the RPD AI Studio shows for gemini-3.5-flash-lite on the dev
+  project).** The owner reads the RPD at STOP B, and B is written here and into every command
+  before any call. Recorded value: **B = _pending (owner, STOP B)_**.
+- The runner enforces B through `GEMINI_DAILY_BUDGET=B` (the code default 400 would not stop at
+  95%). `QuotaCounter` is one SQLite file per state dir, keyed by (provider, calendar day in
+  America/Los_Angeles). It reserves a call atomically **before** sending it, failed calls count,
+  and cache hits do not. Every process using the dev state dir shares the count, so **S1 and S4
+  on one day stop at B together**, not at B each.
+- When the count reaches B, the next call raises `QuotaExceeded`. The runner stops, and it writes
+  the records so far plus a manifest (`quota.daily_budget`, `quota.used_today`, `quota.day_key`).
+- **RPM:** the client's limiter sends at most 15 calls a minute for gemini (`RPM_LIMITS`). That is
+  fine if AI Studio shows 15 RPM or more. If it shows less, STOP: changing the limit is a code
+  change that needs approval. At 15 RPM, S4's ≈ 319 calls take at least ~22 minutes.
+- Leave `DLENS_STATE_DIR` unset (the dev counter), never the demo project's state dir.
+
+**Quota day in IST.** The Pacific day resets at **12:30 IST until 1 Nov 2026** (PDT) and at
+**13:30 IST from 1 Nov 2026** (PST). Every resume message repeats this.
+
+**Day order** (S1 first, then S4; each resumes from its own cache):
+- **If B ≥ ~415:** day 1 runs S1, then S4 in the same quota day. If S4 needs more than expected
+  (worst case 960 in total), it resumes on day 2 and, if needed, day 3.
+- **If B < ~415** (e.g. B = 380 for 400 RPD): day 1 runs S1 (96–192), then S4 until B is reached.
+  S4 resumes on day 2 (expected to finish), and on day 3 in the worst case
+  (ceil(960 / 380) = 3).
+- **Resume:** re-run the **same command** after the reset. Every call already made is replayed
+  from that system's cache for free, so only the missing calls spend quota. With temperature 1.0
+  the replay is exact, because the cache keys on the request.
+- **Complete:** the manifest's `record_count` is 96 and no record has a `QuotaExceeded` error. A
+  partial records file is never scored as the pilot run.
+
+**Counter check** (read-only, no call; run it before each command):
+
+```
+GEMINI_DAILY_BUDGET=<B> uv run python -c "import os; from dlens.agent.llm.config import quota_path; from dlens.agent.llm.quota import QuotaCounter, default_budgets; q = QuotaCounter(quota_path(), default_budgets(os.environ)); print('gemini used today:', q.used('gemini'), 'remaining:', q.remaining('gemini'))"
+```
+
+**Exact commands** (new empty cache dir per system; `<B>` filled in at STOP B):
+
+```
+# 1. S1 (Gemini), records -> eval/runs/s1/pilot/s1-gemini-3-5-flash-lite-dev.*
+DLENS_PROVIDER=gemini DLENS_GEMINI_MODEL=gemini-3.5-flash-lite GEMINI_DAILY_BUDGET=<B> \
+  DLENS_CACHE_DIR=eval/cache/s1-pilot-gemini \
+  uv run --extra agent --extra retrieval python eval/systems/s1.py --out eval/runs/s1/pilot --allow-cloud
+
+# 2. S4 (Gemini), records -> eval/runs/s4/s4-gemini-3-5-flash-lite-dev.*
+DLENS_PROVIDER=gemini DLENS_GEMINI_MODEL=gemini-3.5-flash-lite GEMINI_DAILY_BUDGET=<B> \
+  DLENS_CACHE_DIR=eval/cache/s4-pilot-gemini \
+  uv run --extra agent --extra retrieval python eval/systems/s4.py --allow-cloud
+```
+
+- The cache dirs are gitignored. **Keep them** until the pilot table is committed: they are what
+  makes a resume free and the records reproducible.
+- **Data sent (rule 6):** free-tier inputs may be used by Google. Only the synthetic corpus
+  (`corpora/synthetic_shop`: its SQL, YAML and docs, plus the dev questions) is sent. No other
+  code or data is sent.
 
 ## 4. Post-pilot fix candidates (dev-found; verified on test only after the 7 Dec freeze)
 
@@ -80,3 +155,5 @@ F1–F4 change the validator rules, so each needs an approved plan that names it
 - 21 Oct 2026: v0.1. Pilot records and sampling fixed by the owner before any pilot run (§1, §2).
   qwen S4 reuse check passed (equal agent-code sha).
 - 21 Oct 2026: §4 post-pilot fix candidates F1–F4 (owner, after STOP A). No code change.
+- 21 Oct 2026: v0.2. §3 cloud plan: model id, call estimates, budget rule
+  B = floor(0.95 × RPD) (pending), shared counter, IST reset times, day order, commands.
