@@ -1,6 +1,7 @@
 # 0027. `uncovered_parts` on `Answer` (G2, multi-part questions)
 
-- Status: Proposed (S12b step 1, 20 Oct 2026; owner decision s12-design B2 + B5 (a), 20 Oct 2026)
+- Status: Accepted (owner, 21 Oct 2026; S12b step 3; metrics-design v1.2 approved at STOP 1).
+  Spec §0 row 35. Implemented in 0207837
 - Date: 2026-10-20
 - Amends: spec §8 answer schema (additive) and its "Multi-part and out-of-scope questions" note
 - Implemented in: S12b (item B2)

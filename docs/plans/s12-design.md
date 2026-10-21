@@ -868,14 +868,14 @@ Branch names must match CI's `s[0-9][0-9]-*` push trigger (`.github/workflows/ci
 
 | ADR | title | status | session |
 |---|---|---|---|
-| 0025 | Amends 0015: who sets `premise_corrected`; exact `origin` values (+ `verdict`) | Proposed | S12b |
+| 0025 | Amends 0015: who sets `premise_corrected`; exact `origin` values (+ `verdict`) | **Accepted** (21 Oct 2026) | S12b |
 | 0026 | Indirect traversal in S4 tools, R3 by kind, R9 fact mode, payload shape | **Accepted** (20 Oct 2026) | S12a |
-| 0027 | `uncovered_parts` on `Answer` (G2) | Proposed | S12b |
-| 0028 | `interpretation {from, to}` on `Answer` (B5) | Proposed | S12b |
+| 0027 | `uncovered_parts` on `Answer` (G2) | **Accepted** (21 Oct 2026) | S12b |
+| 0028 | `interpretation {from, to}` on `Answer` (B5) | **Accepted** (21 Oct 2026) | S12b |
 
 A1–A4 need no new ADR: A1 is the s1-design B3 carry-forward, A2 is ADR 0024's S12 part, and A3 /
 A4 change no public interface (`RunRecord.question_id` is additive). Spec §0 row 33 records ADR 0026 (Phase 2 step 1);
-rows for 0025, 0027 and 0028 are added when they are accepted (S12b).
+rows 34–36 record ADRs 0025, 0027 and 0028 (accepted in S12b step 3, 21 Oct 2026).
 
 ## Test plan
 

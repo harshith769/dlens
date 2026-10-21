@@ -1,6 +1,6 @@
 # 0025. Who sets `premise_corrected`, and the exact claim `origin` values (amends ADR 0015)
 
-- Status: Proposed (S12b step 1, 20 Oct 2026; owner decision s12-design B3, 20 Oct 2026)
+- Status: Accepted (owner, 21 Oct 2026; S12b step 3). Spec §0 row 34. Implemented in 9c39f0b
 - Date: 2026-10-20
 - Amends: ADR 0015 (additive `premise_corrected` and claim `origin`). It does not restate 0015;
   the two fields, their types and their additivity stay as 0015 decided.

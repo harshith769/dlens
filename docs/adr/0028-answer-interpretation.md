@@ -1,7 +1,8 @@
 # 0028. Structured `interpretation {from, to}` on `Answer`
 
-- Status: Proposed (S12b step 1, 20 Oct 2026; owner decisions s12-design B2 + B5 (a) and the B5
-  addition, 20 Oct 2026; views approved with the S12b plan, 20 Oct 2026)
+- Status: Accepted (owner, 21 Oct 2026; S12b step 3; views approved with the S12b plan, 20 Oct
+  2026; M9 mention branch per metrics-design v1.2 at STOP 1). Spec §0 row 36. Implemented in
+  0207837
 - Date: 2026-10-20
 - Amends: spec §8 answer schema (additive)
 - Implemented in: S12b (item B5)

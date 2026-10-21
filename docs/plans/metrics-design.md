@@ -4,9 +4,9 @@
 `docs/plans/s12-design.md`; changes M9, M10 and adds Appendix D). Last approved version: 1.1
 (owner amendments to M7 and M9, 19 Oct 2026; 1.0: every Decision set by the owner, 19 Oct 2026).
 Every scored report names this version and `eval/metrics.py`'s `__version__`.
-**Status:** v1.2 **Approved (implementation pending)**, owner, 20 Oct 2026 (STOP 1 of S12b, with
-one change to the M9 mention branch). Until `eval/metrics.py` 1.3.0 lands, metrics.py (1.2.0)
-implements v1.1 and no S1 or S4 result with the new fields is read. **Every definition is the owner's decision**, recorded on each `Decision:` line.
+**Status:** v1.2 **Accepted**, owner, 20 Oct 2026 (STOP 1 of S12b, with one change to the M9
+mention branch); implemented by `eval/metrics.py` 1.3.0 (0207837, 21 Oct 2026), every Appendix D
+row passing against the extractor. **Every definition is the owner's decision**, recorded on each `Decision:` line.
 **Inputs:** spec §8 (answer schema, validator, S4 views) and §11.2–11.5;
 `docs/plans/v0.3-plan.md` D2–D4; `docs/plans/questions-design.md` §1, §5, §7;
 `eval/questions/dev.jsonl` (96); `dlens.gold_spec`; the run-record format (`RunRecord`,
@@ -1265,3 +1265,7 @@ case U: P upstream of it. A, H = other columns.
   the full rule). Appendix D.3: I5, I8, I12 → prose (I5 a stated limit); I17, I18 added. Appendix
   D's expected results are fixed: a disagreeing row stops the implementation for an owner
   decision.
+- 21 Oct 2026 (S12b step 3): **version 1.2 Accepted**; metrics.py 1.3.0 implements it (all 51
+  Appendix D rows pass on the first run, no row or rule tuned). The committed S0-gold, S0-linked,
+  S1 v2 and S4 smoke reports re-score with only the v1.2 additions (new rows, tables and
+  diagnostics; no existing value changed or removed), checked by `test_report_regression.py`.
