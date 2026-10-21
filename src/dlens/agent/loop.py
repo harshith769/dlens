@@ -270,6 +270,13 @@ class Agent:
         amb = self._ambiguity(question)
         if amb is not None:
             self.record.ambiguity = amb
+            if amb["mode"] == "per_candidate":
+                self._trace_candidates(question, amb["candidates"])
+                if not any(it.id for it in build_evidence(self.toolbox)):
+                    # B7: a tie with no evidence for any candidate ends in the clarification
+                    # the policy would give, never in a "no lineage evidence" refusal
+                    self.record.stop_reason += "+candidate_clarification"
+                    amb = {**amb, "mode": "clarification"}
             if amb["mode"] == "clarification":
                 clar = Clarification(
                     question=prompts.clarification_question(amb["query"]),
@@ -779,6 +786,22 @@ class Agent:
                 results=[_step_result(result)],
             )
         )
+
+    def _trace_candidates(self, question: str, names: list[str]) -> None:
+        """Rule ``candidate_trace`` (s12-design B7, dev-46): per-candidate mode answers for each
+        tied candidate, so code runs the intent tool on each column candidate (impact wording ->
+        impact_downstream, else trace_upstream): "code" steps, not LLM calls; calls the log
+        already has are skipped. More than 3 candidates never get here (clarification)."""
+        g = self.toolbox.graph
+        tool = "impact_downstream" if _IMPACT_WORDING.search(question) else "trace_upstream"
+        for name in names:
+            try:
+                column = g.resolve(name)
+            except Exception:
+                continue
+            if not g.has_column(column) or self._already_called(tool, column):
+                continue
+            self._code_call(tool, {"column_id": g.display_name(column)}, rule="candidate_trace")
 
     def _ensure_traced(self, column: str) -> None:
         for r in self.toolbox.log:

@@ -223,6 +223,19 @@ The snippet is project text, quoted as data; it may be stale (the SQL wins).
 - **Known limit:** with hybrid on, the frozen linker ties "customer segment in customer
   leaderboard", so dev-75 still gets no fact (offline replay).
 
+## Per-candidate mode gathers evidence (S12b B7, dev-46)
+- **What:** when the ambiguity policy decides `per_candidate` (2–3 tied candidates, not one
+  chain), code runs the intent tool on every column candidate (impact wording →
+  `impact_downstream`, else `trace_upstream`), rule `candidate_trace`, as "code" steps, skipping
+  calls already in the log. If the evidence still has no citable id, code returns the policy's
+  clarification (`stop_reason` `+candidate_clarification`) instead of the "no lineage evidence"
+  refusal.
+- **Why:** the policy decided to answer per candidate but gathered evidence for none when the
+  model stopped after resolve_entity (dev-46: refused). Offline replay of dev-46's recorded calls:
+  two code traces, 7 citable ids.
+- **Unchanged:** more than 3 candidates → clarification with no trace (dev-55 stays a recorded
+  policy/gold disagreement); chain mode.
+
 ## Failure handling
 - **Malformed tool call** (a call written as text, or an Ollama tool-parse error): one repair
   turn with the error, then a refused answer.
@@ -383,3 +396,7 @@ Earlier:
     two resolves in the other order?
 14. (S12b, B6) Why must "orders daily" not count as naming `orders`, and how does the matcher
     prevent it?
+
+15. (S12b, B7) A tie of 3 unrelated columns, and the model stops after resolve_entity. How many
+    LLM calls and code steps does the run take, and what does it return if none of the traces
+    finds an edge?
