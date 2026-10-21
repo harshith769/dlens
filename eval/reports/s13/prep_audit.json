@@ -1,0 +1,1823 @@
+{
+ "changed": {
+  "chain": [
+   {
+    "id": "dev-16",
+    "question": "Where does previous order date come from?",
+    "scores": {
+     "raw": {
+      "chain_correct": 1.0,
+      "citation_coverage": 1.0,
+      "citation_valid_answer": 0.0,
+      "false_refusal": 0.0,
+      "fully_correct": 1.0,
+      "hallucination_rate": 0.0,
+      "has_hallucination": 0.0,
+      "headline_f1": 1.0,
+      "kind": "answered",
+      "path_node_coverage": 1.0,
+      "upstream_f1": 1.0
+     },
+     "validated": {
+      "chain_correct": 0.0,
+      "citation_coverage": 1.0,
+      "citation_valid_answer": 1.0,
+      "false_refusal": 0.0,
+      "fully_correct": 0.0,
+      "hallucination_rate": 0.0,
+      "has_hallucination": 0.0,
+      "headline_f1": 0.0,
+      "kind": "answered",
+      "path_node_coverage": 0.0,
+      "upstream_f1": 0.0
+     }
+    },
+    "trail": {
+     "draft_answer": "The column fct_orders.previous_order_date comes from int_customer_order_history.previous_order_date, which is derived from int_order_financials.order_date via a lag transformation. The layer int_customer_order_history.previous_order_date is directly linked to fct_orders.previous_order_date through an identity mapping. The source of int_order_financials.order_date is int_orders_enriched.order_date, which originates from stg_orders.order_date, ultimately from raw_orders.order_date. This chain shows the lineage from raw_orders to fct_orders.previous_order_date.",
+     "draft_verdict": null,
+     "error": null,
+     "final_answer": "int_customer_order_history.previous_order_date is derived from int_order_financials.order_date using a lag operation. int_orders_enriched.order_date is directly derived from int_order_financials.order_date. stg_orders.order_date is directly derived from int_orders_enriched.order_date. raw_orders.order_date is directly derived from stg_orders.order_date.",
+     "final_claims": [
+      [
+       "model",
+       "int_customer_order_history.previous_order_date is derived from int_order_financials.order_date using a lag operation."
+      ],
+      [
+       "model",
+       "int_orders_enriched.order_date is directly derived from int_order_financials.order_date."
+      ],
+      [
+       "model",
+       "stg_orders.order_date is directly derived from int_orders_enriched.order_date."
+      ],
+      [
+       "model",
+       "raw_orders.order_date is directly derived from stg_orders.order_date."
+      ]
+     ],
+     "final_verdict": null,
+     "final_verdict_source": null,
+     "first": [
+      [
+       0,
+       "R2",
+       "e_81a3f",
+       "e_81a3f was not emitted by a tool in this question (no emitted id is a unique 1-edit match)"
+      ]
+     ],
+     "passed": false,
+     "regenerated": true,
+     "second": [
+      [
+       0,
+       "R5",
+       "transformation",
+       "says 'transformation' (transformation) but cites only ['IDENTITY'] edges"
+      ]
+     ],
+     "stop_reason": "model_done"
+    }
+   }
+  ],
+  "clarify": [
+   {
+    "id": "dev-46",
+    "question": "Where does order month come from?",
+    "scores": {
+     "raw": {
+      "citation_coverage": 1.0,
+      "citation_valid_answer": 0.0,
+      "clarify_correct": 1.0,
+      "false_refusal": 0.0,
+      "fully_correct": 1.0,
+      "hallucination_rate": 0.0,
+      "has_hallucination": 0.0,
+      "kind": "answered"
+     },
+     "validated": {
+      "clarify_correct": 0.0,
+      "false_refusal": 1.0,
+      "fully_correct": 0.0,
+      "kind": "refused"
+     }
+    },
+    "trail": {
+     "draft_answer": "fct_customer_cohorts.order_month comes from fct_orders.order_date via DATE_TRUNC('MONTH', orders.order_date). fct_segment_monthly.order_month comes from fct_orders.order_date via DATE_TRUNC('MONTH', orders.order_date).",
+     "draft_verdict": null,
+     "error": "no verifiable claims: every claim failed validation",
+     "final_answer": "I can't answer this: no verifiable claims: every claim failed validation",
+     "final_claims": [],
+     "final_verdict": null,
+     "final_verdict_source": null,
+     "first": [
+      [
+       null,
+       "R4.hallucinated",
+       "orders.order_date",
+       "orders.order_date is not a column in this project"
+      ],
+      [
+       0,
+       "R4.hallucinated",
+       "orders.order_date",
+       "orders.order_date is not a column in this project"
+      ],
+      [
+       1,
+       "R4.hallucinated",
+       "orders.order_date",
+       "orders.order_date is not a column in this project"
+      ]
+     ],
+     "passed": false,
+     "regenerated": true,
+     "second": [
+      [
+       null,
+       "R4.hallucinated",
+       "orders.order_date",
+       "orders.order_date is not a column in this project"
+      ],
+      [
+       0,
+       "R4.hallucinated",
+       "orders.order_date",
+       "orders.order_date is not a column in this project"
+      ],
+      [
+       1,
+       "R4.hallucinated",
+       "orders.order_date",
+       "orders.order_date is not a column in this project"
+      ]
+     ],
+     "stop_reason": "model_done"
+    }
+   }
+  ],
+  "yesno": [
+   {
+    "id": "dev-75",
+    "question": "Is customer segment in customer leaderboard downstream of last name in raw customers in the lineage?",
+    "scores": {
+     "raw": {
+      "citation_coverage": 1.0,
+      "citation_valid_answer": 1.0,
+      "false_refusal": 0.0,
+      "fully_correct": 1.0,
+      "hallucination_rate": 0.0,
+      "has_hallucination": 0.0,
+      "kind": "answered",
+      "yesno_correct": 1.0
+     },
+     "validated": {
+      "false_refusal": 1.0,
+      "fully_correct": 0.0,
+      "kind": "refused",
+      "yesno_correct": 0.0
+     }
+    },
+    "trail": {
+     "draft_answer": "For dim_customer_segments.customer_segment, it is downstream of last name in raw customers via the lineage path through stg_customers.last_name to dim_customer_segments.customer_segment. For fct_customer_leaderboard.customer_segment, it is downstream of dim_customer_segments.customer_segment via identity, but no direct lineage from last name in raw customers is established. For fct_segment_monthly.customer_segment, it is downstream of dim_customer_segments.customer_segment via identity, but no direct lineage from last name in raw customers is established. The evidence does not establish a direct lineage from last name in raw customers to any customer segment.",
+     "draft_verdict": "no",
+     "error": null,
+     "final_answer": "The evidence does not show any lineage from last name in raw customers to customer segment in any leaderboard or segment model. Therefore, no downstream relationship exists as claimed.",
+     "final_claims": [],
+     "final_verdict": null,
+     "final_verdict_source": null,
+     "first": [
+      [
+       0,
+       "R8",
+       "dim_customer_segments.customer_segment,stg_customers.last_name",
+       "the cited edges do not connect dim_customer_segments.customer_segment, stg_customers.last_name"
+      ]
+     ],
+     "passed": true,
+     "regenerated": true,
+     "second": [],
+     "stop_reason": "model_done+candidates_ignored"
+    }
+   }
+  ]
+ },
+ "consistent_dropped": [
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-10",
+   "ids": [
+    "e_961623a1"
+   ],
+   "mentions": [
+    "dim_customers.lifetime_value",
+    "raw_payments.amt"
+   ],
+   "negated": [
+    "dim_customers.lifetime_value",
+    "raw_payments.amt"
+   ],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R2"
+   ],
+   "second": "failed R2",
+   "subtype": "yesno",
+   "text": "raw_payments.amt does NOT reach dim_customers.lifetime_value"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-16",
+   "ids": [
+    "e_81a3f",
+    "e_291dfe36",
+    "e_cac47598",
+    "e_968657a0",
+    "e_854343c4"
+   ],
+   "mentions": [
+    "fct_orders.previous_order_date",
+    "int_customer_order_history.previous_order_date"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R2"
+   ],
+   "second": "failed R5",
+   "subtype": "ambiguous",
+   "text": "fct_orders.previous_order_date originates from int_customer_order_history.previous_order_date through an identity mapping."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-30",
+   "ids": [
+    "e_73c34db1"
+   ],
+   "mentions": [
+    "int_shipments_enriched.days_to_ship"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "computed",
+   "text": "int_shipments_enriched.days_to_ship is computed using DATE_DIFF('DAY', orders.order_date, shipments.shipped_at)."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-46",
+   "ids": [
+    "e_d44125960"
+   ],
+   "mentions": [
+    "fct_customer_cohorts.order_month",
+    "fct_orders.order_date"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "ambiguous",
+   "text": "fct_customer_cohorts.order_month is derived from fct_orders.order_date using DATE_TRUNC('MONTH', orders.order_date)."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-46",
+   "ids": [
+    "e_f3164503"
+   ],
+   "mentions": [
+    "fct_orders.order_date",
+    "fct_segment_monthly.order_month"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "ambiguous",
+   "text": "fct_segment_monthly.order_month is derived from fct_orders.order_date using DATE_TRUNC('MONTH', orders.order_date)."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_81158afd"
+   ],
+   "mentions": [
+    "int_order_item_margins.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects int_order_item_margins.product_id through a join."
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_f39fc061"
+   ],
+   "mentions": [
+    "fct_product_performance.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects fct_product_performance.product_id through a join."
+  },
+  {
+   "claim_index": 3,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_d7e75ddb"
+   ],
+   "mentions": [
+    "fct_inventory_status.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects fct_inventory_status.product_id through a join."
+  },
+  {
+   "claim_index": 4,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_cf9b5aa8"
+   ],
+   "mentions": [
+    "fct_top_products.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects fct_top_products.product_id through a join."
+  },
+  {
+   "claim_index": 9,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_e080d830"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.active_customers"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.active_customers is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 10,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_1fb8ebbd"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.order_month"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.order_month is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 11,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_40afcb67"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.segment_order_count"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.segment_order_count is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 12,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_5e16721b"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.segment_revenue_finance"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.segment_revenue_finance is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-72",
+   "ids": [
+    "e_9d1abda5"
+   ],
+   "mentions": [
+    "dim_customer_segments.rfm_score",
+    "int_order_financials.items_subtotal"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R7",
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "yesno",
+   "text": "dim_customer_segments.rfm_score is downstream of int_order_financials.items_subtotal via a transformation chain."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-72",
+   "ids": [
+    "e_8f116e6d"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_score",
+    "dim_customer_segments.rfm_score",
+    "int_order_financials.items_subtotal"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "yesno",
+   "text": "dim_customer_segments.rfm_score is directly derived from dim_customer_rfm.rfm_score, which is influenced by int_order_financials.items_subtotal."
+  }
+ ],
+ "dev46": {
+  "draft_answer": "fct_customer_cohorts.order_month comes from fct_orders.order_date via DATE_TRUNC('MONTH', orders.order_date). fct_segment_monthly.order_month comes from fct_orders.order_date via DATE_TRUNC('MONTH', orders.order_date).",
+  "draft_verdict": null,
+  "error": "no verifiable claims: every claim failed validation",
+  "final_answer": "I can't answer this: no verifiable claims: every claim failed validation",
+  "final_claims": [],
+  "final_verdict": null,
+  "final_verdict_source": null,
+  "first": [
+   [
+    null,
+    "R4.hallucinated",
+    "orders.order_date",
+    "orders.order_date is not a column in this project"
+   ],
+   [
+    0,
+    "R4.hallucinated",
+    "orders.order_date",
+    "orders.order_date is not a column in this project"
+   ],
+   [
+    1,
+    "R4.hallucinated",
+    "orders.order_date",
+    "orders.order_date is not a column in this project"
+   ]
+  ],
+  "passed": false,
+  "regenerated": true,
+  "second": [
+   [
+    null,
+    "R4.hallucinated",
+    "orders.order_date",
+    "orders.order_date is not a column in this project"
+   ],
+   [
+    0,
+    "R4.hallucinated",
+    "orders.order_date",
+    "orders.order_date is not a column in this project"
+   ],
+   [
+    1,
+    "R4.hallucinated",
+    "orders.order_date",
+    "orders.order_date is not a column in this project"
+   ]
+  ],
+  "stop_reason": "model_done"
+ },
+ "dev46_rows": [
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-46",
+   "ids": [
+    "e_d44125960"
+   ],
+   "mentions": [
+    "fct_customer_cohorts.order_month",
+    "fct_orders.order_date"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "ambiguous",
+   "text": "fct_customer_cohorts.order_month is derived from fct_orders.order_date using DATE_TRUNC('MONTH', orders.order_date)."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-46",
+   "ids": [
+    "e_f3164503"
+   ],
+   "mentions": [
+    "fct_orders.order_date",
+    "fct_segment_monthly.order_month"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "ambiguous",
+   "text": "fct_segment_monthly.order_month is derived from fct_orders.order_date using DATE_TRUNC('MONTH', orders.order_date)."
+  }
+ ],
+ "dropped_by_class": {
+  "consistent": 15,
+  "inconsistent": 4,
+  "no mention": 4
+ },
+ "outcomes": {
+  "dropped": 23,
+  "omitted": 12,
+  "rewritten": 26
+ },
+ "rows": [
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-10",
+   "ids": [
+    "e_961623a1"
+   ],
+   "mentions": [
+    "dim_customers.lifetime_value",
+    "raw_payments.amt"
+   ],
+   "negated": [
+    "dim_customers.lifetime_value",
+    "raw_payments.amt"
+   ],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R2"
+   ],
+   "second": "failed R2",
+   "subtype": "yesno",
+   "text": "raw_payments.amt does NOT reach dim_customers.lifetime_value"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-14",
+   "ids": [
+    "e_47d51478"
+   ],
+   "mentions": [
+    "int_order_items_enriched.product_category"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "The prod category on order items is derived from int_order_items_enriched.product_category through a rename operation."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-14",
+   "ids": [
+    "e_7f420a35"
+   ],
+   "mentions": [
+    "raw_products.category",
+    "stg_products.category"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R5"
+   ],
+   "subtype": "upstream",
+   "text": "raw_products.category is transformed into stg_products.category via an identity operation."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-16",
+   "ids": [
+    "e_81a3f",
+    "e_291dfe36",
+    "e_cac47598",
+    "e_968657a0",
+    "e_854343c4"
+   ],
+   "mentions": [
+    "fct_orders.previous_order_date",
+    "int_customer_order_history.previous_order_date"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R2"
+   ],
+   "second": "failed R5",
+   "subtype": "ambiguous",
+   "text": "fct_orders.previous_order_date originates from int_customer_order_history.previous_order_date through an identity mapping."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-24",
+   "ids": [
+    "e_7eb3df0a"
+   ],
+   "mentions": [
+    "raw_order_items.quantity",
+    "stg_order_items.quantity"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R5"
+   ],
+   "subtype": "upstream",
+   "text": "stg_order_items.quantity comes from raw_order_items.quantity through an identity transformation."
+  },
+  {
+   "claim_index": 0,
+   "class": "no mention",
+   "id": "dev-27",
+   "ids": [
+    "c_2268bf9b"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "subtype": "computed",
+   "text": "The column 'Promotion codes used, highest discount first' is computed using string_agg with promotions.promo_code ordered by promotions.discount_pct desc."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-30",
+   "ids": [
+    "e_73c34db1"
+   ],
+   "mentions": [
+    "int_shipments_enriched.days_to_ship"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "computed",
+   "text": "int_shipments_enriched.days_to_ship is computed using DATE_DIFF('DAY', orders.order_date, shipments.shipped_at)."
+  },
+  {
+   "claim_index": 1,
+   "class": "inconsistent",
+   "id": "dev-30",
+   "ids": [
+    "e_854343c4"
+   ],
+   "mentions": [
+    "raw_orders.order_date",
+    "stg_orders.order_date"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R5"
+   ],
+   "subtype": "computed",
+   "text": "stg_orders.order_date is derived from raw_orders.order_date via identity transformation."
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-30",
+   "ids": [
+    "e_005dfe45"
+   ],
+   "mentions": [
+    "int_shipments_enriched.days_to_ship",
+    "stg_shipments.shipped_at"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "computed",
+   "text": "stg_shipments.shipped_at is used in the transformation to compute int_shipments_enriched.days_to_ship."
+  },
+  {
+   "claim_index": 3,
+   "class": "inconsistent",
+   "id": "dev-30",
+   "ids": [
+    "e_5f9be112"
+   ],
+   "mentions": [
+    "raw_shipments.shipped_at",
+    "stg_shipments.shipped_at"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R5"
+   ],
+   "subtype": "computed",
+   "text": "stg_shipments.shipped_at is derived from raw_shipments.shipped_at via identity transformation."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-35",
+   "ids": [
+    "e_12bbb120"
+   ],
+   "mentions": [
+    "dim_customer_rfm.customer_id",
+    "dim_customer_segments.customer_id"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "dim_customer_segments.customer_id comes from dim_customer_rfm.customer_id"
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-35",
+   "ids": [
+    "e_cde67542"
+   ],
+   "mentions": [
+    "dim_customer_rfm.customer_id",
+    "dim_customers.customer_id"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R2"
+   ],
+   "subtype": "upstream",
+   "text": "dim_customer_rfm.customer_id comes from dim_customers.customer_id"
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-35",
+   "ids": [
+    "e_11915b36"
+   ],
+   "mentions": [
+    "dim_customers.customer_id",
+    "stg_customers.customer_id"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "dim_customers.customer_id comes from stg_customers.customer_id"
+  },
+  {
+   "claim_index": 3,
+   "class": "consistent",
+   "id": "dev-35",
+   "ids": [
+    "e_cbcf6b94"
+   ],
+   "mentions": [
+    "raw_customers.id",
+    "stg_customers.customer_id"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "stg_customers.customer_id comes from raw_customers.id through a rename operation"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-37",
+   "ids": [
+    "e_8208d227"
+   ],
+   "mentions": [
+    "fct_orders.order_status_group",
+    "int_customer_order_history.order_status_group"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "fct_orders.order_status_group comes from int_customer_order_history.order_status_group"
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-37",
+   "ids": [
+    "e_9b7727cc"
+   ],
+   "mentions": [
+    "int_customer_order_history.order_status_group",
+    "int_order_financials.order_status_group"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "int_customer_order_history.order_status_group comes from int_order_financials.order_status_group"
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-37",
+   "ids": [
+    "e_f44e3335"
+   ],
+   "mentions": [
+    "int_order_financials.order_status_group",
+    "int_orders_enriched.order_status_group"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "int_order_financials.order_status_group comes from int_orders_enriched.order_status_group"
+  },
+  {
+   "claim_index": 3,
+   "class": "consistent",
+   "id": "dev-37",
+   "ids": [
+    "e_cdf41d28"
+   ],
+   "mentions": [
+    "int_orders_enriched.order_status_group",
+    "stg_orders.status"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "int_orders_enriched.order_status_group is transformed from stg_orders.status"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-39",
+   "ids": [
+    "e_7716f122"
+   ],
+   "mentions": [
+    "raw_refunds.refund_amt",
+    "stg_refunds.refund_amt"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R5"
+   ],
+   "subtype": "upstream",
+   "text": "raw_refunds.refund_amt is transformed into stg_refunds.refund_amt via identity."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-39",
+   "ids": [
+    "e_09fbefa0"
+   ],
+   "mentions": [
+    "int_order_financials.refund_amount",
+    "stg_refunds.refund_amt"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "stg_refunds.refund_amt is aggregated into int_order_financials.refund_amount."
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-39",
+   "ids": [
+    "e_1602dd2b"
+   ],
+   "mentions": [
+    "int_customer_order_history.refund_amount",
+    "int_order_financials.refund_amount"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "int_order_financials.refund_amount is passed directly to int_customer_order_history.refund_amount via identity."
+  },
+  {
+   "claim_index": 3,
+   "class": "consistent",
+   "id": "dev-39",
+   "ids": [
+    "e_f1a03e90"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "int_customer_order_history.refund_amount"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "upstream",
+   "text": "int_customer_order_history.refund_amount is renamed to fct_orders.refunded_amount."
+  },
+  {
+   "claim_index": 0,
+   "class": "no mention",
+   "id": "dev-43",
+   "ids": [
+    "e_s_d18cc8e1"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R2"
+   ],
+   "second": "failed R2",
+   "subtype": "computed",
+   "text": "roas is computed as sum(attributed_revenue) / nullif(sum(spend_usd), 0)"
+  },
+  {
+   "claim_index": 1,
+   "class": "inconsistent",
+   "id": "dev-44",
+   "ids": [
+    "e_a443ce6f"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_score",
+    "dim_customers.lifetime_value",
+    "rfm_scores.rfm_frequency_score",
+    "rfm_scores.rfm_recency_score"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "no counterpart",
+   "subtype": "upstream",
+   "text": "dim_customer_rfm.rfm_score is derived from dim_customers.lifetime_value through a transformation using rfm_scores.rfm_recency_score and rfm_scores.rfm_frequency_score."
+  },
+  {
+   "claim_index": 0,
+   "class": "inconsistent",
+   "id": "dev-45",
+   "ids": [
+    "e_5b4770f2"
+   ],
+   "mentions": [
+    "fct_monthly_finance.contribution_margin",
+    "margins_monthly.contribution_margin"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "computed",
+   "text": "fct_monthly_finance.contribution_margin is aggregated from margins_monthly.contribution_margin"
+  },
+  {
+   "claim_index": 1,
+   "class": "inconsistent",
+   "id": "dev-45",
+   "ids": [
+    "e_09b69bee"
+   ],
+   "mentions": [
+    "fct_order_margins.contribution_margin",
+    "int_order_profit.contribution_margin"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "computed",
+   "text": "int_order_profit.contribution_margin is directly linked to fct_order_margins.contribution_margin"
+  },
+  {
+   "claim_index": 3,
+   "class": "no mention",
+   "id": "dev-45",
+   "ids": [
+    "e_4dcadffb",
+    "e_40fc66b2",
+    "e_7eb3df0a",
+    "e_4feff8c4",
+    "e_dd75a42d",
+    "e_6107ca32",
+    "e_49229ac7",
+    "e_0c4390e5"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "computed",
+   "text": "line_amount and unit_cost are derived from raw_order_items and raw_product_costs through a chain of transformations and identities"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-46",
+   "ids": [
+    "e_d44125960"
+   ],
+   "mentions": [
+    "fct_customer_cohorts.order_month",
+    "fct_orders.order_date"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "ambiguous",
+   "text": "fct_customer_cohorts.order_month is derived from fct_orders.order_date using DATE_TRUNC('MONTH', orders.order_date)."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-46",
+   "ids": [
+    "e_f3164503"
+   ],
+   "mentions": [
+    "fct_orders.order_date",
+    "fct_segment_monthly.order_month"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "failed R4.hallucinated",
+   "subtype": "ambiguous",
+   "text": "fct_segment_monthly.order_month is derived from fct_orders.order_date using DATE_TRUNC('MONTH', orders.order_date)."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-51",
+   "ids": [
+    "c_be32aedd"
+   ],
+   "mentions": [
+    "int_order_items_enriched.is_discounted"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "The column 'True when the line was sold below list price' is defined in int_order_items_enriched.is_discounted."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-51",
+   "ids": [
+    "c_ae9d934e"
+   ],
+   "mentions": [
+    "fct_product_performance.discounted_units"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "The column 'fct_product_performance.discounted_units' tracks units sold below list price and is influenced by the is_discounted flag."
+  },
+  {
+   "claim_index": 2,
+   "class": "no mention",
+   "id": "dev-51",
+   "ids": [
+    "c_c4a93379"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R7"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "The int_order_item_margins model includes line cost and margin, which may be affected by pricing decisions."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_68c18b26"
+   ],
+   "mentions": [
+    "int_product_costs_current.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id directly affects int_product_costs_current.product_id via identity."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_81158afd"
+   ],
+   "mentions": [
+    "int_order_item_margins.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects int_order_item_margins.product_id through a join."
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_f39fc061"
+   ],
+   "mentions": [
+    "fct_product_performance.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects fct_product_performance.product_id through a join."
+  },
+  {
+   "claim_index": 3,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_d7e75ddb"
+   ],
+   "mentions": [
+    "fct_inventory_status.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects fct_inventory_status.product_id through a join."
+  },
+  {
+   "claim_index": 4,
+   "class": "consistent",
+   "id": "dev-53",
+   "ids": [
+    "e_cf9b5aa8"
+   ],
+   "mentions": [
+    "fct_top_products.product_id",
+    "stg_product_costs.product_id"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "downstream",
+   "text": "stg_product_costs.product_id affects fct_top_products.product_id through a join."
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-54",
+   "ids": [
+    "e_8341e393"
+   ],
+   "mentions": [
+    "fct_customer_cohorts.cohort_net_paid",
+    "fct_orders.net_paid_usd"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "fct_orders.net_paid_usd changes affect fct_customer_cohorts.cohort_net_paid through aggregation."
+  },
+  {
+   "claim_index": 1,
+   "class": "inconsistent",
+   "id": "dev-54",
+   "ids": [
+    "e_3e45fa5a"
+   ],
+   "mentions": [
+    "fct_customer_cohorts.cumulative_net_paid",
+    "fct_orders.net_paid_us"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R4.hallucinated"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_orders.net_paid_us- d changes affect fct_customer_cohorts.cumulative_net_paid through aggregation."
+  },
+  {
+   "claim_index": 0,
+   "class": "no mention",
+   "id": "dev-57",
+   "ids": [
+    "c_49b07db1"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [
+    "R7"
+   ],
+   "subtype": "downstream",
+   "text": "The column 'Order status mapped to complete, open, returned or other' is defined in int_orders_enriched and is used in downstream models."
+  },
+  {
+   "claim_index": 0,
+   "class": "no mention",
+   "id": "dev-62",
+   "ids": [
+    "c_bf4a30b6"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R7"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "The 'line cost' in int_order_item_margins is affected by changes in 'Current purchase cost of one unit'."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-62",
+   "ids": [
+    "c_e02ff11b"
+   ],
+   "mentions": [
+    "int_product_costs_current.unit_cost"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "The column 'Current purchase cost of one unit' is directly linked to int_product_costs_current.unit_cost."
+  },
+  {
+   "claim_index": 2,
+   "class": "no mention",
+   "id": "dev-62",
+   "ids": [
+    "c_bf4a30b6"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R7"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "The 'line cost' in int_order_item_margins is derived from the current unit cost."
+  },
+  {
+   "claim_index": 0,
+   "class": "no mention",
+   "id": "dev-63",
+   "ids": [
+    "c_b1d76044"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "The sum of promotion discounts on the order is affected when the discount_usd changes."
+  },
+  {
+   "claim_index": 1,
+   "class": "no mention",
+   "id": "dev-63",
+   "ids": [
+    "c_7b8c3350"
+   ],
+   "mentions": [],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "The total adjustment amount in order adjustments is affected when the discount_usd changes."
+  },
+  {
+   "claim_index": 2,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_d0f23851"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_score",
+    "dim_customers.lifetime_value",
+    "fct_orders.refunded_amount"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "dim_customer_rfm.rfm_score is downstream of fct_orders.refunded_amount via dim_customers.lifetime_value"
+  },
+  {
+   "claim_index": 3,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_61899e81"
+   ],
+   "mentions": [
+    "dim_customers.lifetime_value",
+    "fct_customer_leaderboard.lifetime_value_usd",
+    "fct_orders.refunded_amount"
+   ],
+   "negated": [],
+   "outcome": "rewritten",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "fct_customer_leaderboard.lifetime_value_usd is downstream of fct_orders.refunded_amount via dim_customers.lifetime_value"
+  },
+  {
+   "claim_index": 4,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_9d1abda5"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_score",
+    "dim_customer_segments.customer_segment",
+    "fct_orders.refunded_amount"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "dim_customer_segments.customer_segment is downstream of fct_orders.refunded_amount via dim_customer_rfm.rfm_score"
+  },
+  {
+   "claim_index": 5,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_78f94059"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_monetary_score",
+    "dim_customer_segments.is_high_value",
+    "fct_orders.refunded_amount"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "dim_customer_segments.is_high_value is downstream of fct_orders.refunded_amount via dim_customer_rfm.rfm_monetary_score"
+  },
+  {
+   "claim_index": 6,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_8f116e6d"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_score",
+    "dim_customer_segments.rfm_score",
+    "fct_orders.refunded_amount"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "dim_customer_segments.rfm_score is downstream of fct_orders.refunded_amount via dim_customer_rfm.rfm_score"
+  },
+  {
+   "claim_index": 7,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_5720e050"
+   ],
+   "mentions": [
+    "dim_customer_segments.customer_segment",
+    "fct_customer_leaderboard.customer_segment",
+    "fct_orders.refunded_amount"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "fct_customer_leaderboard.customer_segment is downstream of fct_orders.refunded_amount via dim_customer_segments.customer_segment"
+  },
+  {
+   "claim_index": 8,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_ab4e210f"
+   ],
+   "mentions": [
+    "dim_customer_segments.customer_segment",
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.customer_segment"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.customer_segment is downstream of fct_orders.refunded_amount via dim_customer_segments.customer_segment"
+  },
+  {
+   "claim_index": 9,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_e080d830"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.active_customers"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.active_customers is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 10,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_1fb8ebbd"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.order_month"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.order_month is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 11,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_40afcb67"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.segment_order_count"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.segment_order_count is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 12,
+   "class": "consistent",
+   "id": "dev-65",
+   "ids": [
+    "e_5e16721b"
+   ],
+   "mentions": [
+    "fct_orders.refunded_amount",
+    "fct_segment_monthly.segment_revenue_finance"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "downstream",
+   "text": "fct_segment_monthly.segment_revenue_finance is downstream of fct_orders.refunded_amount"
+  },
+  {
+   "claim_index": 0,
+   "class": "consistent",
+   "id": "dev-72",
+   "ids": [
+    "e_9d1abda5"
+   ],
+   "mentions": [
+    "dim_customer_segments.rfm_score",
+    "int_order_financials.items_subtotal"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R7",
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "yesno",
+   "text": "dim_customer_segments.rfm_score is downstream of int_order_financials.items_subtotal via a transformation chain."
+  },
+  {
+   "claim_index": 1,
+   "class": "consistent",
+   "id": "dev-72",
+   "ids": [
+    "e_8f116e6d"
+   ],
+   "mentions": [
+    "dim_customer_rfm.rfm_score",
+    "dim_customer_segments.rfm_score",
+    "int_order_financials.items_subtotal"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "failed R8",
+   "subtype": "yesno",
+   "text": "dim_customer_segments.rfm_score is directly derived from dim_customer_rfm.rfm_score, which is influenced by int_order_financials.items_subtotal."
+  },
+  {
+   "claim_index": 0,
+   "class": "inconsistent",
+   "id": "dev-75",
+   "ids": [
+    "e_5720e050"
+   ],
+   "mentions": [
+    "dim_customer_segments.customer_segment",
+    "stg_customers.last_name"
+   ],
+   "negated": [],
+   "outcome": "dropped",
+   "regenerated": true,
+   "rules": [
+    "R8"
+   ],
+   "second": "no counterpart",
+   "subtype": "yesno",
+   "text": "dim_customer_segments.customer_segment is downstream of last name in raw customers via stg_customers.last_name."
+  },
+  {
+   "claim_index": 1,
+   "class": "inconsistent",
+   "id": "dev-75",
+   "ids": [
+    "e_5720e050"
+   ],
+   "mentions": [
+    "dim_customer_segments.customer_segment",
+    "fct_customer_leaderboard.customer_segment"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "yesno",
+   "text": "fct_customer_leaderboard.customer_segment is downstream of dim_customer_segments.customer_segment via identity."
+  },
+  {
+   "claim_index": 2,
+   "class": "inconsistent",
+   "id": "dev-75",
+   "ids": [
+    "e_ab4e210f"
+   ],
+   "mentions": [
+    "dim_customer_segments.customer_segment",
+    "fct_segment_monthly.customer_segment"
+   ],
+   "negated": [],
+   "outcome": "omitted",
+   "regenerated": true,
+   "rules": [],
+   "subtype": "yesno",
+   "text": "fct_segment_monthly.customer_segment is downstream of dim_customer_segments.customer_segment via identity."
+  }
+ ],
+ "rule_class": {
+  "R2 | consistent": 2,
+  "R2 | no mention": 1,
+  "R4.hallucinated | consistent": 3,
+  "R4.hallucinated | inconsistent": 3,
+  "R7 | consistent": 1,
+  "R7 | no mention": 3,
+  "R8 | consistent": 10,
+  "R8 | inconsistent": 1
+ }
+}
