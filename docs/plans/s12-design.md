@@ -847,6 +847,12 @@ tool-phase call of the latest local records with the B4 `TOOL_SYSTEM + TOOL_SPEC
 the cap (`scripts/replay_answer_budget.py` or a sibling) and reports the max and any call over
 the cap. **Any call over the cap → STOP before the full run.**
 
+**Model identity in the S4 manifest (owner, STOP 2, 21 Oct 2026).** `model_identity` records
+the full Ollama model digest, the Ollama server version, the Modelfile's default parameters and
+the sampling settings sent (temperature 0, no seed, num_ctx 8192, think off); the run refuses to
+start if Ollama can't report them. **S13 note:** the S1 pilot run records the same fields (s1.py
+is not touched in S12b).
+
 **S0-linked hybrid on.** `eval/systems/s0.py` gains a hybrid option; its records go to NEW files
 (`eval/runs/s0/s0-linked-hybrid-dev.jsonl` + manifest, `hybrid: true`, the index key, note
 "S0-linked (hybrid on)"). The committed hybrid-off files are never overwritten; they already

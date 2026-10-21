@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from collections.abc import Mapping, Sequence
@@ -149,6 +150,37 @@ def _cache_dir(client: LLMClient) -> str:
     return path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else "outside the repo"
 
 
+def _ollama_host() -> str:
+    host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+    return host if host.startswith("http") else f"http://{host}"
+
+
+def model_identity(provider: Any) -> dict[str, Any]:
+    """What pins the model beyond its tag (owner, S12b STOP 2): for Ollama the full model digest,
+    the server version, the Modelfile's default parameters and the sampling settings sent with
+    every call (temperature 0, no seed, num_ctx). Raises if Ollama can't be asked: a run must not
+    start with an unrecorded model."""
+    out: dict[str, Any] = {
+        "provider": provider.name,
+        "model": provider.model,
+        "sampling": {**dict(provider.params), "seed": None},  # no seed is sent (temperature 0)
+    }
+    if provider.name != "ollama":
+        return out
+    import httpx
+
+    client = provider._client
+    digests = {m.model: m.digest for m in client.list().models}
+    if provider.model not in digests:
+        raise SystemExit(f"s4: model {provider.model!r} is not pulled in Ollama")
+    version = httpx.get(f"{_ollama_host()}/api/version", timeout=10).json()["version"]
+    return out | {
+        "digest": digests[provider.model],
+        "ollama_version": version,
+        "modelfile_parameters": client.show(provider.model).parameters,
+    }
+
+
 def manifest(
     records: Sequence[RunRecord],
     records_file: Path,
@@ -157,6 +189,7 @@ def manifest(
     index_status: str,
     questions: Path = QUESTIONS,
     allow_cloud: bool = False,
+    identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     import metrics
 
@@ -177,6 +210,7 @@ def manifest(
         "date": datetime.now(UTC).date().isoformat(),
         "metrics_versions": {"design": metrics.DESIGN_VERSION, "metrics": metrics.__version__},
         "params": dict(prov.params),
+        "model_identity": identity if identity is not None else model_identity(prov),
         "allow_cloud": allow_cloud,
         "hybrid": index is not None,
         "index_key": dict(index.meta.get("key") or {}) if index is not None else None,
@@ -191,7 +225,7 @@ def manifest(
             "records": {k: sum(r.cache == k for r in records) for k in ("hit", "miss", "partial")},
         },
         "note": "S4: DLens agent (graph tools + validator); views raw, validated, augmented "
-        "(augmented = validated until S12b adds G1)",
+        "(augmented = validated + G1's origin-augmented claims)",
     }
 
 

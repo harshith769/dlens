@@ -173,3 +173,8 @@ Earlier:
 3. A claim names `a.x` and `c.x` and cites only `b.x → c.x`; the ledger also has `a.x → b.x`. Is this
    R8 drop counted as completable? Would it still be if the only ledger path went through 5 edges,
    and which of the two counts does the 10% rule use?
+
+**Model identity (S12b).** The S4 runner's manifest pins the model beyond its tag:
+`model_identity` = the Ollama model digest, server version, Modelfile defaults and the sampling
+settings sent with every call (temperature 0, no seed, num_ctx). A tag can be re-pulled to new
+weights; the digest can't. If Ollama can't report them, the run does not start.
