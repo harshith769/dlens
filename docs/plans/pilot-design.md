@@ -57,7 +57,26 @@ pilot S1 runs write under `eval/runs/s1/pilot/`.
 To be filled in at STOP B (v0.2): model id, expected and worst-case calls, the daily budget and
 its stop rule, the day order, exact commands, and the quota reset time in IST.
 
+## 4. Post-pilot fix candidates (dev-found; verified on test only after the 7 Dec freeze)
+
+Source: `eval/reports/s13/prep_audit.md` (S12b S4 qwen dev run). **No code change now** (pilot
+freeze). Each fix is checked on dev for regressions, then measured on test only after the 7 Dec
+freeze.
+
+**Caveat:** "consistent" means every dotted mention of the claim is in the question's gold node
+set for its primary mode. It does **not** mean the relation the claim states was verified.
+
+| id | fix | rule this follows | audit numbers it rests on |
+|---|---|---|---|
+| F1 | **R8:** accept a claim that cites one edge of a multi-hop path when the ledger connects its columns (the path is in this question's tool results) | Code guarantees, the LLM narrates: if the ledger proves the link, the claim is supported, and citing every hop is a completeness matter, not a truth matter | R8 dropped 11 claims, 10 of them gold-consistent: dev-53 ×4, dev-65 ×4, dev-72 ×2. Headline F1 raw → validated: dev-53 0.149 → 0.032, dev-65 0.903 → 0.741 |
+| F2 | **R4:** resolve SQL table / CTE aliases in claim text before the hallucination check. Use the same guard as M7 (iv-k+) (`metrics.relation_names`: CTE and derived-table names) and extend it to ref aliases (`{{ ref('fct_orders') }} as orders`), which `relation_names` does not cover today | Symmetry (rule 12): validator and metric treat the same token the same way. Today M3's identifier filter ignores `orders.order_date` and R4 calls it hallucinated | R4.hallucinated dropped 6 claims, 3 consistent: dev-30 (`orders.order_date`, `shipments.shipped_at`) and dev-46 ×2 (`orders.order_date`). dev-46 ends "no verifiable claims" (clarify 1 → 0, a false refusal) |
+| F3 | **Regenerate fallback:** if the regenerated draft refuses while the first draft had passing claims and/or a verdict, keep the first draft's passing claims and verdict | Salvage keeps the best verified content; a regenerate exists to fix failures, not to discard checked claims | dev-75: raw verdict `no` (correct), the regenerated draft refused with `reach_verdict: null`. yes/no 1.0 → 0.833 (n = 6), and one false refusal |
+| F4 | **Target preservation:** if no kept claim names the question's target, salvage the first draft's target claim when it fails only on a repairable id (R2) | The answer must stay about the question asked; an id problem is a citation fault, not a content fault | dev-16: the target claim failed R2 (truncated `e_81a3f`), and its rewrite failed R5. Chain 1.0 → 0.5 (n = 2), upstream F1 1.0 → 0.0 |
+
+F1–F4 change the validator rules, so each needs an approved plan that names it (CLAUDE.md).
+
 ## Change log
 
 - 21 Oct 2026: v0.1. Pilot records and sampling fixed by the owner before any pilot run (§1, §2).
   qwen S4 reuse check passed (equal agent-code sha).
+- 21 Oct 2026: §4 post-pilot fix candidates F1–F4 (owner, after STOP A). No code change.
