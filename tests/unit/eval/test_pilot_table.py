@@ -90,3 +90,32 @@ def test_render_qwen_panel_from_committed_records(tmp_path: Path) -> None:
         in md
     )
     assert str(Path.home()) not in md
+
+
+def test_render_combined_side_by_side_and_ask_pending(tmp_path: Path) -> None:
+    """The final layout from committed qwen records standing in for both panels (no Gemini run
+    is read): one column per panel, S1 vs S4 per panel, Ask pending until the sheet is scored."""
+    rows = mod.PANELS["qwen"]["rows"]
+    results = {r.label: mod.score(r, tmp_path) for r in rows}
+    panels = {"qwen": ("qwen title", rows, results), "gemini": ("gemini title", rows, results)}
+    ask = mod.ask_table(tmp_path / "none.csv", tmp_path / "none_key.csv")
+    md = mod.render_combined(panels, ask)
+    assert "node-set F1 (qwen) | node-set F1 (gemini)" in md and "temperature 0" in md
+    assert "| qwen | S4 validated vs S1 |" in md and "| gemini | S4 raw vs S1 |" in md
+    assert "Pending: the blind sheet is not scored yet" in md
+    assert "## Panel qwen: qwen title" in md and "### Losses: S4 validated below S1" in md
+    assert str(Path.home()) not in md
+
+
+def test_ask_table_reads_the_scored_sheet(tmp_path: Path) -> None:
+    sheet, key = tmp_path / "ask.csv", tmp_path / "key.csv"
+    sheet.write_text(
+        "# rule\ncode,question_id,question,fact_no,fact,fact_source,answer,score,note\n"
+        "AX,dev-77,q,1,f,s,a,1,\nAX,dev-77,q,2,f,s,a,0,\nAY,dev-77,q,1,f,s,a,0.5,\n"
+    )
+    key.write_text(
+        "# key\ncode,system,model,view,records,question_id\n"
+        "AX,S4,m,validated,r,dev-77\nAY,S1,m,validated,r,dev-77\n"
+    )
+    lines = mod.ask_table(sheet, key)
+    assert "| S1 | m | 0.500 (1) |" in lines and "| S4 | m | 0.500 (1) |" in lines
