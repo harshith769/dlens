@@ -50,3 +50,9 @@ def test_an_uncached_call_in_the_second_pass_fails() -> None:
 def test_count_and_order() -> None:
     assert mod.compare([rec(False)], []) == ["record count 1 != 0"]
     assert "order" in mod.compare([rec(False)], [rec(True, question_id="dev-02")])[0]
+
+
+def test_a_record_without_llm_calls_has_no_cache_state() -> None:
+    """Refused before any call (unknown column): ``cache`` is None in both passes."""
+    first = {"question_id": "dev-19", "steps": [], "cache": None, "tokens": {"llm_calls": 0}}
+    assert mod.compare([first], [dict(first)]) == []

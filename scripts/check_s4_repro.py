@@ -64,7 +64,8 @@ def compare(first: Sequence[Mapping[str, Any]], second: Sequence[Mapping[str, An
         if a.get("question_id") != b.get("question_id"):
             problems.append(f"{qid}: question order differs ({b.get('question_id')})")
             continue
-        if uncached(b) or b.get("cache") != "hit":
+        llm = (b.get("tokens") or {}).get("llm_calls", 0)
+        if uncached(b) or (llm and b.get("cache") != "hit"):  # 0 calls: no cache state (None)
             problems.append(f"{qid}: second pass made {uncached(b)} uncached call(s)")
         if without_excluded(a) != without_excluded(b):
             keys = sorted(
