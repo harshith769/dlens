@@ -9,6 +9,10 @@ Two variants answer the dev questions from the DLens graph:
   candidate / clarification). S0-gold − S0-linked is the linker loss. The second endpoint of a
   yes/no question and a false premise's column are taken from the gold (they are not the
   question's mention).
+* ``--hybrid`` (S12b, s12-design B4 (a)): ``s0-linked`` with the linker's hybrid stage ON (the S07
+  index), written to NEW files ``s0-linked-hybrid-dev.*`` next to the hybrid-off ones, which are
+  never overwritten. The pilot table uses the S4 runs' hybrid flag (M14); hybrid-off vs
+  hybrid-on S0-linked is a diagnostic. Needs the retrieval extra.
 
 Records use the S4 run-record format (``RunRecord`` fields, plus the record-level ``structured``
 key: ``reach_verdict`` and both modes' sets), so ``eval/metrics.py`` scores every system the same
@@ -67,6 +71,7 @@ class Graph:
 
     g: LineageGraph
     prov: Provenance
+    index: Any = None  # the S07 SearchIndex: the linker's hybrid stage (``--hybrid``), else off
     preds: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
     succs: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
 
@@ -319,7 +324,7 @@ def chain_end(G: Graph, cols: list[str]) -> str | None:
 
 def s0_linked(G: Graph, q: Mapping[str, Any]) -> Draft:
     mention = str(q.get("mention") or q.get("target") or "")
-    cands, info = link(G.g, mention, None)  # hybrid OFF (S10)
+    cands, info = link(G.g, mention, G.index)  # hybrid off (S10) unless --hybrid (S12b)
     if not cands:
         return refusal(f"no column matches {mention!r}")
     top = cands[0]
@@ -395,7 +400,7 @@ def to_record(G: Graph, q: Mapping[str, Any], d: Draft, system: str, ms: float) 
         "project": CORPUS,
         "provider": system,
         "model": "dlens-graph",
-        "params": {"hybrid": False, "max_depth": MAX_DEPTH},
+        "params": {"hybrid": G.index is not None, "max_depth": MAX_DEPTH},
         "steps": [{"phase": "code", "results": [{"tool": "s0", "side_records": {"edges": edges}}]}],
         "ambiguity": d.ambiguity,
         "clarification": clar,
@@ -420,7 +425,20 @@ def run(system: str, questions: list[dict[str, Any]], G: Graph) -> list[dict[str
     return out
 
 
-def manifest(system: str, records: list[dict[str, Any]], records_file: Path) -> dict[str, Any]:
+def manifest(
+    system: str,
+    records: list[dict[str, Any]],
+    records_file: Path,
+    index_key: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if index_key is not None:  # S12b: s0-linked, hybrid stage on
+        return {
+            **manifest(system, records, records_file),
+            "hybrid": True,
+            "index_key": index_key,
+            "linker": "link() with the hybrid stage (S07 index)",
+            "note": "S0-linked (hybrid on)",
+        }
     return {
         **base_manifest(
             system=system,
@@ -450,15 +468,31 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--only", choices=["s0-gold", "s0-linked"])
+    ap.add_argument(
+        "--hybrid",
+        action="store_true",
+        help="s0-linked with the linker's hybrid stage on → s0-linked-hybrid-dev.* (new files)",
+    )
     ns = ap.parse_args(argv)
     questions = [json.loads(x) for x in QUESTIONS.read_text().splitlines() if x.strip()]
     G = Graph.load(ROOT / CORPUS)
+    index_key = None
+    if ns.hybrid:
+        if ns.only == "s0-gold":
+            ap.error("--hybrid applies to s0-linked only (s0-gold uses no linker)")
+        ns.only = "s0-linked"
+        from systems.s4 import open_graph
+
+        _, G.index, status = open_graph(ROOT / CORPUS, hybrid=True)
+        index_key = dict(G.index.meta.get("key") or {})
+        print(f"s0-linked hybrid on: index {status}", file=sys.stderr)
     ns.out.mkdir(parents=True, exist_ok=True)
     for system in [ns.only] if ns.only else ["s0-gold", "s0-linked"]:
         records = run(system, questions, G)
-        path = ns.out / f"{system}-dev.jsonl"
+        stem = f"{system}-hybrid" if ns.hybrid else system
+        path = ns.out / f"{stem}-dev.jsonl"
         path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in records))
-        write_manifest(path, manifest(system, records, path))
+        write_manifest(path, manifest(system, records, path, index_key))
         print(f"{system}: {len(records)} records → {_shown(path)}", file=sys.stderr)
     return 0
 

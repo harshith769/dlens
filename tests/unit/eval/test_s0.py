@@ -113,3 +113,24 @@ def test_clarify_gold_gives_a_clarification(tiny_graph: LineageGraph, tmp_path: 
     rec = s0.to_record(G, question, s0.s0_gold(G, question), "s0-gold", 0.0)
     pred = M.from_record(rec)
     assert pred.kind == "clarification" and pred.clarification == ["stg.x2", "fct.total"]
+
+
+def test_hybrid_on_manifest_is_labelled_and_off_is_unchanged(tmp_path: Path) -> None:
+    """S12b (s12-design B4 (a)): the hybrid-on S0-linked manifest says so; the hybrid-off one is
+    exactly what it was (the committed files stay as they are)."""
+    path = tmp_path / "s0-linked-hybrid-dev.jsonl"
+    records = [{"run_id": "s0-linked-dev-01"}]
+    off = s0.manifest("s0-linked", records, path)
+    on = s0.manifest("s0-linked", records, path, index_key={"model": "m"})
+    assert (off["hybrid"], off["note"]) == (
+        False,
+        "S0-linked (hybrid off)",
+    ) and "index_key" not in off
+    assert (on["hybrid"], on["note"], on["index_key"]) == (
+        True,
+        "S0-linked (hybrid on)",
+        {"model": "m"},
+    )
+    assert {k: v for k, v in on.items() if k not in ("hybrid", "note", "index_key", "linker")} == {
+        k: v for k, v in off.items() if k not in ("hybrid", "note", "linker")
+    }
