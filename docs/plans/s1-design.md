@@ -501,3 +501,7 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   lines and level (the audit and a test read the graph; S1 never does). v2 records re-attached
   (2 citations) and re-scored: citation validity per answer 0.511 → 0.533, per citation 167 →
   169 / 262; nothing else moved.
+- 21 Oct 2026 (S13, owner): manifest-only; no B8 component changed. `s1.manifest()` records
+  `model_identity` (shared `eval/systems/manifest.py`, moved from s4.py) and `quota` (the effective
+  daily budget, the counter's Pacific day key, calls used that day and the store, named only when
+  outside the repo). `s1.frozen_hashes() == FROZEN` before and after (test).

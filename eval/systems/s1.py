@@ -47,7 +47,15 @@ from dlens.agent.runlog import RunRecord, Step, now_iso
 from dlens.retrieval.chunks import Chunk
 from dlens.retrieval.citation import chunk_citation
 from dlens.retrieval.fusion import DEPTH, RRF_K
-from systems.manifest import QUESTIONS, ROOT, base_manifest, sha256_text, write_manifest
+from systems.manifest import (
+    QUESTIONS,
+    ROOT,
+    base_manifest,
+    model_identity,
+    quota_info,
+    sha256_text,
+    write_manifest,
+)
 
 if TYPE_CHECKING:
     from dlens.graph import LineageGraph
@@ -467,6 +475,7 @@ def manifest(
     index_status: str,
     questions: Path = QUESTIONS,
     allow_cloud: bool = False,
+    identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     import metrics
 
@@ -486,7 +495,10 @@ def manifest(
         "date": datetime.now(UTC).date().isoformat(),
         "metrics_versions": {"design": metrics.DESIGN_VERSION, "metrics": metrics.__version__},
         "params": dict(prov.params),
+        # S13 (manifest only; no B8 component changed): model pin and the daily cap run under
+        "model_identity": identity if identity is not None else model_identity(prov),
         "allow_cloud": allow_cloud,
+        "quota": quota_info(runner.client),
         "hybrid": MODE == "hybrid",
         "prompt_sha256": frozen_hashes(),
         "budget": {

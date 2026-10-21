@@ -196,6 +196,13 @@ def test_fake_run_writes_records_and_manifest(index: Any, tmp_path: Path) -> Non
     assert ret["kinds"] == "all (model, column, doc)" and ret["query"] == "raw question text"
     assert ret["embedder"]["model"] == "fake" and ret["index_key"]["chunker_version"] == 1
     assert ret["index_status"] == "index reused" and ret["citation_rule"] == s1.CITATION_RULE
+    # S13 (manifest only): the model pin and the daily cap the run ran under
+    assert m["model_identity"] == {
+        "provider": "fake",
+        "model": "fake-1",
+        "sampling": {"temperature": 0, "seed": None},
+    }
+    assert m["quota"]["provider"] == "fake" and m["quota"]["used_today"] == 4
     assert str(Path.home()) not in mpath.read_text() + path.read_text()
 
 
@@ -396,6 +403,11 @@ def test_s1_frozen_vs_s4_live() -> None:
 def test_a_drifted_s4_line_fails_the_parity_check() -> None:
     drifted = prompts.ANSWER_SYSTEM.replace("1-4 plain sentences", "1-3 plain sentences")
     assert drifted != s4_from_s1(s1.S1_SYSTEM)
+
+
+def test_s13_manifest_change_leaves_every_b8_hash_unchanged() -> None:
+    """S13 adds model_identity and quota to S1's manifest writer only (s1-design change log)."""
+    assert s1.frozen_hashes() == FROZEN
 
 
 def test_frozen_settings_unchanged() -> None:

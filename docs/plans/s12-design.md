@@ -958,3 +958,9 @@ per question replace this estimate in the session report.
 - 21 Oct 2026: v1.3 (cont.). B6 named addition (owner): "upstream of" / "downstream of" /
   "derived from" wording for the `r_` fact, from spec §7 / §8 and the DERIVES edge; offline
   recount 4 → 6 fact questions (hybrid on), 7 (hybrid off); S13 quota line ≤ ~487.
+- 21 Oct 2026 (S13, owner-directed, not a pilot-freeze change): `model_identity` moved from
+  `eval/systems/s4.py` to `eval/systems/manifest.py` (shared with S1), and the S4 manifest gains
+  `quota` (daily budget, day key, calls used, store). No prompt, schema, tool, loop, validator or
+  tool setting changed: `agent_code_sha256` still equals the S12b run's (test), and the
+  answer-phase prompt hashes are unchanged. Gemini identities record the request's temperature
+  and `thinkingConfig` as sent.

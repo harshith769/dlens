@@ -136,6 +136,9 @@ def test_fake_run_writes_records_and_a_manifest_metrics_scores(graph: Any, tmp_p
         "misses": calls,
         "records": {"hit": 0, "miss": 4, "partial": 0},
     }
+    assert m["quota"]["provider"] == "fake" and m["quota"]["daily_budget"] is None  # S13
+    assert m["quota"]["used_today"] == calls
+    assert m["model_identity"]["provider"] == "fake"
     assert str(Path.home()) not in mpath.read_text() + path.read_text()
 
     # metrics scores it with this manifest (no --legacy-manifest), raw and validated
@@ -189,36 +192,14 @@ def test_main_refuses_a_cloud_provider_without_allow_cloud(
     assert not (tmp_path / "out").exists()
 
 
-class _FakeOllamaClient:
-    class _M:
-        def __init__(self, model: str, digest: str) -> None:
-            self.model, self.digest = model, digest
-
-    def list(self) -> Any:
-        return type("L", (), {"models": [self._M("qwen3:4b-x", "sha256:abc123")]})()
-
-    def show(self, model: str) -> Any:
-        return type("S", (), {"parameters": 'stop "<|im_end|>"'})()
-
-
-def test_model_identity_records_digest_version_and_sampling(monkeypatch: Any) -> None:
-    """S12b STOP 2: the manifest pins the Ollama model by digest, the server version, the
-    Modelfile defaults and the sampling settings sent (temperature 0, no seed, num_ctx)."""
-    import httpx
-
-    from dlens.agent.llm.ollama import NUM_CTX, OllamaProvider
-
-    resp = type("R", (), {"json": lambda self: {"version": "0.35.1"}})()
-    monkeypatch.setattr(httpx, "get", lambda url, timeout: resp)
-    prov = OllamaProvider("qwen3:4b-x", client=_FakeOllamaClient())
-    ident = s4.model_identity(prov)
-    assert ident["digest"] == "sha256:abc123" and ident["ollama_version"] == "0.35.1"
-    assert ident["sampling"] == {"temperature": 0, "num_ctx": NUM_CTX, "think": False, "seed": None}
-    assert ident["modelfile_parameters"] == 'stop "<|im_end|>"'
-    with pytest.raises(SystemExit):
-        s4.model_identity(OllamaProvider("not-pulled", client=_FakeOllamaClient()))
-
-
-def test_non_ollama_identity_has_no_digest() -> None:
-    ident = s4.model_identity(Scripted())
-    assert "digest" not in ident and ident["sampling"]["seed"] is None
+def test_pilot_reuse_holds_agent_code_unchanged_since_s12b() -> None:
+    """pilot-design §1: the qwen S4 pilot row reuses the S12b run, which is valid only while the
+    agent code hashes as in that run's manifest (S13 touched the runner's manifest only)."""
+    man = json.loads(
+        (ROOT / "eval/runs/s4/s4-qwen3-4b-instruct-2507-q4-k-m-dev.manifest.json").read_text()
+    )
+    assert s4.agent_code_sha256() == man["agent_code_sha256"]
+    now = s4.prompt_hashes()  # no index: the tool prompt and specs differ, the rest must not
+    for key in ("answer_system", "draft_schema", "answer_repair", "tool_repair", "regenerate"):
+        assert now[key] == man["prompt_sha256"][key], key
+    assert now["directives"] == man["prompt_sha256"]["directives"]
