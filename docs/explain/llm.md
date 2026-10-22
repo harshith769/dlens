@@ -116,7 +116,7 @@ option existed still hit.
   still stops the run.
 - **Known, not changed here.**
   - ~~`openai_compat.py` raises `from None` inside its `except`~~ (fixed in S13c, A1, below).
-  - `ollama.py` maps a connection error as non-retryable.
+  - ~~`ollama.py` maps a connection error as non-retryable~~ (changed in S13c, A2, below).
 
   Both are recorded for a later session.
 
@@ -129,6 +129,19 @@ option existed still hit.
 - **Guard kept.** Messages, `retryable` and status handling are unchanged. A sentinel-key test
   checks `str`, `repr`, the formatted traceback, `__cause__` and `__context__` for transport
   errors and for an HTTP 401.
+
+## `ollama.py` connection errors are retryable (changed in S13c, A2)
+- **What changed.** A lost or refused connection is now `ProviderError(retryable=True,
+  status_code=None)`, with the message `ollama call failed: <error class>`. The Ollama client
+  raises the builtin `ConnectionError` for a refused connection, and timeouts and dropped
+  connections come through as `httpx.TransportError`. The loop retries once. A server answer
+  with an error status (`ollama.ResponseError`) keeps its mapping: 429 / 5xx are retryable,
+  anything else is not.
+- **Why.** It aligns with F5 and the OpenAI-compatible adapter. Before, a dropped local
+  connection (Ollama restarted, a model reload) refused the question at once. One retry is free
+  locally (no quota).
+- **Guard kept.** Every error is raised after the `except` block (nothing chained). A
+  non-provider exception without a status is still not retryable.
 
 ## Alternatives rejected
 - **Mapping transport errors once in `LLMClient`, or a runner-level catch-all** (F5 options b,
@@ -179,3 +192,8 @@ S13c (A1, changed in S13c):
     that path already safe before S13c?
 12. Which test would fail if someone moved the `raise` back inside the `except` block, and on
     which attribute?
+
+S13c (A2, changed in S13c):
+13. Ollama restarts in the middle of an S4 run. What does the adapter raise, what does the loop
+    do, and what does the record show if the retry also fails?
+14. Why is a 404 "model not found" from Ollama not retried, while a refused connection is?

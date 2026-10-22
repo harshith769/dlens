@@ -6,6 +6,8 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import httpx
+
 from dlens.agent.llm.base import Provider
 from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolCall, ToolSpec, Usage
 
@@ -80,15 +82,24 @@ class OllamaProvider(Provider):
                 }
                 for t in tools
             ]
+        # S13c A2: a lost or refused connection (the client turns httpx.ConnectError into
+        # ConnectionError; timeouts and dropped connections stay httpx errors) is retryable, as
+        # in gemini.py and openai_compat.py: the loop retries once, at no quota cost. Raised after
+        # the except block, so nothing is chained.
+        err: ProviderError | None = None
         try:
             resp = self._client.chat(**kwargs)
-        except Exception as exc:  # ollama.ResponseError, httpx/connection errors
+        except (ConnectionError, httpx.TransportError) as exc:
+            err = ProviderError(f"ollama call failed: {type(exc).__name__}", retryable=True)
+        except Exception as exc:  # ollama.ResponseError: the server answered with an error
             status = getattr(exc, "status_code", None)
-            raise ProviderError(
+            err = ProviderError(
                 f"ollama call failed: {exc}",
                 status_code=status,
                 retryable=status in (429, 500, 502, 503, 504),
-            ) from exc
+            )
+        if err is not None:
+            raise err from None
         msg = resp.message
         # Ids are positional, never random, so replayed histories hash to the same cache key.
         calls = [
