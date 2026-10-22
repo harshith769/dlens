@@ -6,8 +6,6 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import httpx
-
 from dlens.agent.llm.base import Provider
 from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolCall, ToolSpec, Usage
 
@@ -27,6 +25,16 @@ def strip_think(text: str) -> str:
     if "</think>" in text:  # opening tag was swallowed
         text = text.rsplit("</think>", 1)[1]
     return text.strip()
+
+
+def _transport_errors() -> tuple[type[BaseException], ...]:
+    """httpx's transport errors, imported only here: the core install (no extras) imports this
+    module through the CLI but has no httpx, and without httpx no httpx error can occur."""
+    try:
+        import httpx
+    except ImportError:
+        return ()
+    return (httpx.TransportError,)
 
 
 class OllamaProvider(Provider):
@@ -90,9 +98,10 @@ class OllamaProvider(Provider):
         # in gemini.py and openai_compat.py: the loop retries once, at no quota cost. Raised after
         # the except block, so nothing is chained.
         err: ProviderError | None = None
+        lost: tuple[type[BaseException], ...] = (ConnectionError, *_transport_errors())
         try:
             resp = self._client.chat(**kwargs)
-        except (ConnectionError, httpx.TransportError) as exc:
+        except lost as exc:
             err = ProviderError(f"ollama call failed: {type(exc).__name__}", retryable=True)
         except Exception as exc:  # ollama.ResponseError: the server answered with an error
             status = getattr(exc, "status_code", None)
