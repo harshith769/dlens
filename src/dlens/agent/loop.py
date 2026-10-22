@@ -60,7 +60,7 @@ from dlens.agent.llm.types import (
 )
 from dlens.agent.runlog import RunLogger, RunRecord, Step, StepResult, now_iso
 from dlens.agent.tools import Toolbox, ToolResult
-from dlens.agent.tools.entity import AMBIGUOUS_GAP, dotted_column, model_uids_by_name
+from dlens.agent.tools.entity import AMBIGUOUS_GAP, dotted_column, link, model_uids_by_name
 from dlens.agent.validator import ValidationResult, salvage, validate
 from dlens.lineage import short_id
 
@@ -370,6 +370,12 @@ class Agent:
 
     def _answer_phase(self, question: str, directives: list[str]) -> Answer:
         items = build_evidence(self.toolbox)
+        if not any(it.id for it in items) and self._docs_gate(question):
+            # S13c F6: a "code" step, like the evidence guarantee's, at the exact point where the
+            # "no lineage evidence" refusal would otherwise happen
+            self._code_call("search_docs", {"query": question}, rule="docs_evidence")
+            self.record.stop_reason += "+docs_evidence"
+            items = build_evidence(self.toolbox)
         if not any(it.id for it in items):
             errors = tool_errors(self.toolbox)
             reason = "no lineage evidence was found for this question"
@@ -779,6 +785,26 @@ class Agent:
             r.tool == tool and not r.is_error and r.side_records.get("column") == column
             for r in self.toolbox.log
         )
+
+    def _docs_gate(self, question: str) -> bool:
+        """S13c F6 gate (s13c-design.md): the code ``search_docs`` step may run only when an index
+        exists and the question names something the project has. (1) No dotted ``a.b`` in it
+        names an unknown model, seed or source (a dbt-style token: one part contains "_"; file
+        names are skipped). (2) The linker (with the index, as S4 runs it) returns at least one
+        candidate for the question text, under its existing thresholds. No new threshold."""
+        index = self.toolbox.index
+        if index is None:
+            return False
+        g = self.toolbox.graph
+        by_name = model_uids_by_name(g)
+        for m in _QUESTION_COLUMN.finditer(question):
+            model, col = m.group(0).lower().split(".")
+            if col in _FILE_SUFFIXES or ("_" not in model and "_" not in col):
+                continue  # a file name, or "e.g"
+            if dotted_column(g, model, col, by_name) is None:
+                return False  # unknown model: the existing refusal path
+        candidates, _ = link(g, question, index)
+        return bool(candidates)
 
     def _code_call(self, tool: str, args: dict[str, Any], rule: str) -> None:
         result = self.toolbox.call(tool, args, code=True, rule=rule)

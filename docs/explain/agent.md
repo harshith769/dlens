@@ -265,6 +265,30 @@ The snippet is project text, quoted as data; it may be stale (the SQL wins).
     regenerate). With no passing first-draft claim and no fact, the answer is still a refusal,
     now the validator's "no verifiable claims" with the warning flag. A regenerate that passes
     with claims is unchanged. The raw view still reads the first draft (`record.draft`).
+- **Docs evidence behind a gate (changed in S13c, F6).**
+  - *What.* When the tool phase ends with no citable evidence, code may call `search_docs` with
+    the question before the "no lineage evidence" refusal. It is a recorded `code` step (rule
+    `docs_evidence`, `stop_reason` `+docs_evidence`), and the answer phase then runs on the
+    hits.
+  - *The gate, all three conditions:*
+    1. an index exists;
+    2. no dotted `a.b` in the question names an unknown model, seed or source (a dbt-style
+       token; file names and "e.g" are skipped);
+    3. the linker, with the index as S4 runs it, returns at least one candidate for the
+       question, under its existing thresholds.
+
+    No new threshold.
+  - *Why.* qwen refused 5 of 12 Ask questions with "no lineage evidence" without ever calling
+    search_docs (S13 pilot). An ungated step would also have answered the unanswerable
+    dev-93–96 from docs, since search_docs always returns hits; the gate keeps them refused.
+  - *Measured* (dev, offline, the qwen records' tool phases, the bge index):
+    - the step runs for dev-66, 78, 82, 84, 86;
+    - dev-41, 87, 93, 94, 95, 96 stay refused;
+    - the largest added chunk evidence is 649 est. tokens, and the largest answer prompt 1,401
+      against 2,722 (cap − the A6 reserve 278), so nothing trims.
+  - *Guards kept.* No index means the refusal is unchanged. Lineage evidence present means the
+    step never runs (the gate is not consulted). Unknown columns refuse earlier (no LLM call).
+    Chunk-only lineage claims still fail R8 (S12b B4).
 - **Tool error payloads** go back to the model as normal tool results.
 - **Provider errors**: a non-retryable `ProviderError`, `QuotaExceeded` or `InputTooLarge`
   becomes a refused answer with the reason. A retryable provider error gets one retry.
@@ -424,3 +448,13 @@ S13b (F3, changed in S13b):
     get, which `origin` does its first claim carry, and which view of metrics counts the verdict?
 18. Why is a refused regenerate excluded from the salvage candidates instead of competing on
     kept claims (0 vs the first draft's count, ties going to the second round)?
+
+S13c (F6, changed in S13c):
+19. qwen makes no tool call on "What is the difference between refund amount and refunded
+    amount?". Walk through `_answer_phase` with and without an index: which gate conditions are
+    checked, what is recorded, and how many LLM calls does the run make?
+20. Why is "What is affected if fct_returns.return_amount changes?" never sent to the linker by
+    the gate, and why would sending it be wrong?
+21. Why does the gate reuse the linker's existing thresholds rather than a hit-score threshold
+    on search_docs, and what would have to be shown before a threshold could be added?
+

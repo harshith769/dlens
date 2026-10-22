@@ -364,10 +364,67 @@ def linkerdiff(a: Path, b: Path) -> None:
                           f"gold {A[k]['gold']}")  # fmt: skip
 
 
+# -- F6: answer-phase budget with the code search_docs step (A6 reserve) ---------------------------
+
+
+def f6budget() -> None:
+    """For every qwen pilot record that ended "no lineage evidence": replay its recorded tool
+    calls on today's Toolbox (with the index), apply the S13c gate and the code search_docs step
+    exactly as the loop does, and measure the answer prompt against cap - REGENERATE_RESERVE."""
+    from dlens.agent import prompts
+    from dlens.agent.answer import DRAFT_SCHEMA
+    from dlens.agent.evidence import build_evidence, render_evidence
+    from dlens.agent.llm.tokens import MAX_INPUT_TOKENS, estimate_tokens
+    from dlens.agent.llm.types import Message
+    from dlens.agent.loop import REGENERATE_RESERVE, Agent
+    from dlens.agent.tools import Toolbox
+
+    sys.path.insert(0, str(ROOT / "eval"))
+    from systems.s4 import open_graph
+
+    graph, index, _ = open_graph(CORPUS, hybrid=True)
+    box = Toolbox(graph, CORPUS, index)
+    gate = Agent.__new__(Agent)  # only _docs_gate is used: it reads self.toolbox
+    gate.toolbox = box
+    budget = MAX_INPUT_TOKENS - REGENERATE_RESERVE
+    lines = (ROOT / "eval/runs/s4/s4-qwen3-4b-instruct-2507-q4-k-m-dev.jsonl").read_text()
+    print(f"## F6 answer-phase budget (offline; cap {MAX_INPUT_TOKENS} - reserve "
+          f"{REGENERATE_RESERVE} = {budget})\n")  # fmt: skip
+    print("| id | gate | hits | chunk evidence est. tokens | answer prompt est. tokens | fits |")
+    print("|---|---|---|---|---|---|")
+    for rec in (json.loads(x) for x in lines.splitlines() if x.strip()):
+        if not (rec.get("error") or "").startswith("no lineage evidence"):
+            continue
+        box.reset()
+        for step in rec["steps"]:
+            for r in step.get("results") or []:
+                if not r.get("deduped"):
+                    code = step["phase"] == "code" or bool(r.get("code_initiated"))
+                    box.call(r["tool"], r["args"], code=code, rule=r.get("rule"))
+        ok = gate._docs_gate(rec["question"])
+        if not ok:
+            print(f"| {rec['question_id']} | blocked | – | – | – | – |")
+            continue
+        res = box.call("search_docs", {"query": rec["question"]}, code=True, rule="docs_evidence")
+        items = build_evidence(box)
+        chunk = [it for it in items if (it.id or "").startswith("c_")]
+        ev = estimate_tokens([Message(role="user", content=render_evidence(chunk))], None, None)
+        user = prompts.answer_user(rec["question"], render_evidence(items), [])
+        msgs = [
+            Message(role="system", content=prompts.ANSWER_SYSTEM),
+            Message(role="user", content=user),
+        ]
+        tot = estimate_tokens(msgs, None, DRAFT_SCHEMA)
+        print(f"| {rec['question_id']} | runs | {len(res.llm_payload.get('hits', []))} | {ev} | {tot} | "
+              f"{'yes' if tot <= budget else '**NO: would trim**'} |")  # fmt: skip
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument(
-        "--part", choices=["f1", "f6", "linker", "seed", "linkerset", "linkerdiff"], required=True
+        "--part",
+        choices=["f1", "f6", "linker", "seed", "linkerset", "linkerdiff", "f6budget"],
+        required=True,
     )
     ap.add_argument("--reps", type=int, default=5)
     ap.add_argument("--out", type=Path, default=None, help="linkerset: the JSON to write")
@@ -377,6 +434,8 @@ def main(argv: list[str] | None = None) -> int:
     ns = ap.parse_args(argv)
     if ns.part == "linkerset":
         linkerset(ns.out)
+    elif ns.part == "f6budget":
+        f6budget()
     elif ns.part == "linkerdiff":
         linkerdiff(ns.a, ns.b)
     else:
