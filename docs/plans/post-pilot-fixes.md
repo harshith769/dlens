@@ -5,7 +5,7 @@ changes `src/dlens/agent/**`, so it changes `s4.agent_code_sha256()`. Nothing he
 the pilot table is committed and an approved plan names the fix (CLAUDE.md: validator rules
 change only when the plan names them). F1–F4 come from `docs/plans/pilot-design.md` §4 and the
 S13 prep audit (`eval/reports/s13/prep_audit.md`, qwen S4, dev). F5 is the transport-error gap
-from the S4 Gemini run (pilot-design §3.1).
+from the S4 Gemini run (pilot-design §3.1). F6 comes from the Ask scores (pilot-design §5).
 
 Caveat on every audit number: "consistent" means the claim's dotted mentions are in the
 question's gold set. It does not mean the stated relation was checked to be true.
@@ -218,7 +218,66 @@ Decision: PENDING
 
 ---
 
+## F6. Ask refusals: S4 refuses "no lineage evidence" on meaning questions instead of calling search_docs
+
+**Problem.** On qwen, S4 refused 5 of the 12 Ask (meaning) questions: dev-78, dev-82, dev-84,
+dev-86 and dev-87. Ask means (AI-scored, pilot-design §5): S4 0.306 vs S1 0.660 on qwen, and S4
+0.639 vs S1 0.729 on Gemini.
+
+**Mechanism (from the records and code).** In each of the 5, the model's one tool-phase call
+returned no tool call. `loop._answer_phase` then found no evidence item and refused with "no
+lineage evidence was found for this question". search_docs was available (the run has an index)
+but was never called. Gemini's single Ask refusal (dev-87) is a different case: it called
+search_docs and get_model_sql, and the validator refused ("no verifiable claims"). F6 targets the
+qwen pattern only.
+
+**Caveat.** n = 12, and the scores are AI-scored (Claude, owner-authorised, not owner
+hand-scored). The refusal count does not depend on the scorer: a refusal scores 0 under the
+header rule whoever scores. The size of the gap does depend on the scorer.
+
+**Options.**
+- (a) **Code runs search_docs before refusing.** When the tool phase ends with no lineage
+  evidence and an index exists, code calls `search_docs` with the question (a code step, like
+  chain mode's code tool calls), and the answer phase runs on the hits. It is deterministic,
+  and "code guarantees" holds, because the hits are tool results the validator checks like any
+  other (R2/R3 on `c_` ids). Chunk-only lineage claims still fail R8 (S12b B4 owner decision).
+  The risk is refusal accuracy: an unanswerable question could now get a docs-based answer.
+  Guard: unanswerable questions must still refuse, through the existing unknown-column and
+  out-of-domain checks or a minimum hit score.
+- (b) **A prompt nudge only** ("for meaning or definition questions, call search_docs"). It is
+  the smallest change, but it guarantees nothing on a 4B model (the model already ignored an
+  available tool), and it changes the answer-phase prompt hash.
+- (c) **Intent routing for meaning questions.** Code classifies the question (Ask / meaning vs
+  lineage) and calls search_docs up front for meaning questions. It helps beyond refusals, but it
+  needs a classifier, which is a new component with its own errors, and it overlaps with the
+  linker's job.
+
+**Recommendation.** (a). It turns a code-made refusal into a code-made tool call, at the exact
+point where the refusal happens today, and it needs no classifier. (c) can follow if (a) shows
+the model still under-uses docs once it has hits.
+
+**Files.** `src/dlens/agent/loop.py` (`_answer_phase` and the tool phase's end),
+`docs/explain/agent.md`. Rule-9 touch: **loop** (no validator rule change).
+
+**Tests.**
+- Stub model making no tool call on a meaning question, with an index: code calls search_docs
+  (a `code` step), and the answer phase runs on its hits.
+- The same without an index: the refusal is unchanged.
+- An unanswerable fixture (dev-89-style unknown column, and an out-of-domain question): it still
+  refuses.
+- A lineage question with evidence: search_docs is not called.
+
+**Check.** The 5 qwen dev cases become unit fixtures (the stubbed model output from their
+records). No dev re-score loop. The honest check is Ask and refusal accuracy on test after the
+7 Dec 2026 freeze, scored on a blind sheet.
+
+Decision: PENDING
+
+---
+
 ## Change log
 
 - 21 Oct 2026 (S13): v0.1. F1–F4 from pilot-design §4 and the prep audit, F5 from the S4 Gemini
   run. Design only; every decision pending; no code.
+- 22 Oct 2026 (S13 follow-up): F6 Ask refusals (qwen 5/12, "no lineage evidence", search_docs
+  never called). Design only; decision pending.
