@@ -236,6 +236,22 @@ tools *had* emitted. R8c adds those edges in code before the rules run, under fo
    "X comes directly from Y" still fails R8. Negation is not parsed ("not directly" is also
    blocked), which errs on the strict side.
 
+**Indirect bridges on the impact allowlist (changed in S13c, F1 option (d1)).**
+- *What.* Condition 1 now has one exception. An indirect ledger edge may bridge **if an
+  `impact_downstream` result showed it**: that tool's traversal allowlist includes indirect
+  edges (ADR 0026: impact direct + indirect, trace direct). The claim must also not use
+  derivation wording: derived / comes from / computed / calculated / sourced / originates /
+  aggregated / renamed / identity / copied / passed through. A path through a join key never
+  makes "Y is derived from X" true, so such a claim keeps direct-only bridges.
+- *Why.* The S13b diagnosis found that the gold-consistent R8 drops (qwen dev-53, dev-65; Gemini
+  dev-60, dev-69, dev-71, dev-07, dev-59) join their columns only through JOIN / FILTER edges
+  the impact tool had shown. "X affects Y through a join" is exactly what impact means (metrics
+  M4's primary mode for impact is direct + indirect). Measured offline on both pilot records:
+  37 of 55 consistent drops complete, 0 of 3 inconsistent, 0 trace-family claims.
+- *Guards kept.* Anchor, directed shortest bridges (siblings stay unconnected), ≤ 4 hops,
+  "directly". An indirect edge another tool showed never bridges. Completed indirect edges
+  are then checked by R3 by kind (A5), and R5 fails a kind word over a JOIN edge.
+
 It is all or nothing per claim. Completed edges are then ordinary cited edges, so R3 (on disk),
 R5 (kind words) and R7 (relevance) check them. For example, "fct_star.total is renamed from
 stg.amount" citing the IDENTITY edge is completed with the AGGREGATION edge and still fails R5.
@@ -518,3 +534,12 @@ S13b (F2, changed in S13b):
     SQL. What does R4 say, and why?
 22. Alias names come from a regex over the source file, not from the lineage engine. What may
     they be used for, what may they never be used for, and which metric rule do they mirror?
+
+S13c (F1 option (d1), changed in S13c):
+23. dev-53 claim 2 cites one JOIN edge and says "affects … through a join". Walk through R8c
+    before and after S13c: which edges are added, and why is the JOIN edge allowed to bridge?
+24. The same claim, reworded "is derived from", fails. Which guard stops it, and why is that the
+    right answer for a JOIN path?
+25. Suppose a tool other than `impact_downstream` had shown the same JOIN edge. Why may it not
+    bridge, and which allowlist does that rule follow?
+

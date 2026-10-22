@@ -15,7 +15,9 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
   R7 relevance        a claim that names entities cites at least one id that touches one of them
   R8 connectivity     a claim naming >= 2 columns connects them all through its cited edges
   R8c completion      ... after code adds the shortest connecting path (<= 4 hops) from this
-                      question's emitted DIRECT edges; not for "directly" claims over > 1 hop
+                      question's emitted DIRECT edges, plus the indirect edges an impact_downstream
+                      result showed unless the claim uses derivation wording (S13c F1 d1); not for
+                      "directly" claims over > 1 hop
   R9 verdict          if code made a reachability fact (r_ id), the yes/no verdict in the first
                       sentence of answer_text matches it, and so does the structured
                       reach_verdict field (null fails only while the prose states a verdict)
@@ -694,15 +696,36 @@ def rule_connectivity(answer: Answer, ctx: ValidationContext) -> list[Validation
 Adjacency = dict[str, list[tuple[str, str]]]  # node -> [(next node, edge id)], downstream
 
 
-def _ledger_adjacency(ctx: ValidationContext) -> Adjacency:
-    """Directed (from -> to) adjacency over every DIRECT edge this question's tools emitted.
-    Indirect edges never bridge (s12-design A5): completion adds value derivations, and a path
-    through a join key would assert one that does not exist. Sorted, so completion is
-    deterministic."""
+# S13c F1 (d1): a claim with derivation wording asserts a value derivation, which a path through a
+# join key never makes true, so only direct edges may bridge it.
+_DERIVATION = re.compile(
+    r"\b(deriv\w*|comes? from|computed|calculat\w*|sourced|originat\w*|aggregat\w*|renam\w*|"
+    r"identity|copied|passed? through)\b",
+    re.IGNORECASE,
+)
+
+
+def _impact_indirect_ids(ctx: ValidationContext) -> set[str]:
+    """Indirect edge ids an ``impact_downstream`` result showed: the tool whose traversal
+    allowlist includes indirect edges (ADR 0026: impact direct + indirect, trace direct)."""
+    out: set[str] = set()
+    for r in ctx.ledger.log:
+        if r.tool != "impact_downstream" or "error" in r.llm_payload:
+            continue
+        out |= {i for i, rec in r.side_records.get("edges", {}).items() if rec.get("indirect")}
+    return out & ctx.ledger.emitted_ids
+
+
+def _ledger_adjacency(ctx: ValidationContext, indirect: bool = False) -> Adjacency:
+    """Directed (from -> to) adjacency over the DIRECT edges this question's tools emitted, plus,
+    with ``indirect`` (S13c F1 (d1)), the indirect edges an ``impact_downstream`` result showed.
+    Other indirect edges never bridge (s12-design A5): a path through a join key found by any
+    other tool is not on the impact allowlist. Sorted, so completion is deterministic."""
+    allowed = _impact_indirect_ids(ctx) if indirect else set()
     adj: Adjacency = {}
     for i in sorted(ctx.ledger.emitted_ids):
         rec = ctx.ledger.record(i) or {}
-        if rec.get("indirect"):
+        if rec.get("indirect") and i not in allowed:
             continue
         if i.startswith("e_") and (ends := _edge_ends(i, ctx)) is not None:
             adj.setdefault(ends[0], []).append((ends[1], i))
@@ -750,7 +773,7 @@ def complete_citations(
 
     Completed edges are ordinary cited edges afterwards: R3, R5 and R7 check them like any
     other. Returns the answer and the completions ``{claim_index, added}``."""
-    adj: Adjacency | None = None
+    adjs: dict[bool, Adjacency] = {}
     completions: list[dict[str, Any]] = []
     claims: list[Claim] = []
     for k, c in enumerate(answer.claims):
@@ -758,8 +781,10 @@ def complete_citations(
         if len(cols) < 2 or _r8_exempt(c, ctx):
             claims.append(c)
             continue
-        adj = _ledger_adjacency(ctx) if adj is None else adj
-        added = _complete_one(c, cols, adj, ctx)
+        indirect = not _DERIVATION.search(c.text)  # S13c F1 (d1): the derivation-wording guard
+        if indirect not in adjs:
+            adjs[indirect] = _ledger_adjacency(ctx, indirect)
+        added = _complete_one(c, cols, adjs[indirect], ctx)
         if not added:
             claims.append(c)
             continue
