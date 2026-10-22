@@ -5,7 +5,7 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
 
   R1 cites            every claim cites >= 1 id
   R2 in_ledger        every cited id was emitted by a tool for THIS question
-  R2r repair          ... unless it is a unique, same-prefix, 1-edit (or >=7-hex-prefix) miscopy
+  R2r repair          ... unless it is a unique, same-prefix, 1-edit (or >=5-hex-prefix) miscopy
   R3 on_disk          every cited citation still holds on disk (range exists, contains the column:
                       a direct edge's to column, an indirect edge's from column or guarded key)
   R4 known_nodes      every model.column / model name in the prose is in the graph (hallucinated)
@@ -53,7 +53,7 @@ from dlens.agent.tools.reach import check, fact_record
 
 ID_PREFIXES = ("e_", "s_", "r_", "c_")
 LINK_PREFIXES = ("e_", "r_")  # ids with from/to columns: edges and reachability facts
-MIN_PREFIX_HEX = 7
+MIN_PREFIX_HEX = 5  # S13b F4 (was 7): a unique match in one question's ledger; owner rule
 MAX_COMPLETION_HOPS = 4  # R8c: longest bridge citation completion may add
 _DIRECT = re.compile(r"\bdirect(ly)?\b", re.IGNORECASE)  # "indirectly" does not match
 FILE_EXTENSIONS = {"sql", "csv", "yml", "yaml", "md"}
@@ -295,7 +295,7 @@ def within_one_edit(a: str, b: str) -> bool:
 
 def repair_candidates(bad: str, emitted: Iterable[str]) -> list[str]:
     """Emitted ids a miscopied ``bad`` id could stand for: same prefix, and either one edit away
-    or ``bad`` is a prefix of it with >= 7 hex characters."""
+    or ``bad`` is a prefix of it with >= MIN_PREFIX_HEX (5) hex characters."""
     prefix = bad[:2]
     if prefix not in ID_PREFIXES:
         return []

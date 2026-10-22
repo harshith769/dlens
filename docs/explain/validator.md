@@ -50,10 +50,25 @@ and files read **fresh** from disk.
 An id failing R2 is replaced only if **exactly one** emitted id qualifies:
 - it has the **same prefix** (`e_` edge or `s_` excerpt), and
 - it is within **Levenshtein distance 1** of the bad id (one substitution, insertion or
-  deletion), **or** the bad id is a prefix of it with **≥7 hex characters**.
+  deletion), **or** the bad id is a prefix of it with **≥5 hex characters** (`MIN_PREFIX_HEX`;
+  7 until S13b).
 
 The candidate set is the union of both tests, and 0 or ≥2 candidates means no repair. Seen
 live: `e_4b2_403a` (one wrong character) and `s_b3ece5f` (last character dropped).
+
+**Changed in S13b (F4, post-pilot-fixes.md): 7 → 5 hex.**
+- *Why.* On dev-16 (qwen pilot) the only claim naming the question's target cited `e_81a3f`,
+  cut to 5 hex. It failed R2, the regenerate's rewrite failed R5, and salvage kept no claim
+  about the target (chain 1.0 → 0.5). With 5 hex there is exactly one emitted match,
+  `e_81a3f693`, and the repaired claim passes every rule.
+- *The value* was fixed before looking: 5, as written in the design, with no other value tried.
+  Step 0 found one 5-hex repair across both pilot models, no ambiguous one, and none landing on
+  an id outside the gold set.
+- *The guard that stays.* The repair needs **exactly one** same-prefix candidate. Two emitted
+  ids sharing the 5 hex characters, a 4-hex prefix, or an `s_` stub for an `e_` id are not
+  repaired. A 5-hex prefix leaves 16⁵ ≈ 1M possibilities against a ledger of tens to hundreds
+  of ids, and a repaired id still goes through R3, R5 and R7, so a wrong pick is still caught
+  (safety argument below).
 
 **Safety argument:**
 1. Ids are 8 hex characters of a sha1, so two emitted ids in one question are almost never one
@@ -459,3 +474,11 @@ Earlier:
     pass?
 16. (S12b, B4) A model's SQL chunk is cited at `line` level but its lines never name the model.
     What does R3 check instead, and why?
+
+S13b (F4, changed in S13b):
+17. dev-16 cites `e_81a3f`. Walk through R2r with 7 hex and with 5 hex. Which later rules check
+    the repaired claim, and what would they catch if the repair had picked a wrong edge?
+18. A ledger holds `e_81a3f693` and `e_81a3f0aa`, and a claim cites `e_81a3f`. What does R2r do
+    and why? What about `e_81a3`?
+19. Why was the value 5 fixed before the diagnosis ran, and why does a dev-16-style fix still
+    need the test set after the 7 Dec freeze as its honest check?
