@@ -40,6 +40,8 @@ option existed still hit.
 - **`ollama.py`**: `qwen3:4b-instruct-2507-q4_K_M`, `temperature 0`, `num_ctx 8192`, `think=False`. Tool-call ids are
   `call_{index}`, never random, so a replayed history hashes to the same cache key.
 - **`gemini.py`**: `google-genai` with automatic function calling disabled (we run our own loop).
+  `APIError` and httpx transport errors become `ProviderError` with nothing chained (S13b, see
+  below).
   Key from `GEMINI_API_KEY` in the process environment only; `.env` is never opened. The model ID
   comes from `DLENS_GEMINI_MODEL` and `-latest` aliases are rejected.
 - **`openai_compat.py`** (S11, ADR 0012): one adapter for any OpenAI-compatible
@@ -91,7 +93,39 @@ option existed still hit.
   the same size, so no extra VRAM and the 3K-token input cap is unaffected. `strip_think` stays as a
   safety net: it handles closed blocks, unterminated blocks and a bare closing tag.
 
+## Transport errors and key safety in the Gemini adapter (changed in S13b, F5)
+- **What changed.** `gemini.py` now maps `httpx.TransportError` (a dropped connection,
+  `RemoteProtocolError`, a timeout, a connect error) to `ProviderError(retryable=True,
+  status_code=None)`, with the message `gemini call failed: <error class>`. Before, only the SDK's
+  `APIError` was mapped. The httpx error escaped the loop's retry-once path and stopped the S4
+  Gemini pilot run at dev-38 (pilot-design §3.1). The loop now retries once. If the retry also
+  fails, that question becomes one refused record with `ProviderError: …`, and the runner goes
+  on.
+- **Key safety (A4).**
+  - The SDK's `APIError` keeps the httpx response, and the response keeps the request, whose
+    `x-goog-api-key` header holds the key. Printed text never showed it. But `raise … from exc`
+    kept the whole object reachable through `__cause__`.
+  - `raise … from None` *inside* an `except` block is not enough either: Python still sets
+    `__context__` and only hides it when printing.
+  - So both branches build the `ProviderError` inside the `except` and raise it after the block.
+    Neither `__cause__` nor `__context__` holds anything.
+  - The message carries only the error class, or the API's code and message. A test sends a
+    sentinel key in the header and the URL and checks every text form and both links.
+- **Guard kept.** `APIError` 400 stays non-retryable (429 and 5xx stay retryable), and an
+  exception that is not a provider condition (a crash-class bug) is still not mapped, so it
+  still stops the run.
+- **Known, not changed here.**
+  - `openai_compat.py` raises `from None` inside its `except`, so its `__context__` still holds
+    the httpx error (and that error's request, with the `Authorization` header) as an object.
+    Nothing prints it.
+  - `ollama.py` maps a connection error as non-retryable.
+
+  Both are recorded for a later session.
+
 ## Alternatives rejected
+- **Mapping transport errors once in `LLMClient`, or a runner-level catch-all** (F5 options b,
+  c): the first duplicates what two adapters already do; the second would also swallow
+  crash-class bugs that should stop a run.
 - **The Groq SDK** (the original plan): it locks the cross-check and judge to one free tier, and
   real users want their own provider. `groq` left the `agent` extra in S11 (ADR 0012).
 - **The `openai` SDK for the compatible adapter**: another dependency for one POST. Plain `httpx`
@@ -119,3 +153,13 @@ option existed still hit.
    adapter raises `ProviderError(...) from None` instead of chaining the httpx exception.
 6. Groq returns tool calls with ids like `call_abc123xyz`. What does the adapter do with them,
    and what would happen to the cache on a replayed tool-phase history if it kept them?
+
+S13b (F5, changed in S13b):
+7. The S4 Gemini run lost its connection mid-call. Walk through what happens now, call by call:
+   which error the adapter raises, what the loop does, and what the record and the runner do if
+   the retry also drops. Why is a crash-class bug (say a `KeyError` in `_parse`) not mapped the
+   same way?
+8. `raise ProviderError(...) from None` inside the `except` block prints no chain. Why is that
+   still not enough to keep the key unreachable, and what does the adapter do instead?
+9. A 400 "API key not valid" comes back. Is it retried? What exactly is in the `ProviderError`'s
+   message, and why can the message itself not leak the key?

@@ -192,13 +192,21 @@ def test_main_refuses_a_cloud_provider_without_allow_cloud(
     assert not (tmp_path / "out").exists()
 
 
+# The S12b run reused by the qwen pilot row (pilot-design §1): a frozen record, never changes.
+PILOT_AGENT_SHA = "a6fb5b2e49fe9a104c3828c402d186196601c50c4ea25dadef0dbc982952b424"
+# The live agent code (S13b A2): updated in the same commit as every change under src/dlens/agent.
+CURRENT_AGENT_SHA = "bffc02dc6f2e10b7bc633992306757a9d0fa51cc5727602669eaf607642d7089"
+
+
 def test_pilot_reuse_holds_agent_code_unchanged_since_s12b() -> None:
-    """pilot-design §1: the qwen S4 pilot row reuses the S12b run, which is valid only while the
-    agent code hashes as in that run's manifest (S13 touched the runner's manifest only)."""
+    """pilot-design §1: the qwen S4 pilot row reuses the S12b run; its manifest keeps that run's
+    agent sha. Since S13b (post-pilot fixes) the live code differs, and its sha is pinned
+    separately, so every agent-code change is a visible edit here (owner amendment A2)."""
     man = json.loads(
         (ROOT / "eval/runs/s4/s4-qwen3-4b-instruct-2507-q4-k-m-dev.manifest.json").read_text()
     )
-    assert s4.agent_code_sha256() == man["agent_code_sha256"]
+    assert man["agent_code_sha256"] == PILOT_AGENT_SHA  # (i) the frozen pilot record
+    assert s4.agent_code_sha256() == CURRENT_AGENT_SHA  # (ii) the live agent code
     now = s4.prompt_hashes()  # no index: the tool prompt and specs differ, the rest must not
     for key in ("answer_system", "draft_schema", "answer_repair", "tool_repair", "regenerate"):
         assert now[key] == man["prompt_sha256"][key], key

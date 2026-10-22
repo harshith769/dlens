@@ -7,6 +7,7 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import httpx
 from google.genai import errors
 from google.genai import types as gt
 
@@ -148,17 +149,24 @@ class GeminiProvider(Provider):
                 else None
             ),
         )
+        # The SDK's error keeps the httpx response, and the response keeps the request, whose
+        # header holds the key. So the ProviderError is raised after the except block: neither
+        # __cause__ nor __context__ holds the SDK or httpx exception (S13b F5, A4).
         try:
             resp = self._client.models.generate_content(
                 model=self.model, contents=contents, config=config
             )
         except errors.APIError as exc:
-            raise ProviderError(
+            err = ProviderError(
                 f"gemini call failed ({exc.code}): {exc.message}",
                 status_code=exc.code,
                 retryable=exc.code in RETRYABLE,
-            ) from exc
-        return self._parse(resp)
+            )
+        except httpx.TransportError as exc:  # disconnects, timeouts, connect errors
+            err = ProviderError(f"gemini call failed: {type(exc).__name__}", retryable=True)
+        else:
+            return self._parse(resp)
+        raise err from None
 
     # -- response --------------------------------------------------------------------------
     @staticmethod
