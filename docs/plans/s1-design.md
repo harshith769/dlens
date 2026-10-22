@@ -510,3 +510,11 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   provider error with nothing chained. No B8 component changed (prompt, schema, budget rule,
   retrieval settings, citation rule): `s1.frozen_hashes() == FROZEN` before and after (test). A
   future S1 Gemini run gets one retry on a dropped connection instead of a crash.
+- 22 Oct 2026 (S13c, S; owner decision 10): **seed 42 for Ollama, S1 and S4 alike.** The Ollama
+  adapter, which S1 also uses, sends `seed: 42` with every call; the manifest's
+  `model_identity.sampling.seed` records it. No B8 component changed (prompt, schema, budget
+  rule, retrieval settings, citation rule): `s1.frozen_hashes() == FROZEN` before and after (test).
+  The seed is in the provider params, so S1's Ollama cache keys move once. The Gemini seed exists
+  behind `DLENS_GEMINI_SEED` and is off by default (owner smoke pending). Evidence: s13c-design.md
+  §S (seed null 4 / 12 identical prompts varied over 5 sends; seed 42: 0 / 12).
+

@@ -28,7 +28,7 @@ def test_params_sent():
     resp = OllamaProvider(client=fake).send(user("hi"), None)
     assert fake.kwargs["model"] == "qwen3:4b-instruct-2507-q4_K_M"
     assert fake.kwargs["think"] is False
-    assert fake.kwargs["options"] == {"temperature": 0, "num_ctx": 8192}
+    assert fake.kwargs["options"] == {"temperature": 0, "num_ctx": 8192, "seed": 42}  # S13c S
     assert "tools" not in fake.kwargs
     assert (resp.text, resp.usage.input_tokens, resp.usage.output_tokens) == ("ok", 11, 7)
 

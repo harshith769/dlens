@@ -143,6 +143,22 @@ option existed still hit.
 - **Guard kept.** Every error is raised after the `except` block (nothing chained). A
   non-provider exception without a status is still not retryable.
 
+## Seed (changed in S13c, S)
+- **What changed.** `ollama.py` sends `seed: 42` with every call (`options` and `params`), for
+  S1 and S4 alike: both runners build their client with `make_client`. The seed is in `params`,
+  so every Ollama cache key moved once (future runs are uncached once). The manifest's
+  `model_identity.sampling` records the seed actually sent.
+- **Gemini.** `DLENS_GEMINI_SEED` sets `GenerateContentConfig.seed`, recorded in the manifest
+  (`sampling.seed`, `request.seed`). It is **off by default**: no field is sent, and `params`
+  gain no key, so cached Gemini entries keep their keys. Turning it on waits for a one-call owner
+  smoke (`scripts/smoke_gemini_seed.py`). No determinism is claimed for Gemini at temperature
+  1.0.
+- **Why.** At temperature 0 alone, 4 of 12 identical saved prompts gave 2 different outputs
+  over 5 sends on the local server (one request at a time, `OLLAMA_NUM_PARALLEL` 1, the model
+  resident). With seed 42, all 12 gave one output (s13c-design.md §S; a small sample).
+- **Guard.** S1's B8 hashes do not cover sampling. The change is recorded in the S1 design
+  change log, and `s1.frozen_hashes()` is unchanged.
+
 ## Alternatives rejected
 - **Mapping transport errors once in `LLMClient`, or a runner-level catch-all** (F5 options b,
   c): the first duplicates what two adapters already do; the second would also swallow
@@ -197,3 +213,11 @@ S13c (A2, changed in S13c):
 13. Ollama restarts in the middle of an S4 run. What does the adapter raise, what does the loop
     do, and what does the record show if the retry also fails?
 14. Why is a 404 "model not found" from Ollama not retried, while a refused connection is?
+
+S13c (S, changed in S13c):
+15. Why did temperature 0 alone not make qwen's drafts reproducible, and what did the seed
+    experiment hold fixed so that the comparison was fair?
+16. The seed is part of the Ollama `params`. What happens to the S12b / S13 caches, and why is
+    that acceptable?
+17. Why is the Gemini seed implemented but off, and what decides whether it is turned on?
+

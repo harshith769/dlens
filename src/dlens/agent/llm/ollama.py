@@ -1,4 +1,4 @@
-"""Ollama adapter: Qwen3-4B-Instruct-2507 (non-thinking), temperature 0, num_ctx 8192."""
+"""Ollama adapter: Qwen3-4B-Instruct-2507 (non-thinking), temperature 0, num_ctx 8192, seed 42."""
 
 from __future__ import annotations
 
@@ -13,6 +13,9 @@ from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolCall,
 
 DEFAULT_MODEL = "qwen3:4b-instruct-2507-q4_K_M"
 NUM_CTX = 8192
+# S13c S (owner, 22 Oct 2026): temperature 0 alone was not deterministic on the local server (4 of
+# 12 identical prompts gave 2 outputs over 5 sends); seed 42 gave 1 in all 12. S1 and S4 alike.
+SEED = 42
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
 _THINK_OPEN = re.compile(r"<think>.*\Z", re.DOTALL)  # unterminated: model ran out of tokens
@@ -43,7 +46,7 @@ class OllamaProvider(Provider):
 
     @property
     def params(self) -> dict[str, Any]:
-        return {"temperature": 0, "num_ctx": NUM_CTX, "think": False}
+        return {"temperature": 0, "num_ctx": NUM_CTX, "think": False, "seed": SEED}
 
     @staticmethod
     def _convert(m: Message) -> dict[str, Any]:
@@ -65,7 +68,7 @@ class OllamaProvider(Provider):
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": [self._convert(m) for m in messages],
-            "options": {"temperature": 0, "num_ctx": NUM_CTX},
+            "options": {"temperature": 0, "num_ctx": NUM_CTX, "seed": SEED},
             "think": False,
         }
         if response_schema is not None:

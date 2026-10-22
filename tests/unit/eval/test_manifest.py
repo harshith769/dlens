@@ -41,7 +41,8 @@ class _Named:
 
 def test_model_identity_records_digest_version_and_sampling(monkeypatch: Any) -> None:
     """S12b STOP 2: the manifest pins the Ollama model by digest, the server version, the
-    Modelfile defaults and the sampling settings sent (temperature 0, no seed, num_ctx)."""
+    Modelfile defaults and the sampling settings sent (temperature 0, num_ctx; seed 42 since
+    S13c)."""
     import httpx
 
     from dlens.agent.llm.ollama import NUM_CTX, OllamaProvider
@@ -51,7 +52,7 @@ def test_model_identity_records_digest_version_and_sampling(monkeypatch: Any) ->
     prov = OllamaProvider("qwen3:4b-x", client=_FakeOllamaClient())
     ident = model_identity(prov)
     assert ident["digest"] == "sha256:abc123" and ident["ollama_version"] == "0.35.1"
-    assert ident["sampling"] == {"temperature": 0, "num_ctx": NUM_CTX, "think": False, "seed": None}
+    assert ident["sampling"] == {"temperature": 0, "num_ctx": NUM_CTX, "think": False, "seed": 42}
     assert ident["modelfile_parameters"] == 'stop "<|im_end|>"'
     with pytest.raises(SystemExit):
         model_identity(OllamaProvider("not-pulled", client=_FakeOllamaClient()))

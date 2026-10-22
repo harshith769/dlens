@@ -92,7 +92,7 @@ def model_identity(provider: Any) -> dict[str, Any]:
     """What pins the model beyond its tag (owner, S12b STOP 2; shared by S1 and S4 in S13).
 
     Ollama: the full model digest, the server version, the Modelfile's default parameters and the
-    sampling settings sent with every call (temperature 0, no seed, num_ctx). Raises if Ollama
+    sampling settings sent with every call (temperature 0, seed, num_ctx). Raises if Ollama
     can't be asked: a run must not start with an unrecorded model.
     Gemini (pilot-design §2): the temperature and the ``thinkingConfig`` exactly as the request
     carries them; ``null`` means the request has no ``thinkingConfig`` field, so the API applies
@@ -100,13 +100,15 @@ def model_identity(provider: Any) -> dict[str, Any]:
     out: dict[str, Any] = {
         "provider": provider.name,
         "model": provider.model,
-        "sampling": {**dict(provider.params), "seed": None},  # no seed is sent
+        # the seed actually sent (S13c S: Ollama 42; Gemini only when DLENS_GEMINI_SEED is set)
+        "sampling": {"seed": None, **dict(provider.params)},
     }
     if provider.name == "gemini":
         level = getattr(provider, "thinking_level", None)
         return out | {
             "request": {
                 "temperature": provider.temperature,
+                "seed": getattr(provider, "seed", None),  # None: not sent (the default)
                 "thinking_config": {"thinking_level": level} if level else None,
                 "thinking_config_note": (
                     "sent as set"

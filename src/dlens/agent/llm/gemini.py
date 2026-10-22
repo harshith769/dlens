@@ -32,6 +32,7 @@ class GeminiProvider(Provider):
         temperature: float = 1.0,
         thinking_level: str | None = None,
         client: Any = None,
+        seed: int | None = None,
     ):
         if not model or model.endswith("-latest"):
             raise GeminiConfigError(
@@ -47,6 +48,8 @@ class GeminiProvider(Provider):
         self.model = model
         self.temperature = temperature
         self.thinking_level = thinking_level.upper() if thinking_level else None
+        # S13c S: off unless DLENS_GEMINI_SEED is set (owner smoke pending); no determinism claim
+        self.seed = seed
         if client is None:
             if not api_key:
                 raise GeminiConfigError("GEMINI_API_KEY is not set in the environment.")
@@ -62,15 +65,19 @@ class GeminiProvider(Provider):
             api_key=env.get("GEMINI_API_KEY"),
             temperature=float(env.get("DLENS_GEMINI_TEMPERATURE") or 1.0),
             thinking_level=env.get("DLENS_GEMINI_THINKING") or None,
+            seed=int(env["DLENS_GEMINI_SEED"]) if env.get("DLENS_GEMINI_SEED") else None,
         )
 
     @property
     def params(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "temperature": self.temperature,
             "thinking_level": self.thinking_level,
             "automatic_function_calling": "disabled",
         }
+        if self.seed is not None:  # only when set, so cache keys made without a seed still hit
+            out["seed"] = self.seed
+        return out
 
     # -- request ---------------------------------------------------------------------------
     @staticmethod
@@ -122,6 +129,7 @@ class GeminiProvider(Provider):
         config = gt.GenerateContentConfig(
             system_instruction=system,
             temperature=self.temperature,
+            seed=self.seed,  # None: the field is not sent (the default; S13c S)
             # A plain JSON-schema dict goes to response_json_schema; response_schema wants the
             # SDK's Schema type or a Pydantic class.
             response_mime_type="application/json" if response_schema is not None else None,
