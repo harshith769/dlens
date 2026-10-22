@@ -89,6 +89,22 @@ the layer prior reads name prefixes, so dbt_jira's `jira__*` marts get no marts 
 - **`number → count` as a plain token rewrite:** "order number" is not a count.
 - **Letting the LLM pick among candidates:** the code decides; the LLM narrates.
 
+## A dotted id with an unknown model (changed in S13c, L2)
+- **What changed.** A text that is exactly `a.b`, where `a` names no model, seed or source,
+  returns no candidate. It never reaches the fuzzy or hybrid stages. The side record's
+  `closest` lists the nearest model names, and a note says no model has that name.
+- **Why.** dev-93 asks about `fct_returns.return_amount`; there is no `fct_returns`. With an index
+  the text fell through to stage 3, and hybrid tied three `refunded_amount` columns, so S0-linked
+  and S4 answered an unanswerable question with a clarification. A dotted id is an identifier,
+  not a description: if its model does not exist, nothing in the project is meant.
+- **Measured (before → after, `scripts/s13c_measure.py --part linkerset/linkerdiff`).** The only
+  changed case is dev-93 (dev mentions, hybrid on: no-match 8 → 9 of 9). linker-dev and
+  linker-test are unchanged in every row; `lk-no_match-016` ("exchange rate", linker-test) is
+  unchanged.
+- **Guard kept.** A known model with an unknown column still goes through `dotted_column`
+  (exact, then abbreviation, else no-match with the closest columns); the loop's unknown-column
+  refusal is unchanged. A plain description still reaches the hybrid stage.
+
 ## Explain-back questions
 1. "dim_customer_segments.customer_segment" ranked 4th in v1 although it is an exact id. Name
    the v1 bug that caused it, and the two separate v2 mechanisms that each prevent it on their
@@ -100,3 +116,9 @@ the layer prior reads name prefixes, so dbt_jira's `jira__*` marts get no marts 
 3. `stg_payments.amt` is answered but `fct_orders.revnue_finance` is refused before any LLM
    call. Which single function decides both, what exactly may it rescue, and what does the user
    see in the answer for the first one?
+
+S13c (L2, changed in S13c):
+- L2-a. "What is affected if fct_returns.return_amount changes?" Walk through `link()` before and
+  after S13c with an index. Why did the old path produce a clarification?
+- L2-b. Why is `stg_orders.ship_date` unaffected by L2, and which code still refuses it?
+- L2-c. Why does L2 apply only to a dotted text, and not to "gift card balance"?

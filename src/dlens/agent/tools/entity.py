@@ -511,6 +511,16 @@ def link(
             cands = []
             info["closest"] = list(dotted.closest)
         return sorted(cands, key=_rank_key), info
+    if m:
+        # S13c L2: a dotted id whose model part names no model, seed or source is an identifier
+        # for something not in the project (dev-93 fct_returns.return_amount). It never goes to
+        # the fuzzy or hybrid stages, which would tie unrelated columns; no candidate, and the
+        # closest model names in the side record.
+        names = sorted(model_uids_by_name(g))
+        close = difflib.get_close_matches(m.group(1).lower(), names, n=CLOSEST, cutoff=0.0)
+        info["closest"] = close
+        info["notes"].append(f"no model, seed or source named {m.group(1).lower()}")
+        return [], info
 
     stage1 = _stage1(g, low)
     stage2 = _stage2(g, text)

@@ -309,13 +309,78 @@ def seed(reps: int, save_dir: Path) -> None:
         sys.stdout.flush()
 
 
+# -- linker sets before / after (S13c L1, L2; the committed S08 report is not regenerated) ----------
+
+
+def linkerset(out: Path) -> None:
+    """Per case: v2 top-1 id and the ambiguous flag, hybrid off and on, for linker-dev,
+    linker-test (reported only, never used to choose a rule) and the dev mentions. Written to a
+    scratch JSON so two code versions can be compared."""
+    import linker_report as LR
+
+    from dlens.agent.tools import entity
+
+    graph, prov, index = LR.synthetic(with_hybrid=True)
+    cases = LR.load("cases.jsonl")
+    sets = {
+        "linker-dev": [c for c in cases if c["split"] == "linker-dev"],
+        "linker-test": [c for c in cases if c["split"] == "linker-test"],
+        "dev mentions": LR.load("dev_mentions.jsonl"),
+    }
+    res: dict[str, Any] = {}
+    for name, cs in sets.items():
+        for c in cs:
+            for label, idx in (("off", None), ("on", index)):
+                p = entity.resolve_entity(prov, {"text": c["mention"]}, idx).payload
+                top = p["candidates"][0]["id"] if p["candidates"] else None
+                res[f"{name}|{c['id']}|{c['mention']}|{label}"] = {
+                    "top": top, "ambiguous": p["ambiguous"], "gold": c["gold"],
+                }  # fmt: skip
+    out.write_text(json.dumps(res, indent=1, sort_keys=True))
+    print(f"wrote {len(res)} rows to {out.name}")
+
+
+def linkerdiff(a: Path, b: Path) -> None:
+    A, B = json.loads(a.read_text()), json.loads(b.read_text())
+    for name in ("linker-dev", "linker-test", "dev mentions"):
+        for label in ("off", "on"):
+            keys = [k for k in A if k.startswith(name + "|") and k.endswith("|" + label)]
+
+            def top1(d: dict[str, Any]) -> int:
+                return sum(1 for k in keys if d[k]["gold"] and d[k]["top"] in d[k]["gold"])
+
+            def nomatch(d: dict[str, Any]) -> int:
+                return sum(1 for k in keys if not d[k]["gold"] and d[k]["top"] is None)
+
+            amb = lambda d: sum(1 for k in keys if d[k]["ambiguous"])  # noqa: E731
+            pos = sum(1 for k in keys if A[k]["gold"])
+            neg = len(keys) - pos
+            print(f"- {name}, hybrid {label}: top-1 {top1(A)} -> {top1(B)} / {pos}; "
+                  f"no-match {nomatch(A)} -> {nomatch(B)} / {neg}; ambiguous {amb(A)} -> {amb(B)}")  # fmt: skip
+            for k in keys:
+                if A[k] != B[k]:
+                    print(f"  - {k.split('|')[1]} `{k.split('|')[2]}`: {A[k]['top']} "
+                          f"(amb {A[k]['ambiguous']}) -> {B[k]['top']} (amb {B[k]['ambiguous']}); "
+                          f"gold {A[k]['gold']}")  # fmt: skip
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--part", choices=["f1", "f6", "linker", "seed"], required=True)
+    ap.add_argument(
+        "--part", choices=["f1", "f6", "linker", "seed", "linkerset", "linkerdiff"], required=True
+    )
     ap.add_argument("--reps", type=int, default=5)
+    ap.add_argument("--out", type=Path, default=None, help="linkerset: the JSON to write")
+    ap.add_argument("--a", type=Path, default=None, help="linkerdiff: before")
+    ap.add_argument("--b", type=Path, default=None, help="linkerdiff: after")
     ap.add_argument("--save-dir", type=Path, default=None, help="seed: where the prompts are saved")
     ns = ap.parse_args(argv)
-    {"f1": f1, "f6": f6, "linker": linker}.get(ns.part, lambda: seed(ns.reps, ns.save_dir))()
+    if ns.part == "linkerset":
+        linkerset(ns.out)
+    elif ns.part == "linkerdiff":
+        linkerdiff(ns.a, ns.b)
+    else:
+        {"f1": f1, "f6": f6, "linker": linker}.get(ns.part, lambda: seed(ns.reps, ns.save_dir))()
     return 0
 
 
