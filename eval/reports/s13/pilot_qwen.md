@@ -111,4 +111,4 @@ metrics.py's latency (M15) counts every record with no cached call, including re
 | dev-42 | computed | node_f1 | 0.667 | 0.000 | answered |
 | dev-63 | downstream | node_f1 | 0.526 | 0.000 | answered |
 
-Ask questions (12) are scored on the blind sheet (M11) and reported in the final table: AI-scored (Claude), owner-authorised, not owner hand-scored (edited by hand; see pilot_table.md).
+Ask questions (12) are scored on the blind sheet (M11) and reported in the final table: AI-scored (Claude), owner-authorised, not owner hand-scored.

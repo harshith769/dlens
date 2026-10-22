@@ -360,7 +360,11 @@ def sections(
 
 
 def render(
-    panel: str, title: str, rows: Sequence[Row], results: Mapping[str, Mapping[str, Any]]
+    panel: str,
+    title: str,
+    rows: Sequence[Row],
+    results: Mapping[str, Mapping[str, Any]],
+    meta: Mapping[str, Any] | None = None,
 ) -> str:
     first = next(iter(results.values()))
     v = first["versions"]
@@ -380,7 +384,9 @@ def render(
     lines += sections(rows, results, "##")
     lines += [
         "",
-        "Ask questions (12) are hand-scored by the owner (M11) and reported in the final table.",
+        "Ask questions (12) are scored on the blind sheet (M11) and reported in the final table: "
+        + ask_scorer(meta).replace("; ", ", ")
+        + ".",
         "",
     ]
     return "\n".join(lines)
@@ -393,6 +399,48 @@ HEADLINE = [
     ("hallucination rate", "hallucination_rate"),
     ("citation valid", "citation_valid_answer"),
 ]
+
+
+ASK_META = ROOT / "eval" / "scores" / "ask_pilot_meta.json"
+
+
+def ask_meta(path: Path) -> dict[str, Any] | None:
+    """Who scored the Ask sheet (a data file, M11). None when it is not recorded."""
+    return dict(json.loads(path.read_text())) if path.exists() else None
+
+
+def ask_scorer(meta: Mapping[str, Any] | None) -> str:
+    """The scorer phrase for headings. Never claims owner hand-scoring unless the file says so."""
+    if meta is None:
+        return "scorer not recorded"
+    if meta.get("owner_hand_scored"):
+        return "hand-scored by the owner"
+    return f"{meta.get('label') or 'scored by ' + str(meta['scorer'])}; not owner hand-scored"
+
+
+def ask_heading(meta: Mapping[str, Any] | None) -> list[str]:
+    """The Ask section's heading and its method paragraph, from the meta file."""
+    if meta is None:
+        return ["## Ask (scorer not recorded, M11)"]
+    if meta.get("owner_hand_scored"):
+        return ["## Ask: hand-scored by the owner, blind (M11)"]
+    blind = (
+        "The scorer was blind to the system labels (the key was unopened)"
+        if meta.get("blind_to_labels")
+        else "The scorer was **not** blind to the system labels"
+    )
+    return [
+        f"## Ask: {ask_scorer(meta)} (M11 deviation)",
+        "",
+        '**Method deviation (pilot-design, "M11 deviation").** M11 planned owner hand-scoring. '
+        f"These scores were produced by {meta['scorer']} on {meta['date']}. {blind} and applied "
+        "the sheet's header rule (0 / 0.5 / 1 per fact; a refusal scores 0)."
+        + (" The Claude model family is not a pilot system." if "Claude" in meta["scorer"] else "")
+        + " Sheet: `eval/scores/ask_pilot.csv` (124 rows, seed "
+        "20261021); key: `eval/scores/ask_pilot_key.csv`; scorer: `eval/scores/ask_pilot_meta.json`. "
+        "Answer score = mean over its facts; n = 12 answers per system. **The owner may re-score "
+        "before v1.0; the owner's scores would then replace these.**",
+    ]
 
 
 def ask_table(sheet: Path, key: Path) -> list[str]:
@@ -415,13 +463,41 @@ def ask_table(sheet: Path, key: Path) -> list[str]:
     lines = ["| system | model | Ask score mean [95% CI] (n) |", "|---|---|---|"]
     for (system, model), vals in sorted(scores.items(), key=lambda kv: (kv[0][1], kv[0][0])):
         lines.append(f"| {system} | {model} | {cell(M.stat(vals))} |")
+    refused = ask_refusals(sheet, key)
+    lines += [
+        "",
+        "Refused Ask answers (0 on every fact, scorer-independent): "
+        + "; ".join(
+            f"{system} {model} {refused.get((system, model), 0)} of {len(vals)}"
+            for (system, model), vals in sorted(scores.items(), key=lambda kv: (kv[0][1], kv[0][0]))
+        )
+        + ". S1 vs S4 on Ask is not tested (n = 12).",
+    ]
     return lines
+
+
+def ask_refusals(sheet: Path, key: Path) -> dict[tuple[str, str], int]:
+    """Answers the sheet shows as refused (``[refused]``, written by ask_sheet.py), per system."""
+
+    def rows(p: Path) -> list[dict[str, str]]:
+        return list(
+            csv.DictReader(
+                [x for x in p.read_text().splitlines(keepends=True) if not x.startswith("#")]
+            )
+        )
+
+    who = {k["code"]: (k["system"], k["model"]) for k in rows(key)}
+    out: dict[tuple[str, str], int] = {}
+    for code in {r["code"] for r in rows(sheet) if r["answer"].startswith("[refused]")}:
+        out[who[code]] = out.get(who[code], 0) + 1
+    return out
 
 
 def render_combined(
     panels: Mapping[str, tuple[str, Sequence[Row], Mapping[str, Mapping[str, Any]]]],
     ask: Sequence[str],
     notes: str = "",
+    meta: Mapping[str, Any] | None = None,
 ) -> str:
     """The final pilot table (M16): headline metrics side by side (one column per panel), then
     every panel's full tables. S1 vs S4 stays within a panel; no cross-panel test is run."""
@@ -469,7 +545,7 @@ def render_combined(
                 f"| {n} | {b} vs {a} | {_f(p['diff'], 3)}{ci} ({p['n']}) | "
                 f"{mc['b']} / {mc['c']}, p = {_p(mc['p'])} ({c['n_binary']}) |"
             )
-    lines += ["", "## Ask (hand-scored by the owner, blind, M11)", "", *ask]
+    lines += ["", *ask_heading(meta), "", *ask]
     if notes:
         lines += ["", *notes.rstrip().splitlines()]
     for n in names:
@@ -495,6 +571,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--ask-sheet", type=Path, default=ROOT / "eval/scores/ask_pilot.csv")
     ap.add_argument("--ask-key", type=Path, default=ROOT / "eval/scores/ask_pilot_key.csv")
+    ap.add_argument("--ask-meta", type=Path, default=ASK_META, help="who scored the Ask sheet")
     ap.add_argument(
         "--notes", type=Path, default=OUT / "pilot_notes.md", help="hand-written run notes (all)"
     )
@@ -512,7 +589,8 @@ def main(argv: list[str] | None = None) -> int:
             panels[name] = (PANELS[name]["title"], PANELS[name]["rows"], res)
         path = ns.out / "pilot_table.md"
         notes = ns.notes.read_text() if ns.notes.exists() else ""
-        path.write_text(render_combined(panels, ask_table(ns.ask_sheet, ns.ask_key), notes))
+        ask = ask_table(ns.ask_sheet, ns.ask_key)
+        path.write_text(render_combined(panels, ask, notes, ask_meta(ns.ask_meta)))
         print(f"pilot_table: {path.name}", file=sys.stderr)
         return 0
     spec = PANELS[ns.panel]
@@ -520,7 +598,7 @@ def main(argv: list[str] | None = None) -> int:
     if results is None:
         return 2
     path = ns.out / f"pilot_{ns.panel}.md"
-    path.write_text(render(ns.panel, spec["title"], spec["rows"], results))
+    path.write_text(render(ns.panel, spec["title"], spec["rows"], results, ask_meta(ns.ask_meta)))
     print(
         f"pilot_table: {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path.name}",
         file=sys.stderr,

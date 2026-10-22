@@ -30,15 +30,7 @@ Panels: **qwen** = qwen3:4b-instruct-2507-q4_K_M (local, Ollama); **gemini** = g
 
 ## Ask: AI-scored (Claude), owner-authorised; not owner hand-scored (M11 deviation)
 
-**Method deviation (pilot-design, "M11 deviation").** M11 planned owner hand-scoring. These scores
-were produced by Claude in the planner chat, authorised by the owner on 22 Oct 2026. The scorer
-was blind to the system labels (the key was unopened) and applied the sheet's header rule (0 /
-0.5 / 1 per fact; a refusal scores 0). The Claude model family is not a pilot system. Sheet:
-`eval/scores/ask_pilot.csv` (124 rows, seed 20261021); key: `eval/scores/ask_pilot_key.csv`. Answer
-score = mean over its facts; n = 12 answers per system. **The owner may re-score before v1.0; the
-owner's scores would then replace these.** (This heading and paragraph were edited by hand after
-`scripts/pilot_table.py --panel all`: the script's fixed heading still reads "hand-scored by the
-owner"; changing it is a code follow-up.)
+**Method deviation (pilot-design, "M11 deviation").** M11 planned owner hand-scoring. These scores were produced by Claude (planner chat), owner-authorised on 2026-10-22. The scorer was blind to the system labels (the key was unopened) and applied the sheet's header rule (0 / 0.5 / 1 per fact; a refusal scores 0). The Claude model family is not a pilot system. Sheet: `eval/scores/ask_pilot.csv` (124 rows, seed 20261021); key: `eval/scores/ask_pilot_key.csv`; scorer: `eval/scores/ask_pilot_meta.json`. Answer score = mean over its facts; n = 12 answers per system. **The owner may re-score before v1.0; the owner's scores would then replace these.**
 
 | system | model | Ask score mean [95% CI] (n) |
 |---|---|---|
@@ -47,7 +39,7 @@ owner"; changing it is a code follow-up.)
 | S1 | qwen3:4b | 0.660 [0.46, 0.85] (12) |
 | S4 | qwen3:4b | 0.306 [0.12, 0.53] (12) |
 
-Refused Ask answers (0 on every fact): S4 qwen 5 of 12; S1 qwen, S1 Gemini and S4 Gemini 1 each. S1 vs S4 on Ask is not tested (n = 12, owner re-score pending).
+Refused Ask answers (0 on every fact, scorer-independent): S1 gemini-3.5-flash-lite 1 of 12; S4 gemini-3.5-flash-lite 1 of 12; S1 qwen3:4b 1 of 12; S4 qwen3:4b 5 of 12. S1 vs S4 on Ask is not tested (n = 12).
 
 ## Run notes (hand-written; every number from committed records, manifests or the quota counter)
 

@@ -147,3 +147,50 @@ def test_ask_pending_counts_csv_rows_not_lines_and_notes_are_included(tmp_path: 
     results = {r.label: mod.score(r, tmp_path) for r in rows}
     md = mod.render_combined({"qwen": ("t", rows, results)}, [line], "## Run notes\n\nx\n")
     assert md.index("## Ask") < md.index("## Run notes") < md.index("## Panel qwen")
+
+
+def test_ask_heading_follows_the_meta_file(tmp_path: Path) -> None:
+    """The scorer comes from eval/scores/ask_pilot_meta.json; no file never means hand-scored."""
+    assert mod.ask_heading(None) == ["## Ask (scorer not recorded, M11)"]
+    assert mod.ask_scorer(mod.ask_meta(tmp_path / "missing.json")) == "scorer not recorded"
+    committed = mod.ask_meta(mod.ASK_META)
+    assert committed is not None and committed["owner_hand_scored"] is False
+    head = mod.ask_heading(committed)
+    assert head[0] == (
+        "## Ask: AI-scored (Claude), owner-authorised; not owner hand-scored (M11 deviation)"
+    )
+    assert "blind to the system labels" in head[2] and "owner may re-score" in head[2]
+    other = {
+        "scorer": "a reviewer",
+        "date": "2026-11-01",
+        "blind_to_labels": False,
+        "owner_hand_scored": False,
+    }
+    h = mod.ask_heading(other)
+    assert h[0] == "## Ask: scored by a reviewer; not owner hand-scored (M11 deviation)"
+    assert "**not** blind" in h[2] and "Claude" not in h[2]
+    assert mod.ask_heading({**other, "owner_hand_scored": True})[0].startswith(
+        "## Ask: hand-scored by the owner"
+    )
+    rows = mod.PANELS["qwen"]["rows"]
+    results = {r.label: mod.score(r, tmp_path) for r in rows}
+    md = mod.render_combined({"qwen": ("t", rows, results)}, [], "", None)
+    assert "## Ask (scorer not recorded, M11)" in md and "hand-scored by the owner" not in md
+    assert "reported in the final table: scorer not recorded." in mod.render(
+        "qwen", "t", rows, results, None
+    )
+
+
+def test_ask_table_counts_refused_answers_per_system(tmp_path: Path) -> None:
+    sheet, key = tmp_path / "ask.csv", tmp_path / "key.csv"
+    sheet.write_text(
+        "# rule\ncode,question_id,question,fact_no,fact,fact_source,answer,score,note\n"
+        "AX,dev-77,q,1,f,s,[refused] no,0,\nAX,dev-77,q,2,f,s,[refused] no,0,\n"
+        "AY,dev-77,q,1,f,s,yes,1,\n"
+    )
+    key.write_text(
+        "# key\ncode,system,model,view,records,question_id\n"
+        "AX,S4,m,validated,r,dev-77\nAY,S1,m,validated,r,dev-77\n"
+    )
+    assert mod.ask_refusals(sheet, key) == {("S4", "m"): 1}
+    assert "S1 m 0 of 1; S4 m 1 of 1" in mod.ask_table(sheet, key)[-1]

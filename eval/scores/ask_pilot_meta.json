@@ -1,0 +1,7 @@
+{
+  "scorer": "Claude (planner chat), owner-authorised",
+  "date": "2026-10-22",
+  "blind_to_labels": true,
+  "owner_hand_scored": false,
+  "label": "AI-scored (Claude), owner-authorised"
+}
