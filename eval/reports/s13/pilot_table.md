@@ -28,9 +28,26 @@ Panels: **qwen** = qwen3:4b-instruct-2507-q4_K_M (local, Ollama); **gemini** = g
 | gemini | S4 raw vs S1 | 0.253 [0.154, 0.351] (68) | 4 / 24, p = 1.8e-04 (84) |
 | gemini | S4 validated vs S1 | 0.208 [0.116, 0.298] (68) | 5 / 19, p = 0.0066 (84) |
 
-## Ask (hand-scored by the owner, blind, M11)
+## Ask: AI-scored (Claude), owner-authorised; not owner hand-scored (M11 deviation)
 
-Pending owner scoring (M11), sheet `eval/scores/ask_pilot.csv`, 124 rows. The key stays in the gitignored `eval/cache/s13-ask-key/` until the owner says scored.
+**Method deviation (pilot-design, "M11 deviation").** M11 planned owner hand-scoring. These scores
+were produced by Claude in the planner chat, authorised by the owner on 22 Oct 2026. The scorer
+was blind to the system labels (the key was unopened) and applied the sheet's header rule (0 /
+0.5 / 1 per fact; a refusal scores 0). The Claude model family is not a pilot system. Sheet:
+`eval/scores/ask_pilot.csv` (124 rows, seed 20261021); key: `eval/scores/ask_pilot_key.csv`. Answer
+score = mean over its facts; n = 12 answers per system. **The owner may re-score before v1.0; the
+owner's scores would then replace these.** (This heading and paragraph were edited by hand after
+`scripts/pilot_table.py --panel all`: the script's fixed heading still reads "hand-scored by the
+owner"; changing it is a code follow-up.)
+
+| system | model | Ask score mean [95% CI] (n) |
+|---|---|---|
+| S1 | gemini-3.5-flash-lite | 0.729 [0.55, 0.89] (12) |
+| S4 | gemini-3.5-flash-lite | 0.639 [0.42, 0.83] (12) |
+| S1 | qwen3:4b | 0.660 [0.46, 0.85] (12) |
+| S4 | qwen3:4b | 0.306 [0.12, 0.53] (12) |
+
+Refused Ask answers (0 on every fact): S4 qwen 5 of 12; S1 qwen, S1 Gemini and S4 Gemini 1 each. S1 vs S4 on Ask is not tested (n = 12, owner re-score pending).
 
 ## Run notes (hand-written; every number from committed records, manifests or the quota counter)
 
@@ -74,7 +91,7 @@ both models. They are scored like any record.
 | 2 | dev-46 ends refused by the validator | refused ("no verifiable claims") | answered | **qwen only.** Cause: R4 on a SQL alias (F2) |
 | 3 | Chain raw 1.0 → validated 0.5 | dev-16 (truncated id, F4) | 1.0 → 1.0 (n = 2) | **qwen only** |
 | 4 | Augmentation raises impact F1 | 0.524 → 0.707 | 0.532 → 0.887 | **Holds, larger on Gemini.** Trace F1 does not move on either |
-| 5 | search_docs rarely used | 8 questions, 7 answers cite chunks | 22 questions, 11 answers cite chunks | **Used more on Gemini.** What chunks add is still unmeasured until Ask is scored (M11) |
+| 5 | search_docs rarely used | 8 questions, 7 answers cite chunks | 22 questions, 11 answers cite chunks | **Used more on Gemini.** Ask is now scored (AI-scored, see the Ask section), but S4 is below S1 on Ask on both models, and Ask does not isolate what the chunks add |
 | 6 | Spurious `uncovered_parts` | 4 / 68 (validated) | 2 / 80 (validated) | **Holds on both** (unscored) |
 | 7 | Premise rejection 0.5, no `premise_corrected` flag | 0.5 (prose 2, neither 2) | 0.75 (field 1, both 2, neither 1) | **Gemini uses the flag;** one spurious flag on each model |
 

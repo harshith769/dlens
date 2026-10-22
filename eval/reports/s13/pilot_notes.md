@@ -40,7 +40,7 @@ both models. They are scored like any record.
 | 2 | dev-46 ends refused by the validator | refused ("no verifiable claims") | answered | **qwen only.** Cause: R4 on a SQL alias (F2) |
 | 3 | Chain raw 1.0 → validated 0.5 | dev-16 (truncated id, F4) | 1.0 → 1.0 (n = 2) | **qwen only** |
 | 4 | Augmentation raises impact F1 | 0.524 → 0.707 | 0.532 → 0.887 | **Holds, larger on Gemini.** Trace F1 does not move on either |
-| 5 | search_docs rarely used | 8 questions, 7 answers cite chunks | 22 questions, 11 answers cite chunks | **Used more on Gemini.** What chunks add is still unmeasured until Ask is scored (M11) |
+| 5 | search_docs rarely used | 8 questions, 7 answers cite chunks | 22 questions, 11 answers cite chunks | **Used more on Gemini.** Ask is now scored (AI-scored, see the Ask section), but S4 is below S1 on Ask on both models, and Ask does not isolate what the chunks add |
 | 6 | Spurious `uncovered_parts` | 4 / 68 (validated) | 2 / 80 (validated) | **Holds on both** (unscored) |
 | 7 | Premise rejection 0.5, no `premise_corrected` flag | 0.5 (prose 2, neither 2) | 0.75 (field 1, both 2, neither 1) | **Gemini uses the flag;** one spurious flag on each model |
 

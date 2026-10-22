@@ -224,6 +224,24 @@ set for its primary mode. It does **not** mean the relation the claim states was
 F1–F4 change the validator rules, so each needs an approved plan that names it (CLAUDE.md).
 Design options per fix, and F5 (the transport-error gap, §3.1): `docs/plans/post-pilot-fixes.md`.
 
+## 5. M11 deviation: Ask scoring (recorded 22 Oct 2026)
+
+metrics-design M11 plans **owner hand-scoring** of the blind Ask sheet. The pilot's Ask scores were
+**not** hand-scored by the owner:
+
+- **Who scored.** Claude, in the planner chat, authorised by the owner on 22 Oct 2026.
+- **Blinding.** The scorer was blind to the system labels: the key
+  (`eval/cache/s13-ask-key/ask_pilot_key.csv`) stayed unopened until scoring was complete. The
+  sheet's header rule was applied: 0 / 0.5 / 1 per fact, and a refusal or a clarification scores
+  0.
+- **Independence.** The Claude model family is not a pilot system: the pilot systems are
+  qwen3:4b and gemini-3.5-flash-lite.
+- **Sheet.** `eval/scores/ask_pilot.csv`, 124 rows. Only the score cells differ from the committed
+  unscored sheet (5950d91). The key was moved to `eval/scores/ask_pilot_key.csv` after scoring.
+- **Status.** Every report labels the scores "AI-scored (Claude), owner-authorised; not owner
+  hand-scored". The owner may re-score before v1.0, and the owner's scores would then replace
+  these. No public claim may call them hand-scored.
+
 ## Change log
 
 - 21 Oct 2026: v0.1. Pilot records and sampling fixed by the owner before any pilot run (§1, §2).
@@ -239,3 +257,5 @@ Design options per fix, and F5 (the transport-error gap, §3.1): `docs/plans/pos
   Resume after 12:30 IST on 22 Oct. Latency uses uncached questions only (M15).
 - 22 Oct 2026: §3.1 S4 Gemini complete (96/96, 55 fresh calls); latency from 10 all-fresh
   questions ("small n"), since the cache does not store latency.
+- 22 Oct 2026: §5 M11 deviation. Ask AI-scored (Claude) on the blind sheet, owner-authorised, not
+  owner hand-scored; the owner may re-score before v1.0.
