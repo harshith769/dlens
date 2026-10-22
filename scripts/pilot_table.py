@@ -19,6 +19,7 @@ Per-row metrics reports go to ``eval/reports/s13/<panel>/``.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from collections.abc import Mapping, Sequence
@@ -108,7 +109,36 @@ def score(row: Row, out_dir: Path) -> dict[str, Any]:
     argv += ["--out", str(out), "--title", f"{row.label} (pilot dev)"]
     if M.main(argv) != 0:
         raise SystemExit(f"pilot_table: metrics.py failed on {row.label}")
-    return dict(json.loads(out.with_suffix(".json").read_text()))
+    result = dict(json.loads(out.with_suffix(".json").read_text()))
+    if not row.system.startswith("s0"):
+        result["fresh_llm_latency"] = fresh_llm_latency(ROOT / row.records)
+    return result
+
+
+SMALL_N = 30  # below this the all-fresh latency is labelled "small n"
+
+
+def fresh_llm_latency(records: Path) -> dict[str, Any]:
+    """M15 latency over the questions whose LLM calls were all fresh (>= 1 call, 0 cached), the
+    only ones whose latency is a provider latency when a run was resumed from the cache (the cache
+    stores responses, not their latency). Nearest-rank percentiles, as metrics.py."""
+    ms = []
+    for line in records.read_text().splitlines():
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        t = r.get("tokens") or {}
+        total = (r.get("timings") or {}).get("total_ms")
+        if t.get("llm_calls", 0) and not t.get("cached_calls", 0) and total is not None:
+            ms.append(float(total))
+    return {"n": len(ms), "p50": M.percentile(ms, 50), "p95": M.percentile(ms, 95)}
+
+
+def _fresh_cell(f: Mapping[str, Any] | None) -> str:
+    if not f or not f["n"]:
+        return "–"
+    small = ", small n" if f["n"] < SMALL_N else ""
+    return f"{_f(f['p50'] / 1000, 1)} / {_f(f['p95'] / 1000, 1)} (n = {f['n']}{small})"
 
 
 # ---------------------------------------------------------------------------- per question
@@ -236,12 +266,14 @@ def sections(
             lines.append(f"| {row.label} | " + " | ".join(cell(m[k]) for _, k in cols) + " |")
     lines += ["", f"{h} Cost (uncached runs only for latency, M15)", ""]
     lines += [
-        "| row | latency p50 / p95 (s) | uncached / cached records | tokens / question mean (p95) | LLM calls / question |",
-        "|---|---|---|---|---|",
+        "| row | latency p50 / p95 (s) | uncached / cached records "
+        "| all-fresh LLM questions: p50 / p95 (s) (n) "
+        "| tokens / question mean (p95) | LLM calls / question |",
+        "|---|---|---|---|---|---|",
     ]
     for row in rows:
         if row.system.startswith("s0"):
-            lines.append(f"| {row.label} | – | – | – | 0 |")
+            lines.append(f"| {row.label} | – | – | – | – | 0 |")
             continue
         s = results[row.label]["summary"]
         lat, tok = s["latency_ms"], s["tokens"]
@@ -249,8 +281,16 @@ def sections(
         p95 = _f(lat["p95"] / 1000, 1) if lat["p95"] is not None else "–"
         lines.append(
             f"| {row.label} | {p50} / {p95} | {lat['n_uncached']} / {lat['n_cached']} | "
+            f"{_fresh_cell(results[row.label].get('fresh_llm_latency'))} | "
             f"{_f(tok['mean'], 0)} ({_f(tok['p95'], 0)}) | {_f(tok['llm_calls_mean'], 2)} |"
         )
+    lines += [
+        "",
+        "metrics.py's latency (M15) counts every record with no cached call, including records "
+        "with no LLM call at all (code refusals). The all-fresh column keeps only questions with "
+        "≥ 1 LLM call and none cached; under "
+        f"{SMALL_N} it is labelled small n. Latency includes waits on the client rate limiter.",
+    ]
     buckets = sorted(
         {
             k
@@ -359,7 +399,15 @@ def ask_table(sheet: Path, key: Path) -> list[str]:
     """M11 Ask means per (system, model), from the owner's scored sheet and its key. Until both
     exist (the key is copied to eval/scores/ only after "scored"), the section says pending."""
     if not (sheet.exists() and key.exists()):
-        return ["Pending: the blind sheet is not scored yet (M11; the owner scores)."]
+        if not sheet.exists():
+            return ["Pending: the blind sheet is not scored yet (M11; the owner scores)."]
+        body = [x for x in sheet.read_text().splitlines(keepends=True) if not x.startswith("#")]
+        n = len(list(csv.DictReader(body)))
+        rel = sheet.relative_to(ROOT) if sheet.is_relative_to(ROOT) else sheet.name
+        return [
+            f"Pending owner scoring (M11), sheet `{rel}`, {n} rows. The key stays in the "
+            "gitignored `eval/cache/s13-ask-key/` until the owner says scored."
+        ]
     sys.path.insert(0, str(ROOT / "scripts"))
     import ask_sheet
 
@@ -373,6 +421,7 @@ def ask_table(sheet: Path, key: Path) -> list[str]:
 def render_combined(
     panels: Mapping[str, tuple[str, Sequence[Row], Mapping[str, Mapping[str, Any]]]],
     ask: Sequence[str],
+    notes: str = "",
 ) -> str:
     """The final pilot table (M16): headline metrics side by side (one column per panel), then
     every panel's full tables. S1 vs S4 stays within a panel; no cross-panel test is run."""
@@ -421,6 +470,8 @@ def render_combined(
                 f"{mc['b']} / {mc['c']}, p = {_p(mc['p'])} ({c['n_binary']}) |"
             )
     lines += ["", "## Ask (hand-scored by the owner, blind, M11)", "", *ask]
+    if notes:
+        lines += ["", *notes.rstrip().splitlines()]
     for n in names:
         title, rows, results = panels[n]
         lines += ["", f"## Panel {n}: {title}", ""]
@@ -444,6 +495,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--ask-sheet", type=Path, default=ROOT / "eval/scores/ask_pilot.csv")
     ap.add_argument("--ask-key", type=Path, default=ROOT / "eval/scores/ask_pilot_key.csv")
+    ap.add_argument(
+        "--notes", type=Path, default=OUT / "pilot_notes.md", help="hand-written run notes (all)"
+    )
     ns = ap.parse_args(argv)
     if ns.panel == "all":
         panels = {}
@@ -457,7 +511,8 @@ def main(argv: list[str] | None = None) -> int:
                 return 3  # the final table is built only from complete runs (pilot-design §3)
             panels[name] = (PANELS[name]["title"], PANELS[name]["rows"], res)
         path = ns.out / "pilot_table.md"
-        path.write_text(render_combined(panels, ask_table(ns.ask_sheet, ns.ask_key)))
+        notes = ns.notes.read_text() if ns.notes.exists() else ""
+        path.write_text(render_combined(panels, ask_table(ns.ask_sheet, ns.ask_key), notes))
         print(f"pilot_table: {path.name}", file=sys.stderr)
         return 0
     spec = PANELS[ns.panel]

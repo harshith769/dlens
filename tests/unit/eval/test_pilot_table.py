@@ -119,3 +119,31 @@ def test_ask_table_reads_the_scored_sheet(tmp_path: Path) -> None:
     )
     lines = mod.ask_table(sheet, key)
     assert "| S1 | m | 0.500 (1) |" in lines and "| S4 | m | 0.500 (1) |" in lines
+
+
+def test_fresh_llm_latency_keeps_only_questions_with_all_calls_fresh(tmp_path: Path) -> None:
+    recs = [
+        {"tokens": {"llm_calls": 3, "cached_calls": 0}, "timings": {"total_ms": 9000.0}},
+        {"tokens": {"llm_calls": 3, "cached_calls": 1}, "timings": {"total_ms": 1.0}},  # partial
+        {"tokens": {"llm_calls": 0, "cached_calls": 0}, "timings": {"total_ms": 2.0}},  # code
+        {"tokens": {"llm_calls": 4, "cached_calls": 0}, "timings": {"total_ms": 5000.0}},
+    ]
+    p = tmp_path / "r.jsonl"
+    p.write_text("\n".join(json.dumps(r) for r in recs) + "\n")
+    f = mod.fresh_llm_latency(p)
+    assert f == {"n": 2, "p50": M.percentile([9000.0, 5000.0], 50), "p95": 9000.0}
+    assert mod._fresh_cell(f).endswith("(n = 2, small n)")
+
+
+def test_ask_pending_counts_csv_rows_not_lines_and_notes_are_included(tmp_path: Path) -> None:
+    sheet = tmp_path / "ask.csv"
+    sheet.write_text(
+        "# rule\ncode,question_id,question,fact_no,fact,fact_source,answer,score,note\n"
+        'AX,dev-77,q,1,f,s,"two\nlines",,\nAY,dev-77,q,1,f,s,a,,\n'
+    )
+    (line,) = mod.ask_table(sheet, tmp_path / "no_key.csv")
+    assert "Pending owner scoring (M11)" in line and "2 rows" in line
+    rows = mod.PANELS["qwen"]["rows"]
+    results = {r.label: mod.score(r, tmp_path) for r in rows}
+    md = mod.render_combined({"qwen": ("t", rows, results)}, [line], "## Run notes\n\nx\n")
+    assert md.index("## Ask") < md.index("## Run notes") < md.index("## Panel qwen")
