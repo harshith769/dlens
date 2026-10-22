@@ -164,8 +164,11 @@ def test_model_bonus_dropped_when_the_text_is_a_column_name(box: Toolbox) -> Non
 
 def test_cap_is_on_the_printed_score_only(box: Toolbox) -> None:
     """Amendment E: ranking uses the raw sums. Since F a context match tops out at
-    0.87 + 0.06 + 0.01 = 0.94, so the 0.96 printed cap no longer binds in practice."""
-    p, side = resolve(box, "sales tax in fct_orders")
+    0.87 + 0.06 + 0.01 = 0.94, so the 0.96 printed cap no longer binds in practice.
+    S13c L1 (owner-approved re-point): "sales tax in fct_orders" is now a qualified mention, which
+    drops the other model's reading; "on" is not a qualifier word, so both candidates still
+    compete here with the same parts."""
+    p, side = resolve(box, "sales tax on fct_orders")
     assert p["candidates"][0]["id"] == "fct_orders.sales_tax"
     assert p["candidates"][0]["score"] == 0.94
     assert (

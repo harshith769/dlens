@@ -213,6 +213,38 @@ response to it.
 fct_orders" (wrong model) is not `qualified`. Bare "line_margin" is unchanged. The linker-dev
 report rerun is checked for regressions, and linker-test is reported.
 
+**Correction to L1 (owner, 22 Oct 2026; written after seeing dev, stated as such).**
+- The design above said the `qualified` tier makes dev-75 pick `raw_customers.last_name`. **The
+  tier alone does not.** `raw_customers` is a seed (layer prior −0.005), so the qualified
+  candidate scores 0.925, and `stg_customers.last_name` still reaches 0.930 as a rewritten match
+  with "customers" taken as model context: still a tie.
+- So L1 also includes: **when a qualified candidate exists for a mention, other models' stage-2
+  readings of that mention are dropped** (the mention names its model).
+- The drop is per `link()` call, i.e. per mention. A wrong model, or an unprefixed model name
+  shared by several models, gives no qualified candidate, so nothing is dropped.
+- It required re-pointing one existing test, `test_entity_v2.py::test_cap_is_on_the_printed_score_only`
+  (amendment E), from "sales tax in fct_orders" to "sales tax on fct_orders". "on" is not a
+  qualifier, so both candidates still compete with the same parts, and the assertions are
+  unchanged (owner-approved).
+
+**L1 measured (before = after L2, after = L1 with the drop; `s13c_measure --part linkerset /
+linkerdiff`).**
+
+| set | hybrid | top-1 | ambiguous |
+|---|---|---|---|
+| linker-dev | off | 85 → 87 / 104 | 37 → 33 |
+| linker-dev | on | 88 → 91 / 104 | 50 → 44 |
+| dev mentions | off | 77 → 79 / 87 | 8 → 4 |
+| dev mentions | on | 78 → 83 / 87 | 18 → 11 |
+
+- linker-dev cases changed (all to the gold top-1, unambiguous): lk-model_qualified-007, 011,
+  013, 014, 016, 017.
+- Dev mentions changed: dev-29, 40, 48, 55, 56, 71, 75.
+- No-match counts are unchanged.
+- **linker-test, reported only (never used to choose):** top-1 89 → 90 (off), 95 → 96 (on);
+  ambiguous 20 → 17, 32 → 29; changed cases lk-model_qualified-004, 010, 012.
+- `lk-no_match-016` ("exchange rate") is unchanged by L1 and L2.
+
 ### L2. A dotted name with an unknown model never goes to hybrid (dev-93)
 
 `fct_returns.return_amount` matches `_DOTTED`, but `dotted_column` returns None for an unknown
@@ -415,3 +447,6 @@ at the end, as in S13b; Gemini only by the owner, after a quota plan.
     tests; L2; L4 no change; L5 no rule; A1; A2 (a); the Ollama seed 42 for S1 and S4, with the
     Gemini seed implemented but off pending a one-call owner smoke;
   - deferred: L3 (both parts) to after v1.0.
+- 22 Oct 2026: v1.1. L1 correction (owner): the drop rule (other models' stage-2 readings of a
+  qualified mention are dropped); the amendment-E test re-pointed; L1 / L2 linker-set
+  measurements.

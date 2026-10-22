@@ -89,6 +89,36 @@ the layer prior reads name prefixes, so dbt_jira's `jira__*` marts get no marts 
 - **`number → count` as a plain token rewrite:** "order number" is not a count.
 - **Letting the LLM pick among candidates:** the code decides; the LLM narrates.
 
+## "<column> in <model>" (changed in S13c, L1)
+- **What changed.** Stage 2 has a new tier, `qualified` (match label `normalised`, base = the
+  surface base 0.93).
+  - The text is split at each "in", "of" or "from". The right part, with stopwords dropped, must
+    name exactly one model: its full name, layer prefix included, or its name without the prefix
+    when no other model has that body.
+  - The left part must match one of that model's columns at the surface or rewritten tier.
+  - A qualified candidate is confident, so the hybrid stage does not run. Other models'
+    stage-2 readings of the same mention are dropped, since the mention says which model it
+    means.
+- **Why.** "line_margin in int_order_item_margins" (dev-29) scored only fuzzy (0.675). The
+  model name shares "margin" with the column, so "margins" stayed on the column side. The
+  hybrid stage then ran and ranked same-model siblings above the right column: a clarification
+  for an answerable question (dev-29, 40, 56, 71). "last name in raw customers" (dev-75) tied
+  `stg_customers` and `raw_customers` (the seed layer prior is −0.005). The tier alone did not
+  settle that; the drop rule did (a correction recorded in s13c-design.md).
+- **Measured.** linker-dev top-1 85 → 87 (hybrid off) and 88 → 91 (on); ambiguous 37 → 33 and
+  50 → 44; no-match unchanged. Dev mentions: dev-29, 40, 48, 55, 56, 71, 75 now give the gold
+  column, unambiguous. linker-test is reported separately in s13c-design.md.
+- **Guards kept.** These still give no qualified candidate, and so drop nothing:
+  - "number of orders per customer" (dev-15 still links `dim_customers.order_count` 0.94);
+  - "revenue from fct_orders to dim_customers" (two models);
+  - "orders in the last month";
+  - "order_id in orders" (an unprefixed name shared by three models);
+  - "line_margin in fct_orders" (the wrong model).
+
+  A second mention in the same question is a separate `link()` call, unaffected. The
+  amendment-E test now uses "sales tax on fct_orders" ("on" is not a qualifier), with the same
+  assertions.
+
 ## A dotted id with an unknown model (changed in S13c, L2)
 - **What changed.** A text that is exactly `a.b`, where `a` names no model, seed or source,
   returns no candidate. It never reaches the fuzzy or hybrid stages. The side record's
@@ -122,3 +152,10 @@ S13c (L2, changed in S13c):
   after S13c with an index. Why did the old path produce a clarification?
 - L2-b. Why is `stg_orders.ship_date` unaffected by L2, and which code still refuses it?
 - L2-c. Why does L2 apply only to a dotted text, and not to "gift card balance"?
+- L1-a. "line_margin in int_order_item_margins" was fuzzy before S13c. Which token stayed on the
+  column side and why? What does the qualified tier check instead?
+- L1-b. Why does "order_id in orders" give no qualified candidate, and why must nothing be
+  dropped then?
+- L1-c. "last name in raw customers": why did the qualified tier alone not settle it, and what
+  does the drop rule assume about the mention?
+

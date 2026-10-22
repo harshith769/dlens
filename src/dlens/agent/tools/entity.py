@@ -83,7 +83,14 @@ CLOSEST = 3
 RRF_MAX = 2 / 61  # rank 1 in both lists, RRF k = 60
 
 Tier = Literal[
-    "exact_id", "exact_name", "dotted_abbreviation", "surface", "rewritten", "fuzzy", "hybrid"
+    "exact_id",
+    "exact_name",
+    "dotted_abbreviation",
+    "surface",
+    "rewritten",
+    "qualified",
+    "fuzzy",
+    "hybrid",
 ]
 _MATCH: dict[str, str] = {
     "exact_id": "exact",
@@ -91,6 +98,7 @@ _MATCH: dict[str, str] = {
     "dotted_abbreviation": "normalised",
     "surface": "normalised",
     "rewritten": "normalised",
+    "qualified": "normalised",
     "fuzzy": "fuzzy",
     "hybrid": "hybrid",
 }
@@ -458,6 +466,48 @@ def _stage2(g: LineageGraph, text: str) -> list[Cand]:
     return out
 
 
+_QUALIFIERS = {"in", "of", "from"}  # "<column> in <model>" (S13c L1)
+
+
+def _qualified(g: LineageGraph, text: str) -> list[Cand]:
+    """S13c L1: "<column> in|of|from <model>" names a column and its model in words. The text is
+    split at each qualifier word; the right part (stopwords dropped) must name exactly one model
+    (its full name, layer prefix included, or its name without the prefix when no other model
+    has that body), and the left part must match one of that model's columns at the surface or
+    rewritten tier. Such a candidate gets tier ``qualified`` at the surface base: confident, so
+    the hybrid stage does not run and same-model siblings cannot outrank it. A phrase naming two
+    models, or no model, gives nothing."""
+    toks = split(text)
+    names = model_uids_by_name(g)
+    bodies: dict[tuple[str, ...], list[str]] = {}
+    for name, uids in names.items():
+        bodies.setdefault(tuple(model_body(name)), []).extend(uids)
+    out: dict[str, Cand] = {}
+    for i, t in enumerate(toks):
+        if t not in _QUALIFIERS or i == 0 or i == len(toks) - 1:
+            continue
+        left = toks[:i]
+        right = [x for x in toks[i + 1 :] if x not in STOPWORDS]
+        uids = names.get("_".join(right), [])
+        if not uids:
+            uids = bodies.get(tuple(rewrite(x) for x in right), [])
+            if len({(g.model_info(u) or {}).get("name") for u in uids}) != 1:
+                continue  # an unprefixed name shared by several models is not a qualifier
+        for uid in uids:
+            for cid in g.columns():
+                if g.model_of(cid) != uid:
+                    continue
+                tier, _, rules, _ = _match(
+                    Form(tuple(left)), split(g.nx_graph.nodes[cid]["name"]), []
+                )
+                if tier not in ("surface", "rewritten"):
+                    continue
+                prior, seed = _layer_of(g, cid)
+                out[cid] = Cand(cid, _col_row(g, cid, "qualified"), "qualified", SURFACE, 0.0,
+                                prior, seed, [*rules, f"qualified_{t}"])  # fmt: skip
+    return list(out.values())
+
+
 def _stage3(g: LineageGraph, text: str, index: SearchIndex) -> list[Cand]:
     out: list[Cand] = []
     bodies: dict[str, list[str]] = {}
@@ -524,7 +574,14 @@ def link(
 
     stage1 = _stage1(g, low)
     stage2 = _stage2(g, text)
-    confident = any(c.tier in ("surface", "rewritten") and c.raw >= NO_MATCH for c in stage2)
+    qualified = _qualified(g, text)
+    if qualified:  # the text names the model: other models' stage-2 readings are not meant
+        named = {g.model_of(c.cid) for c in qualified}
+        stage2 = [c for c in stage2 if c.row["kind"] == "column" and g.model_of(c.cid) in named]
+    stage2 = [*stage2, *qualified]
+    confident = any(
+        c.tier in ("surface", "rewritten", "qualified") and c.raw >= NO_MATCH for c in stage2
+    )
     stage3: list[Cand] = []
     if index is not None and not stage1 and not confident:
         stage3 = _stage3(g, text, index)

@@ -69,3 +69,108 @@ def test_plain_text_still_reaches_hybrid() -> None:
     """Only a dotted text is kept from stage 3; a description still goes there."""
     with pytest.raises(AssertionError, match="hybrid stage was reached"):
         link(graph(), "gift card balance", NoSearch())  # type: ignore[arg-type]
+
+
+# -- L1: "<column> in <model>" ---------------------------------------------------------------------
+
+
+def top(text: str, index: Any = None) -> tuple[list[str], bool, list[str]]:
+    from dlens.agent.tools.entity import AMBIGUOUS_GAP
+
+    cands, _ = link(graph(), text, index)
+    amb = len(cands) > 1 and cands[0].raw - cands[1].raw < AMBIGUOUS_GAP
+    return [c.row["id"] for c in cands], amb, [c.tier for c in cands]
+
+
+@pytest.mark.parametrize(
+    ("text", "want"),
+    [
+        ("line_margin in int_order_item_margins", "int_order_item_margins.line_margin"),  # dev-29
+        ("order_id in int_order_profit", "int_order_profit.order_id"),  # dev-40
+        ("revenue_marketing in fct_daily_revenue", "fct_daily_revenue.revenue_marketing"),  # dev-56
+        ("customer_id in int_customer_sessions", "int_customer_sessions.customer_id"),  # dev-71
+        ("customer segment in customer leaderboard", "fct_customer_leaderboard.customer_segment"),
+        ("last name in raw customers", "raw_customers.last_name"),  # dev-75: the layer is named
+    ],
+)
+def test_column_in_model_is_a_unique_qualified_top1_and_skips_hybrid(text: str, want: str) -> None:
+    ids, amb, tiers = top(text, NoSearch())
+    assert ids[0] == want and tiers[0] == "qualified" and not amb
+
+
+def test_wrong_model_is_not_qualified() -> None:
+    ids, _, tiers = top("line_margin in fct_orders")
+    assert "qualified" not in tiers
+
+
+def test_bare_column_is_unchanged() -> None:
+    _, _, tiers = top("line_margin")
+    assert "qualified" not in tiers
+
+
+# owner's negative tests (S13c decision 3)
+
+
+def test_number_of_orders_per_customer_is_not_qualified_and_dev15_links() -> None:
+    ids, amb, tiers = top("number of orders per customer")
+    assert "qualified" not in tiers
+    assert ids[0] == "dim_customers.order_count" and not amb
+
+
+def test_multi_model_phrase_gives_no_qualified_candidate() -> None:
+    with pytest.raises(AssertionError, match="hybrid stage was reached"):
+        top("revenue from fct_orders to dim_customers", NoSearch())  # not confident: no qualified
+    _, _, tiers = top("revenue from fct_orders to dim_customers")
+    assert "qualified" not in tiers
+
+
+def test_orders_in_the_last_month_gives_no_qualified_candidate() -> None:
+    _, _, tiers = top("orders in the last month")
+    assert "qualified" not in tiers
+
+
+def test_unprefixed_model_name_shared_by_several_models_is_not_qualified() -> None:
+    # "orders" is the unprefixed name of raw_orders, stg_orders and fct_orders
+    _, _, tiers = top("order_id in orders")
+    assert "qualified" not in tiers
+
+
+def test_qualified_drops_other_models_readings() -> None:
+    """The text names its model, so another model's stage-2 reading is not a candidate."""
+    ids, _, _ = top("last name in raw customers")
+    assert "stg_customers.last_name" not in ids
+
+
+# owner's conditions on the drop rule (S13c, decision 3 correction)
+
+
+def test_last_name_in_raw_customers_picks_raw_and_drops_stg() -> None:
+    ids, amb, tiers = top("last name in raw customers")
+    assert ids[0] == "raw_customers.last_name" and tiers[0] == "qualified" and not amb
+    assert "stg_customers.last_name" not in ids
+
+
+def test_unprefixed_non_unique_model_part_drops_nothing() -> None:
+    ids, _, tiers = top("order_id in orders")
+    assert "qualified" not in tiers
+    assert len({i.split(".")[0] for i in ids}) > 1  # other models' readings are kept
+
+
+def test_wrong_model_drops_nothing() -> None:
+    ids, _, tiers = top("line_margin in fct_orders")
+    assert "qualified" not in tiers
+    assert "int_order_item_margins.line_margin" in ids  # the real column is still a candidate
+
+
+def test_drop_applies_per_mention_only() -> None:
+    """Two mentions in one question are two resolve_entity calls; dropping other models'
+    readings for the qualified one leaves the other mention's candidates alone."""
+    from dlens.agent.tools import Toolbox
+
+    box = Toolbox(graph(), ROOT / "corpora" / "synthetic_shop")
+    first = box.call("resolve_entity", {"text": "last name in raw customers"}).llm_payload
+    second = box.call("resolve_entity", {"text": "last name"}).llm_payload
+    assert [c["id"] for c in first["candidates"]] == ["raw_customers.last_name"]
+    assert {"raw_customers.last_name", "stg_customers.last_name"} <= {
+        c["id"] for c in second["candidates"]
+    }
