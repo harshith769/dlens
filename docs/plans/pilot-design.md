@@ -176,6 +176,24 @@ DLENS_PROVIDER=gemini DLENS_GEMINI_MODEL=gemini-3.5-flash-lite GEMINI_DAILY_BUDG
   - The partial file is not committed. The owner re-runs the same command after the next reset
     (12:30 IST on 22 Oct 2026). That run rewrites the full file, and the result is committed
     only when it meets "Complete" (above).
+- **S4, quota day 22 Oct 2026 (PT): complete.** Same command, after the reset.
+  - 96/96 records. No record or step carries a `QuotaExceeded` or `ProviderError` error.
+  - The manifest's cache block: 378 hits and 55 misses. Records: 80 hit, 1 partial (dev-82),
+    10 miss (dev-83–88, dev-93–96), and 5 with no LLM call. The 5 are dev-19 and dev-89–92,
+    refused by code (unknown column) before any LLM call. `quota.used_today` is 55, equal to the
+    misses.
+  - LLM calls: 433 in the file, 4.51 per question (0 ×5, 3 ×3, 4 ×41, 5 ×26, 6 ×17, 7 ×4).
+    That count covers only the calls in the final records. The two days spent 475 + 55 = 530
+    quota calls in total, including the work lost in the crash and the counted failures.
+  - dev-75 and dev-87 end "no verifiable claims" (refused by the validator).
+  - **Split across passes:** dev-38 (the crash: the first pass's calls, then the resume's) and
+    dev-82 (the budget stop: 2 calls cached from 21 Oct and 2 fresh on 22 Oct).
+- **S4 latency (M15):** the response cache stores the response only (text, tool calls, usage),
+  not its latency. A replayed call's original latency is therefore lost. The S4 Gemini latency
+  comes from the **10 questions whose calls were all fresh in one pass** (dev-83–88, dev-93–96)
+  and is labelled **"small n"**. Those 10: p50 8.3 s, range 5.7–47.6 s. The three at 46–48 s
+  include waits on the 15-RPM limiter. metrics.py's own latency row (unchanged, M15) also counts
+  the 5 records with no LLM call as uncached, n = 15. The pilot table shows both n.
 - **Crash-class gap (recorded, not fixed now; owner decision, 21 Oct 2026):** the Gemini adapter
   does not map transport errors (`httpx.RemoteProtocolError` and other connection drops) to a
   retryable `ProviderError`. The error escapes the runner's retry-once path and stops the run
@@ -218,3 +236,5 @@ Design options per fix, and F5 (the transport-error gap, §3.1): `docs/plans/pos
 - 21 Oct 2026: §3.1 run log. S1 Gemini complete. S4 Gemini partial: a transport-error crash at
   dev-38, recorded as a crash-class gap (no fix, owner decision), then QuotaExceeded at dev-82.
   Resume after 12:30 IST on 22 Oct. Latency uses uncached questions only (M15).
+- 22 Oct 2026: §3.1 S4 Gemini complete (96/96, 55 fresh calls); latency from 10 all-fresh
+  questions ("small n"), since the cache does not store latency.
