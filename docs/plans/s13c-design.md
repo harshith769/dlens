@@ -1,6 +1,7 @@
 # S13c design: F1 option (d), F6 gate, linker items, adapters, seed (before the 7 Dec freeze)
 
-**Version:** 0.1 (22 Oct 2026). **Status:** design only, **no code**; every Decision PENDING.
+**Version:** 0.1 (22 Oct 2026). **Status:** decided by the owner, 22 Oct 2026 (below). Implementation in the order A1 → A2 → L2 →
+L1 → (F6 re-measure) → F1 (d1) → F6 → S.
 **Branch:** `s13-gates-linker` (matches CI's `s[0-9][0-9]-*`).
 **Inputs:** `docs/plans/post-pilot-fixes.md` (F1 option (d), F6 next design),
 `eval/reports/s13b_session.md` (carry-forward), `eval/reports/s13b/diagnosis.md`,
@@ -106,7 +107,7 @@ recovered at most 1 of 55.
 - The B3 outcome snapshot is unchanged: no existing test has indirect impact edges in a
   multi-column claim (to be confirmed by the A3-style in-process run before code).
 
-`Decision:` PENDING. Recommendation: **(d1) with the derivation-wording guard**.
+`Decision:` **APPROVED (d1) + derivation-wording guard** (owner, 22 Oct 2026), as designed.
 
 ---
 
@@ -158,9 +159,10 @@ model for the answer):
 - no index → no step;
 - a lineage question with evidence → no step.
 
-`Decision:` PENDING. Recommendation: **the two-condition gate above**. If the owner rejects it,
-the fallback is (2) a hit-score threshold, whose rule must be approved in writing before any
-score distribution is computed.
+`Decision:` **APPROVED, the two-condition gate** (owner, 22 Oct 2026). Condition: after the L2 and L1
+commits and before any F6 code, `scripts/s13c_measure.py --part f6` is re-run on the new linker.
+All 11 fixtures must keep the same split (run: dev-66, 78, 82, 84, 86; stay refused: dev-41,
+87, 93–96). If any flips: STOP and report. The A6 budget STOP stays as written.
 
 ---
 
@@ -194,6 +196,18 @@ then the candidate gets tier `qualified`, base = `SURFACE` (0.93). It is then "c
 hybrid stage does not run. "last name in raw customers" names the layer, so it picks
 `raw_customers.last_name`, not `stg_customers` (the dev-75 tie; B6 settled it in the loop, and
 now the linker settles it too).
+
+`Decision:` **APPROVED, the `qualified` tier** (owner, 22 Oct 2026), plus these negative tests:
+- "number of orders per customer" is not qualified (dev-15 still links to
+  `dim_customers.order_count`);
+- "revenue from fct_orders to dim_customers" gives no qualified candidate from a multi-model
+  phrase;
+- "orders in the last month" gives no qualified candidate;
+- a model part that matches only the unprefixed name when that name is **not** unique (e.g.
+  "order_id in orders") is not qualified.
+
+Linker-dev is reported before and after; linker-test separately, and no rule is ever adjusted in
+response to it.
 
 **Tests.** The five mentions above give a unique top-1 (not ambiguous). "line_margin in
 fct_orders" (wrong model) is not `qualified`. Bare "line_margin" is unchanged. The linker-dev
@@ -232,8 +246,13 @@ If any shown chunk differs, STOP. The pinned chunk-id-list sha (S12a A3 test) mu
 an edit to an existing test, owner approval needed. S1: a B8 change-log line (no `frozen_hashes`
 change). The demo bundle and presets are rebuilt in S15 anyway.
 
-`Decision:` PENDING. Recommendation: **do it, with the acceptance gate**. If S1's retrieval
-moves, defer to v1.0.
+Recommendation (v0.1): do it, with the acceptance gate; if S1's retrieval moves, defer to v1.0.
+
+`Decision:` **DEFERRED to after v1.0 (both parts)** (owner, 22 Oct 2026).
+- Reason: no user-visible change. `chunk_citation` already corrects citations, and with stable
+  ids, tie-breaking by id is stable.
+- It would also change S1's retrieval inputs before the freeze (rule 11).
+- The full design and measurements stay here. Moved to "Later" in the carry-forward.
 
 ### L4. dev-15 ("number of orders per customer")
 
@@ -241,8 +260,7 @@ The linker already gets it right: `dim_customers.order_count` 0.94, not ambiguou
 both models. The miss is S1's **retrieval** (the card is outside the top 5 for BM25, dense and
 hybrid; S1 Gemini refused). Fixing retrieval for it would move the frozen baseline on a single
 dev case.
-`Decision:` PENDING. Recommendation: **no change; recorded as a known paraphrase limit of the
-retrieval baseline.**
+`Decision:` **APPROVED: no change** (owner, 22 Oct 2026). A known paraphrase limit of the retrieval baseline.
 
 ### L5. "exchange rate"
 
@@ -250,6 +268,9 @@ This is `lk-no_match-016`, a **linker-test** case (gold: no match). Hybrid retur
 `stg_payments.amount_usd` 0.650 above tau. By linker-design §6 a linker-test case is never a
 target. **No rule is proposed for it.** L1–L2 are checked for whether they change it, and that is
 reported.
+
+`Decision:` **APPROVED: no rule** (owner, 22 Oct 2026). The session report states whether L1 / L2 change
+`lk-no_match-016`.
 
 ---
 
@@ -260,7 +281,7 @@ It raises `ProviderError(...) from None` inside `except httpx.HTTPError`, so `__
 holds the httpx error and its request (`Authorization` header). The fix is the F5 pattern: build
 the error in the `except` block and raise it after. A sentinel-key test checks every text form
 plus `__cause__` and `__context__`. Behaviour (messages, retryable) is unchanged.
-`Decision:` PENDING. Recommendation: **fix**.
+`Decision:` **APPROVED: fix** (owner, 22 Oct 2026), with a sentinel test (text forms, `__cause__`, `__context__`).
 
 ### A2. `ollama.py`: connection errors
 Today any exception becomes a `ProviderError` with `status_code` None, so `retryable` is False:
@@ -270,7 +291,7 @@ a dropped local connection (Ollama restarted, a model reload timeout) is never r
 - (b) Keep: a local server that is down stays down, so fail fast.
 
 Raise after the `except` block either way (no key, but the same pattern).
-`Decision:` PENDING. Recommendation: **(a)**.
+`Decision:` **APPROVED (a) retryable** (owner, 22 Oct 2026), raised after the `except` block.
 
 ---
 
@@ -354,8 +375,14 @@ not be told apart from a reconstruction difference. Not used.
 - the manifest records it;
 - the cache key differs from seed null.
 
-`Decision:` PENDING. Recommendation: **(a)**, seed 42, Ollama and Gemini alike, recorded before
-the 7 Dec freeze.
+`Decision:` **APPROVED: seed 42 for Ollama, S1 and S4 alike** (owner, 22 Oct 2026), with a B8 change-log line in
+`s1-design.md`.
+- **Gemini:** the seed field is implemented behind a manifest-recorded setting, **off by
+  default**. No determinism claim.
+- A one-call smoke command (seed 42, `--allow-cloud`, `GEMINI_DAILY_BUDGET=475`, printing only
+  the HTTP status / `ProviderError` class) is prepared for the owner, **not run**.
+- If it succeeds, turning the Gemini seed on is one commit with a test. If it fails, the Gemini
+  seed stays off, and that is recorded.
 
 ---
 
@@ -383,3 +410,8 @@ at the end, as in S13b; Gemini only by the owner, after a quota plan.
   - L3: 235 / 506 chunk ids move.
 
   Seed experiment (local Ollama, owner protocol): seed null 4 / 12 prompts vary, seed 42 0 / 12.
+- 22 Oct 2026: v1.0. Owner decisions:
+  - approved: F1 (d1) + guard; the F6 gate with a re-measure condition; L1 with four negative
+    tests; L2; L4 no change; L5 no rule; A1; A2 (a); the Ollama seed 42 for S1 and S4, with the
+    Gemini seed implemented but off pending a one-call owner smoke;
+  - deferred: L3 (both parts) to after v1.0.
