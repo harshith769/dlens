@@ -505,3 +505,8 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   `model_identity` (shared `eval/systems/manifest.py`, moved from s4.py) and `quota` (the effective
   daily budget, the counter's Pacific day key, calls used that day and the store, named only when
   outside the repo). `s1.frozen_hashes() == FROZEN` before and after (test).
+- 22 Oct 2026 (S13b, F5, ADR 0029): the Gemini adapter (`src/dlens/agent/llm/gemini.py`), which S1
+  also uses, now maps httpx transport errors to a retryable `ProviderError` and raises every
+  provider error with nothing chained. No B8 component changed (prompt, schema, budget rule,
+  retrieval settings, citation rule): `s1.frozen_hashes() == FROZEN` before and after (test). A
+  future S1 Gemini run gets one retry on a dropped connection instead of a crash.
