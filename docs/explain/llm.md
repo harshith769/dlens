@@ -115,12 +115,20 @@ option existed still hit.
   exception that is not a provider condition (a crash-class bug) is still not mapped, so it
   still stops the run.
 - **Known, not changed here.**
-  - `openai_compat.py` raises `from None` inside its `except`, so its `__context__` still holds
-    the httpx error (and that error's request, with the `Authorization` header) as an object.
-    Nothing prints it.
+  - ~~`openai_compat.py` raises `from None` inside its `except`~~ (fixed in S13c, A1, below).
   - `ollama.py` maps a connection error as non-retryable.
 
   Both are recorded for a later session.
+
+## `openai_compat.py` raises after the except block (changed in S13c, A1)
+- **What changed.** The transport-error branch now builds the `ProviderError` inside `except
+  httpx.HTTPError` and raises it after the block, as `gemini.py` does since S13b.
+- **Why.** `raise … from None` inside the block only hides the chain when printed: `__context__`
+  still held the httpx error, and its `.request` carries the `Authorization: Bearer <key>`
+  header.
+- **Guard kept.** Messages, `retryable` and status handling are unchanged. A sentinel-key test
+  checks `str`, `repr`, the formatted traceback, `__cause__` and `__context__` for transport
+  errors and for an HTTP 401.
 
 ## Alternatives rejected
 - **Mapping transport errors once in `LLMClient`, or a runner-level catch-all** (F5 options b,
@@ -163,3 +171,11 @@ S13b (F5, changed in S13b):
    still not enough to keep the key unreachable, and what does the adapter do instead?
 9. A 400 "API key not valid" comes back. Is it retried? What exactly is in the `ProviderError`'s
    message, and why can the message itself not leak the key?
+
+S13c (A1, changed in S13c):
+10. Why did the old `raise ProviderError(...) from None` inside the `except` block still leave
+    the key reachable, and what exactly does the adapter do now?
+11. A 401 comes back from a hosted endpoint. Is anything chained to the `ProviderError`? Why was
+    that path already safe before S13c?
+12. Which test would fail if someone moved the `raise` back inside the `except` block, and on
+    which attribute?

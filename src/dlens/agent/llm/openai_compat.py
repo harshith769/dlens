@@ -168,15 +168,18 @@ class OpenAICompatProvider(Provider):
         response_schema: dict[str, Any] | None = None,
     ) -> LLMResponse:
         url = f"{self.base_url}/chat/completions"
+        # The httpx error holds the request, and the request holds the key. `from None` inside the
+        # except block would still leave it on __context__, so the error is raised after the
+        # block: nothing is chained (S13c A1, as gemini.py since S13b F5).
+        err: ProviderError | None = None
         try:
             resp = self._client.post(
                 url, json=self.body(messages, tools, response_schema), headers=self._headers()
             )
         except httpx.HTTPError as exc:
-            # from None: the chained exception holds the request, and the request holds the key.
-            raise ProviderError(
-                f"{self.name} call failed: {type(exc).__name__}", retryable=True
-            ) from None
+            err = ProviderError(f"{self.name} call failed: {type(exc).__name__}", retryable=True)
+        if err is not None:
+            raise err from None
         if resp.status_code >= 400:
             body = " ".join(resp.text.split())[:ERROR_BODY_CHARS]
             raise ProviderError(
