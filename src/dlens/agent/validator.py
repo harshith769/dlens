@@ -9,7 +9,8 @@ Rules run in this order on a copy of the answer (the raw draft is never modified
   R3 on_disk          every cited citation still holds on disk (range exists, contains the column:
                       a direct edge's to column, an indirect edge's from column or guarded key)
   R4 known_nodes      every model.column / model name in the prose is in the graph (hallucinated)
-                      and in this question's evidence (unsupported)
+                      and in this question's evidence (unsupported); alias.column of a SQL
+                      alias in the evidence's model files is not a node name (skipped)
   R5 kind_consistency kind words in a claim ("aggregated", "renamed") match a cited edge's kind
   R7 relevance        a claim that names entities cites at least one id that touches one of them
   R8 connectivity     a claim naming >= 2 columns connects them all through its cited edges
@@ -43,6 +44,7 @@ from pydantic import BaseModel, Field
 from dlens.agent.answer import Answer, Claim, Ledger, Origin
 from dlens.agent.tools.provenance import (
     Citation,
+    alias_names,
     contains_word,
     graph_files,
     key_on_lines,
@@ -147,6 +149,7 @@ class ValidationContext:
     question_entities: set[str] = field(default_factory=set)  # in-graph keys named in question
     fact: dict[str, Any] | None = None  # the r_ reachability fact's record (R9), if code made one
     _files: dict[str, str | None] = field(default_factory=dict)
+    _aliases: set[str] | None = None
 
     @classmethod
     def build(cls, ledger: Ledger, question: str = "") -> ValidationContext:
@@ -181,6 +184,21 @@ class ValidationContext:
                 Path(self.ledger.project_dir), file, graph_files(self.ledger.graph)
             )
         return self._files[file]
+
+    def aliases(self) -> set[str]:
+        """S13b F2: the relation aliases (ref / source aliases, CTE and derived-table names) of
+        the models in this question's evidence, read from their source files. A name that is
+        also a real model is left out: it is checked as the model."""
+        if self._aliases is None:
+            g = self.ledger.graph
+            found: set[str] = set()
+            for name in sorted(self.evidence_models):
+                for uid in self.model_uids.get(name, []):
+                    file = (g.model_info(uid) or {}).get("file", "")
+                    if file.endswith(".sql"):
+                        found |= alias_names(self.read(file) or "")
+            self._aliases = found - set(self.model_uids)
+        return self._aliases
 
     def _add_column(self, text: str) -> None:
         key = text.lower()
@@ -527,6 +545,8 @@ def rule_known_nodes(answer: Answer, ctx: ValidationContext) -> list[ValidationF
         for e in ctx.entities(text):
             if e.text in ctx.evidence_sql:
                 continue  # shown verbatim in a SQL excerpt (e.g. a CTE column)
+            if e.kind == "column" and e.key.rsplit(".", 1)[0] in ctx.aliases():
+                continue  # S13b F2: alias.column is not a node name (neither verdict)
             if not ctx.in_graph(e):
                 out.append(
                     ValidationFailure(

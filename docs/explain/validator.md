@@ -126,8 +126,31 @@ A dotted identifier that appears verbatim in a SQL excerpt a tool showed (e.g. a
 - **Catches:** "fct_orders.discount_pct comes from…" (hallucinated); "…also feeds
   stg_payments.amount_usd" when no tool returned it (unsupported).
 - **False-positive risk:** bare column names are not checked (too noisy), so some
-  hallucinations slip through. A CTE alias written dotted but not shown in any excerpt is
-  flagged as hallucinated.
+  hallucinations slip through.
+
+**SQL alias tokens (changed in S13b, F2, option (a)).**
+- *What.* `alias.column`, where `alias` is a relation alias in the source file of a model in
+  this question's evidence, is **not a node name**. It is neither hallucinated nor supported,
+  so R4 skips it. The aliases are `{{ ref(...) }}` / `{{ source(...) }}` aliases (with or
+  without `as`), CTE names and derived-table names (`provenance.alias_names`).
+- *How the names are found.* Alias tokens come from a regex over the source file, used only to
+  mark a token "not a node name". No edge is built from them, and they are not a lineage parse.
+- *Why.* The model sometimes writes the SQL alias instead of the model name:
+  `DATE_TRUNC('MONTH', orders.order_date)` for `{{ ref('fct_orders') }} as orders`. Metrics M3
+  never counted such a token as a mention, while R4 called it hallucinated. On dev-46 that
+  turned a correct answer into "no verifiable claims" (a false refusal). Now the validator and
+  the metric read the same token the same way (rule 12).
+- *Why skip, not rewrite.* `orders` names three different models across dev-46's files.
+- *Guards that stay.*
+  - An alias that is also a real model name is checked as that model.
+  - An unknown `foo.bar` (not an alias of an evidence model, not a node) still fails
+    `R4.hallucinated`.
+  - So does a real model's unknown column (`fct_orders.net_paid_us`).
+  - R7 and R8 never counted alias tokens (they are not in-graph entities).
+- *The cost, stated.* Two dev claims the prep audit classed as gold-inconsistent now pass:
+  dev-44 #1 (`rfm_scores.*`, a CTE) and dev-45 #0 (`margins_monthly.*`, a derived table). Both
+  are inconsistent only because of the alias token itself, and their real nodes are in the gold
+  set. Both are pinned as tests.
 
 ### R5 `rule_kind_consistency`: kind words match the cited edges
 It runs only when the claim cites ≥1 edge. For every word group that matches, at least one cited
@@ -482,3 +505,12 @@ S13b (F4, changed in S13b):
     and why? What about `e_81a3`?
 19. Why was the value 5 fixed before the diagnosis ran, and why does a dev-16-style fix still
     need the test set after the 7 Dec freeze as its honest check?
+
+S13b (F2, changed in S13b):
+20. dev-46's claim says "derived from fct_orders.order_date using DATE_TRUNC('MONTH',
+    orders.order_date)". Walk through R4 before and after F2. Why would rewriting `orders` to a
+    model name be unsafe, while skipping it is not?
+21. A claim mentions `stg.nope_col`, and `stg` is both a model and an alias in another model's
+    SQL. What does R4 say, and why?
+22. Alias names come from a regex over the source file, not from the lineage engine. What may
+    they be used for, what may they never be used for, and which metric rule do they mirror?

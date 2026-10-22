@@ -99,6 +99,32 @@ def relation_names(sql: str) -> set[str]:
     return names
 
 
+# A Jinja ref()/source() call and the alias written after it, with or without AS (S13b F2).
+_JINJA_RELATION = re.compile(
+    r"\{\{\s*(?:ref|source)\s*\(\s*(?:['\"][^'\"]*['\"]\s*,\s*)*['\"][^'\"]*['\"]\s*\)\s*\}\}"
+    r"\s+(?:as\s+)?([A-Za-z_]\w*)",
+    re.I,
+)
+# Words that may follow a relation without being its alias (the next clause or a join).
+_NOT_ALIAS = frozenset(
+    "left right inner outer full cross natural lateral join on using where group order limit "
+    "union intersect except qualify having window select from as".split()
+)
+
+
+def alias_names(sql: str) -> set[str]:
+    """Names a model's SQL text binds to a relation: its CTE and derived-table names
+    (``relation_names``) and the aliases of its ``{{ ref(...) }}`` / ``{{ source(...) }}`` calls
+    (``{{ ref('fct_orders') }} as orders``, or with no ``as``). R4 uses them only to read
+    ``alias.column`` in prose as "not a node name" (S13b F2); no edge is built from them. A regex
+    over the source file, like ``relation_names`` and metrics M7 (iv-k+), not a lineage parse."""
+    names = relation_names(sql)
+    for alias in _JINJA_RELATION.findall(sql):
+        if alias.lower() not in _NOT_ALIAS:
+            names.add(alias.lower())
+    return names
+
+
 def key_on_lines(key: str, file_text: str, lines: str) -> bool:
     """An indirect edge's clause key ``rel.col`` names the cited lines: ``rel`` is a CTE or
     derived alias of the file and ``col`` is on the lines as a whole word."""

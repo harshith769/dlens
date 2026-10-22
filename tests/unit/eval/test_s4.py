@@ -195,7 +195,7 @@ def test_main_refuses_a_cloud_provider_without_allow_cloud(
 # The S12b run reused by the qwen pilot row (pilot-design §1): a frozen record, never changes.
 PILOT_AGENT_SHA = "a6fb5b2e49fe9a104c3828c402d186196601c50c4ea25dadef0dbc982952b424"
 # The live agent code (S13b A2): updated in the same commit as every change under src/dlens/agent.
-CURRENT_AGENT_SHA = "cefa5f0bd19849a2b68b4f2c5d98db51dd07530e1eab19570e30ec22b7e69772"
+CURRENT_AGENT_SHA = "77e25642205637bb458f3dc66703ffa75a57d68b4a1861bd08aa9e3b20ceb6d7"
 
 
 def test_pilot_reuse_holds_agent_code_unchanged_since_s12b() -> None:
