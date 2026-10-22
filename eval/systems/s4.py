@@ -248,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ids", default=None, help="comma-separated question ids (checks)")
     ap.add_argument("--no-hybrid", action="store_true", help="linker without the hybrid stage")
     ap.add_argument(
+        "--prefix", default=SYSTEM, help="records file name prefix (S13b diagnostic: s13b)"
+    )
+    ap.add_argument("--purpose", default=None, help="a 'purpose' line for the manifest")
+    ap.add_argument(
         "--allow-cloud",
         action="store_true",
         help="allow a cloud provider (spends quota; never used in S12)",
@@ -279,11 +283,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"s4: {status}", file=sys.stderr)
     agent = Agent(client, Toolbox(graph, project_dir, index), project=CORPUS)
     records = run(agent, questions, log=sys.stderr)
-    path = ns.out / f"{SYSTEM}-{slug(client.provider.model)}-dev.jsonl"
+    path = ns.out / f"{ns.prefix}-{slug(client.provider.model)}-dev.jsonl"
     write_records(records, path)
-    write_manifest(
-        path, manifest(records, path, agent, index, status, ns.questions, ns.allow_cloud)
-    )
+    man = manifest(records, path, agent, index, status, ns.questions, ns.allow_cloud)
+    if ns.purpose:
+        man["purpose"] = ns.purpose
+    write_manifest(path, man)
     print(f"s4: {len(records)} records → {path.name}", file=sys.stderr)
     return 0
 
