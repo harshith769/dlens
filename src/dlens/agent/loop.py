@@ -473,13 +473,17 @@ class Agent:
                 second = self._regenerate(question, regen, partial)
             if second is not None:
                 v["second"] = _summary(second)
-                if second.passed:
+                if second.passed and not second.skipped:
                     v.update(passed=True, repairs=second.repairs, completions=second.completions)
                     out = second.cleaned_answer
                     return out
+                if second.skipped:  # S13b F3: a refused regenerate is not a pass; salvage
+                    self.record.stop_reason += "+regenerate_refused"
 
-        # Still failing (or no call left): keep only passing claims, with a warning.
-        rounds = [r for r in (second, first) if r is not None]  # ties go to the second
+        # Still failing, the regenerate refused, or no call left: keep only passing claims, with
+        # a warning. A refused regenerate is never a round to salvage from (S13b F3): the first
+        # draft was not a refusal (it failed validation), so its passing claims are kept.
+        rounds = [r for r in (second, first) if r is not None and not r.skipped]  # ties: second
         best = max(rounds, key=lambda r: len(r.cleaned_answer.claims) - len(r.dropped_claims))
         v.update(
             passed=False,

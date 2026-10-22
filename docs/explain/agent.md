@@ -250,6 +250,21 @@ The snippet is project text, quoted as data; it may be stale (the SQL wins).
   (`+regenerate_skipped_budget`) and the answer is salvaged. No call is sent over the cap. A
   worst-case reserve (~803) was rejected: it would cost every question a third of its evidence
   budget to protect a turn only some take.
+- **A refused regenerate is not a pass (changed in S13b, F3).** `validate()` marks a refusal
+  `passed=True, skipped=True`, because a refusal has no claims to check.
+  - *Before:* `_validate` returned a refused regenerate as if it had passed, so the first
+    draft's checked claims were thrown away. On dev-75 (qwen pilot) the first draft had the right
+    verdict and two passing claims; the regenerate refused, and the answer became a refusal.
+  - *Now:* the regenerate only happens after a non-refused first draft failed. When it refuses,
+    the loop goes to salvage (`stop_reason` `+regenerate_refused`), and the refused round is
+    never a salvage candidate.
+  - *Salvage itself is unchanged.* It keeps the first draft's passing claims with a warning.
+    It sets a verdict with source `code` only after an R9 failure on an `r_` fact; otherwise the
+    model's own field is kept (source `llm`; dev-75 has no fact, so its `no` stays `llm`).
+  - *Guards kept.* A first draft that was itself a refusal is still returned as is (no
+    regenerate). With no passing first-draft claim and no fact, the answer is still a refusal,
+    now the validator's "no verifiable claims" with the warning flag. A regenerate that passes
+    with claims is unchanged. The raw view still reads the first draft (`record.draft`).
 - **Tool error payloads** go back to the model as normal tool results.
 - **Provider errors**: a non-retryable `ProviderError`, `QuotaExceeded` or `InputTooLarge`
   becomes a refused answer with the reason. A retryable provider error gets one retry.
@@ -400,3 +415,12 @@ Earlier:
 15. (S12b, B7) A tie of 3 unrelated columns, and the model stops after resolve_entity. How many
     LLM calls and code steps does the run take, and what does it return if none of the traces
     finds an edge?
+
+S13b (F3, changed in S13b):
+16. dev-75's regenerate refused. Walk through `_validate` before and after F3: which round is
+    salvaged, which claims survive, and why does `reach_verdict` end `no` with source `llm` and
+    not `code`?
+17. The first draft fails R9 against an `r_` fact, and the regenerate refuses. What does the user
+    get, which `origin` does its first claim carry, and which view of metrics counts the verdict?
+18. Why is a refused regenerate excluded from the salvage candidates instead of competing on
+    kept claims (0 vs the first draft's count, ties going to the second round)?
