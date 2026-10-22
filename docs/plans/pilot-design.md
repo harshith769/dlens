@@ -183,8 +183,9 @@ DLENS_PROVIDER=gemini DLENS_GEMINI_MODEL=gemini-3.5-flash-lite GEMINI_DAILY_BUDG
     refused by code (unknown column) before any LLM call. `quota.used_today` is 55, equal to the
     misses.
   - LLM calls: 433 in the file, 4.51 per question (0 ×5, 3 ×3, 4 ×41, 5 ×26, 6 ×17, 7 ×4).
-    That count covers only the calls in the final records. The two days spent 475 + 55 = 530
-    quota calls in total, including the work lost in the crash and the counted failures.
+    That count covers only the calls in the final records. Quota counted (local counter):
+    21 Oct 475 (S1 96 + S4 379, the S4 share includes the one call lost in the dev-38 crash),
+    22 Oct 55. Total 530 Gemini calls (S1 96 + S4 434) over two Pacific days.
   - dev-75 and dev-87 end "no verifiable claims" (refused by the validator).
   - **Split across passes:** dev-38 (the crash: the first pass's calls, then the resume's) and
     dev-82 (the budget stop: 2 calls cached from 21 Oct and 2 fresh on 22 Oct).

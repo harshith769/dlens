@@ -41,14 +41,16 @@ Temperature: the local qwen panel runs at **temperature 0**, the Gemini panel at
 
 ## Cost (uncached runs only for latency, M15)
 
-| row | latency p50 / p95 (s) | uncached / cached records | tokens / question mean (p95) | LLM calls / question |
-|---|---|---|---|---|
-| S0-gold | – | – | – | 0 |
-| S0-linked (hybrid on) | – | – | – | 0 |
-| S1 | 9.2 / 15.2 | 96 / 0 | 2324 (2557) | 1.00 |
-| S4 raw | 8.9 / 30.4 | 96 / 0 | 3502 (7020) | 3.32 |
-| S4 validated | 8.9 / 30.4 | 96 / 0 | 3502 (7020) | 3.32 |
-| S4 augmented | 8.9 / 30.4 | 96 / 0 | 3502 (7020) | 3.32 |
+| row | latency p50 / p95 (s) | uncached / cached records | all-fresh LLM questions: p50 / p95 (s) (n) | tokens / question mean (p95) | LLM calls / question |
+|---|---|---|---|---|---|
+| S0-gold | – | – | – | – | 0 |
+| S0-linked (hybrid on) | – | – | – | – | 0 |
+| S1 | 9.2 / 15.2 | 96 / 0 | 9.2 / 15.2 (n = 96) | 2324 (2557) | 1.00 |
+| S4 raw | 8.9 / 30.4 | 96 / 0 | 9.4 / 30.4 (n = 91) | 3502 (7020) | 3.32 |
+| S4 validated | 8.9 / 30.4 | 96 / 0 | 9.4 / 30.4 (n = 91) | 3502 (7020) | 3.32 |
+| S4 augmented | 8.9 / 30.4 | 96 / 0 | 9.4 / 30.4 (n = 91) | 3502 (7020) | 3.32 |
+
+metrics.py's latency (M15) counts every record with no cached call, including records with no LLM call at all (code refusals). The all-fresh column keeps only questions with ≥ 1 LLM call and none cached; under 30 it is labelled small n. Latency includes waits on the client rate limiter.
 
 ## node-set F1 by hop bucket (the headline chart's data)
 
