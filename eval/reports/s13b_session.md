@@ -145,9 +145,6 @@ same evidence and prompts: model run-to-run variation at temperature 0, with no 
   holds the httpx error and its request (`Authorization` header) as an object. Nothing prints
   it.
 - `ollama.py` maps a connection error as non-retryable (status None).
-- `docs/explain/validator.md`, "The flow in the loop", step 3 reads "if the regenerated draft
-  passes"; since F3 a refused regenerate does not count. The full F3 text is in `agent.md`
-  (the file the design names).
 
 ## Carry-forward
 

@@ -346,7 +346,11 @@ It finds file paths (`*.sql|csv|yml|yaml`) and `line N` / `lines N-M` / `lines N
    the same answer-phase prompt plus a short list of what failed (rule and failing id or
    identifier per line, at most ~300 tokens; on R9, the graph-check fact first). The new draft
    is validated.
-3. If the regenerated draft passes, it is the answer (`regenerated: true`).
+3. If the regenerated draft passes, it is the answer (`regenerated: true`). **Changed in S13b
+   (F3):** a *refused* regenerate after a non-refused first draft does not count as passing,
+   even though `validate()` marks a refusal `passed=True, skipped=True`. It goes to salvage
+   (step 4), and the refused round is never a salvage candidate. The full text is in agent.md,
+   "A refused regenerate is not a pass".
 4. If both drafts fail, or no call is left, **salvage**: take the round with more passing claims
    (ties go to the regenerated one) and keep only its passing claims. **Rebuild `answer_text`
    from the kept claims' texts** whenever a claim was dropped, or the text itself failed (R2,
