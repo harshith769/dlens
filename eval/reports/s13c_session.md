@@ -19,9 +19,9 @@ merges). **Design:** `docs/plans/s13c-design.md` v1.1 (decisions and the L1 corr
 | L3 chunker + tie-break | **DEFERRED** to after v1.0 (moved to "Later") |
 | L4 dev-15, L5 "exchange rate" | no change / no rule (as approved) |
 | Diagnostics | 08f7f77: post-S13c qwen dev run (seed 42) + S0-linked hybrid on (new files) |
-| Agent sha | `2a2d9b1e91e4c697488e8981c709ae932f1efd0cde8fdd88b7c912bae30dcd88` |
+| Agent sha | `4a643557e1a292f28823cb1dd2ee64d08cd714007f1b05bfa2df3e70b3ef0daf` (after the CI fix b5b2b7e; the diagnostic ran on `2a2d9b1e…`, see below) |
 | Cloud LLM calls | **0**. The Gemini seed smoke is prepared, not run. No `.env` read |
-| CI | see the run for the pushed head |
+| CI | first push (5129b37, run 39832379870) **failed**: the core install lacked httpx (A2 bug); fixed in b5b2b7e; see the run for the pushed head |
 
 ## Decisions (owner, 22 Oct 2026) and what was built
 
@@ -90,7 +90,9 @@ mention are dropped.
 | f68db17 | F6 gate (+ budget measurement part) |
 | 9abd0dc | seed; Gemini seed opt-in; owner smoke script |
 | 08f7f77 | diagnostics (runs + report) |
-| this commit | this report |
+| 5129b37 | this report (first version) |
+| b5b2b7e | **bug fix:** `ollama.py` imports httpx lazily (CI core install has no httpx) |
+| this commit | report update |
 
 ## Tests
 
@@ -186,6 +188,23 @@ calls.
 - **Explain gate:** new "changed in S13c" sections, each with explain-back questions, in
   `docs/explain/llm.md` (A1, A2, S), `linker.md` (L1, L2), `validator.md` (F1) and `agent.md`
   (F6).
+
+## CI failure and fix
+
+The first push (5129b37, CI run 39832379870) failed on the 4 jobs that run the core install: both
+`lint-test` jobs (the core step) and both `core-artifacts` jobs.
+- **Cause:** A2 added a top-level `import httpx` to `src/dlens/agent/llm/ollama.py`. The CLI
+  imports that module (`cli → loop → strip_think`), and the core install has no httpx (it comes
+  with the agent extra), so `dlens` could not start. Locally every extra was installed, so
+  `make test` passed.
+- **Fix (b5b2b7e, its own commit):** httpx's `TransportError` is looked up only where it is
+  caught. Without httpx, only `ConnectionError` is mapped, and no httpx error can occur then.
+  Behaviour with the agent extra is unchanged.
+- **Checked:** an import blocker for httpx, ollama, google.genai, bm25s, onnxruntime and
+  streamlit, and `import dlens.cli` succeeds.
+- **The diagnostic run** (agent `2a2d9b1e…`) predates the fix. The fix changes only where httpx
+  is imported, so with the agent extra installed (the run's environment) the behaviour is
+  identical. The run is not repeated.
 
 ## Carry-forward
 
