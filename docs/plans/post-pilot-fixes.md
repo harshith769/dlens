@@ -1,6 +1,7 @@
 # Post-pilot fixes (design only, S13)
 
-Status: **design, no code.** Written 21 Oct 2026, during the S13 pilot freeze. Every fix below
+Status: **decided at S13b STOP 1 (22 Oct 2026):** F2, F3, F4, F5 approved; F1 and F6 deferred.
+Written 21 Oct 2026, during the S13 pilot freeze, as a design with no code. Every fix below
 changes `src/dlens/agent/**`, so it changes `s4.agent_code_sha256()`. Nothing here runs before
 the pilot table is committed and an approved plan names the fix (CLAUDE.md: validator rules
 change only when the plan names them). F1–F4 come from `docs/plans/pilot-design.md` §4 and the
@@ -24,6 +25,24 @@ The same rule for all five fixes:
    that.
 4. **Guard tests.** Each fix lists the existing guard it must not weaken (below), and the guard's
    current tests must still pass unchanged.
+
+## Rules stated before looking (S13b, owner, 22 Oct 2026)
+
+Recorded verbatim, as stated before the step 0 diagnosis ran (`scripts/s13b_diagnose.py`,
+`eval/reports/s13b/diagnosis.md`):
+
+- F1 hop bound: if the diagnosis shows option (a) applies, the new MAX_COMPLETION_HOPS = the longest
+  shortest-bridge among the gold-consistent dropped claims, and it may not exceed 6. If any needed
+  bridge is longer than 6, option (a) alone is reported as insufficient, with no larger bound.
+- F4 prefix: MIN_PREFIX_HEX = 5 as written in the design; the uniqueness check stays; no other value
+  is tried.
+- F6 threshold: no minimum hit-score threshold is added in S13b unless the diagnosis shows an
+  unanswerable dev question that would get a docs-based answer. If so, STOP; a threshold rule is then
+  proposed in writing before any value is computed.
+
+**Step 0 fidelity (owner amendment A1).** The diagnosis rebuilds each question's ledger from the
+committed records and re-runs the e072c38 validator on the recorded drafts. Every validated
+record reproduces its recorded outcome: qwen 77 / 77 and Gemini 88 / 88. No question was excluded.
 
 ---
 
@@ -65,7 +84,27 @@ fails.
 
 **Guard not weakened.** R7 (a cited edge touches a named column), the "directly" guard.
 
-Decision: PENDING
+**Step 0 finding (S13b).** 58 R8-failed claims across both models and both rounds; 55 are
+gold-consistent.
+- The audit's cases are not blocked by the hop bound. dev-53 ×4 and dev-65 ×4 (and Gemini's
+  dev-60, dev-69, dev-71) have **no direct path**: their named columns are joined in the ledger
+  only through indirect (JOIN/FILTER) edges, in 2–4 hops, and R8c never bridges those
+  (s12-design A5).
+- dev-72 claim 0 needs a 5-hop direct bridge. dev-72 claim 1 is a "directly" claim and must
+  still fail.
+- The before-looking rule gives a bound of **5** (one qualifying claim). On the gold-consistent
+  claims, (a) bound 5 recovers 1 of 55, (b) 0, (c) 1.
+- With `MAX_COMPLETION_HOPS = 5` every existing agent test passes. The before-looking bound rule
+  stays recorded as is.
+
+**Option (d), design only: to be designed in a later session, not decided.** R8c path completion
+may traverse indirect edges when the question family's traversal allowlist includes them (impact:
+direct + indirect; trace: direct only), the same allowlist as A5 / ADR 0026. The "directly" guard
+and the sibling-only guard stay. Its guards, negative tests and any bound must be written before
+code. It was proposed after seeing the dev cases, so the honest check is the test set after the
+7 Dec 2026 freeze.
+
+Decision: DEFERRED (owner, 22 Oct 2026). No validator change for F1 in S13b.
 
 ---
 
@@ -101,7 +140,26 @@ also a real model name is checked as the model.
 
 **Guard not weakened.** R4.hallucinated on real unknown identifiers.
 
-Decision: PENDING
+**Step 0 finding (S13b).** 37 R4.hallucinated failures; 31 are on alias tokens of a ledger model's
+compiled SQL (sqlglot, read-only), and none of these qualifiers is also a model name.
+- `orders` names **three** models across dev-46's files (fct_orders, int_orders_enriched,
+  stg_orders), which confirms that (b) is unsafe.
+- Simulated (a) recovers dev-30 (second round passes) and dev-46 (both rounds pass, so the false
+  refusal goes away), plus dev-27 (`promotions.*`, a ref alias, no gold mention).
+- It also lets through two claims the audit classes as gold-inconsistent, dev-44 #1
+  (`rfm_scores.*`, a CTE) and dev-45 #0 (`margins_monthly.*`, a derived table). Both are
+  inconsistent **only because of the alias token itself**: case (i). The audit's gold class
+  counts a CTE-kind mention, which M3 ignores.
+  - dev-44 #1 also names dim_customer_rfm.rfm_score and dim_customers.lifetime_value, both in
+    the gold set.
+  - dev-45 #0 also names fct_monthly_finance.contribution_margin, in the gold set.
+  - Neither names a real non-gold node.
+- Non-alias failures (`int_order_profit.product_id`, `fct_orders.net_paid_us`,
+  `model.fct_order_margins`) still fail.
+
+Decision: APPROVED (a), owner, 22 Oct 2026. Reason: symmetry with M3 / M7 (rule 12); a ref-only
+variant would make the validator and the metric disagree on CTE tokens. Condition: dev-44 #1 and
+dev-45 #0 are named fixtures in the F2 tests with their expected outcome under (a).
 
 ---
 
@@ -138,7 +196,17 @@ was itself a refusal is unchanged. A regenerate that passes with claims is uncha
 **Guard not weakened.** Salvage still drops every failing claim; a refusal with no passing
 first-draft claim stays a refusal.
 
-Decision: PENDING
+**Step 0 finding (S13b).** One case on both models: qwen dev-75.
+- Salvaging its first round keeps 2 claims (the two identity claims) and drops claim 0 (R8).
+- `reach_verdict` stays `no` with source **`llm`**. This is what the existing, unchanged salvage
+  already does whenever it salvages a round with no R9 failure: it keeps the model's field.
+- dev-75 has no `r_` fact, so R9 does not run on it, and code sets no verdict. That is case (i)
+  of the owner's condition. No code carries the first draft's verdict (that would be option (b),
+  not approved).
+
+Decision: APPROVED (a), owner, 22 Oct 2026. Condition: F3 changes only the routing in
+`loop._validate`; salvage itself is unchanged. One test asserts the salvaged verdict's source is
+`llm`, not `code`.
 
 ---
 
@@ -173,7 +241,14 @@ repaired.
 
 **Guard not weakened.** R2 on an id that matches nothing or more than one ledger id.
 
-Decision: PENDING
+**Step 0 finding (S13b).** 8 R2 failures on both models.
+- One repairs at 5 hex: dev-16's `e_81a3f` → `e_81a3f693`, unique, the gold-consistent edge
+  int_customer_order_history.previous_order_date → fct_orders.previous_order_date. The claim then
+  passes every rule.
+- No 5-hex repair is ambiguous or lands outside the gold set. The other 7 match nothing.
+- With `MIN_PREFIX_HEX = 5` every existing agent test passes, including the B3 outcome snapshot.
+
+Decision: APPROVED (a), owner, 22 Oct 2026.
 
 ---
 
@@ -214,7 +289,19 @@ non-retryable.
 **Check.** Not a quality fix, so no score check: the unit tests above, and the next cloud run
 completes or records the error per question.
 
-Decision: PENDING
+**Step 0 finding (S13b).**
+- The Gemini adapter catches only `errors.APIError`, re-raised `from exc`.
+- `openai_compat.py` catches `httpx.HTTPError`, raised `from None`.
+- `ollama.py` catches every exception, `from exc`. It marks a connection error **non-retryable**
+  (status None), which is recorded and not changed here.
+- **A4 (key safety):** a stub puts the key in the `x-goog-api-key` header and the URL query and
+  passes it through the SDK's own `APIError.raise_for_response` and the adapter.
+  - No `str`, `repr` or formatted traceback of the `ProviderError` or its cause contains the key.
+  - But `from exc` keeps the SDK error, whose `.response.request` holds the header and the URL:
+    the key is **reachable as an object**.
+
+Decision: APPROVED (a), owner, 22 Oct 2026, with the A4 sub-item: the `APIError` path is also
+raised `from None` (same rule as `openai_compat.py`), with a sentinel test.
 
 ---
 
@@ -271,7 +358,27 @@ the model still under-uses docs once it has hits.
 records). No dev re-score loop. The honest check is Ask and refusal accuracy on test after the
 7 Dec 2026 freeze, scored on a blind sheet.
 
-Decision: PENDING
+**Step 0 finding (S13b).** qwen ended 11 dev questions with "no lineage evidence": 5 Ask, 1 trace
+(dev-41), 1 impact (dev-66) and **4 unanswerable (dev-93, dev-94, dev-95, dev-96)**. Every one had
+an index, and none called search_docs.
+- The 4 unanswerable ones refuse at exactly the point where (a)'s code step would run.
+- search_docs has no score threshold (7–8 hits each), so (a) as designed turns 4 correct refusals
+  into docs-based answer phases.
+- dev-19 and dev-89–92 refuse earlier (unknown column, no LLM call).
+- The F6 threshold rule above applies.
+
+**Next design (a later session, with F1 option (d) and the linker carry-forward), in this order
+of preference, guards written before code:**
+1. A non-threshold gate: the code search_docs step runs only when the question resolves to at
+   least one known node or doc term through the linker / known-node check. An unknown model or
+   column takes the existing clarification / refusal path (ties in with dev-93 in the linker
+   list).
+2. Only if (1) cannot separate them: a hit-score threshold, with the rule stated in writing and
+   approved before any score distribution is computed, and recorded as chosen after seeing dev.
+
+The 5 qwen Ask refusals and the 4 unanswerables become the fixture set for that design.
+
+Decision: DEFERRED (owner, 22 Oct 2026). No F6 code in S13b.
 
 ---
 
@@ -281,3 +388,8 @@ Decision: PENDING
   run. Design only; every decision pending; no code.
 - 22 Oct 2026 (S13 follow-up): F6 Ask refusals (qwen 5/12, "no lineage evidence", search_docs
   never called). Design only; decision pending.
+- 22 Oct 2026 (S13b, step 1): the before-looking rules recorded verbatim; step 0 findings per
+  fix (`eval/reports/s13b/diagnosis.md`, fidelity 77/77 and 88/88). Owner decisions at STOP 1:
+  F2 (a), F3 (a), F4 (a) and F5 (a) + the A4 `from None` sub-item approved. F1 deferred, with
+  option (d) recorded as design only. F6 deferred: the threshold STOP applied (dev-93–96), and a
+  gate-first next design is recorded.
