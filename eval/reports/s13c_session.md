@@ -109,8 +109,11 @@ mention are dropped.
 | `tests/unit/test_smoke_gemini_seed.py` | The owner smoke refuses without `--allow-cloud` or the pinned env |
 
 **Existing tests edited (before → after):**
-- `tests/unit/eval/test_s4.py`: `CURRENT_AGENT_SHA` updated in each agent-code commit (A2 rule)
-  → `2a2d9b1e…cd88`.
+- `tests/unit/eval/test_s4.py`: `CURRENT_AGENT_SHA` updated in each agent-code commit (A2 rule).
+  - **Final pinned value: `4a643557e1a292f28823cb1dd2ee64d08cd714007f1b05bfa2df3e70b3ef0daf`**
+    (after the CI fix b5b2b7e).
+  - It equals `s4.agent_code_sha256()` at HEAD 55b91aa (checked, and pinned by the test).
+  - `2a2d9b1e…cd88` was the value at the seed commit (9abd0dc), the code the diagnostic ran on.
 - `tests/unit/agent/tools/test_entity_v2.py::test_cap_is_on_the_printed_score_only`
   (**owner-approved re-point**): the text "sales tax in fct_orders" → "sales tax on fct_orders".
   Assertions unchanged (printed 0.94; `fct_orders.sales_tax` raw 0.940 > the other model's
@@ -168,6 +171,8 @@ calls.
   - F1 indirect completions on dev-53, 65, 71.
   - L1 / L2 linker marks on 12 questions; dev-29, 40, 71 moved.
 - **Nothing moved the wrong way** per question.
+- **The committed qwen pilot numbers carry run-to-run noise at seed null.** On this server, 4 of
+  12 identical prompts varied over 5 sends (s13c-design.md §S). They stay the pilot result.
 - **Citation validity:** the aggregate dip comes only from newly answered questions. dev-84 and
   dev-86, F6 docs-based Ask answers, score 0.0 under M7. No previously answered question changed.
 - **S0-linked hybrid on (no LLM):** node-set F1 0.809 → 0.882; refusal accuracy 0.889 → 1.000
