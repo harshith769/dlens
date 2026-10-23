@@ -148,11 +148,11 @@ option existed still hit.
   S1 and S4 alike: both runners build their client with `make_client`. The seed is in `params`,
   so every Ollama cache key moved once (future runs are uncached once). The manifest's
   `model_identity.sampling` records the seed actually sent.
-- **Gemini.** `DLENS_GEMINI_SEED` sets `GenerateContentConfig.seed`, recorded in the manifest
-  (`sampling.seed`, `request.seed`). It is **off by default**: no field is sent, and `params`
-  gain no key, so cached Gemini entries keep their keys. Turning it on waits for a one-call owner
-  smoke (`scripts/smoke_gemini_seed.py`). No determinism is claimed for Gemini at temperature
-  1.0.
+- **Gemini (on since 23 Oct 2026).** `GenerateContentConfig.seed` is 42 by default, for S1 and S4
+  alike, after a one-call owner smoke returned HTTP 200. It is recorded in the manifest
+  (`sampling.seed`, `request.seed`). `DLENS_GEMINI_SEED=off` sends no seed (the pre-S13c params
+  and cache keys). The seed is in `params`, so Gemini cache keys moved once. **No determinism is
+  claimed for Gemini** (temperature 1.0; not measured).
 - **Why.** At temperature 0 alone, 4 of 12 identical saved prompts gave 2 different outputs
   over 5 sends on the local server (one request at a time, `OLLAMA_NUM_PARALLEL` 1, the model
   resident). With seed 42, all 12 gave one output (s13c-design.md §S; a small sample).
@@ -219,5 +219,6 @@ S13c (S, changed in S13c):
     experiment hold fixed so that the comparison was fair?
 16. The seed is part of the Ollama `params`. What happens to the S12b / S13 caches, and why is
     that acceptable?
-17. Why is the Gemini seed implemented but off, and what decides whether it is turned on?
+17. The Gemini seed is on, but no determinism is claimed for Gemini. Why not, and what would have
+    to be measured before such a claim? How do you turn the seed off?
 

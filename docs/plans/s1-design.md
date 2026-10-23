@@ -517,4 +517,9 @@ sha256 values go into every S1 manifest (B9), so any change shows. The 7 Dec sys
   The seed is in the provider params, so S1's Ollama cache keys move once. The Gemini seed exists
   behind `DLENS_GEMINI_SEED` and is off by default (owner smoke pending). Evidence: s13c-design.md
   §S (seed null 4 / 12 identical prompts varied over 5 sends; seed 42: 0 / 12).
+- 23 Oct 2026 (S13c, S; owner): **Gemini seed 42 on by default, S1 and S4 alike**, after the
+  owner's one-call smoke (`scripts/smoke_gemini_seed.py`: OK, HTTP 200, 1 call). `DLENS_GEMINI_SEED=off`
+  sends none. The seed is in the provider params, so S1's Gemini cache keys move once. No B8
+  component changed: `s1.frozen_hashes() == FROZEN` (test). No determinism is claimed for
+  Gemini (temperature 1.0; not measured).
 

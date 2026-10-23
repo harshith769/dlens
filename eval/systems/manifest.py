@@ -100,7 +100,7 @@ def model_identity(provider: Any) -> dict[str, Any]:
     out: dict[str, Any] = {
         "provider": provider.name,
         "model": provider.model,
-        # the seed actually sent (S13c S: Ollama 42; Gemini only when DLENS_GEMINI_SEED is set)
+        # the seed actually sent (S13c S: Ollama 42; Gemini 42 unless DLENS_GEMINI_SEED=off)
         "sampling": {"seed": None, **dict(provider.params)},
     }
     if provider.name == "gemini":
@@ -108,7 +108,7 @@ def model_identity(provider: Any) -> dict[str, Any]:
         return out | {
             "request": {
                 "temperature": provider.temperature,
-                "seed": getattr(provider, "seed", None),  # None: not sent (the default)
+                "seed": getattr(provider, "seed", None),  # None: not sent (DLENS_GEMINI_SEED=off)
                 "thinking_config": {"thinking_level": level} if level else None,
                 "thinking_config_note": (
                     "sent as set"

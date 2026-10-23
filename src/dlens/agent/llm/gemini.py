@@ -16,10 +16,26 @@ from dlens.agent.llm.types import LLMResponse, Message, ProviderError, ToolCall,
 
 SIGNATURE = "thought_signature"
 RETRYABLE = (429, 500, 502, 503, 504)
+# S13c S (owner, 23 Oct 2026, after a one-call smoke returned HTTP 200): seed 42 by default, as the
+# Ollama adapter, for S1 and S4 alike. DLENS_GEMINI_SEED=off sends none. No determinism is
+# claimed for Gemini (temperature 1.0; not measured).
+SEED = 42
 
 
 class GeminiConfigError(ValueError):
     pass
+
+
+def _seed(raw: str | None) -> int | None:
+    """DLENS_GEMINI_SEED: unset -> the default (42); "off" / "none" -> no seed; else an int."""
+    if raw is None or not raw.strip():
+        return SEED
+    if raw.strip().lower() in ("off", "none"):
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        raise GeminiConfigError("DLENS_GEMINI_SEED must be an integer, 'off' or unset.") from None
 
 
 class GeminiProvider(Provider):
@@ -32,7 +48,7 @@ class GeminiProvider(Provider):
         temperature: float = 1.0,
         thinking_level: str | None = None,
         client: Any = None,
-        seed: int | None = None,
+        seed: int | None = SEED,
     ):
         if not model or model.endswith("-latest"):
             raise GeminiConfigError(
@@ -48,8 +64,7 @@ class GeminiProvider(Provider):
         self.model = model
         self.temperature = temperature
         self.thinking_level = thinking_level.upper() if thinking_level else None
-        # S13c S: off unless DLENS_GEMINI_SEED is set (owner smoke pending); no determinism claim
-        self.seed = seed
+        self.seed = seed  # S13c S: 42 by default; None sends no seed field
         if client is None:
             if not api_key:
                 raise GeminiConfigError("GEMINI_API_KEY is not set in the environment.")
@@ -65,7 +80,7 @@ class GeminiProvider(Provider):
             api_key=env.get("GEMINI_API_KEY"),
             temperature=float(env.get("DLENS_GEMINI_TEMPERATURE") or 1.0),
             thinking_level=env.get("DLENS_GEMINI_THINKING") or None,
-            seed=int(env["DLENS_GEMINI_SEED"]) if env.get("DLENS_GEMINI_SEED") else None,
+            seed=_seed(env.get("DLENS_GEMINI_SEED")),
         )
 
     @property
@@ -75,7 +90,9 @@ class GeminiProvider(Provider):
             "thinking_level": self.thinking_level,
             "automatic_function_calling": "disabled",
         }
-        if self.seed is not None:  # only when set, so cache keys made without a seed still hit
+        if (
+            self.seed is not None
+        ):  # with seed off, the params (and cache keys) are the pre-S13c ones
             out["seed"] = self.seed
         return out
 
@@ -129,7 +146,7 @@ class GeminiProvider(Provider):
         config = gt.GenerateContentConfig(
             system_instruction=system,
             temperature=self.temperature,
-            seed=self.seed,  # None: the field is not sent (the default; S13c S)
+            seed=self.seed,  # None: the field is not sent (DLENS_GEMINI_SEED=off)
             # A plain JSON-schema dict goes to response_json_schema; response_schema wants the
             # SDK's Schema type or a Pydantic class.
             response_mime_type="application/json" if response_schema is not None else None,

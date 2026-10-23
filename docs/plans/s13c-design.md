@@ -416,6 +416,12 @@ not be told apart from a reconstruction difference. Not used.
 - If it succeeds, turning the Gemini seed on is one commit with a test. If it fails, the Gemini
   seed stays off, and that is recorded.
 
+**Gemini: ON after the smoke (owner, 23 Oct 2026).** The owner ran the one-call smoke: OK (HTTP
+200), 1 call. The Gemini seed is 42 by default, S1 and S4 alike (`DLENS_GEMINI_SEED=off` disables
+it), with tests: the request carries seed 42, both systems get it through `make_client`, the
+manifest records it, and the cache key differs from seed off. No determinism is claimed for
+Gemini (temperature 1.0; not measured).
+
 ---
 
 ## Order of work after the decisions (one commit per item, smallest blast radius first)
@@ -450,3 +456,4 @@ at the end, as in S13b; Gemini only by the owner, after a quota plan.
 - 22 Oct 2026: v1.1. L1 correction (owner): the drop rule (other models' stage-2 readings of a
   qualified mention are dropped); the amendment-E test re-pointed; L1 / L2 linker-set
   measurements.
+- 23 Oct 2026: v1.2. Gemini seed on by default after the owner's one-call smoke (HTTP 200).

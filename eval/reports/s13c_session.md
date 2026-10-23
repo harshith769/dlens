@@ -15,11 +15,11 @@ merges). **Design:** `docs/plans/s13c-design.md` v1.1 (decisions and the L1 corr
 | F6 re-measure on the new linker | same split, no flip (no STOP) |
 | F1 (d1) | done, a47d7c6 |
 | F6 gate | done, f68db17; A6 budget fits (no STOP) |
-| S seed | done, 9abd0dc; Ollama seed 42; Gemini seed implemented, **off** |
+| S seed | done, 9abd0dc; Ollama seed 42. Gemini seed **on** since the owner smoke (23 Oct 2026; HTTP 200), see below |
 | L3 chunker + tie-break | **DEFERRED** to after v1.0 (moved to "Later") |
 | L4 dev-15, L5 "exchange rate" | no change / no rule (as approved) |
 | Diagnostics | 08f7f77: post-S13c qwen dev run (seed 42) + S0-linked hybrid on (new files) |
-| Agent sha | `4a643557e1a292f28823cb1dd2ee64d08cd714007f1b05bfa2df3e70b3ef0daf` (after the CI fix b5b2b7e; the diagnostic ran on `2a2d9b1e…`, see below) |
+| Agent sha | `bfcf97d5d56c8d873189bdcf68a62666bb095868d34ad23e1ac2aa998537aef5` (after the Gemini seed on; the diagnostic ran on `2a2d9b1e…`, see below) |
 | Cloud LLM calls | **0**. The Gemini seed smoke is prepared, not run. No `.env` read |
 | CI | first push (5129b37, run 39832379870) **failed**: the core install lacked httpx (A2 bug); fixed in b5b2b7e; see the run for the pushed head |
 
@@ -110,9 +110,10 @@ mention are dropped.
 
 **Existing tests edited (before → after):**
 - `tests/unit/eval/test_s4.py`: `CURRENT_AGENT_SHA` updated in each agent-code commit (A2 rule).
-  - **Final pinned value: `4a643557e1a292f28823cb1dd2ee64d08cd714007f1b05bfa2df3e70b3ef0daf`**
-    (after the CI fix b5b2b7e).
-  - It equals `s4.agent_code_sha256()` at HEAD 55b91aa (checked, and pinned by the test).
+  - **Final pinned value: `bfcf97d5d56c8d873189bdcf68a62666bb095868d34ad23e1ac2aa998537aef5`**
+    (after the Gemini-seed-on commit). It equals `s4.agent_code_sha256()` at the branch head
+    (checked, and pinned by the test).
+  - Before that: `4a643557…0daf` after the CI fix b5b2b7e (equal to the live sha at 55b91aa).
   - `2a2d9b1e…cd88` was the value at the seed commit (9abd0dc), the code the diagnostic ran on.
 - `tests/unit/agent/tools/test_entity_v2.py::test_cap_is_on_the_printed_score_only`
   (**owner-approved re-point**): the text "sales tax in fct_orders" → "sales tax on fct_orders".
@@ -240,18 +241,25 @@ every claim that names no dotted column.
 - F6 makes it more visible, because docs-based Ask answers often name a column in words.
 - No fix in this session.
 
+## Gemini seed: on (owner smoke, 23 Oct 2026)
+
+- **Smoke:** the owner ran `scripts/smoke_gemini_seed.py`: OK (HTTP 200), 1 call. Claude Code
+  made no cloud call.
+- **Change:** `GeminiProvider` now sends `seed: 42` by default, for S1 and S4 alike (both use
+  `make_client`). `DLENS_GEMINI_SEED=off` sends none.
+- **Tests (`tests/unit/agent/test_seed.py`):** the request carries 42 by default; off sends no
+  field; the cache key differs from seed off; `make_client` gives both systems the same seed; the
+  manifest records it.
+- **Edited** (both from this branch's seed commit, pinning the old off-by-default):
+  `test_gemini_seed_is_off_by_default` → `test_gemini_seed_is_42_by_default`, and the manifest
+  test's on / off construction swapped.
+- **Recorded in** `s1-design.md` (B8 change log) and `s13c-design.md` v1.2.
+- **No Gemini determinism is claimed** (temperature 1.0; not measured). The Gemini cache keys
+  moved once, so a future Gemini run is uncached once.
+
 ## For the owner
 
-- **Gemini seed smoke (not run; it spends 1 call):**
-
-  ```
-  DLENS_PROVIDER=gemini DLENS_GEMINI_MODEL=gemini-3.5-flash-lite DLENS_GEMINI_SEED=42 \
-    GEMINI_DAILY_BUDGET=475 uv run --extra agent python scripts/smoke_gemini_seed.py --allow-cloud
-  ```
-
-  It prints only `OK (HTTP 200)`, `ProviderError (HTTP <status>)` or an exception class.
-  - If it succeeds: turning the Gemini seed on by default is one commit with a test.
-  - If it fails: the seed stays off, and that is recorded.
+- **Gemini seed smoke:** done by the owner (OK); the seed is on (above).
 - **Explain gate:** new "changed in S13c" sections, each with explain-back questions, in
   `docs/explain/llm.md` (A1, A2, S), `linker.md` (L1, L2), `validator.md` (F1) and `agent.md`
   (F6).
@@ -278,7 +286,6 @@ The first push (5129b37, CI run 39832379870) failed on the 4 jobs that run the c
 - **Later (deferred, full design and measurements in s13c-design.md L3):** citation-helper rules
   into the chunker, and rank tie-breaking independent of chunk ids (235 / 506 chunk ids would
   move). After v1.0.
-- **Gemini seed:** pending the owner smoke above.
 - **S0 baselines:** resolved (versioned baseline `eval/runs/s0/baseline/s13c/`, the check
   defaults to the newest baseline). A later approved linker change writes a new baseline
   directory and never rewrites an older one.
