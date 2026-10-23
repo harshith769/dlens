@@ -142,12 +142,21 @@ Final local run: `make lint` clean; `make test` 1,683 passed, 19 skipped.
   - `eval/runs/s0/diagnostic/s13c/s0-linked-hybrid-dev.*`.
 - `s1.frozen_hashes() == FROZEN` (the three `test_s1.py` asserts pass). The seed is recorded in
   the S1 design change log (no B8 component changed).
-- **`scripts/check_s0_stable.py` now reports 4 S0-linked (hybrid-off) records differing** from
-  the committed `eval/runs/s0/s0-linked-dev.jsonl`: dev-48, 55, 71, 75.
-  - These are exactly L1's hybrid-off dev-mention changes, an approved linker change, not
-    instability.
-  - The committed records are not rewritten. Whether to refresh the committed S0 baseline or
-    teach the check about intended changes is an owner decision (carry-forward).
+- **`scripts/check_s0_stable.py` and the S0 baseline (owner decision, 23 Oct 2026).**
+  - Against the pilot records, the check reports 4 S0-linked (hybrid-off) records differing:
+    dev-48, 55, 71, 75. These are exactly L1's hybrid-off dev-mention changes.
+  - The pilot S0 files are **not** rewritten. A new versioned baseline was written from the
+    current system: `eval/runs/s0/baseline/s13c/` (`s0-gold-dev.*`, `s0-linked-dev.*`,
+    `s0-linked-hybrid-dev.*`). Its manifests carry `baseline: "baseline after S13c L1/L2
+    (approved linker changes); pilot S0 records unchanged"`.
+  - `check_s0_stable.py` now compares with the **newest** baseline directory by default (names
+    sort by session), and `--pilot` compares with `eval/runs/s0/`. It prints which reference it
+    used.
+  - Results:
+    - default (s13c baseline): 0 records differ, exit 0;
+    - `--pilot`: the 4 intended L1 records differ.
+  - Test: `tests/unit/eval/test_s0_stable_baseline.py` (newest-baseline default, the `--pilot`
+    flag, no baseline → pilot, the s13c baseline labelled).
 - No absolute path or username in a committed file (grep). No cloud call. No
   `--allow-cloud`.
 
@@ -217,9 +226,9 @@ The first push (5129b37, CI run 39832379870) failed on the 4 jobs that run the c
   into the chunker, and rank tie-breaking independent of chunk ids (235 / 506 chunk ids would
   move). After v1.0.
 - **Gemini seed:** pending the owner smoke above.
-- **`check_s0_stable.py`:** owner decision on the 4 intended S0-linked (hybrid-off) differences
-  from L1 (refresh the committed S0 baseline under a recorded reason, or let the check accept a
-  listed set).
+- **S0 baselines:** resolved (versioned baseline `eval/runs/s0/baseline/s13c/`, the check
+  defaults to the newest baseline). A later approved linker change writes a new baseline
+  directory and never rewrites an older one.
 - **F6 citation validity:** the docs-based Ask answers dev-84 / dev-86 score 0.0 on M7 citation
   validity. Recorded only; the honest check is test after the 7 Dec freeze.
 - Roadmap unchanged: S14, S15, Buffer A, S06c, the owner explain gate, the research re-check, and

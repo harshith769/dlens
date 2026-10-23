@@ -473,6 +473,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="s0-linked with the linker's hybrid stage on → s0-linked-hybrid-dev.* (new files)",
     )
+    ap.add_argument(
+        "--baseline-note",
+        default=None,
+        help="a versioned baseline's reason, recorded in the manifest as 'baseline' (S13c)",
+    )
     ns = ap.parse_args(argv)
     questions = [json.loads(x) for x in QUESTIONS.read_text().splitlines() if x.strip()]
     G = Graph.load(ROOT / CORPUS)
@@ -492,7 +497,10 @@ def main(argv: list[str] | None = None) -> int:
         stem = f"{system}-hybrid" if ns.hybrid else system
         path = ns.out / f"{stem}-dev.jsonl"
         path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in records))
-        write_manifest(path, manifest(system, records, path, index_key))
+        man = manifest(system, records, path, index_key)
+        if ns.baseline_note:
+            man["baseline"] = ns.baseline_note
+        write_manifest(path, man)
         print(f"{system}: {len(records)} records → {_shown(path)}", file=sys.stderr)
     return 0
 
