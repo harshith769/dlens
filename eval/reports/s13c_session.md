@@ -187,6 +187,59 @@ calls.
 - **S0-linked hybrid on (no LLM):** node-set F1 0.809 → 0.882; refusal accuracy 0.889 → 1.000
   (dev-93 refused); dev-29, 40, 55, 56, 71 answer instead of asking for clarification.
 
+## Diagnosis: why dev-84 and dev-86 score 0.0 on M7 citation validity (read-only, 23 Oct 2026)
+
+No metric or validator change; a diagnosis only.
+
+**What they cite** (post-S13c diagnostic, validated view). Both answers cite only `c_` chunks at
+`line` level; dev-84 passed the validator outright, dev-86 after salvage.
+
+| id | claim (abridged) | cited | dotted column in the claim |
+|---|---|---|---|
+| dev-84 | "The order status group is determined by a CASE statement in int_orders_enriched.sql." | `c_4170cded` int_orders_enriched.sql:10–27 | none |
+| dev-84 | "The order status group is described as being mapped to 'complete', 'open', …" | `c_49b07db1` intermediate/schema.yml:25–26 | none |
+| dev-86 | "The SQL query in fct_order_margins excludes the is_profitable column, …" | `c_7b2d831d` fct_order_margins.sql:1–4 | none |
+| dev-86 | "int_order_profit.is_profitable is a column in int_order_profit that is excluded …" | `c_ec0abdf2` intermediate/schema.yml:208–209 | `int_order_profit.is_profitable` (M7-valid) |
+
+**What each side requires.**
+- **The validator (R3, chunk rule, S12b B4):** a `c_` citation at `line` level is valid if the file
+  exists, the range is in bounds, and the lines name **the chunk's own entity** (its column or
+  model). R4 / R7 check the claim's names separately. An `s_` excerpt is checked by its text
+  hash.
+- **The metric (M7, `eval/metrics.py` `check_citation`):** a citation that is not an edge (`c_`,
+  `s_`) takes the "excerpt" branch. It is valid only if the cited lines contain the name of a
+  **column the claim itself names as a dotted `model.column`** (the M3 extractor). A claim that
+  names no dotted column ("the order status group") can never pass: "excerpt names no column of
+  its claim".
+- **Answer-level** `citation_valid_answer` needs every checked citation valid, so one such claim
+  makes the answer 0.0.
+
+**Measured over every validator-kept `c_` / `s_` citation (validated view, model claims):**
+
+| records | claim names a dotted column: M7-valid | claim names none: M7-invalid / total |
+|---|---|---|
+| S4 qwen post-S13c | `c_` 13 / 13, `s_` 1 / 1 | `c_` 9 / 10, `s_` 2 / 2 |
+| S4 qwen pilot | `c_` 6 / 6, `s_` 1 / 1 | `c_` 6 / 7, `s_` 2 / 2 |
+| S4 Gemini pilot | `c_` 16 / 16, `s_` 25 / 25 | `s_` 5 / 5 |
+
+**Is S1 scored the same way?** Yes. S1's chunk citations go through the same `check_citation`
+excerpt branch (`from_s1_record`, no edge). On the answered Ask questions:
+- S1 qwen pilot: 4 of 11 answers citation-valid, with 14 citations invalid for this one reason;
+- S1 Gemini pilot: 8 of 11, with 4;
+- S4 qwen post-S13c: 7 of 10, with 4;
+- S4 Gemini pilot: 9 of 11, with 3.
+
+The metric is therefore **symmetric across systems** (one rule for S1 and S4).
+
+**Plainly: yes, the validator and the metric disagree on chunk (and excerpt) citations,** for
+every claim that names no dotted column.
+- The validator accepts them: the lines name the chunk's own entity, or the excerpt hash holds.
+- M7 rejects them: no column the claim names is on the lines.
+- This is a rule-12 gap between the validator and the metric, not between S1 and S4.
+- It predates S13c: the qwen pilot already had 6 such chunk rejections.
+- F6 makes it more visible, because docs-based Ask answers often name a column in words.
+- No fix in this session.
+
 ## For the owner
 
 - **Gemini seed smoke (not run; it spends 1 call):**
@@ -229,7 +282,12 @@ The first push (5129b37, CI run 39832379870) failed on the 4 jobs that run the c
 - **S0 baselines:** resolved (versioned baseline `eval/runs/s0/baseline/s13c/`, the check
   defaults to the newest baseline). A later approved linker change writes a new baseline
   directory and never rewrites an older one.
-- **F6 citation validity:** the docs-based Ask answers dev-84 / dev-86 score 0.0 on M7 citation
-  validity. Recorded only; the honest check is test after the 7 Dec freeze.
+- **Validator vs M7 on chunk / excerpt citations (rule 12, diagnosis above):** R3 accepts a
+  `c_` / `s_` citation whose lines name the chunk's own entity (or whose hash holds); M7 requires
+  the lines to name a dotted column the claim names. They disagree on every claim that names no
+  dotted column. S1 and S4 are scored alike, and S1 is hit harder on Ask.
+  - Options for a later session (owner): align the validator to M7, align M7 to the chunk rule
+    (a metrics-design change, before the freeze), or report the split.
+  - No fix in S13c.
 - Roadmap unchanged: S14, S15, Buffer A, S06c, the owner explain gate, the research re-check, and
   the v0.3 tag checks.
