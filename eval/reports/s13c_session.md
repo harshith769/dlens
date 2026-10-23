@@ -20,7 +20,7 @@ merges). **Design:** `docs/plans/s13c-design.md` v1.1 (decisions and the L1 corr
 | L4 dev-15, L5 "exchange rate" | no change / no rule (as approved) |
 | Diagnostics | 08f7f77: post-S13c qwen dev run (seed 42) + S0-linked hybrid on (new files) |
 | Agent sha | `bfcf97d5d56c8d873189bdcf68a62666bb095868d34ad23e1ac2aa998537aef5` (after the Gemini seed on; the diagnostic ran on `2a2d9b1e…`, see below) |
-| Cloud LLM calls | **0**. The Gemini seed smoke is prepared, not run. No `.env` read |
+| Cloud LLM calls | **0 by Claude Code**. The owner ran the 1-call Gemini seed smoke (23 Oct 2026, OK). No `.env` read |
 | CI | first push (5129b37, run 39832379870) **failed**: the core install lacked httpx (A2 bug); fixed in b5b2b7e; see the run for the pushed head |
 
 ## Decisions (owner, 22 Oct 2026) and what was built
