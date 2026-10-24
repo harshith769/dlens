@@ -15,6 +15,7 @@ template no longer matches the candidate's template is stale and ignored there.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -113,11 +114,13 @@ def clean(text: str) -> str:
 Chat = Callable[[str, str], str]  # (style hint, template) -> text
 
 
-def ollama_chat() -> Chat:
+def ollama_chat(cache_dir: Path | None = None) -> Chat:
     from dlens.agent.llm import base
     from dlens.agent.llm.types import Message
 
     env = {**os.environ, "DLENS_PROVIDER": "ollama"}
+    if cache_dir is not None:  # D5b drafts: keep test text out of the shared eval/cache
+        env["DLENS_CACHE_DIR"] = str(cache_dir)
     env.setdefault("DLENS_CACHE_DIR", str(ROOT / "eval" / "cache"))
     client = base.make_client("ollama", env)
     assert client.provider.name == "ollama", "paraphrases are local only"
@@ -130,7 +133,20 @@ def ollama_chat() -> Chat:
     return chat
 
 
-def paraphrase(questions: Iterable[dict[str, Any]], chat: Chat) -> list[dict[str, Any]]:
+def seeded_pick(cands: list[dict[str, Any]], key: str, salt: str) -> dict[str, Any] | None:
+    """D5b: among the unflagged candidates, index sha256(salt + key) mod n_clean."""
+    clean = [c for c in cands if not c["flags"]]
+    if not clean:
+        return None
+    return clean[int(hashlib.sha256((salt + key).encode()).hexdigest(), 16) % len(clean)]
+
+
+def paraphrase(
+    questions: Iterable[dict[str, Any]],
+    chat: Chat,
+    id_field: str = "id",
+    pick_salt: str | None = None,
+) -> list[dict[str, Any]]:
     rows = []
     for q in questions:
         if "paraphrase_pending" not in q.get("review_flags", []):
@@ -141,9 +157,12 @@ def paraphrase(questions: Iterable[dict[str, Any]], chat: Chat) -> list[dict[str
             text = clean(chat(hint, template))
             mention = q.get("mention") if isinstance(q.get("mention"), str) else None
             cands.append({"style": style, "text": text, "flags": check(template, text, mention)})
-        pick = next((c for c in cands if not c["flags"]), None)
+        if pick_salt is None:
+            pick = next((c for c in cands if not c["flags"]), None)
+        else:
+            pick = seeded_pick(cands, q[id_field], pick_salt)
         rows.append({
-            "id": q["id"], "template": template, "candidates": cands,
+            "id": q[id_field], "template": template, "candidates": cands,
             "pick": pick["text"] if pick else None, "pick_style": pick["style"] if pick else None,
         })  # fmt: skip
     return rows
@@ -173,18 +192,35 @@ def render_md(rows: list[dict[str, Any]]) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.parse_args()
+    ap.add_argument("--in", dest="inp", type=Path, default=CANDIDATES, help="candidates JSONL")
+    ap.add_argument("--out-dir", type=Path, default=None, help="default: eval/questions/review")
+    ap.add_argument("--cache-dir", type=Path, default=None, help="default: eval/cache")
+    ap.add_argument("--id-field", default="id", help="row key (D5b drafts: draft_id)")
+    ap.add_argument("--pick-salt", default=None, help="seeded pick among clean candidates (D5b)")
+    args = ap.parse_args()
     if (os.environ.get("DLENS_PROVIDER") or "ollama").lower() != "ollama":
         print("refusing: paraphrases are generated with local Ollama only (DLENS_PROVIDER=ollama)")
         return 2
-    questions = [json.loads(x) for x in CANDIDATES.read_text().splitlines()]
-    rows = paraphrase(questions, ollama_chat())
-    OUT_JSONL.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
-    OUT_MD.write_text(render_md(rows))
+    questions = [json.loads(x) for x in args.inp.read_text().splitlines()]
+    rows = paraphrase(questions, ollama_chat(args.cache_dir), args.id_field, args.pick_salt)
+    out_jsonl, out_md = OUT_JSONL, OUT_MD
+    if args.out_dir is not None:
+        args.out_dir.mkdir(parents=True, exist_ok=True)
+        out_jsonl, out_md = args.out_dir / "paraphrases.jsonl", args.out_dir / "paraphrases.md"
+        from dlens.agent.llm import ollama
+
+        manifest = {"model": ollama.DEFAULT_MODEL, "provider": "ollama", "temperature": 0,
+                    "num_ctx": ollama.NUM_CTX, "seed": ollama.SEED, "styles": [s for s, _ in STYLES],
+                    "system_prompt_sha256": hashlib.sha256(SYSTEM.encode()).hexdigest(),
+                    "pick": "first clean" if args.pick_salt is None else
+                    f"sha256({args.pick_salt!r} + {args.id_field}) mod n_clean"}  # fmt: skip
+        (args.out_dir / "paraphrase_manifest.json").write_text(
+            json.dumps(manifest, indent=2) + "\n"
+        )
+    out_jsonl.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    out_md.write_text(render_md(rows))
     picked = sum(1 for r in rows if r["pick"])
-    print(
-        f"{len(rows)} questions, {picked} with a clean paraphrase; see {OUT_MD.relative_to(ROOT)}"
-    )
+    print(f"{len(rows)} questions, {picked} with a clean paraphrase; see {out_md.name}")
     return 0
 
 

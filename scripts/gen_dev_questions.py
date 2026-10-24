@@ -387,6 +387,7 @@ class Builder:
     log: list[str] = field(default_factory=list)
     split: str = "dev"  # the pool targets come from (pools.yml): dev, or test for D5b drafts
     salt: str = SALT
+    trap_min: int = 2  # ordered(): candidates adding a trap with fewer questions go first
 
     @property
     def pool(self) -> set[str]:
@@ -417,7 +418,7 @@ class Builder:
         """Hash order, but candidates that add an under-covered trap (< 2 questions) first."""
 
         def key(c: str) -> tuple[int, str]:
-            need = sum(1 for t in tag_fn(c) if self.trap_count[t] < 2)
+            need = sum(1 for t in tag_fn(c) if self.trap_count[t] < self.trap_min)
             return (-need, self.h(c))
 
         return sorted(cands, key=key)
@@ -530,7 +531,8 @@ class Builder:
 
     def fill_false_premise(self, slot: Slot) -> bool:
         ctx = self.ctx
-        lo, hi = (1, 3) if slot.bucket == "1-3" else (4, 99)
+        lo, hi = {"1-3": (1, 3), "4+": (4, 99), "1": (1, 1), "2-3": (2, 3), "4-5": (4, 5),
+                  "6+": (6, 99)}[slot.bucket or ""]  # fmt: skip
         cands = [
             c for c in self.pool & ctx.v.model_columns
             if lo <= (ctx.depth(c) or 0) <= hi and not self.used_trace[c]
@@ -591,8 +593,10 @@ class Builder:
         for s in self.ordered(self.impact_candidates(slot), tag_fn):
             gold = gold_impact(ctx, s)
             kind = self.impact_wording(s, gold)
-            if slot.variant == "exposures":
+            if slot.variant in ("exposures", "exposures_one"):
                 if kind == "impact_lineage" or not gold["exposures"]["all"]:
+                    continue
+                if slot.variant == "exposures_one" and len(gold["exposures"]["all"]) != 1:
                     continue
                 kind = "impact_exposures"
                 gold["focus"] = "exposures"
@@ -619,7 +623,9 @@ class Builder:
         for s in sorted(sources, key=self.h):
             dn_d, dn_a = ctx.down(s, False), ctx.down(s, True)
             if slot.variant == "yes_direct":
-                ts = [t for t in dn_d if t in self.pool and len(shortest_path(ctx, s, t, False)) >= 3]
+                ts = [
+                    t for t in dn_d if t in self.pool and len(shortest_path(ctx, s, t, False)) >= 3
+                ]
             elif slot.variant == "yes_indirect_only":
                 ts = [t for t in dn_a - dn_d if t in self.pool]
             else:  # no: a plausible column in a model the source reaches, but not reached

@@ -69,6 +69,38 @@ The output is a candidate file. Questions count only after the owner has decided
 - **Letting an LLM write the questions.** The model would see gold, and its wording would not be
   reproducible. Only the paraphrase step uses one, locally, on question text alone.
 
+## D5b: the test drafts (S15a)
+**What.** `scripts/gen_test_drafts.py` writes the 224 test drafts to
+`eval/questions/drafts/test_draft_v1.jsonl` (counts in `docs/plans/s15a-drafts-design.md` §1).
+`scripts/check_drafts.py` checks them, and a CI test runs it on the committed drafts.
+
+**How.** It uses the same `Builder` as dev, with `split="test"`, its own salt and `trap_min=4`. The
+Builder's pool property then returns the test pool, so every candidate list, premise and yes/no
+target comes from test columns. Other parts:
+- **PLAN table:** one row per (row, bucket, subtype, wording). False-premise rows now take an exact
+  hop bucket.
+- **Exposures:** a new `exposures_one` impact variant asks for a source that reaches exactly one
+  dashboard.
+- **Interpreted near-miss (`unit` variant):** a `DraftBuilder` subclass keeps only targets whose
+  unit-less id does not exist. The question then names that unit-less id and stores
+  `gold.interpretation`.
+- **Asks:** come from `drafts/hand/ask_drafts_test.yml`, each fact with its `file:line`.
+- **Unanswerable:** derived mechanically from test-pool columns (drop the last name part, append a
+  suffix, swap two letters) and from word lists in `drafts/hand/`.
+- **Paraphrases:** come from the D5a paraphraser with `--pick-salt`, which picks among the clean
+  candidates by `sha256(salt + draft_id)`, with its own cache under `drafts/.cache/`.
+
+**Why.** Reusing the D5a Builder means dev and test gold come from one code path over the gold spec.
+The dev generator's `--check` still passes byte for byte, which proves the refactor changed nothing
+for dev. The checker recomputes every trace and impact gold from the spec, so a hand edit during
+review cannot quietly change gold.
+
+**Alternatives rejected.**
+- A copy of the generator for test: two code paths for gold could drift apart.
+- The first clean paraphrase as in D5a: the plan asks for a seeded pick, and with the hash the pick
+  stays stable when candidates are reordered.
+- Hand-listing unanswerable ids: derived ids are reproducible, and the absence check proves them.
+
 ## Explain-back questions
 1. Why do the two stale-doc columns end up in different splits, and what would have happened with
    (hop bucket, trap) strata alone?
@@ -78,3 +110,10 @@ The output is a candidate file. Questions count only after the owner has decided
 3. dev-17's text names `int_customer_order_history.sales_tax`, a column the first pool run put in
    test. What did S09 change so a frozen dev question never names a test-pool column, and which
    check enforces it?
+4. The test Builder and the dev Builder are the same class. Which attribute keeps a test draft from
+   ever targeting a dev-pool column, and which two checks in `check_drafts.py` would catch it if it
+   did?
+5. Why are only unit suffixes (`_usd`, `_pct`, `_days`, `_hours`) used for interpreted near-misses,
+   while the dotted near-miss unanswerables never drop a unit?
+6. A reviewer edits a test draft's `gold.upstream` by hand. Which check fails, and why is that
+   check allowed to import the gold functions of the generator it checks?

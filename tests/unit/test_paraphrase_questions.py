@@ -91,3 +91,27 @@ def test_refuses_a_cloud_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DLENS_PROVIDER", "gemini")
     monkeypatch.setattr(sys, "argv", ["paraphrase_questions.py"])
     assert pq.main() == 2
+
+
+def test_seeded_pick_is_deterministic_and_only_clean():
+    cands = [{"style": s, "text": s, "flags": f} for s, f in
+             [("plain", []), ("short", ["length"]), ("conversational", [])]]  # fmt: skip
+    picks = {pq.seeded_pick(cands, f"t1-{i:03d}", "salt:")["style"] for i in range(40)}
+    assert picks == {"plain", "conversational"}
+    assert pq.seeded_pick(cands, "t1-001", "salt:") == pq.seeded_pick(cands, "t1-001", "salt:")
+    assert pq.seeded_pick([{"style": "x", "text": "x", "flags": ["format"]}], "k", "s") is None
+
+
+def test_paraphrase_uses_the_id_field_and_seeded_pick():
+    q = {
+        "draft_id": "t1-007",
+        "template_question": T_TRACE,
+        "review_flags": ["paraphrase_pending"],
+        "mention": "fct_orders.item_count",
+    }
+
+    def chat(hint: str, template: str) -> str:
+        return "Which columns feed fct_orders.item_count?"
+
+    rows = pq.paraphrase([q], chat, id_field="draft_id", pick_salt="s:")
+    assert rows[0]["id"] == "t1-007" and rows[0]["pick"] is not None

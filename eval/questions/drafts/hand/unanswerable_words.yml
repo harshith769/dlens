@@ -1,0 +1,25 @@
+# Word lists for the TEST unanswerable drafts (S15a, s15a-drafts-design.md §1). Every entry must be
+# absent from synthetic_shop (scripts/check_drafts.py verifies it). Column-based kinds (dotted
+# near-miss, typo, unknown model's column) are derived mechanically from test-pool columns.
+bare:            # name_words, no model: concepts the shop does not model
+  - warranty claims
+  - churn probability
+  - net promoter score
+  - basket abandonment rate
+out_of_domain:   # dotted ids from another business domain
+  - hr_headcount.employee_tenure
+  - fleet_vehicles.fuel_cost
+  - it_tickets.resolution_hours
+unknown_models:  # model names that do not exist; the column comes from a test-pool column
+  - fct_subscriptions
+  - dim_warehouses
+  - int_order_returns
+near_miss_suffixes:  # appended to a real column name; never a unit (unit omissions are interpreted)
+  - _total
+  - _count
+  - _avg
+  - _flag
+  - _rate
+  - _score
+  - _name
+  - _ratio
