@@ -4,7 +4,10 @@ agent, validator and renderer are reused unchanged, and every helper in ``dlens.
     make ui        # uv run streamlit run src/dlens/ui/app.py
 
 Locally the provider is Ollama, fixed and shown read-only. In demo mode (``DLENS_DEMO=1``, see
-``dlens.ui.demo`` and docs/deploy.md) it is Gemini Flash-Lite behind the demo caps.
+``dlens.ui.demo`` and docs/deploy.md) it is Gemini Flash-Lite behind the demo caps. In project
+mode (``dlens ui --project DIR``, see ``dlens.ui.project``) the app opens one ingested project
+with the tabs Explore | Trace / Impact | Source | Ask | How it works, and Ask uses the provider
+the user picks (Ollama by default).
 """
 
 from __future__ import annotations
@@ -13,20 +16,29 @@ import json
 import os
 from html import escape
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 import dlens.agent.llm as llm
 from dlens.agent.answer import render, warning_line
+from dlens.agent.llm.ollama import DEFAULT_MODEL as OLLAMA_MODEL
 from dlens.agent.loop import AgentRun
 from dlens.agent.loop import ask as run_agent
 from dlens.agent.runlog import RunLogger, runs_dir
 from dlens.agent.tools import Toolbox
 from dlens.graph import LineageGraph, load_or_build
+from dlens.graph.render import render_impact, render_trace
+from dlens.graph.report import coverage_summary
 from dlens.ui import demo, style, view
+from dlens.ui import project as local
+
+if TYPE_CHECKING:
+    from dlens.retrieval.index import SearchIndex
 
 PROVIDER = "ollama"
+LOC = local.from_env(os.environ)  # project mode (``dlens ui --project``) when set
 INTRO = (
     "Ask where a dbt column comes from or what it affects. Every claim is checked against the code."
 )
@@ -39,7 +51,15 @@ _SLOT: DeltaGenerator | None = None  # the header's provider placeholder, set on
 def load_graph(project: str) -> LineageGraph:
     if demo.enabled():  # prebuilt bundle: no dbt, no target/
         return demo.load_graph(view.projects()[project])
+    if LOC is not None:  # the graph `dlens ingest --artifacts` wrote; never built here
+        return local.load(LOC)
     return load_or_build(view.projects()[project])
+
+
+@st.cache_resource(show_spinner="Opening the search index...")
+def load_index(project: str) -> tuple[SearchIndex | None, str]:
+    assert LOC is not None
+    return local.open_index(LOC, load_graph(project))
 
 
 @st.cache_resource(show_spinner=False)
@@ -105,11 +125,57 @@ def _ask(project: str, question: str) -> None:
     if hint is not None:  # a provider failure is an error state, not a refusal
         st.session_state.update(error=run.answer.refusal_reason, run=None)
         return
+    _store(project, question, run, box)
+
+
+def _store(project: str, question: str, run: AgentRun, box: Toolbox) -> None:
     st.session_state.update(
-        error=None, run=run, box=box, project_of_run=project, selected=None, preset=None
+        error=None,
+        ask_hint=None,
+        run=run,
+        box=box,
+        project_of_run=project,
+        selected=None,
+        preset=None,
     )
     entry = {"question": question, "project": project, "run": run, "box": box}
     st.session_state.history = view.push_history(st.session_state.get("history") or [], entry)
+
+
+def _fail(hint: view.Hint) -> None:
+    st.session_state.update(error=None, run=None, ask_hint=hint)
+
+
+def _ask_local(
+    project: str, question: str, choice: local.ProviderChoice, secret: local.Secret | None
+) -> None:
+    """Project mode: the same agent loop and validator as S4, on the provider the user picked.
+    The key exists only in ``secret`` and the per-ask env; every text shown or logged is
+    redacted, and the cache, quota and run logs live under ``<target>/dlens/ui/``."""
+    assert LOC is not None
+    st.session_state.update(limit=None, ask_hint=None)
+    if (problem := local.ask_problem(choice, secret)) is not None:
+        _fail(problem)
+        return
+    secrets = [secret]
+    try:
+        client = llm.make_client(choice.kind, local.provider_env(choice, secret, LOC))
+        index, _ = load_index(project)
+        box = Toolbox(load_graph(project), LOC.project_dir, index)
+        logs = local.RedactingRunLogger(LOC.ui_dir / "runs", secrets)
+        run = local.scrub_run(run_agent(question, client, box, logs, project=project), secrets)
+    except Exception as e:  # the agent already turns provider errors into refusals
+        failed = local.redact(f"{type(e).__name__}: {e}", secrets)
+        _fail(view.Hint("The question could not be answered", failed))
+        return
+    reason = run.answer.refusal_reason if run.answer.refused else None
+    if reason and choice.kind == "ollama" and (hint := view.error_hint(reason)) is not None:
+        _fail(hint)
+        return
+    if reason and reason.lower().startswith("providererror"):
+        _fail(view.Hint(f"The {choice.label} call failed", reason))
+        return
+    _store(project, question, run, box)
 
 
 def _restore(n: int) -> None:
@@ -117,6 +183,7 @@ def _restore(n: int) -> None:
     st.session_state.update(
         error=None,
         limit=None,
+        ask_hint=None,
         run=h["run"],
         box=h["box"],
         project_of_run=h["project"],
@@ -172,6 +239,9 @@ def provider_slot(slot: DeltaGenerator) -> None:
         parts = view.provider_status(demo.PROVIDER, quota)
         if not demo.has_key(env):
             parts.append("live questions off")
+    elif LOC is not None:
+        kind = st.session_state.get("ui_provider", "ollama")
+        parts = [local.KINDS.get(kind, kind)]
     else:
         parts = view.provider_status(PROVIDER, None)
     status = " · ".join(parts)
@@ -215,7 +285,99 @@ def header() -> str | None:
     return project
 
 
+def project_header() -> str | None:
+    """Project mode: title, the privacy line (shown even when the project cannot be opened),
+    then the project and its stats. None if it is not ingested; the hint says what to run."""
+    assert LOC is not None
+    title, provider = st.columns([4, 1.4], vertical_alignment="top")
+    title.markdown("## DLens")
+    title.markdown(style.intro(INTRO, REPO, "Source on GitHub"), unsafe_allow_html=True)
+    global _SLOT
+    _SLOT = provider.empty()
+    provider_slot(_SLOT)
+    st.caption(local.PRIVACY)
+    try:
+        graph = load_graph(LOC.name)
+    except local.ProjectProblem as e:
+        show_hint(e.hint)
+        return None
+    except Exception as e:  # an unreadable graph: re-ingest
+        show_hint(
+            view.Hint(
+                f"Could not open the lineage graph of {LOC.name}",
+                f"{type(e).__name__}: {e}",
+                (f"dlens ingest --artifacts {LOC.target_dir} --rebuild",),
+            )
+        )
+        return None
+    line = f"{LOC.name} · {view.project_stats(graph).line}"
+    st.markdown(f'<div class="dl-stats">{escape(line)}</div>', unsafe_allow_html=True)
+    return LOC.name
+
+
+def provider_panel(project: str) -> tuple[local.ProviderChoice, local.Secret | None]:
+    """Project mode: which model answers. A key comes from the password box (unkeyed, so it is
+    not in ``st.session_state``) or from an env var the user names; never an ambient key."""
+    kind = st.radio(
+        "Model",
+        list(local.KINDS),
+        format_func=lambda k: local.KINDS[k],
+        key="ui_provider",
+    )
+    if kind == "ollama":
+        model = st.text_input("Ollama model", value=OLLAMA_MODEL, key="ui_ollama_model")
+        choice, secret = local.ProviderChoice("ollama", model.strip()), None
+    else:
+        base = ""
+        if kind == "gemini":
+            model = st.text_input("Model ID", value=local.GEMINI_MODEL, key="ui_gemini_model")
+        else:
+            base = st.text_input(
+                "Base URL", key="ui_openai_url", placeholder="https://api.example.com/v1"
+            )
+            model = st.text_input("Model ID", key="ui_openai_model")
+        budget = st.number_input(
+            "Daily call budget", 1, 10_000, local.DAILY_BUDGET, key=f"ui_{kind}_budget"
+        )
+        typed = st.text_input(
+            f"{'Gemini' if kind == 'gemini' else 'API'} key (memory only, this session)",
+            type="password",
+            help="Never written to disk, logged, or shown back.",
+        )
+        key_env = st.text_input(
+            "Or the name of an environment variable that holds it",
+            key=f"ui_{kind}_key_env",
+            placeholder="MY_API_KEY",
+        )
+        choice = local.ProviderChoice(kind, model.strip(), base.strip(), int(budget), key_env)
+        secret = local.resolve_key(choice, typed, os.environ)
+        if key_env.strip() and not typed.strip():
+            st.caption(
+                f"Using the key in ${key_env.strip()}."
+                if secret
+                else f"${key_env.strip()} is not set."
+            )
+        if choice.cloud:
+            st.caption(
+                "A cloud provider: your question and the code excerpts the tools return are "
+                f"sent to it, at most {int(budget)} model calls a day."
+            )
+    st.caption(load_index(project)[1])
+    return choice, secret
+
+
+def project_examples(project: str) -> None:
+    qs = local.example_questions(load_graph(project))
+    if not qs:
+        return
+    st.markdown("**Examples**")
+    with st.container(key="pexamples", gap="small"):
+        for i, q in enumerate(qs):
+            st.button(q, key=f"pex{i}", on_click=_example, args=(q,), width="stretch")
+
+
 def question_panel(project: str) -> None:
+    picked = provider_panel(project) if LOC is not None else None
     st.text_area(
         "Question",
         key="question",
@@ -231,8 +393,13 @@ def question_panel(project: str) -> None:
     )
     if asked or st.session_state.pop("pending", False):
         model = "Gemini Flash-Lite" if demo.enabled() else "the local model"
+        if picked is not None and picked[0].kind != "ollama":
+            model = picked[0].label.replace(" (your key)", "")
         with st.spinner(f"Asking {model}..."):
-            _ask(project, st.session_state.question.strip())
+            if picked is not None:
+                _ask_local(project, st.session_state.question.strip(), *picked)
+            else:
+                _ask(project, st.session_state.question.strip())
         if demo.enabled() and _SLOT is not None:
             provider_slot(_SLOT)  # the header rendered before this call spent quota
     history = st.session_state.get("history") or []
@@ -252,6 +419,9 @@ def question_panel(project: str) -> None:
                 )
     if demo.enabled():
         preset_list(project)
+        return
+    if LOC is not None:
+        project_examples(project)
         return
     groups = view.examples(project)
     if groups:
@@ -297,6 +467,11 @@ def empty_state(project: str) -> None:
                 )
         return
     st.markdown(f"#### {EMPTY}")
+    if LOC is not None:
+        with st.container(key="empty", horizontal=True, gap="small"):
+            for n, q in enumerate(local.example_questions(load_graph(project), n=1)):
+                st.button(q, key=f"empty{n}", on_click=_example, args=(q,))
+        return
     groups = view.examples(project)
     with st.container(key="empty", horizontal=True, gap="small"):
         for n, group in enumerate(groups[:4]):
@@ -312,9 +487,12 @@ def answer_panel(project: str) -> None:
     error = st.session_state.get("error")
     if error:
         show_hint(view.error_hint(error) or view.Hint("The question could not be answered", error))
+    ask_hint = st.session_state.get("ask_hint")  # project mode: already redacted
+    if ask_hint:
+        show_hint(ask_hint)
     run = st.session_state.get("run")
     if run is None:
-        if not error and not limit:
+        if not error and not limit and not ask_hint:
             empty_state(project)
         return
     answer = run.answer
@@ -522,6 +700,108 @@ def explore_tab(project: str) -> None:
     st.html(view.highlight_sql(src.text, sql=src.file.endswith(".sql")))
 
 
+def overview_tab(project: str) -> None:
+    """Project mode Explore: what DLens sees in the project, and how well it parsed. No LLM."""
+    assert LOC is not None
+    graph = load_graph(project)
+    cov = coverage_summary(graph)
+    cells = st.columns(5)
+    cells[0].metric("Models parsed", sum(cov.counts.values()))
+    for cell, level in zip(cells[1:], ("FULL", "PARTIAL", "TABLE_ONLY", "FAILED"), strict=True):
+        cell.metric(level, cov.counts.get(level, 0))
+    st.caption(
+        f"{local.full_share(cov):.0%} of models FULL (column lineage with no gaps). "
+        f"`dlens report --artifacts {LOC.target_dir}` lists every gap."
+    )
+    st.markdown("**Models**")
+    st.dataframe(local.model_rows(graph, cov), hide_index=True)
+    uids = sorted(graph.model_ids(), key=lambda u: (graph.model_info(u) or {}).get("name", u))
+    if not uids:
+        return
+    uid = st.selectbox(
+        "Columns of",
+        uids,
+        format_func=lambda u: (graph.model_info(u) or {}).get("name", u),
+        key="ov_model",
+    )
+    rows = local.column_rows(graph, uid)
+    if rows:
+        st.dataframe(rows, hide_index=True)
+    else:
+        st.caption("No columns recorded for this model.")
+
+
+TRACE_MODES = {"Trace (upstream)": "upstream", "Impact (downstream)": "downstream"}
+
+
+def trace_tab(project: str) -> None:
+    """Project mode Trace / Impact: a column's lineage from the graph, as the CLI computes it."""
+    assert LOC is not None
+    graph = load_graph(project)
+    options = view.column_options(graph)
+    if not options:
+        st.caption("This project has no columns.")
+        return
+    pick, way, depth_col = st.columns([3, 2.4, 2], vertical_alignment="bottom")
+    name = pick.selectbox("Column", list(options), key="trace_col")
+    mode = way.segmented_control(
+        "Direction", list(TRACE_MODES), default="Trace (upstream)", key="trace_dir"
+    )
+    depth = depth_col.slider("Depth", 1, 10, 3, key="trace_depth")
+    indirect = st.toggle(
+        "Include indirect edges (join / filter / group / sort / window keys) in the paths",
+        key="trace_indirect",
+    )
+    col, direction = options[name], TRACE_MODES[mode or "Trace (upstream)"]
+    edges = view.neighborhood(graph, col, direction, depth)
+    d = view.build_lineage_dot(graph, edges, col)
+    if d.shown == 0:
+        st.caption(f"{name} has no {direction} lineage.")
+    else:
+        diagram(d)
+        st.markdown("**Edges**")
+        st.dataframe(view.explore_rows(graph, LOC.project_dir, edges[: d.shown]), hide_index=True)
+    if direction == "upstream":
+        paths = graph.upstream(col, max_depth=depth, include_indirect=indirect)
+        text, cmd = render_trace(graph, col, paths, depth), "trace"
+    else:
+        result = graph.downstream(col, max_depth=depth, include_indirect=indirect)
+        text, cmd = render_impact(graph, result, depth), "impact"
+    st.markdown("**Paths**" if cmd == "trace" else "**Impact**")
+    st.code(text, language=None)
+    flag = " --include-indirect" if indirect else ""
+    st.caption(f"Same as `dlens {cmd} {name} --artifacts {LOC.target_dir} --depth {depth}{flag}`")
+
+
+SOURCE_KINDS = ("As written", "Compiled")
+
+
+def source_tab(project: str) -> None:
+    """Project mode Source: read-only, and only the files the graph names inside the project."""
+    assert LOC is not None
+    graph = load_graph(project)
+    files = local.source_files(graph)
+    if not files:
+        st.caption("The graph names no files.")
+        return
+    pick, which = st.columns([4, 2], vertical_alignment="bottom")
+    file = pick.selectbox("File", files, key="src_file")
+    compiled = local.compiled_file(graph, file)
+    kind = which.segmented_control(
+        "Show", SOURCE_KINDS, default=SOURCE_KINDS[0], key="src_kind", disabled=compiled is None
+    )
+    if kind == "Compiled" and compiled is not None:
+        text, shown = local.read_compiled(LOC, graph, file), f"{LOC.target_dir.name}/{compiled}"
+    else:
+        text, shown = local.read_source(LOC, graph, file), file
+    if text is None:
+        st.error(f"{shown} could not be read inside the project.")
+        return
+    st.markdown(f"`{shown}` · read-only")
+    st.html(view.highlight_sql(text, sql=shown.endswith(".sql")))
+    st.caption("Only files the lineage graph names, read from inside the project folder.")
+
+
 def how_tab() -> None:
     st.markdown("#### From question to cited answer")
     st.markdown(style.pipeline(view.PIPELINE), unsafe_allow_html=True)
@@ -539,6 +819,14 @@ def how_tab() -> None:
             "R8c adds a missing connecting edge the tools returned."
         )
     with score:
+        if LOC is not None:  # the dev score is about the corpora, not this project
+            st.markdown("#### On this project")
+            st.markdown(
+                "Explore, Trace / Impact and Source read the lineage graph only: no model call. "
+                "Ask sends your question, plus the excerpts the tools return, to the model "
+                "you pick under Ask."
+            )
+            return
         s = view.dev_score()
         st.markdown("#### Current score")
         if s is None:
@@ -558,6 +846,9 @@ def main() -> None:
         + f"<style>{view.source_css()}</style>"
         + (style.DEMO_CSS if demo.enabled() else "")
     )
+    if LOC is not None:
+        project_main()
+        return
     project = header()
     if project is None:
         return
@@ -566,6 +857,26 @@ def main() -> None:
         ask_tab(project)
     with explore:
         explore_tab(project)
+    with how:
+        how_tab()
+
+
+PROJECT_TABS = ["Explore", "Trace / Impact", "Source", "Ask", "How it works"]
+
+
+def project_main() -> None:
+    project = project_header()
+    if project is None:
+        return
+    explore, trace, source, ask, how = st.tabs(PROJECT_TABS)
+    with explore:
+        overview_tab(project)
+    with trace:
+        trace_tab(project)
+    with source:
+        source_tab(project)
+    with ask:
+        ask_tab(project)
     with how:
         how_tab()
 

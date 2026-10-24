@@ -6,6 +6,7 @@ Everything here only reshapes results the agent already produced (answer, run re
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -36,8 +37,14 @@ EXAMPLES_PER_GROUP = 2
 
 
 def projects() -> dict[str, Path]:
-    """The projects the app offers: the prebuilt bundle in demo mode, else the corpora."""
-    return demo.projects() if demo.enabled() else PROJECTS
+    """The projects the app offers: the prebuilt bundle in demo mode, the one project of
+    ``dlens ui --project`` in project mode, else the corpora."""
+    if demo.enabled():
+        return demo.projects()
+    from dlens.ui import project  # imports this module: no cycle at import time
+
+    loc = project.from_env(os.environ)
+    return {loc.name: loc.project_dir} if loc is not None else PROJECTS
 
 
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
