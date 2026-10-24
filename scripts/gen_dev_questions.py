@@ -88,8 +88,8 @@ UNANSWERABLE = [
 ]  # fmt: skip
 
 
-def h(text: str) -> str:
-    return hashlib.sha256((SALT + text).encode()).hexdigest()
+def h(text: str, salt: str = SALT) -> str:
+    return hashlib.sha256((salt + text).encode()).hexdigest()
 
 
 def trace_bucket(d: int | None) -> str | None:
@@ -385,15 +385,24 @@ class Builder:
     next_id: int = 21
     next_spare: int = 1
     log: list[str] = field(default_factory=list)
+    split: str = "dev"  # the pool targets come from (pools.yml): dev, or test for D5b drafts
+    salt: str = SALT
+
+    @property
+    def pool(self) -> set[str]:
+        return self.ctx.dev if self.split == "dev" else self.ctx.test
+
+    def h(self, text: str) -> str:
+        return h(text, self.salt)
 
     # -- bookkeeping -----------------------------------------------------------------------------
     def add(self, q: dict[str, Any], spare: bool = False) -> None:
         if spare:
-            q["id"] = f"dev-s{self.next_spare:02d}"
+            q["id"] = f"{self.split}-s{self.next_spare:02d}"
             q["spare"] = True
             self.next_spare += 1
         elif "id" not in q:
-            q["id"] = f"dev-{self.next_id:02d}"
+            q["id"] = f"{self.split}-{self.next_id:02d}"
             self.next_id += 1
         slot = "trace" if q["type"] == "trace" else "impact" if q["type"] == "impact" else None
         if not spare and slot == "trace":
@@ -409,7 +418,7 @@ class Builder:
 
         def key(c: str) -> tuple[int, str]:
             need = sum(1 for t in tag_fn(c) if self.trap_count[t] < 2)
-            return (-need, h(c))
+            return (-need, self.h(c))
 
         return sorted(cands, key=key)
 
@@ -420,7 +429,7 @@ class Builder:
         if slot.wording == "paraphrase":
             flags.append("paraphrase_pending")
         q: dict[str, Any] = {
-            "corpus": "synthetic_shop", "split": "dev", "type": qtype, "subtype": slot.subtype,
+            "corpus": "synthetic_shop", "split": self.split, "type": qtype, "subtype": slot.subtype,
             "question": question, "target": target, "mention": mention, "hop_depth": hop,
             "hop_bucket": slot.bucket if slot.bucket else trace_bucket(hop), "wording": slot.wording,
             "source": "template", "traps": traps,
@@ -444,7 +453,7 @@ class Builder:
     def trace_candidates(self, slot: Slot) -> list[str]:
         ctx = self.ctx
         out = []
-        for c in ctx.dev & ctx.v.model_columns:
+        for c in self.pool & ctx.v.model_columns:
             d = ctx.depth(c)
             if trace_bucket(d) != slot.bucket or (d or 0) < slot.min_depth:
                 continue
@@ -473,7 +482,7 @@ class Builder:
                 question = tmpl.format(t=mention)
             elif slot.subtype == "multi_part":
                 gold = gold_trace(ctx, c)
-                oos = OUT_OF_SCOPE[int(h(c), 16) % len(OUT_OF_SCOPE)]
+                oos = OUT_OF_SCOPE[int(self.h(c), 16) % len(OUT_OF_SCOPE)]
                 gold.update(verdict="partial", out_of_scope=oos)
                 question = TEMPLATES["multi_part"].format(t=mention, oos=oos)
                 expect = {"verdict": "answered",
@@ -497,7 +506,7 @@ class Builder:
             if not 2 <= len(models) <= 4:
                 continue
             target = max(models, key=lambda c: (ctx.depth(c) or 0, c))
-            if target in ctx.dev and not self.used_trace[target]:
+            if target in self.pool and not self.used_trace[target]:
                 if trace_bucket(ctx.depth(target)) == slot.bucket:
                     cands.append(target)
         for c in self.ordered(cands, lambda c: trace_tags(ctx, c)):
@@ -523,7 +532,7 @@ class Builder:
         ctx = self.ctx
         lo, hi = (1, 3) if slot.bucket == "1-3" else (4, 99)
         cands = [
-            c for c in ctx.dev & ctx.v.model_columns
+            c for c in self.pool & ctx.v.model_columns
             if lo <= (ctx.depth(c) or 0) <= hi and not self.used_trace[c]
         ]  # fmt: skip
         for c in self.ordered(cands, lambda c: trace_tags(ctx, c)):
@@ -536,7 +545,7 @@ class Builder:
             ]
             up_all = ctx.up(c, True)
             premises = sorted(
-                (p for p in pool if p in ctx.dev and p not in up_all and p != c), key=h
+                (p for p in pool if p in self.pool and p not in up_all and p != c), key=self.h
             )
             if not premises:
                 continue
@@ -559,7 +568,7 @@ class Builder:
     def impact_candidates(self, slot: Slot) -> list[str]:
         ctx = self.ctx
         out = []
-        for c in ctx.dev:
+        for c in self.pool:
             if self.used_impact[c]:
                 continue
             dd = gs.downstream_depth(ctx.v, c)
@@ -604,24 +613,24 @@ class Builder:
     def fill_yesno(self, slot: Slot) -> bool:
         ctx = self.ctx
         sources = [
-            c for c in ctx.dev
+            c for c in self.pool
             if not self.used_impact[c] and ctx.down(c, True)
         ]  # fmt: skip
-        for s in sorted(sources, key=h):
+        for s in sorted(sources, key=self.h):
             dn_d, dn_a = ctx.down(s, False), ctx.down(s, True)
             if slot.variant == "yes_direct":
-                ts = [t for t in dn_d if t in ctx.dev and len(shortest_path(ctx, s, t, False)) >= 3]
+                ts = [t for t in dn_d if t in self.pool and len(shortest_path(ctx, s, t, False)) >= 3]
             elif slot.variant == "yes_indirect_only":
-                ts = [t for t in dn_a - dn_d if t in ctx.dev]
+                ts = [t for t in dn_a - dn_d if t in self.pool]
             else:  # no: a plausible column in a model the source reaches, but not reached
                 ms = gs.models_of(dn_d)
                 ts = [
-                    t for t in ctx.dev & ctx.v.model_columns
+                    t for t in self.pool & ctx.v.model_columns
                     if t.split(".")[0] in ms and t not in dn_a and t != s
                 ]  # fmt: skip
             if not ts:
                 continue
-            t = sorted(ts, key=lambda x: h(s + x))[0]
+            t = sorted(ts, key=lambda x: self.h(s + x))[0]
             gold = gold_reach(ctx, s, t)
             lineage = (
                 rfm_family(s) or rfm_family(t) or any(rfm_family(c) for c in gold["reach"]["path"])

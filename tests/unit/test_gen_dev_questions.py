@@ -130,3 +130,15 @@ def test_paraphrase_slots_keep_their_template():
     for q in MAIN:
         if q["wording"] == "paraphrase" and q["source"] != "v0.2":
             assert q["template_question"] and "paraphrase_pending" in q["review_flags"]
+
+
+def test_builder_on_the_test_pool_takes_only_test_columns():
+    """D5b reuse: a Builder with split="test" draws trace and impact targets from the test pool."""
+    b = g.Builder(g.load_ctx(), split="test", salt="unit-test:", next_id=1)
+    assert b.pool == b.ctx.test
+    assert b.fill_trace(g.Slot("trace", "upstream", "identifier", "2-3"))
+    assert b.fill_impact(g.Slot("impact", "downstream", "identifier", "1"))
+    assert b.fill_yesno(g.Slot("yesno", "yesno", "identifier", variant="no"))
+    for q in b.questions:
+        assert q["split"] == "test" and q["id"].startswith("test-")
+        assert q["target"] in b.ctx.test and q["target"] not in b.ctx.dev
