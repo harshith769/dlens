@@ -422,6 +422,16 @@ it), with tests: the request carries seed 42, both systems get it through `make_
 manifest records it, and the cache key differs from seed off. No determinism is claimed for
 Gemini (temperature 1.0; not measured).
 
+**Correction (owner, 24 Oct 2026; S13d, append-only).**
+- The seed experiment above was **confounded by Ollama prompt-cache state**: in each cell order,
+  the seed-42 sends always followed cached sends of the same prompt.
+- S13d (`docs/plans/s13d-design.md` §2.2, `scripts/s13d_measure.py --part seeds`) separated the
+  two, at temperature 0:
+  - seeds 43 and 44 change **0 / 12** qwen outputs;
+  - cold vs warm prompt-cache state changes **2 / 12**.
+- Seed 42 stays as a harmless, recorded setting (S1 and S4 alike). It is **not** a determinism
+  fix.
+
 ---
 
 ## Order of work after the decisions (one commit per item, smallest blast radius first)

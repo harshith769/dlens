@@ -1,6 +1,8 @@
 # S13d design: M7 vs validator, variance seeds, S2 and S3 systems, C1, freeze checklist
 
-**Version:** 0.1 (23 Oct 2026). **Status:** design only; **every Decision is PENDING** (owner).
+**Version:** 1.0 (24 Oct 2026). **Status:** decided by the owner, 24 Oct 2026 (below). Every
+row is APPROVED with its condition, except row 10 (TPD), which stays open. Design only: no `src/`
+change in S13d.
 **Branch:** `s13-s2s3-design` from main `084135e` (matches CI's `s[0-9][0-9]-*`).
 **Inputs:** spec §0, §8, §11.3–11.7, §13; `docs/plans/v0.3-plan.md`; `s1-design.md`;
 `s12-design.md`; `s13c-design.md` (§S seed); `metrics-design.md` v1.2;
@@ -53,7 +55,23 @@ Rules that held throughout this session:
 | 17 | S3: code steps (chain trace, R9 fact, unknown-column refusal, ambiguity policy, code / linked evidence, candidate trace) | keep / drop | **keep** | Graph-only by construction (none reads the index) |
 | 18 | C1 go / no-go and timing | go in S16 / go in Buffer A / v1.0 / no-go | **go, in S16; pin dbt-colibri 0.3.7** | No LLM, no freeze dependency, MIT; a v1.0 deliverable, so doing it early leaves room for surprises |
 
-`Decision:` PENDING for every row.
+### Owner decisions (24 Oct 2026)
+
+| # | decision | condition / what is built |
+|---|---|---|
+| 1 | **APPROVED (a)**, report the split | Computed in report scripts only; `metrics.py` 1.3.0 unchanged. Pilot: a **new** addendum `eval/reports/s13d/m7_split.md` (`pilot_table.md` not edited). The v1.0 results report the M7 number **and** the split |
+| 2 | **APPROVED**, primary seed 42 | Recorded plainly: seed 42 is **not a determinism fix**. At temperature 0 it does not change qwen's output (§2.2); it stays as a harmless, recorded setting |
+| 3 | **APPROVED (i)**, qwen variance runs dropped, **plus a run protocol** | Every qwen benchmark run (S1 / S2 / S3 / S4, dev or test) starts on a freshly restarted Ollama server with nothing loaded. The runner records `"ollama_fresh_start": true/false` in the manifest and refuses or warns if not fresh (S16 implements, §2.3). The cold / warm prompt-cache variation (2 / 12) is reported as a known limitation of the local model |
+| 4 | **APPROVED** | Gemini variance: seeds 43 and 44, S1 + S4, temperature 1.0, 720 calls |
+| 5 | **APPROVED** as written (Ask excluded) | Applied only at the freeze (§2.5) |
+| 6 | **APPROVED** | S2 = all index chunks, ordered by (file, line_start, kind, entity) |
+| 7 | **APPROVED**, with a condition | Gemini cap 240,000 est. tokens; qwen num_ctx − 1,024. The TPM pacer uses the provider's **reported** token usage when available, else a conservative estimate with a stated factor, **never chars / 3 alone** (§3.3: factor 1.25) |
+| 8 | **APPROVED** | S2 on qwen at num_ctx 32768, S2 only, recorded in the manifest |
+| 9 | **APPROVED** | S2 on set E: Gemini runs (60 calls); qwen reported as "doesn't fit on a 6 GB GPU" |
+| 10 | **OPEN** | Pending the owner's reading of the AI Studio rate-limit page (TPD) |
+| 11 | **APPROVED** | TPM pacing built in S16 before 7 Dec, with the unchanged-requests / cache-keys test |
+| 12–17 | **APPROVED** | S3 = S4 with `index=None`: drop search_docs, the F6 step and the hybrid stage; keep the validator, coverage completion + the three views, and all code steps |
+| 18 | **APPROVED** | C1 in S16: dbt-colibri 0.3.7 (MIT), installed outside `uv.lock`; inspect its edge JSON first |
 
 ---
 
@@ -101,8 +119,8 @@ What the split says:
 - The gap is **mostly an S1 qwen effect**. S1 qwen writes many claims with no dotted column
   (84 chunk citations; 1 is M7-valid), so 34 of its 90 answered answers fail M7 on such a claim.
   On dotted-column claims alone S1 qwen scores 0.886.
-- S4-validated is 1.000 on dotted claims on every record set. Its losses are all no-column
-  claims.
+- S4-validated is 1.000 on dotted claims on every record set. Its losses are no-column claims,
+  or answers with zero citations (in neither split column).
 
 **(b) Hypothetical: M7's excerpt branch replaced by the validator's chunk rule.** The chunk rule
 is re-implemented in the script. M7's file, bounds, model-level and star rules are unchanged.
@@ -159,7 +177,12 @@ has claims that cite a chunk or excerpt but name no dotted column.
 construction (qwen 0.533 → 0.967), hiding the one relevance signal S1 has; (c) would empty 4–5
 S4 answers that passed the validator. The split shows the same facts without changing a definition.
 
-`Decision:` PENDING.
+`Decision:` **APPROVED (a) (owner, 24 Oct 2026).**
+- The split is computed in report scripts only; `metrics.py` 1.3.0 and metrics-design v1.2 are
+  unchanged.
+- The pilot split is a new addendum, `eval/reports/s13d/m7_split.md` (from
+  `scripts/s13d_measure.py --part m7`). `eval/reports/s13/pilot_table.md` is not edited.
+- The v1.0 results report the M7 number and the split side by side (S16 results script).
 
 ---
 
@@ -201,8 +224,9 @@ S4 answers that passed the validator. The split shows the same facts without cha
   ran after it (all cached).
 - So "seed null 4 / 12 vary, seed 42 0 / 12" is **confounded with cache state**. The fixed seed is
   harmless and stays (S1 and S4 alike), but it is not what removed the variation.
-- The committed S13c records and docs are not edited. This is recorded here and should go in the
-  next session report's carry-forward.
+- The committed S13c records are not edited. A dated, append-only correction note was added at
+  the end of `s13c-design.md` §S (24 Oct 2026, owner), and the correction is in this design's
+  carry-forward.
 
 ### 2.3 Options for qwen variance (A2)
 - **(i) Drop the qwen variance runs as not informative.** Under the fixed sampling rule, qwen
@@ -254,7 +278,20 @@ are signed:
 - Groq's cross-model S4 on the same 60 is separate (spec §9).
 - qwen is free.
 
-`Decision:` PENDING (rows 2–5).
+`Decision:` **APPROVED (owner, 24 Oct 2026).**
+- **Row 2:** seed 42 stays primary. Recorded plainly: it is **not a determinism fix** (§2.2).
+- **Row 3 (i):** qwen variance runs are dropped, plus the run protocol:
+  - Every qwen benchmark run (S1, S2, S3, S4; dev or test) starts on a **freshly restarted Ollama
+    server with nothing loaded**.
+  - The runner records `"ollama_fresh_start": true | false` in the manifest. It refuses (or, with
+    an explicit flag, warns and records false) when the server is not fresh.
+  - The S16 check: `/api/ps` empty at the start (nothing loaded), plus the server process start
+    time if the platform exposes it, recorded next to the run's start. "Freshly restarted"
+    cannot be proven through the API alone, so the manifest records what was checked.
+  - The cold / warm prompt-cache variation (2 / 12, §2.2) is reported as a known limitation of the
+    local model, in the v1.0 report's limitations section.
+- **Row 4:** Gemini variance: seeds 43 and 44, S1 + S4, temperature 1.0, 720 calls.
+- **Row 5:** the §2.5 rule as written (Ask excluded), applied only at the freeze.
 
 ---
 
@@ -311,6 +348,29 @@ are signed:
     test that S1 and S4 requests and cache keys are byte-identical with and without it.
   - It is listed in the freeze checklist (§6).
   - The cache key must not include it.
+- **Token accounting (owner condition, row 7, 24 Oct 2026): never chars / 3 alone.**
+  - **Before a send:** the pacer reserves `ceil(1.25 × estimate_tokens(request))` input tokens
+    plus the request's maximum output tokens.
+    - The factor is **1.25**. `estimate_tokens` (chars / 3) already over-counts qwen's tokenizer
+      by 1.17× on the S2 prompt (33,748 est. vs 28,930 real, §3.4).
+    - × 1.25 leaves room for a tokenizer up to about 46% denser than qwen's on this text.
+  - **After the response:** the reservation is replaced by the provider's **reported** usage
+    (Gemini `usage_metadata`: prompt + candidates + thoughts tokens; OpenAI-compatible
+    `usage`).
+    - Only if the provider reports nothing does the reservation stand.
+    - Each step records which count was used (`reported` / `estimated`).
+  - **Check on the first S2 Gemini call:**
+    - reported prompt tokens / `estimate_tokens` is recorded in the manifest;
+    - if it exceeds 1.25, the run **stops** (STOP, owner): the factor would not be conservative.
+  - **Interaction with the approved 240,000 cap:**
+    - A call whose reservation exceeds the TPM can never be sent. The pacer refuses it (an error,
+      not a wait), so in effect the Gemini cap is min(240,000, (250,000 − max output) / 1.25)
+      ≈ 199,000 est. tokens.
+    - No measured prompt is near it: set E 123,917 est. reserves ≈ 154,896.
+    - The owner may lower the recorded cap to match in S16; it is not changed here.
+  - **Pace this implies:**
+    - synthetic: ≈ 42,185 reserved per call → 5 calls / min → S2 test ≥ 45 min;
+    - set E: ≈ 154,896 → 1 call / min → ≥ 60 min.
 
 ### 3.4 Measured: size of the stuffed prompt (offline, `--part s2tokens`)
 - **Counter:** `estimate_tokens` (serialised JSON chars / 3, the cap's own counter; it
@@ -402,7 +462,14 @@ without the question), the index key (chunker version, embedder revision), `mode
 - **Dev:** a qwen S2 dev run in S16 (free, ≈ 4 h). Gemini S2 on dev only with an owner quota plan
   (96 calls, ≈ 3.2M est. tokens).
 
-`Decision:` PENDING (rows 6–11).
+`Decision:` **APPROVED rows 6–9 and 11 (owner, 24 Oct 2026); row 10 OPEN.**
+- **Row 6:** all index chunks, ordered by (file, line_start, kind, entity).
+- **Row 7:** caps as in §3.2, with the condition that the pacer uses reported usage, else a
+  conservative estimate (factor 1.25), never chars / 3 alone (§3.3).
+- **Row 8:** qwen num_ctx 32768, S2 only, recorded in the manifest.
+- **Row 9:** set E on Gemini (60 calls); qwen reported as "doesn't fit on a 6 GB GPU".
+- **Row 10:** TPD pending the owner's reading of the AI Studio page.
+- **Row 11:** TPM pacing in S16, before 7 Dec, with the unchanged-requests / cache-keys test.
 
 ---
 
@@ -477,7 +544,9 @@ that exactly these two keys differ.
 - **Test quota:** ≈ 4 calls × 224 = **896 Gemini calls** (spec §11.6; ≈ 2.4 quota days). If
   quota is cut, spec §11.6's cut order applies: S3 drops to the 60-question subset third.
 
-`Decision:` PENDING (rows 12–17).
+`Decision:` **APPROVED rows 12–17 (owner, 24 Oct 2026).**
+- S3 = S4 with `index=None`: drop search_docs, the F6 step and the hybrid stage.
+- Keep the validator, coverage completion and the three views, and all code steps.
 
 ---
 
@@ -522,7 +591,8 @@ that exactly these two keys differ.
   uv tool run --from dbt-colibri==0.3.7 python -c "import sqlglot; print(sqlglot.__version__)"
   ```
 
-`Decision:` PENDING (row 18).
+`Decision:` **APPROVED (owner, 24 Oct 2026).** C1 goes in S16: dbt-colibri 0.3.7 (MIT),
+installed outside `uv.lock`; its edge JSON is inspected first.
 
 ---
 
@@ -554,6 +624,8 @@ decisions or a later session.
 | S0 reference | versioned baseline `eval/runs/s0/baseline/s13c/` | | | | | exists |
 | corpus pins | synthetic_shop `v1_frozen.sha256`; dbt_jira pinned commit `0ed5dcf2…` (SOURCE.md) | | | | | exists |
 | server settings for local runs | `OLLAMA_NUM_PARALLEL` 1, keep-alive (session reports only) | | | | | to add to the manifest (cache-state effect, §2.2) |
+| `ollama_fresh_start` (row 3 protocol) | – | qwen | qwen | qwen | qwen | **to build (S16):** a manifest field; the runner refuses or warns if not fresh |
+| TPM pacer accounting (row 7) | – | – | factor 1.25, reported usage, the first-call ratio | – | – | to build (S16), with the pacing |
 
 ---
 
@@ -563,7 +635,7 @@ decisions or a later session.
 |---|---|---|
 | **S14** | E2 `dlens ui --project`, E4b public-project coverage | screenshot review (visual changes) |
 | **S15a** | D5b: 224 test + 60 set-E question drafts (not opened by anyone but the review) | review all 284 in Buffer A (30 Nov – 6 Dec); sign the freeze |
-| **S16** | TPM pacing in `LLMClient` (own commit, sha re-pin, byte-identical test) → `eval/systems/s2.py` + `s3.py` (frozen hashes, tests) → qwen S2 and S3 dev diagnostics (local) → Ask judge plumbing (OpenAI-compatible adapter, judge prompt, the 30-label calibration harness) → M7 split columns in the report scripts (if row 1 = (a)) → C1 reader + edge F1 (if row 18 = go) | these decisions; the TPD reading (row 10); a quota plan before any Gemini S2 / S3 dev check; 30 Ask calibration labels |
+| **S16** | TPM pacing in `LLMClient` with reported-usage accounting (own commit, sha re-pin, byte-identical test) → `ollama_fresh_start` in the S1 / S2 / S3 / S4 runners → `eval/systems/s2.py` + `s3.py` (frozen hashes, tests) → qwen S2 and S3 dev diagnostics (local, fresh server) → Ask judge plumbing (OpenAI-compatible adapter, judge prompt, the 30-label calibration harness) → M7 split columns in the v1.0 results script (the pilot addendum is done in S13d) → C1: inspect colibri's edge JSON, reader + edge F1 | these decisions; the TPD reading (row 10); a quota plan before any Gemini S2 / S3 dev check; 30 Ask calibration labels |
 | **S15b** | v0.3.0 release: demo bundle rebuild + presets (local), docs, explain gate, tag | the explain gate; approve the tag |
 
 - **Dates:** S14, S15a and S16 before **29 Nov** (v0.3.0); S15b by 29 Nov; Buffer A review; the
@@ -573,6 +645,24 @@ decisions or a later session.
   the code frozen on 7 Dec.
 
 ---
+
+## Carry-forward
+
+- **Correction to S13c §S (owner, 24 Oct 2026).** The S13c seed experiment was confounded by
+  Ollama prompt-cache state: its seed-42 sends always followed cached sends of the same prompt.
+  - S13d shows that, at temperature 0, seeds 43 and 44 change 0 / 12 qwen outputs, while cache
+    state changes 2 / 12.
+  - Seed 42 stays as a harmless, recorded setting. It is not a determinism fix.
+  - Appended as a dated note to `s13c-design.md` §S; nothing else in S13c files was rewritten.
+- **Row 10 (TPD) is open:** the owner reads the AI Studio rate-limit page for
+  gemini-3.5-flash-lite in project dlens-eval.
+- **S16 items:**
+  - TPM pacer (factor 1.25, reported usage, first-call STOP check; the cap note in §3.3);
+  - `ollama_fresh_start`;
+  - S2 and S3 runners;
+  - judge plumbing;
+  - the M7 split in the v1.0 results script;
+  - C1 (dbt-colibri 0.3.7, outside `uv.lock`, inspect its JSON first).
 
 ## Change log
 
@@ -586,3 +676,10 @@ decisions or a later session.
   - **Seeds:** a different seed changed 0 / 12 qwen outputs at temperature 0; cache state changed
     2 / 12. The S13c seed result is confounded with cache state.
   - **dbt-colibri:** 0.3.7, MIT.
+- 24 Oct 2026: v1.0. Owner decisions:
+  - approved: rows 1–9 and 11–18, with conditions (row 1 pilot addendum
+    `eval/reports/s13d/m7_split.md`; row 3 fresh-server protocol; row 7 pacer accounting, factor
+    1.25);
+  - open: row 10.
+
+  Also: the S13c §S correction note appended; the carry-forward added.
