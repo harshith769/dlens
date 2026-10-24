@@ -22,6 +22,14 @@ All notable changes to this project are documented here. The format follows
   refusal; code prefixes the answer with "Interpreted X as Y.".
 
 ### Added
+- **`dlens ui --project DIR`** (S14, v0.3 E2): the local UI on any project ingested with
+  `dlens ingest --artifacts` (graph read from `target/dlens/`; the exact command is shown when
+  it is missing or stale). Tabs: Explore, Trace / Impact, Source, Ask, How it works. The first
+  three need no LLM and only the `ui` extra. Ask runs the same agent loop and validator as S4 on
+  Ollama (default), Gemini or an OpenAI-compatible endpoint with a user-supplied key, which is
+  never written, logged or shown. Its cache, quota and run logs live in `target/dlens/ui/`.
+  Streamlit binds to 127.0.0.1 with usage statistics off. Without Streamlit, `dlens ui` prints
+  the pipx/pip command for the `ui` extra.
 - **S1 vector-RAG baseline** (S11; docs/plans/s1-design.md): `eval/systems/s1.py` and
   `make eval-s1`. Hybrid search on the raw question over the S07 index, chunks skip-and-packed
   into the 3K cap minus a repair reserve, S4's answer-phase instructions plus three S1 lines

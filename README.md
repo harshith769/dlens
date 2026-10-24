@@ -210,6 +210,32 @@ index is cached next to the graph and rebuilt only when the project changes.
 
 ## Local UI
 
+### On your own project
+
+```bash
+pipx install "dlens-lineage[ui]"      # add ,agent for Ask: "dlens-lineage[ui,agent]"
+cd path/to/your/dbt_project
+dlens ingest --artifacts target/      # once, and after each dbt compile / docs generate
+dlens ui --project .                  # http://127.0.0.1:8501
+```
+
+Tabs: **Explore** (models, parse quality FULL / PARTIAL / TABLE_ONLY / FAILED, columns),
+**Trace / Impact** (a column's lineage diagram, edges with `file:line`, and the paths as
+`dlens trace` / `impact` print them), **Source** (read-only: only the files the graph names),
+**Ask** and **How it works**. Explore, Trace / Impact and Source need no LLM and work with the
+`ui` extra alone.
+
+**Your code stays on this machine unless you configure a cloud provider.** The UI binds to
+127.0.0.1 and turns Streamlit's usage statistics off (`--host` binds elsewhere, with a warning).
+Ask uses local Ollama by default. You can also pick Gemini or an OpenAI-compatible endpoint
+with your own key: paste it (kept in memory for the session only) or name the environment
+variable that holds it. DLens never picks up `GEMINI_API_KEY` or any other key on its own. A
+cloud provider gets a daily call budget (default 50). Ask's cache, quota counter and run logs
+live in `target/dlens/ui/`. Every answer goes through the same validator, and removed claims are
+shown.
+
+### On the bundled corpora (development)
+
 ```bash
 uv sync --extra agent --extra ui
 make ui          # Ask | Explore lineage | How it works (needs Ollama for Ask)
