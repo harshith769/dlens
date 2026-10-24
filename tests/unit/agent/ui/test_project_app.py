@@ -169,7 +169,10 @@ def test_five_tabs_privacy_line_and_no_llm_tabs(start, eph: Path) -> None:
         "How it works",
     ]
     assert proj.PRIVACY in [c.value for c in at.caption]
-    assert any("eph_shop · 7 models" in t for t in texts(at))
+    folder = proj.locate(eph).folder
+    assert any("<b>eph_shop</b> · 7 models" in t and folder in t for t in texts(at))
+    assert at.selectbox(key="trace_col").value == "customer_names.customer_id"  # has lineage
+    assert any("--artifacts target --depth 3` in the project folder" in c.value for c in at.caption)
     assert {m.label: m.value for m in at.metric}["FULL"] == "7"
     models = next(f.value for f in at.dataframe if "Parse" in f.value.columns)
     assert "customer_summary" in list(models["Model"])
@@ -192,7 +195,7 @@ def test_not_ingested_shows_the_command_and_the_privacy_line(start, eph: Path) -
     at = start([], ingest=False)
     assert not at.exception
     assert any("not ingested yet" in e.value for e in at.error)
-    assert f"dlens ingest --artifacts {eph.resolve() / 'target'}" in [c.value for c in at.code]
+    assert "dlens ingest --artifacts target" in [c.value for c in at.code]
     assert proj.PRIVACY in [c.value for c in at.caption]
     assert not at.tabs
 
@@ -244,6 +247,7 @@ def test_named_env_var_key_is_used_but_never_shown(start, eph: Path, monkeypatch
     monkeypatch.setenv("MY_GEMINI_KEY", SENTINEL)
     at = pick_gemini(start(_answer(eph)), key_env="MY_GEMINI_KEY")
     assert any("Using the key in $MY_GEMINI_KEY." in c.value for c in at.caption)
+    assert any("never saved" in c.value for c in at.caption)
     ask(at)
     assert at.envs[0]["GEMINI_API_KEY"] == SENTINEL
     assert at.envs[0]["GEMINI_DAILY_BUDGET"] == "50"

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -56,7 +57,29 @@ class Location:
 
     @property
     def name(self) -> str:
-        return self.project_dir.name or str(self.project_dir)
+        """The ``name:`` of ``dbt_project.yml``, else the folder name."""
+        return dbt_project_name(self.project_dir) or self.project_dir.name or str(self.project_dir)
+
+    @property
+    def folder(self) -> str:
+        """The project folder for display, with the home directory shown as ``~``."""
+        try:
+            return "~/" + self.project_dir.relative_to(Path.home()).as_posix()
+        except ValueError:
+            return self.project_dir.as_posix()
+
+    def rel(self, path: Path) -> str:
+        """``path`` relative to the project folder when it is inside it (what a command run from
+        the project folder needs), else the absolute path."""
+        try:
+            return path.relative_to(self.project_dir).as_posix() or "."
+        except ValueError:
+            return path.as_posix()
+
+    @property
+    def target(self) -> str:
+        """The target directory as commands run from the project folder name it."""
+        return self.rel(self.target_dir)
 
     @property
     def cache_dir(self) -> Path:
@@ -66,6 +89,19 @@ class Location:
     def ui_dir(self) -> Path:
         """Everything Ask writes: LLM cache, quota counter, run logs."""
         return self.cache_dir / "ui"
+
+
+_NAME = re.compile(r"""^name:\s*['"]?([A-Za-z0-9_.-]+)['"]?\s*(?:#.*)?$""", re.M)
+
+
+def dbt_project_name(project_dir: Path) -> str | None:
+    """``name:`` from ``dbt_project.yml`` (a top-level key; no YAML library needed)."""
+    try:
+        text = (project_dir / "dbt_project.yml").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    m = _NAME.search(text)
+    return m.group(1) if m else None
 
 
 def locate(project: Path, artifacts: Path | None = None) -> Location:
@@ -120,7 +156,11 @@ class ProjectProblem(Exception):
 
 
 def _ingest_cmd(loc: Location) -> str:
-    return f"dlens ingest --artifacts {loc.target_dir}"
+    return f"dlens ingest --artifacts {loc.target}"
+
+
+def _run_in(loc: Location) -> str:
+    return f"Run in the project folder ({loc.folder}):"
 
 
 def load(loc: Location) -> LineageGraph:
@@ -132,17 +172,21 @@ def load(loc: Location) -> LineageGraph:
     if not (loc.target_dir / "manifest.json").is_file():
         raise ProjectProblem(
             Hint(
-                f"No dbt artifacts in {loc.target_dir}",
+                f"No dbt artifacts in {loc.target}",
                 "Compile the project and write its catalog with dbt, then ingest it with DLens "
-                "(reads files only; no network).",
-                (f"cd {loc.project_dir} && dbt compile && dbt docs generate", _ingest_cmd(loc)),
+                f"(reads files only; no network). {_run_in(loc)}",
+                ("dbt compile && dbt docs generate", _ingest_cmd(loc)),
             )
         )
     try:
         return load_artifact_cache(loc.target_dir)
     except ArtifactError as e:
         raise ProjectProblem(
-            Hint("This project is not ingested yet", str(e), (_ingest_cmd(loc),))
+            Hint(
+                "This project is not ingested yet",
+                f"{str(e).replace(str(loc.target_dir), loc.target)} {_run_in(loc)}",
+                (_ingest_cmd(loc),),
+            )
         ) from e
 
 
@@ -194,6 +238,15 @@ def column_rows(graph: LineageGraph, uid: str) -> list[dict[str, Any]]:
         for c in sorted(graph.columns())
         if graph.model_of(c) == uid
     ]
+
+
+def default_column(graph: LineageGraph, options: Mapping[str, str]) -> int:
+    """Index in ``options`` (display name -> column id, in their stable order) of the first
+    column with upstream or downstream lineage; 0 if none has any."""
+    g = graph.nx_graph
+    return next(
+        (i for i, col in enumerate(options.values()) if g.in_degree(col) or g.out_degree(col)), 0
+    )
 
 
 def source_files(graph: LineageGraph) -> list[str]:
@@ -425,7 +478,7 @@ def open_index(loc: Location, graph: LineageGraph) -> tuple[SearchIndex | None, 
     if not index_dir.is_dir():
         return None, (
             f"{off}: no search index yet. Build it once with "
-            f"`dlens search --artifacts {loc.target_dir} orders`."
+            f"`dlens search --artifacts {loc.target} orders` in the project folder."
         )
     try:
         from dlens.retrieval.dense import get_embedder, require_extra

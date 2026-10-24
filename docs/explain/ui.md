@@ -67,6 +67,13 @@ The privacy line "Your code stays on this machine unless you configure a cloud p
 rendered under the header *before* the graph loads, so it is on every page, including the
 not-ingested one.
 
+- **Header.** The project is shown by the `name:` of its `dbt_project.yml` (the folder name if
+  there is none), with the folder in small text below it (home shown as `~`).
+- **Paths in captions and hints** are relative to the project folder when they are inside it
+  (`dlens ingest --artifacts target`), with "Run in the project folder (…)", so a command stays
+  short and copyable. Inline code in captions and alerts doesn't wrap (`PROJECT_CSS`).
+- **Trace / Impact** opens on the first column, in the picker's order, that has upstream or
+  downstream lineage (`project.default_column`), not on a lone source column.
 - **Loading.** `project.load` never builds a graph: it uses `load_artifact_cache`. With no
   `manifest.json` it says `dbt compile && dbt docs generate`, then `dlens ingest --artifacts
   <target>`. With a missing or stale cache it says the `dlens ingest` command. The CLI prints

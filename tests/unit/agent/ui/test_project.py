@@ -47,15 +47,17 @@ def test_load_ingested_project(ingested: proj.Location) -> None:
 def test_not_ingested_shows_the_exact_command(eph: Path) -> None:
     hint = proj.problem(proj.locate(eph))
     assert hint is not None and hint.title == "This project is not ingested yet"
-    assert hint.commands == (f"dlens ingest --artifacts {eph.resolve() / 'target'}",)
+    assert hint.commands == ("dlens ingest --artifacts target",)  # run from the project folder
+    assert "Run in the project folder" in hint.body
+    assert str(eph.resolve() / "target") not in hint.body
 
 
 def test_no_artifacts_says_to_run_dbt_first(tmp_path: Path) -> None:
     (tmp_path / "p").mkdir()
     hint = proj.problem(proj.locate(tmp_path / "p"))
     assert hint is not None and "No dbt artifacts" in hint.title
-    assert hint.commands[0].endswith("dbt compile && dbt docs generate")
-    assert hint.commands[1].startswith("dlens ingest --artifacts ")
+    assert hint.commands == ("dbt compile && dbt docs generate", "dlens ingest --artifacts target")
+    assert "Run in the project folder" in hint.body
 
 
 def test_missing_folder(tmp_path: Path) -> None:
@@ -233,3 +235,45 @@ def test_open_index_without_extra_or_index(ingested: proj.Location, monkeypatch)
     monkeypatch.setattr(proj, "has_module", lambda name: False)
     index, status = proj.open_index(ingested, graph)
     assert index is None and "retrieval extra is not installed" in status
+
+
+def test_display_name_is_the_dbt_project_name(tmp_path: Path) -> None:
+    folder = tmp_path / "checkout"
+    folder.mkdir()
+    (folder / "dbt_project.yml").write_text(
+        "# a comment\nname: 'jira_integration_tests'  # quoted\nversion: '1.0'\n"
+        "models:\n  name: not_this_one\n"
+    )
+    loc = proj.locate(folder)
+    assert loc.name == "jira_integration_tests"
+    assert loc.folder == folder.resolve().as_posix()
+    (folder / "dbt_project.yml").write_text("version: 2\n")
+    assert proj.locate(folder).name == "checkout"  # no name: the folder name
+
+
+def test_folder_under_home_is_shown_with_a_tilde(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / "code" / "shop").mkdir(parents=True)
+    assert proj.locate(tmp_path / "code" / "shop").folder == "~/code/shop"
+
+
+def test_paths_are_relative_to_the_project_where_possible(eph: Path, tmp_path: Path) -> None:
+    loc = proj.locate(eph)
+    assert loc.target == "target" and loc.rel(loc.target_dir / "dlens") == "target/dlens"
+    elsewhere = proj.locate(eph, tmp_path / "other_target")
+    assert elsewhere.target == (tmp_path / "other_target").resolve().as_posix()
+
+
+def test_default_column_is_the_first_with_lineage(ingested: proj.Location) -> None:
+    from dlens.ui import view
+
+    graph = proj.load(ingested)
+    options = view.column_options(graph)
+    i = proj.default_column(graph, options)
+    col = list(options.values())[i]
+    g = graph.nx_graph
+    assert g.in_degree(col) or g.out_degree(col)
+    assert all(not (g.in_degree(c) or g.out_degree(c)) for c in list(options.values())[:i])
+    isolated = {"a.x": "model.p.a.x"}
+    assert proj.default_column(graph, isolated | dict(options)) == i + 1
+    assert proj.default_column(graph, {}) == 0

@@ -383,7 +383,6 @@ def ui_cmd(
     if hint is not None:
         typer.echo(f"error: {hint.title}\n{hint.body}", err=True)
         if hint.commands:
-            typer.echo("Run:", err=True)
             for cmd in hint.commands:
                 typer.echo(f"  {cmd}", err=True)
         raise typer.Exit(2)

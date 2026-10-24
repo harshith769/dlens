@@ -38,6 +38,12 @@ if TYPE_CHECKING:
     from dlens.retrieval.index import SearchIndex
 
 PROVIDER = "ollama"
+KEY_NOTE = "Your key stays in this browser session's memory only; it is never saved."
+# Project mode: a path or command in a caption or hint never breaks across lines.
+PROJECT_CSS = (
+    "<style>[data-testid='stCaptionContainer'] code, .stAlert code { white-space: nowrap; }"
+    ".dl-path { font-size: 0.8rem; opacity: 0.75; }</style>"
+)
 LOC = local.from_env(os.environ)  # project mode (``dlens ui --project``) when set
 INTRO = (
     "Ask where a dbt column comes from or what it affects. Every claim is checked against the code."
@@ -306,12 +312,16 @@ def project_header() -> str | None:
             view.Hint(
                 f"Could not open the lineage graph of {LOC.name}",
                 f"{type(e).__name__}: {e}",
-                (f"dlens ingest --artifacts {LOC.target_dir} --rebuild",),
+                (f"dlens ingest --artifacts {LOC.target} --rebuild",),
             )
         )
         return None
-    line = f"{LOC.name} · {view.project_stats(graph).line}"
-    st.markdown(f'<div class="dl-stats">{escape(line)}</div>', unsafe_allow_html=True)
+    stats = view.project_stats(graph).line
+    st.markdown(
+        f'<div class="dl-stats"><b>{escape(LOC.name)}</b> · {escape(stats)}<br>'
+        f'<span class="dl-path">{escape(LOC.folder)}</span></div>',
+        unsafe_allow_html=True,
+    )
     return LOC.name
 
 
@@ -344,6 +354,7 @@ def provider_panel(project: str) -> tuple[local.ProviderChoice, local.Secret | N
             type="password",
             help="Never written to disk, logged, or shown back.",
         )
+        st.caption(KEY_NOTE)
         key_env = st.text_input(
             "Or the name of an environment variable that holds it",
             key=f"ui_{kind}_key_env",
@@ -711,7 +722,7 @@ def overview_tab(project: str) -> None:
         cell.metric(level, cov.counts.get(level, 0))
     st.caption(
         f"{local.full_share(cov):.0%} of models FULL (column lineage with no gaps). "
-        f"`dlens report --artifacts {LOC.target_dir}` lists every gap."
+        f"`dlens report --artifacts {LOC.target}` (in the project folder) lists every gap."
     )
     st.markdown("**Models**")
     st.dataframe(local.model_rows(graph, cov), hide_index=True)
@@ -743,7 +754,9 @@ def trace_tab(project: str) -> None:
         st.caption("This project has no columns.")
         return
     pick, way, depth_col = st.columns([3, 2.4, 2], vertical_alignment="bottom")
-    name = pick.selectbox("Column", list(options), key="trace_col")
+    name = pick.selectbox(
+        "Column", list(options), index=local.default_column(graph, options), key="trace_col"
+    )
     mode = way.segmented_control(
         "Direction", list(TRACE_MODES), default="Trace (upstream)", key="trace_dir"
     )
@@ -770,7 +783,10 @@ def trace_tab(project: str) -> None:
     st.markdown("**Paths**" if cmd == "trace" else "**Impact**")
     st.code(text, language=None)
     flag = " --include-indirect" if indirect else ""
-    st.caption(f"Same as `dlens {cmd} {name} --artifacts {LOC.target_dir} --depth {depth}{flag}`")
+    st.caption(
+        f"Same as `dlens {cmd} {name} --artifacts {LOC.target} --depth {depth}{flag}` "
+        "in the project folder."
+    )
 
 
 SOURCE_KINDS = ("As written", "Compiled")
@@ -791,7 +807,7 @@ def source_tab(project: str) -> None:
         "Show", SOURCE_KINDS, default=SOURCE_KINDS[0], key="src_kind", disabled=compiled is None
     )
     if kind == "Compiled" and compiled is not None:
-        text, shown = local.read_compiled(LOC, graph, file), f"{LOC.target_dir.name}/{compiled}"
+        text, shown = local.read_compiled(LOC, graph, file), f"{LOC.target}/{compiled}"
     else:
         text, shown = local.read_source(LOC, graph, file), file
     if text is None:
@@ -845,6 +861,7 @@ def main() -> None:
         style.CSS
         + f"<style>{view.source_css()}</style>"
         + (style.DEMO_CSS if demo.enabled() else "")
+        + (PROJECT_CSS if LOC is not None else "")
     )
     if LOC is not None:
         project_main()

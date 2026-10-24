@@ -42,7 +42,8 @@ def test_not_ingested_prints_the_command_and_does_not_launch(eph: Path, launched
     r = runner.invoke(app, ["ui", "--project", str(eph)])
     assert r.exit_code == 2
     assert "This project is not ingested yet" in r.output
-    assert f"dlens ingest --artifacts {eph.resolve() / 'target'}" in r.output
+    assert "  dlens ingest --artifacts target" in r.output
+    assert "Run in the project folder" in r.output
     assert launched == []
 
 
