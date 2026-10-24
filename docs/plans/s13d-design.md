@@ -626,6 +626,7 @@ decisions or a later session.
 | server settings for local runs | `OLLAMA_NUM_PARALLEL` 1, keep-alive (session reports only) | | | | | to add to the manifest (cache-state effect, §2.2) |
 | `ollama_fresh_start` (row 3 protocol) | – | qwen | qwen | qwen | qwen | **to build (S16):** a manifest field; the runner refuses or warns if not fresh |
 | TPM pacer accounting (row 7) | – | – | factor 1.25, reported usage, the first-call ratio | – | – | to build (S16), with the pacing |
+| set-E gold drift guard (S15a) | Before the freeze, rebuild dbt_jira with the frozen engine and compare its graph_sha256 with external_gold_graph_v1.json meta; any mismatch → STOP (set-E gold must be regenerated and re-reviewed). Command: `uv run python scripts/build_external_gold.py --verify` (writes nothing) | | | | | to run at the freeze (owner) |
 
 ---
 
