@@ -26,7 +26,7 @@ from dlens.agent.runlog import RunLogger, RunRecord
 from dlens.agent.tools.provenance import graph_files, safe_read
 from dlens.graph import LineageGraph
 from dlens.graph.cache import artifact_cache_dir, load_artifact_cache
-from dlens.graph.report import Report
+from dlens.graph.report import COVERAGE_LEVELS, Coverage
 from dlens.ingest import ArtifactError
 from dlens.ui.view import Hint
 
@@ -157,25 +157,29 @@ def problem(loc: Location) -> Hint | None:
 # -- explore and source (no LLM) -----------------------------------------------------------------
 
 
-def model_rows(graph: LineageGraph, report: Report) -> list[dict[str, Any]]:
-    """One row per model of the parse report, failures first."""
-    order = {"FAILED": 0, "TABLE_ONLY": 1, "FULL": 2}
-    rows = [
-        {
-            "Model": (graph.model_info(m.model) or {}).get("name", m.model),
-            "Parse": m.quality.value,
-            "Reason": m.reason or "",
-            "Gaps": len(m.gaps),
-            "File": (graph.model_info(m.model) or {}).get("file", ""),
-        }
-        for m in report.models
-    ]
-    return sorted(rows, key=lambda r: (order.get(r["Parse"], 3), r["Model"]))
+def model_rows(graph: LineageGraph, coverage: Coverage) -> list[dict[str, Any]]:
+    """One row per parsed model (``coverage_summary`` levels, as ``dlens ingest`` prints them),
+    worst first."""
+    worse = {m.model: m for m in coverage.models}
+    order = {lvl: i for i, lvl in enumerate(reversed(COVERAGE_LEVELS))}
+    rows = []
+    for uid in graph.parse_details():
+        info = graph.model_info(uid) or {}
+        m = worse.get(uid)
+        rows.append(
+            {
+                "Model": info.get("name", uid),
+                "Parse": m.level if m else "FULL",
+                "Why": ", ".join(f"{k} ×{n}" for k, n in m.reasons.items()) if m else "",
+                "File": info.get("file", ""),
+            }
+        )
+    return sorted(rows, key=lambda r: (order[r["Parse"]], r["Model"]))
 
 
-def quality_counts(report: Report) -> dict[str, int]:
-    by = report.totals.models_by_quality
-    return {q: by.get(q, 0) for q in ("FULL", "TABLE_ONLY", "FAILED")}
+def full_share(coverage: Coverage) -> float:
+    total = sum(coverage.counts.values())
+    return coverage.counts.get("FULL", 0) / total if total else 0.0
 
 
 def column_rows(graph: LineageGraph, uid: str) -> list[dict[str, Any]]:

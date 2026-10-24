@@ -10,7 +10,7 @@ import pytest
 
 from dlens.agent.runlog import RunRecord
 from dlens.graph import load_or_build_artifacts
-from dlens.graph.report import build_report
+from dlens.graph.report import coverage_summary
 from dlens.ui import project as proj
 
 EPH = Path(__file__).parents[3] / "fixtures" / "artifacts" / "eph_shop"
@@ -72,10 +72,15 @@ def test_stale_graph_is_not_ingested(ingested: proj.Location) -> None:
 
 def test_explore_rows(ingested: proj.Location) -> None:
     graph = proj.load(ingested)
-    report = build_report(graph)
-    rows = proj.model_rows(graph, report)
+    coverage = coverage_summary(graph)
+    rows = proj.model_rows(graph, coverage)
     assert {r["Model"] for r in rows} >= {"customer_summary", "stg_customers"}
-    assert sum(proj.quality_counts(report).values()) == len(report.models)
+    assert len(rows) == sum(coverage.counts.values()) and proj.full_share(coverage) == 1.0
+    (ingested.target_dir / "catalog.json").unlink()  # catalog-less: customer_orders is PARTIAL
+    graph = load_or_build_artifacts(ingested.target_dir).graph
+    rows = proj.model_rows(graph, coverage_summary(graph))
+    assert rows[0]["Model"] == "customer_orders" and rows[0]["Parse"] == "PARTIAL"
+    assert rows[0]["Why"] == "unexpanded * ×3"
     cols = proj.column_rows(graph, "model.eph_shop.customer_summary")
     assert cols and all(
         set(c) == {"Column", "Type", "Upstream edges", "Downstream edges"} for c in cols

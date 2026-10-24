@@ -347,6 +347,61 @@ def search(
         typer.echo(f"      {first[:100]}")
 
 
+@app.command("ui")
+def ui_cmd(
+    project: Annotated[
+        Path, typer.Option("--project", "-p", help="dbt project directory (ingested).")
+    ] = Path("."),
+    artifacts: Annotated[
+        Path | None,
+        typer.Option("--artifacts", help="Its dbt target/ directory (default: PROJECT/target)."),
+    ] = None,
+    port: Annotated[int, typer.Option("--port", min=1, max=65535, help="Local port.")] = 8501,
+    host: Annotated[
+        str | None,
+        typer.Option("--host", help="Bind address (default 127.0.0.1: this machine only)."),
+    ] = None,
+) -> None:
+    """Open the local UI on a project ingested with `dlens ingest --artifacts` (needs the ui
+    extra). Explore, Trace / Impact and Source need no LLM."""
+    import os
+    import subprocess
+
+    from dlens.ui.project import INSTALL_UI, LOCAL_HOSTS, has_module
+
+    if not has_module("streamlit"):
+        typer.echo(
+            "error: `dlens ui` needs the ui extra (Streamlit). Install it with one of:", err=True
+        )
+        for cmd in INSTALL_UI:
+            typer.echo(f"  {cmd}", err=True)
+        raise typer.Exit(2)
+    from dlens.ui import project as ui_project
+
+    loc = ui_project.locate(project, artifacts)
+    hint = ui_project.problem(loc)
+    if hint is not None:
+        typer.echo(f"error: {hint.title}\n{hint.body}", err=True)
+        if hint.commands:
+            typer.echo("Run:", err=True)
+            for cmd in hint.commands:
+                typer.echo(f"  {cmd}", err=True)
+        raise typer.Exit(2)
+    if host is not None and host not in LOCAL_HOSTS:
+        typer.echo(
+            f"warning: binding to {host}: other machines that can reach it can open the UI "
+            "and read your project's code.",
+            err=True,
+        )
+    address = host or LOCAL_HOSTS[0]
+    typer.echo(f"DLens UI on {loc.project_dir}: http://{address}:{port}  (Ctrl+C to stop)")
+    typer.echo(ui_project.PRIVACY)
+    env = {k: v for k, v in os.environ.items() if k != "DLENS_DEMO"}
+    env.update(ui_project.launch_env(loc))
+    code = subprocess.call(ui_project.launch_command(port, host), env=env)
+    raise typer.Exit(code)
+
+
 def trace_summary(run: AgentRun) -> dict[str, object]:
     rec = run.record
     results = [r for s in rec.steps if s.phase != "code" for r in s.results]
