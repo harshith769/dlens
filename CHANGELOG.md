@@ -142,6 +142,9 @@ All notable changes to this project are documented here. The format follows
   older caches are rebuilt.
 
 ### Fixed
+- Lineage no longer depends on `PYTHONHASHSEED`. When two paths of equal strength reach one
+  (from, to), a total tie-break (expression, then lines, then inputs) picks the edge, so dbt_jira's
+  graph is the same under every seed (ADR 0030, S15e). Artifact caches carry `builder_version` 3.
 - Package models (e.g. every dbt_jira model) cite lines in their own files under
   `<packages-install-path>/<package>/` instead of the whole file. Lineage and the chunker share
   one resolver (`dlens.ingest.paths`). A package that `dbt deps` installed as a symlink is
