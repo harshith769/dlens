@@ -85,7 +85,7 @@ def test_cache_from_an_older_builder_is_rebuilt(project: Path) -> None:
     built = load_or_build_artifacts(target)
     meta_path = built.cache_dir / "meta.json"
     meta = json.loads(meta_path.read_text())
-    assert meta["builder_version"] == BUILDER_VERSION == 2
+    assert meta["builder_version"] == BUILDER_VERSION == 3
     del meta["builder_version"]
     meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
     assert not load_or_build_artifacts(target).reused

@@ -81,7 +81,8 @@ def _sha256(path: Path) -> str | None:
 # What builds an artifact graph, beyond its JSON shape (FORMAT_VERSION): bump it when the same
 # artifacts would now give a different graph, so caches built before the change are rebuilt.
 # 2 (S06b): package models cite their files under the packages install dir.
-BUILDER_VERSION = 2
+# 3 (S15e): deterministic tie-break between equal-strength paths (ADR 0030).
+BUILDER_VERSION = 3
 
 
 def artifact_meta(target_dir: Path, dialect: str) -> dict[str, object]:

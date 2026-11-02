@@ -1,0 +1,24 @@
+{
+  "edges": [
+    {
+      "from": "orders.id",
+      "to": "m.id",
+      "kind": "IDENTITY"
+    },
+    {
+      "from": "orders.amt",
+      "to": "m.amt_mix",
+      "kind": "TRANSFORMATION"
+    }
+  ],
+  "quality": "FULL",
+  "constants": [],
+  "indirect": [
+    {
+      "from": "orders.id",
+      "to": "m.amt_mix",
+      "type": "JOIN"
+    }
+  ],
+  "notes": "orders.amt reaches amt_mix through two CTE branches that transform it differently (both TRANSFORMATION, equal strength); one edge, picked by the total tie-break (ADR 0030), the same under every PYTHONHASHSEED; the JOIN keys resolve to orders.id, whose pair with m.id is dropped as it has a direct edge"
+}

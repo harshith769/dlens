@@ -8,7 +8,7 @@ provenance from the model's source .sql.
 
 import copy
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from graphlib import TopologicalSorter
 from pathlib import Path
@@ -643,11 +643,35 @@ def _indirect(
     return out
 
 
+_TieKey = tuple[str, tuple[int, ...], tuple[str, ...]]
+
+
+def _tie_key(
+    expression: str | None, lines: Sequence[int] | None, inputs: Sequence[str | None] | None
+) -> _TieKey:
+    """A total order between paths of equal strength (ADR 0030): expression, then citation, then
+    the path's inputs, each normalised to one comparable type so no comparison can raise."""
+    return (
+        expression or "",
+        tuple(int(x) for x in lines or ()),
+        tuple("" if i is None else str(i) for i in inputs or ()),
+    )
+
+
+def _wins(new: Edge, new_tie: _TieKey, old: Edge, old_tie: _TieKey) -> bool:
+    """The strongest kind wins, then HIGH over LOW; an exact tie goes to the smaller tie key, so
+    the kept edge doesn't depend on the order sqlglot walked the paths in (a set, hash-seeded)."""
+    strength = (new.kind.rank, new.confidence == Confidence.HIGH)
+    old_strength = (old.kind.rank, old.confidence == Confidence.HIGH)
+    return strength > old_strength or (strength == old_strength and new_tie < old_tie)
+
+
 def _model_edges(
     model: DbtNode, raw: _ModelLineage, file: str, source: str | None, dialect: str
 ) -> list[Edge]:
-    """Classify and cite each path, then keep one edge per (from, to): the strongest kind."""
-    best: dict[tuple[str, str], Edge] = {}
+    """Classify and cite each path, then keep one edge per (from, to): the strongest kind, ties
+    broken by ``_tie_key``."""
+    best: dict[tuple[str, str], tuple[Edge, _TieKey]] = {}
     for upstream, output, steps, inputs, conf, branch in raw.edges:
         kind = path_kind(steps, inputs, upstream.split(".")[-1], output)
         if source is None:
@@ -666,13 +690,11 @@ def _model_edges(
             confidence=conf,
         )
         key = (edge.from_column, edge.to_column)
+        tie = _tie_key(edge.expression, edge.lines, inputs)
         old = best.get(key)
-        if old is None or (edge.kind.rank, edge.confidence == Confidence.HIGH) > (
-            old.kind.rank,
-            old.confidence == Confidence.HIGH,
-        ):
-            best[key] = edge
-    return list(best.values())
+        if old is None or _wins(edge, tie, *old):
+            best[key] = (edge, tie)
+    return [edge for edge, _ in best.values()]
 
 
 def _model_indirect(

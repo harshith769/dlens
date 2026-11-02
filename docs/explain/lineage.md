@@ -112,6 +112,16 @@ relation map) into:
   The `__dbt__cte__` prefix is dbt's fixed naming, so the check is exact and never fires on our
   corpora (they have no ephemeral models). The graphs of both corpora were byte-identical
   before and after this change.
+- **Deterministic tie-break (S15e, ADR 0030).** sqlglot builds a node's `downstream` from a
+  set, so the order `_walk` yields paths follows `PYTHONHASHSEED`. `_model_edges` keeps one edge
+  per (from, to). When two paths are equally strong (same kind, same confidence), the first one
+  seen used to win, and its steps became `expression`. On dbt_jira 4–9 edges' expression text
+  changed between seeds. Now `_wins` compares strength first and then `_tie_key`: the expression
+  string, then the cited lines, then the path's inputs. Each part is normalised (None → `""` or
+  `()`), so the order is total and never raises. Paths are not sorted: the engine still walks
+  sqlglot's order and only the choice is fixed. Line citations did not change on either corpus,
+  and synthetic_shop's graph is byte-identical. `tests/golden/test_hashseed_determinism.py` runs
+  `tied_two_branch` under seeds 0–3 in separate interpreters.
 - **`short_id` only for gold comparison.** The short form collides across packages and sources, so
   it never becomes an identifier inside the graph.
 
@@ -183,6 +193,7 @@ a non-value dependency (join / group / filter / window key) is not an edge yet.
 | `star_exclude_replace` | yes | price is excluded: no output column, no edge |
 | `star_join` | yes | tables share no column names; ON keys are JOIN to every column except their own pass-through |
 | `subquery_from` | yes | GROUP BY inside the derived table targets only total_plus (user_id is direct) |
+| `tied_two_branch` | yes | orders.amt reaches amt_mix through two CTE branches that transform it differently (both TRANSFORMATION, equal strength); one edge, picked by the total tie-break (ADR 0030), the same under every PYTHONHASHSEED; the JOIN keys resolve to orders.id, whose pair with m.id is dropped as it has a direct edge |
 | `union_all_3` | yes | each branch has its own kind: the UNION node is not a step |
 | `union_distinct` | yes | UNION vs UNION ALL changes no edge |
 | `window_sum_partition` | yes | windowed aggregate keeps the row grain; PARTITION BY / ORDER BY keys are WINDOW to running_amt |
@@ -220,3 +231,7 @@ constant in only some UNION branches still has edges and is not recorded.
    raw_orders declares no columns in YAML. What does the parse report say for it, which edge
    survives, and why does `customer_summary` still get HIGH-confidence edges from
    `customer_orders`?
+8. `tied_two_branch` reads `orders.amt` through `lhs` (`amt * 2`) and `rhs` (`amt - 1`). Why did
+   the `m.amt_mix` edge's expression differ between PYTHONHASHSEED 0 and 2 before S15e? Which
+   function now decides between the two paths, which one wins and why, and why doesn't the fix
+   sort the paths in `_walk` instead?

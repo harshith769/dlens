@@ -16,7 +16,7 @@ from dlens.lineage import (
     lineage_for_sql,
     short_id,
 )
-from dlens.lineage.engine import _model_edges
+from dlens.lineage.engine import _model_edges, _tie_key, _wins
 from dlens.lineage.models import Edge
 from dlens.lineage.provenance import locate, select_items
 
@@ -200,6 +200,28 @@ def test_ambiguous_column_gets_low_confidence_edge_per_candidate() -> None:
     edges = _edges("select amt from db.main.orders, db.main.refunds")
     assert set(edges) == {("orders.amt", "m.amt"), ("refunds.amt", "m.amt")}
     assert all(e.confidence == Confidence.LOW for e in edges.values())
+
+
+def test_tie_key_normalises_every_component() -> None:
+    """ADR 0030: the tie key is total; None and mixed types become one comparable form."""
+    assert _tie_key(None, None, None) == ("", (), ())
+    assert _tie_key("a <- b", [3, 4], ["x", None]) == ("a <- b", (3, 4), ("x", ""))
+    assert _tie_key(None, (1, 2), ["x"]) < _tie_key("", (1, 3), ["x"])
+
+
+def test_equal_strength_tie_goes_to_the_smaller_key_in_either_order() -> None:
+    edge = Edge(
+        from_column="o.a", to_column="m.a", kind=EdgeKind.TRANSFORMATION, expression="", file="f",
+        lines=(1, 1),
+    )  # fmt: skip
+    none_tie = _tie_key(None, [1, 1], [None])
+    text_tie = _tie_key("a + 1", (1, 1), ["a"])
+    assert _wins(edge, none_tie, edge, text_tie)
+    assert not _wins(edge, text_tie, edge, none_tie)
+    assert not _wins(edge, none_tie, edge, none_tie)  # an identical candidate never replaces
+    weaker = edge.model_copy(update={"kind": EdgeKind.RENAME})
+    assert not _wins(weaker, none_tie, edge, text_tie)  # strength still decides first
+    assert _wins(edge, text_tie, weaker, none_tie)
 
 
 def test_unmapped_table_is_a_gap() -> None:

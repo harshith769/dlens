@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dlens.ingest import IngestResult
 from dlens.ingest.artifacts import Catalog, Manifest
-from dlens.lineage import IndirectEdge, extract_lineage, short_id
+from dlens.lineage import Edge, IndirectEdge, extract_lineage, short_id
 
 FIXTURES = Path(__file__).parent / "fixtures"
 MODEL = "model.p.m"
@@ -40,6 +40,7 @@ class Result:
     constants: list[str]
     indirect: set[tuple[str, str, str]]  # (from, to, type) as short ids
     indirect_edges: list[IndirectEdge]
+    direct_edges: list[Edge]
     source: str  # the fixture SQL, written as the model's source file models/m.sql
 
 
@@ -83,6 +84,7 @@ def run_sql(sql: str) -> Result:
             for e in getattr(result, "indirect", [])
         },
         indirect_edges=list(result.indirect),
+        direct_edges=list(result.edges),
         source=sql,
     )
 
